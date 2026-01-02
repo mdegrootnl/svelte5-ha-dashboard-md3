@@ -1,0 +1,265 @@
+<script lang="ts">
+    import { themeStore } from "$lib/stores/theme.svelte";
+
+    // MD3 Components
+    import Button from "$lib/components/md3/Button.svelte";
+    import FAB from "$lib/components/md3/FAB.svelte";
+    import Card from "$lib/components/md3/Card.svelte";
+    import TextField from "$lib/components/md3/TextField.svelte";
+    import Chip from "$lib/components/md3/Chip.svelte";
+    import Switch from "$lib/components/md3/Switch.svelte";
+    import Checkbox from "$lib/components/md3/Checkbox.svelte";
+    import Radio from "$lib/components/md3/Radio.svelte";
+
+    // Icons
+    import Settings from "~icons/material-symbols/settings";
+    import Add from "~icons/material-symbols/add";
+    import Edit from "~icons/material-symbols/edit";
+    import Favorite from "~icons/material-symbols/favorite";
+    import Share from "~icons/material-symbols/share";
+    import Search from "~icons/material-symbols/search";
+    import Check from "~icons/material-symbols/check";
+    import Close from "~icons/material-symbols/close";
+
+    let radioValue = $state("option1");
+    let check1 = $state(true);
+    let check2 = $state(false);
+    let switch1 = $state(true);
+    let textFieldValue = $state("");
+
+    // Chips selection
+    let filterSelected = $state(false);
+</script>
+
+<div class="flex h-full w-full overflow-hidden bg-m3-surface">
+    <!-- SIDEBAR: Configuration -->
+    <aside
+        class="w-80 flex-shrink-0 border-r border-m3-outline-variant bg-m3-surface-container-low overflow-y-auto p-6 flex flex-col gap-8"
+    >
+        <header>
+            <h2 class="text-m3-headline-small text-m3-on-surface mb-2">
+                Theme Builder
+            </h2>
+            <p class="text-m3-body-medium text-m3-on-surface-variant">
+                Customize your Material Design 3 theme.
+            </p>
+        </header>
+
+        <!-- Source Color -->
+        <section class="flex flex-col gap-3">
+            <span class="text-m3-label-large text-m3-on-surface"
+                >Source Color</span
+            >
+            <div class="flex items-center gap-4">
+                <input
+                    type="color"
+                    bind:value={themeStore.sourceColor}
+                    class="w-12 h-12 rounded-full cursor-pointer border-none bg-transparent p-0"
+                />
+                <span class="text-m3-body-large text-m3-on-surface font-mono"
+                    >{themeStore.sourceColor}</span
+                >
+            </div>
+        </section>
+
+        <!-- Mode -->
+        <section class="flex items-center justify-between">
+            <span class="text-m3-label-large text-m3-on-surface">Dark Mode</span
+            >
+            <Switch bind:checked={themeStore.isDark} />
+        </section>
+
+        <!-- Core Palette Visualization (Mini) -->
+        <section class="flex flex-col gap-2">
+            <span class="text-m3-label-large text-m3-on-surface"
+                >Core Palette</span
+            >
+            <div class="grid grid-cols-4 gap-2 h-16">
+                <div class="bg-m3-primary h-full rounded-md"></div>
+                <div class="bg-m3-secondary h-full rounded-md"></div>
+                <div class="bg-m3-tertiary h-full rounded-md"></div>
+                <div class="bg-m3-error h-full rounded-md"></div>
+            </div>
+        </section>
+    </aside>
+
+    <!-- PREVIEW: Kitchen Sink -->
+    <main class="flex-1 overflow-y-auto p-8 relative">
+        <div class="max-w-5xl mx-auto flex flex-col gap-12 pb-20">
+            <!-- Header -->
+            <div class="flex flex-col gap-2">
+                <h1 class="text-m3-display-medium text-m3-on-surface">
+                    Component Gallery
+                </h1>
+                <p class="text-m3-body-large text-m3-on-surface-variant">
+                    Live preview of all MD3 components with the generated theme.
+                </p>
+            </div>
+
+            <!-- BUTTONS -->
+            <section class="space-y-4">
+                <h3 class="text-m3-title-medium text-m3-on-surface">Buttons</h3>
+                <div class="flex flex-wrap gap-4 items-center">
+                    <Button variant="filled" onclick={() => {}}>Filled</Button>
+                    <Button variant="tonal" onclick={() => {}}>Tonal</Button>
+                    <Button variant="elevated" onclick={() => {}}
+                        >Elevated</Button
+                    >
+                    <Button variant="outlined" onclick={() => {}}
+                        >Outlined</Button
+                    >
+                    <Button variant="text" onclick={() => {}}>Text</Button>
+                </div>
+                <!-- With Icons -->
+                <div class="flex flex-wrap gap-4 items-center">
+                    <Button variant="filled" icon={Add}>Create</Button>
+                    <Button variant="tonal" icon={Edit}>Edit</Button>
+                    <Button variant="text" icon={Settings}>Settings</Button>
+                </div>
+            </section>
+
+            <!-- FABs -->
+            <section class="space-y-4">
+                <h3 class="text-m3-title-medium text-m3-on-surface">
+                    Floating Action Buttons
+                </h3>
+                <div class="flex flex-wrap items-end gap-6">
+                    <FAB variant="primary" size="small" icon={Add} />
+                    <FAB variant="primary" size="standard" icon={Add} />
+                    <FAB variant="primary" size="large" icon={Add} />
+                    <FAB variant="tertiary" size="standard" icon={Edit} />
+                    <!-- Extended -->
+                    <FAB variant="secondary" icon={Add} label={snippetLabel} />
+                </div>
+            </section>
+
+            <!-- CARDS -->
+            <section class="space-y-4">
+                <h3 class="text-m3-title-medium text-m3-on-surface">Cards</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <Card variant="elevated" class="w-full">
+                        <div class="p-6 flex flex-col gap-2">
+                            <h4 class="text-m3-title-medium text-m3-on-surface">
+                                Elevated Card
+                            </h4>
+                            <p
+                                class="text-m3-body-medium text-m3-on-surface-variant"
+                            >
+                                Surface Container Low + Shadow.
+                            </p>
+                        </div>
+                    </Card>
+                    <Card variant="filled" class="w-full">
+                        <div class="p-6 flex flex-col gap-2">
+                            <h4 class="text-m3-title-medium text-m3-on-surface">
+                                Filled Card
+                            </h4>
+                            <p
+                                class="text-m3-body-medium text-m3-on-surface-variant"
+                            >
+                                Surface Container Highest.
+                            </p>
+                        </div>
+                    </Card>
+                    <Card variant="outlined" class="w-full">
+                        <div class="p-6 flex flex-col gap-2">
+                            <h4 class="text-m3-title-medium text-m3-on-surface">
+                                Outlined Card
+                            </h4>
+                            <p
+                                class="text-m3-body-medium text-m3-on-surface-variant"
+                            >
+                                Surface + Outline Border.
+                            </p>
+                        </div>
+                    </Card>
+                </div>
+            </section>
+
+            <!-- INPUTS -->
+            <section class="space-y-4">
+                <h3 class="text-m3-title-medium text-m3-on-surface">
+                    Text Fields
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl">
+                    <TextField
+                        label="Filled"
+                        placeholder="Enter text..."
+                        bind:value={textFieldValue}
+                        leadingIcon={Search}
+                        supportingText="Supporting text goes here"
+                    />
+                    <TextField
+                        variant="outlined"
+                        label="Outlined"
+                        placeholder="Enter text..."
+                        bind:value={textFieldValue}
+                        trailingIcon={Close}
+                    />
+                    <TextField
+                        label="Error State"
+                        value="Invalid Input"
+                        error={true}
+                        supportingText="Error message"
+                    />
+                </div>
+            </section>
+
+            <!-- CHIPS -->
+            <section class="space-y-4">
+                <h3 class="text-m3-title-medium text-m3-on-surface">Chips</h3>
+                <div class="flex flex-wrap gap-4">
+                    <Chip label="Assist" icon={Favorite} />
+                    <Chip
+                        variant="filter"
+                        label="Filter"
+                        selected={filterSelected}
+                        onclick={() => (filterSelected = !filterSelected)}
+                    />
+                    <Chip variant="input" label="Input" onclose={() => {}} />
+                    <Chip variant="suggestion" label="Suggestion" />
+                </div>
+            </section>
+
+            <!-- SELECTION CONTROLS -->
+            <section class="space-y-4">
+                <h3 class="text-m3-title-medium text-m3-on-surface">
+                    Selection Controls
+                </h3>
+                <div
+                    class="flex flex-col gap-4 p-6 bg-m3-surface-container rounded-xl max-w-md"
+                >
+                    <div class="flex items-center justify-between">
+                        <span class="text-m3-body-large text-m3-on-surface"
+                            >Switch</span
+                        >
+                        <Switch bind:checked={switch1} />
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-m3-body-large text-m3-on-surface"
+                            >Checkbox</span
+                        >
+                        <div class="flex gap-4">
+                            <Checkbox bind:checked={check1} />
+                            <Checkbox bind:checked={check2} />
+                            <Checkbox indeterminate />
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-m3-body-large text-m3-on-surface"
+                            >Radio</span
+                        >
+                        <div class="flex gap-4">
+                            <Radio bind:group={radioValue} value="option1" />
+                            <Radio bind:group={radioValue} value="option2" />
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+
+{#snippet snippetLabel()}
+    Create
+{/snippet}

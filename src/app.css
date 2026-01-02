@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+@theme {
+    /* =========================================
+     Material Design 3 Color Tokens
+     Aesthetic: Smart Home (Azure, Amber, Eco Green)
+     ========================================= */
+
+    /* --- Typography (Type Scale) --- */
+    --font-m3-sans: 'Inter', system-ui, sans-serif;
+
+    /* Display */
+    --text-m3-display-large: 57px;
+    --text-m3-display-medium: 45px;
+    --text-m3-display-small: 36px;
+
+    /* Headline */
+    --text-m3-headline-large: 32px;
+    --text-m3-headline-medium: 28px;
+    --text-m3-headline-small: 24px;
+
+    /* Title */
+    --text-m3-title-large: 22px;
+    --text-m3-title-medium: 16px;
+    --text-m3-title-small: 14px;
+
+    /* Body */
+    --text-m3-body-large: 16px;
+    --text-m3-body-medium: 14px;
+    --text-m3-body-small: 12px;
+
+    /* Label */
+    --text-m3-label-large: 14px;
+    --text-m3-label-medium: 12px;
+    --text-m3-label-small: 11px;
+
+    /* --- Shape (Corner Radius) --- */
+    --radius-m3-xs: 4px;
+    --radius-m3-sm: 8px;
+    --radius-m3-md: 12px;
+    --radius-m3-lg: 16px;
+    --radius-m3-xl: 28px;
+    --radius-m3-full: 9999px;
+
+    /* --- Primary (Electric Azure) --- */
+    --color-m3-primary: oklch(0.623 0.165 242.896);
+    --color-m3-on-primary: oklch(1 0 0);
+    --color-m3-primary-container: oklch(0.90 0.05 240);
+    --color-m3-on-primary-container: oklch(0.20 0.10 240);
+    --color-m3-inverse-primary: oklch(0.80 0.10 240);
+
+    /* --- Secondary (Soft Amber) --- */
+    --color-m3-secondary: oklch(0.78 0.14 70);
+    --color-m3-on-secondary: oklch(0.2 0.05 70);
+    --color-m3-secondary-container: oklch(0.95 0.06 70);
+    --color-m3-on-secondary-container: oklch(0.25 0.04 70);
+
+    /* --- Tertiary (Eco Green) --- */
+    --color-m3-tertiary: oklch(0.65 0.18 145);
+    --color-m3-on-tertiary: oklch(1 0 0);
+    --color-m3-tertiary-container: oklch(0.92 0.06 145);
+    --color-m3-on-tertiary-container: oklch(0.15 0.06 145);
+
+    /* --- Error --- */
+    --color-m3-error: oklch(0.6 0.18 25);
+    --color-m3-on-error: oklch(1 0 0);
+    --color-m3-error-container: oklch(0.95 0.08 25);
+    --color-m3-on-error-container: oklch(0.25 0.10 25);
+
+    /* --- Surface & Background --- */
+    --color-m3-surface: oklch(0.98 0.01 240);
+    --color-m3-on-surface: oklch(0.15 0.02 240);
+    --color-m3-on-surface-variant: oklch(0.35 0.03 240);
+    --color-m3-inverse-surface: oklch(0.20 0.02 240);
+    --color-m3-inverse-on-surface: oklch(0.95 0.01 240);
+
+    /* --- Surface Containers (Depth) --- */
+    --color-m3-surface-container-lowest: oklch(1 0 0);
+    --color-m3-surface-container-low: oklch(0.96 0.01 240);
+    --color-m3-surface-container: oklch(0.94 0.01 240);
+    --color-m3-surface-container-high: oklch(0.92 0.01 240);
+    --color-m3-surface-container-highest: oklch(0.90 0.01 240);
+
+    /* --- Outline --- */
+    --color-m3-outline: oklch(0.50 0.02 240);
+    --color-m3-outline-variant: oklch(0.80 0.01 240);
+    --color-m3-scrim: oklch(0 0 0);
+}
