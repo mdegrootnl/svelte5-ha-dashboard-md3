@@ -4,6 +4,7 @@ import {
     themeFromSourceColor,
     applyTheme,
     Blend,
+    sourceColorFromImage,
     type Theme
 } from '@material/material-color-utilities';
 import { browser } from '$app/environment';
@@ -28,6 +29,11 @@ export class ThemeStore {
                 this.applyToDocument();
             });
         });
+    }
+
+    async setSourceFromImage(image: HTMLImageElement) {
+        const argb = await sourceColorFromImage(image);
+        this.sourceColor = hexFromArgb(argb);
     }
 
     // Apply the current theme to CSS variables

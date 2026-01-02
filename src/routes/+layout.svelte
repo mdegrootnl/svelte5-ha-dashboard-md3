@@ -2,6 +2,7 @@
 	import favicon from "$lib/assets/favicon.svg";
 	import "../app.css";
 	import NavigationRail from "$lib/components/NavigationRail.svelte";
+	import CardConfigDialog from "$lib/components/CardConfigDialog.svelte";
 	import { themeStore } from "$lib/stores/theme.svelte";
 
 	let { children } = $props();
@@ -35,4 +36,5 @@
 	<main class="flex-1 overflow-auto bg-m3-surface">
 		{@render children()}
 	</main>
+	<CardConfigDialog />
 </div>

@@ -4,19 +4,24 @@
     import LayoutDashboard from "~icons/material-symbols/dashboard";
     import Settings from "~icons/material-symbols/settings";
     import Palette from "~icons/material-symbols/palette";
+    import Widgets from "~icons/material-symbols/widgets";
+    import LightMode from "~icons/material-symbols/light-mode";
+    import DarkMode from "~icons/material-symbols/dark-mode";
+    import { themeStore } from "$lib/stores/theme.svelte";
 
     let currentPath = $derived($page.url.pathname);
 
     const links = [
         { href: "/", label: "Home", icon: Home },
         { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { href: "/library", label: "Library", icon: Widgets },
         { href: "/theme", label: "Theme", icon: Palette },
         { href: "/settings", label: "Settings", icon: Settings },
     ];
 </script>
 
 <nav
-    class="flex flex-col items-center py-8 w-20 bg-m3-surface border-r border-m3-outline-variant h-full gap-4"
+    class="relative z-50 flex flex-col items-center py-8 w-20 bg-m3-surface border-r border-m3-outline-variant h-full gap-4"
 >
     {#each links as link}
         {@const isActive =
@@ -52,4 +57,19 @@
             </span>
         </a>
     {/each}
+
+    <!-- Dark Mode Toggle -->
+    <div class="mt-auto mb-4 w-full flex justify-center">
+        <button
+            onclick={() => (themeStore.isDark = !themeStore.isDark)}
+            class="flex items-center justify-center w-12 h-12 rounded-full transition-colors hover:bg-m3-surface-container-highest text-m3-on-surface-variant hover:text-m3-primary"
+            aria-label="Toggle Dark Mode"
+        >
+            {#if themeStore.isDark}
+                <LightMode class="w-6 h-6" />
+            {:else}
+                <DarkMode class="w-6 h-6" />
+            {/if}
+        </button>
+    </div>
 </nav>

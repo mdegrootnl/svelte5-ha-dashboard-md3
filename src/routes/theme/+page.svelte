@@ -20,6 +20,7 @@
     import Search from "~icons/material-symbols/search";
     import Check from "~icons/material-symbols/check";
     import Close from "~icons/material-symbols/close";
+    import ImageIcon from "~icons/material-symbols/image";
 
     let radioValue = $state("option1");
     let check1 = $state(true);
@@ -29,6 +30,26 @@
 
     // Chips selection
     let filterSelected = $state(false);
+    let imagePreview = $state<string | null>(null);
+
+    async function handleImageUpload(e: Event) {
+        const input = e.target as HTMLInputElement;
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                if (e.target?.result) {
+                    imagePreview = e.target.result as string;
+                    // Create image element to pass to MCU
+                    const img = document.createElement("img");
+                    img.src = imagePreview;
+                    await img.decode(); // Wait for load
+                    await themeStore.setSourceFromImage(img);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    }
 </script>
 
 <div class="flex h-full w-full overflow-hidden bg-m3-surface">
@@ -44,6 +65,44 @@
                 Customize your Material Design 3 theme.
             </p>
         </header>
+
+        <!-- Source Image -->
+        <section class="flex flex-col gap-3">
+            <span class="text-m3-label-large text-m3-on-surface"
+                >Source Image</span
+            >
+            <div
+                class="relative w-full aspect-video bg-m3-surface-container-highest rounded-m3-md overflow-hidden flex items-center justify-center cursor-pointer group border border-m3-outline-variant hover:border-m3-primary transition-colors"
+            >
+                <input
+                    type="file"
+                    accept="image/*"
+                    onchange={handleImageUpload}
+                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                />
+                {#if imagePreview}
+                    <img
+                        src={imagePreview}
+                        alt="Source"
+                        class="w-full h-full object-cover"
+                    />
+                    <div
+                        class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                        <span class="text-white text-m3-label-medium"
+                            >Change</span
+                        >
+                    </div>
+                {:else}
+                    <div
+                        class="flex flex-col items-center gap-1 text-m3-on-surface-variant group-hover:text-m3-primary transition-colors"
+                    >
+                        <ImageIcon class="w-8 h-8" />
+                        <span class="text-m3-label-small">Upload</span>
+                    </div>
+                {/if}
+            </div>
+        </section>
 
         <!-- Source Color -->
         <section class="flex flex-col gap-3">

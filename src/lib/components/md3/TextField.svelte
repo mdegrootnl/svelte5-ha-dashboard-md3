@@ -81,7 +81,7 @@
         <!-- Input -->
         <div class="relative flex-1 h-full min-h-[56px]">
             <input
-                {value}
+                bind:value
                 {placeholder}
                 {disabled}
                 {oninput}
