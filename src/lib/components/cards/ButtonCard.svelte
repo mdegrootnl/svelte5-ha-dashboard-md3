@@ -127,7 +127,7 @@
         if (variant === "switch") {
             // Switch: Surface Container High (inactive) vs Primary/Color (active)
             if (isActive) {
-                return "bg-m3-primary text-m3-on-primary";
+                return "bg-m3-primary-container text-m3-on-primary-container shadow-inner";
             } else {
                 return "bg-m3-surface-container-highest text-m3-on-surface";
             }
@@ -145,8 +145,11 @@
 
     // Icon container styles
     let iconStyles = $derived.by(() => {
-        if (isActive) {
+        if (isActive && variant === "switch") {
             return "bg-m3-on-primary/20 text-m3-on-primary";
+        }
+        if (isActive && variant === "slider") {
+            return "bg-m3-primary/20 text-m3-primary";
         }
         return "bg-m3-on-surface/10 text-m3-on-surface-variant";
     });
@@ -299,7 +302,7 @@
         <!-- Active Track: Primary Color -->
         <div
             class="absolute inset-y-0 left-0 transition-all duration-75"
-            style="width: {value}%; background-color: var(--color-m3-primary); opacity: {isActive
+            style="width: {value}%; background-color: var(--color-m3-primary-container); opacity: {isActive
                 ? '1'
                 : '0'};"
         ></div>
@@ -321,15 +324,20 @@
 
         <!-- Text Stack -->
         <div class="flex flex-col flex-1 justify-center min-w-0">
-            <span class="text-sm font-medium leading-tight truncate">
+            <span class="text-sm font-bold leading-tight truncate">
                 {title}
             </span>
             <!-- Always render state span to maintain vertical alignment, just hide it if slider -->
             <span
-                class="text-xs opacity-80 leading-tight truncate transition-opacity"
-                style={variant === "slider" ? "visibility: hidden" : ""}
+                class="text-xs opacity-70 leading-tight truncate transition-opacity"
             >
-                {displayState || "\u00A0"}
+                {#if variant === "slider" && isActive}
+                    {displayState === "On" || !displayState.includes("%")
+                        ? `On · ${value}%`
+                        : displayState}
+                {:else}
+                    {displayState}
+                {/if}
             </span>
         </div>
     </div>
