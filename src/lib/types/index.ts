@@ -1,4 +1,5 @@
 // Entity Types
+export * from './icons';
 export interface HAEntityAttributes {
     friendly_name?: string;
     brightness?: number;

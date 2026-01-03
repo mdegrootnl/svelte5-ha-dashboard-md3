@@ -47,7 +47,7 @@ describe('HAStore', () => {
 
     it('should login and connect', async () => {
         const store = new HAStore();
-        const mockAuth = { data: { hassUrl: 'http://localhost:8123' } };
+        const mockAuth = { data: { hassUrl: 'https://localhost:8123' } };
         const mockConnection = { close: vi.fn() };
 
         vi.mocked(haWS.getAuth).mockResolvedValue(mockAuth as any);
@@ -55,11 +55,11 @@ describe('HAStore', () => {
 
         await store.login('localhost');
 
-        expect(haWS.getAuth).toHaveBeenCalledWith(expect.objectContaining({ hassUrl: 'http://localhost:8123' }));
+        expect(haWS.getAuth).toHaveBeenCalledWith(expect.objectContaining({ hassUrl: 'https://localhost:8123' }));
         // Svelte 5 proxies mean we should check content rather than identity
         expect(store.auth).toEqual(mockAuth);
         expect(store.connection).toEqual(mockConnection);
-        expect(store.url).toBe('http://localhost:8123');
+        expect(store.url).toBe('https://localhost:8123');
         expect(haWS.subscribeEntities).toHaveBeenCalled();
     });
 

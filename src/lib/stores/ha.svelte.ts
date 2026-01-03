@@ -15,6 +15,7 @@ export class HAStore {
     auth = $state<Auth | null>(null);
     url = $state<string | null>(null);
     states = $state<HassEntities>({});
+    error = $state<string | null>(null);
     connected = $derived(!!this.connection);
     user = $state<string | null>(null);
 
@@ -45,11 +46,13 @@ export class HAStore {
         const hassUrl = `${protocol}${host}:${port}`;
 
         try {
+            this.error = null;
             const auth = await getAuth({ hassUrl });
             this.auth = auth;
             await this.connect(auth);
             return true;
         } catch (err) {
+            this.error = err instanceof Error ? err.message : 'Login failed';
             console.error("HA Login Error:", err);
             throw err;
         }
@@ -57,6 +60,7 @@ export class HAStore {
 
     async connect(auth: Auth) {
         try {
+            this.error = null;
             const connection = await createConnection({ auth });
             this.connection = connection;
             this.url = auth.data.hassUrl;
@@ -69,6 +73,7 @@ export class HAStore {
             // Get user info if available (simplified)
             // In a real app we'd fetch config/user
         } catch (err) {
+            this.error = err instanceof Error ? err.message : 'Connection failed';
             console.error("HA Connection Error:", err);
             throw err;
         }
