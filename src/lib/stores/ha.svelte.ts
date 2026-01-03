@@ -41,7 +41,7 @@ export class HAStore {
     }
 
     async login(host: string, port: string = "8123") {
-        const protocol = host.startsWith("http") ? "" : "http://";
+        const protocol = host.startsWith("http") ? "" : "https://";
         const hassUrl = `${protocol}${host}:${port}`;
 
         try {

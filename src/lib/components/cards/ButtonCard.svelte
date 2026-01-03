@@ -1,9 +1,15 @@
 <script lang="ts">
-    import { type Snippet } from "svelte";
+    import {
+        type CardVariant,
+        haStore,
+        cardEditorStore,
+        supportsBrightness,
+        getDomain,
+        getEntityName,
+        calculatePercentage,
+        shouldThrottle,
+    } from "$lib";
     import IconEdit from "~icons/material-symbols/edit";
-    import { haStore } from "$lib/stores/ha.svelte";
-
-    type CardVariant = "switch" | "slider";
 
     interface Props {
         title: string;
@@ -40,44 +46,16 @@
 
     let entity = $derived(entityId ? haStore.getEntity(entityId) : null);
 
-    // Helpers to detect capabilities
-    function supportsBrightness(attr: any) {
-        // Method 1: supported_color_modes contains 'brightness' or other color modes
-        if (attr.supported_color_modes) {
-            return attr.supported_color_modes.some((mode: string) =>
-                [
-                    "brightness",
-                    "hs",
-                    "xy",
-                    "rgb",
-                    "rgbw",
-                    "color_temp",
-                ].includes(mode),
-            );
-        }
-        // Method 2: supported_features bit 1 (1) is brightness.
-        // We'll trust supported_color_modes first as per modern HA, but fallback to features.
-        // Bitwise check: (supported_features & 1) !== 0
-        return (attr.supported_features & 1) !== 0;
-    }
-
     $effect(() => {
         if (entity) {
             // Update Title
-            if (!name) {
-                title =
-                    entity.attributes.friendly_name || entityId || "Unknown";
-            } else {
-                title = name;
-            }
+            title = name || getEntityName(entityId!, entity.attributes);
 
             // Auto-detect Slider capability
-            // If it's a light and supports brightness, verify if we should switch to slider
             if (
                 entity.entity_id.startsWith("light.") &&
                 supportsBrightness(entity.attributes)
             ) {
-                // Only switch if not already (to avoid loops if binding fights back, though strictly it should be fine)
                 if (variant !== "slider") {
                     variant = "slider";
                 }
@@ -87,8 +65,6 @@
             if (entity.state === "on") {
                 isActive = true;
                 displayState = "On";
-                // Only update value from state if NOT "slider" or NOT dragging
-                // If it IS a slider, we handle value below
                 if (variant === "switch") value = 100;
             } else if (entity.state === "off") {
                 isActive = false;
@@ -102,16 +78,12 @@
             }
 
             // Slider value from brightness if available
-            // IMPORTANT: Do NOT update value while dragging to prevent "fighting"
             if (
                 variant === "slider" &&
                 entity.attributes.brightness &&
                 !isDragging
             ) {
-                const pct = Math.round(
-                    (entity.attributes.brightness / 255) * 100,
-                );
-                value = pct;
+                value = Math.round((entity.attributes.brightness / 255) * 100);
             }
         }
     });
@@ -155,8 +127,6 @@
     });
 
     // -- Config Dialog --
-    // We now use the global store to open the dialog
-    import { cardEditorStore } from "$lib/stores/cardEditor.svelte";
 
     function openConfig(e: Event) {
         e.stopPropagation();
@@ -165,7 +135,6 @@
             name: name || "",
             icon: "",
             onSave: (newConfig) => {
-                console.log("Saving config:", newConfig);
                 entityId = newConfig.entityId;
                 name = newConfig.name;
                 // Icon string handling...
@@ -209,24 +178,13 @@
             didMove = true;
         }
 
-        if (didMove) {
-            // Calculate new percentage based on card width
-            // We need a ref to the card element
-            if (cardElement) {
-                const rect = cardElement.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                let pct = Math.round((x / rect.width) * 100);
-                // Clamp
-                pct = Math.max(0, Math.min(100, pct));
+        if (didMove && cardElement) {
+            value = calculatePercentage(e.clientX, cardElement);
 
-                value = pct; // Visual update
-
-                // Throttled service call (e.g., max once every 200ms)
-                const now = Date.now();
-                if (now - lastCallTime > 200) {
-                    handleBrightnessChange(value);
-                    lastCallTime = now;
-                }
+            // Throttled service call
+            if (!shouldThrottle(lastCallTime)) {
+                handleBrightnessChange(value);
+                lastCallTime = Date.now();
             }
         }
     }
@@ -244,20 +202,28 @@
         }
     }
 
+    let lastToggleTime = 0;
+    const TOGGLE_THROTTLE_MS = 500; // Prevent rapid toggle clicks
+
     function handleToggle() {
+        // Rate limit toggle to prevent server flooding
+        if (Date.now() - lastToggleTime < TOGGLE_THROTTLE_MS) {
+            return;
+        }
+        lastToggleTime = Date.now();
+
         if (onclick) {
             onclick();
-            // Do NOT return here. We want both custom callback AND entity logic if applicable.
         }
         if (entityId) {
-            const domain = entityId.split(".")[0];
+            const domain = getDomain(entityId);
             haStore.callService(domain, "toggle", { entity_id: entityId });
         }
     }
 
     function handleBrightnessChange(val: number) {
         if (entityId) {
-            const domain = entityId.split(".")[0];
+            const domain = getDomain(entityId);
             if (domain === "light") {
                 if (val === 0) {
                     haStore.callService(domain, "turn_off", {

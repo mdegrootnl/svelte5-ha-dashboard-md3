@@ -1,11 +1,4 @@
-import { type Snippet } from "svelte";
-
-interface CardConfig {
-    entityId: string;
-    name: string;
-    icon: string;
-    onSave: (config: CardConfig) => void;
-}
+import type { CardConfig } from '$lib/types';
 
 export class CardEditorStore {
     isOpen = $state(false);
@@ -21,7 +14,7 @@ export class CardEditorStore {
     }
 
     save(newConfig: CardConfig) {
-        this.config.onSave(newConfig);
+        this.config.onSave?.(newConfig);
         this.close(); // Close after save
     }
 }

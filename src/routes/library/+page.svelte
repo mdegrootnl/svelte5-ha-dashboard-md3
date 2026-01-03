@@ -1,7 +1,5 @@
 <script lang="ts">
-    import ButtonCard from "$lib/components/cards/ButtonCard.svelte";
-    import MediaCard from "$lib/components/cards/MediaCard.svelte";
-    import { haStore } from "$lib/stores/ha.svelte";
+    import { ButtonCard, MediaCard, haStore, PageShell, Button } from "$lib";
     import Fan from "~icons/material-symbols/mode-fan";
     import Lightbulb from "~icons/material-symbols/lightbulb";
     import VolumeUp from "~icons/material-symbols/volume-up";
@@ -123,100 +121,85 @@
     }
 </script>
 
-<div class="h-full w-full bg-m3-surface overflow-y-auto p-8">
-    <div class="max-w-6xl mx-auto flex flex-col gap-8 pb-20">
-        <!-- Header -->
-        <header class="flex justify-between items-center">
-            <div>
-                <h1 class="text-m3-display-small text-m3-on-surface">
-                    Card Library
-                </h1>
-                <p class="text-m3-body-large text-m3-on-surface-variant mt-2">
-                    Showcase of all available Home Assistant entity cards.
-                </p>
-            </div>
-            <button
-                class="bg-m3-primary text-m3-on-primary px-4 py-2 rounded-m3-full text-m3-label-large font-medium"
-                onclick={loadMockMedia}
-            >
-                Load Mock Media
-            </button>
-        </header>
+<PageShell
+    title="Card Library"
+    description="Showcase of all available Home Assistant entity cards."
+    maxWidth="6xl"
+>
+    {#snippet actions()}
+        <Button variant="filled" onclick={loadMockMedia}>
+            Load Mock Media
+        </Button>
+    {/snippet}
 
-        <!-- Media Cards Section -->
-        <section>
-            <h2 class="text-m3-title-large text-m3-on-surface mb-4">
-                Media Cards
-            </h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Standard Variant -->
-                <div class="flex flex-col gap-2">
-                    <span
-                        class="text-m3-label-medium text-m3-on-surface-variant"
-                        >Standard</span
-                    >
-                    <div class="h-48">
-                        <MediaCard
-                            entityId="media_player.spotify"
-                            variant="standard"
-                        />
-                    </div>
-                </div>
-
-                <!-- Poster Variant (Immersive) -->
-                <div class="flex flex-col gap-2">
-                    <span
-                        class="text-m3-label-medium text-m3-on-surface-variant"
-                        >Poster (Immersive)</span
-                    >
-                    <div class="h-96">
-                        <!-- taller container for poster -->
-                        <MediaCard
-                            entityId="media_player.living_room_tv"
-                            variant="poster"
-                            background="immersive"
-                        />
-                    </div>
-                </div>
-
-                <!-- Condensed Variant -->
-                <div class="flex flex-col gap-2">
-                    <span
-                        class="text-m3-label-medium text-m3-on-surface-variant"
-                        >Condensed</span
-                    >
-                    <div>
-                        <MediaCard
-                            entityId="media_player.kitchen_speaker"
-                            variant="condensed"
-                        />
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section>
-            <h2 class="text-m3-title-large text-m3-on-surface mb-4">
-                Button Cards
-            </h2>
-            <!-- Grid Container -->
-            <div
-                class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-            >
-                {#each cards as card (card.id)}
-                    <ButtonCard
-                        bind:title={card.title}
-                        bind:state={card.state}
-                        icon={card.icon}
-                        variant={card.variant}
-                        bind:isActive={card.isActive}
-                        bind:value={card.value}
-                        bind:entityId={card.entityId}
-                        bind:name={card.name}
-                        onclick={() => console.log(`Clicked card ${card.id}`)}
+    <!-- Media Cards Section -->
+    <section>
+        <h2 class="text-m3-title-large text-m3-on-surface mb-4">Media Cards</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Standard Variant -->
+            <div class="flex flex-col gap-2">
+                <span class="text-m3-label-medium text-m3-on-surface-variant"
+                    >Standard</span
+                >
+                <div class="h-48">
+                    <MediaCard
+                        entityId="media_player.spotify"
+                        variant="standard"
                     />
-                {/each}
+                </div>
             </div>
-        </section>
-    </div>
-</div>
+
+            <!-- Poster Variant (Immersive) -->
+            <div class="flex flex-col gap-2">
+                <span class="text-m3-label-medium text-m3-on-surface-variant"
+                    >Poster (Immersive)</span
+                >
+                <div class="h-96">
+                    <!-- taller container for poster -->
+                    <MediaCard
+                        entityId="media_player.living_room_tv"
+                        variant="poster"
+                        background="immersive"
+                    />
+                </div>
+            </div>
+
+            <!-- Condensed Variant -->
+            <div class="flex flex-col gap-2">
+                <span class="text-m3-label-medium text-m3-on-surface-variant"
+                    >Condensed</span
+                >
+                <div>
+                    <MediaCard
+                        entityId="media_player.kitchen_speaker"
+                        variant="condensed"
+                    />
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2 class="text-m3-title-large text-m3-on-surface mb-4">
+            Button Cards
+        </h2>
+        <!-- Grid Container -->
+        <div
+            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+        >
+            {#each cards as card (card.id)}
+                <ButtonCard
+                    bind:title={card.title}
+                    bind:state={card.state}
+                    icon={card.icon}
+                    variant={card.variant}
+                    bind:isActive={card.isActive}
+                    bind:value={card.value}
+                    bind:entityId={card.entityId}
+                    bind:name={card.name}
+                    onclick={() => {}}
+                />
+            {/each}
+        </div>
+    </section>
+</PageShell>

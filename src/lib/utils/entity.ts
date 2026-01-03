@@ -1,0 +1,35 @@
+import type { HAEntityAttributes } from '$lib/types';
+
+/**
+ * Check if an entity supports brightness control
+ */
+export function supportsBrightness(attributes: HAEntityAttributes): boolean {
+    if (attributes.supported_color_modes) {
+        return attributes.supported_color_modes.some(mode =>
+            ['brightness', 'hs', 'xy', 'rgb', 'rgbw', 'color_temp'].includes(mode)
+        );
+    }
+    return ((attributes.supported_features ?? 0) & 1) !== 0;
+}
+
+/**
+ * Extract domain from entity ID (e.g., "light.living_room" → "light")
+ */
+export function getDomain(entityId: string): string {
+    return entityId.split('.')[0];
+}
+
+/**
+ * Get friendly display name for an entity
+ */
+export function getEntityName(entityId: string, attributes: HAEntityAttributes): string {
+    return attributes.friendly_name || entityId || 'Unknown';
+}
+
+/**
+ * Check if entity is in an active/on state
+ */
+export function isEntityActive(state: string): boolean {
+    return state === 'on' ||
+        (state !== 'off' && state !== 'unavailable' && state !== 'unknown');
+}

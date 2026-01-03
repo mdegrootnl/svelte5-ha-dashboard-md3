@@ -86,3 +86,12 @@
     --color-m3-outline-variant: oklch(0.80 0.01 240);
     --color-m3-scrim: oklch(0 0 0);
 }
+
+/* Fallback for system dark mode to prevent flash before JS hydration */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --color-m3-surface: oklch(0.15 0.02 240);
+        --color-m3-on-surface: oklch(0.95 0.01 240);
+        --color-m3-surface-container: oklch(0.12 0.02 240);
+    }
+}

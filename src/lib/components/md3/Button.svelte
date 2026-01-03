@@ -45,7 +45,7 @@
     class="{baseStyles} {variantStyles[
         variant
     ]} {padding} {className} touch-manipulation cursor-pointer"
-    {onclick}
+    onclick={() => !disabled && onclick?.()}
     {disabled}
 >
     <!-- Ripple overlay could go here, relying on CSS hover/active states for now -->
