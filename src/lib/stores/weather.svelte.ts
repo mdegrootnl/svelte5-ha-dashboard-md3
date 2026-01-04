@@ -101,16 +101,16 @@ export class WeatherStore {
             // HA State is a string like 'partlycloudy'
             const wmoCode = this.mapHAStateToWMO(entity.state);
 
+            // Use sun.sun state to determine is_day
+            const sunState = haStore.states['sun.sun']?.state;
+            // Default to 1 (day) if unknown, but if sun is below_horizon, it is night (0).
+            const isDay = sunState === 'below_horizon' ? 0 : 1;
+
             // Construct 'current' object matching Open-Meteo structure for compatibility
             const current = {
                 temperature_2m: attributes.temperature,
                 weather_code: wmoCode,
-                // HA doesn't strictly provide 'is_day', we calculate it or infer from icon?
-                // Actually we can use sun.sun state if available, or just rely on our new WeatherHero calculation.
-                // But for the mapping to work in store, we might default to 1. 
-                // Wait, WeatherHero uses its own isDayTime calc now.
-                // But let's try to be helpful. 
-                is_day: 1, // Placeholder, WeatherHero logic overrides this.
+                is_day: isDay,
                 relative_humidity_2m: attributes.humidity,
                 wind_speed_10m: attributes.wind_speed,
                 surface_pressure: attributes.pressure,

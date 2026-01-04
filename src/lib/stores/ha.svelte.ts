@@ -170,18 +170,18 @@ export class HAStore {
             const start = startTime.toISOString();
             const end = endTime.toISOString();
             const filter = validEntityIds.join(',');
-            // In dev mode, use relative URL to go through Vite proxy
+            // Use local proxy to avoid CORS issues in production and Vite proxy collisions
             const { dev } = await import('$app/environment');
-            const baseUrl = dev ? '' : this.url;
-            const url = `${baseUrl}/api/history/period/${start}?end_time=${end}&filter_entity_id=${filter}`;
-            console.log("[HA Debug] Request URL:", url);
+            const proxyUrl = `/ha-history?timestamp=${start}&end_time=${end}&filter_entity_id=${filter}`;
+            console.log("[HA Debug] Request URL (Proxy):", proxyUrl);
 
             const response = await fetch(
-                url,
+                proxyUrl,
                 {
                     headers: {
                         Authorization: `Bearer ${this.auth.accessToken}`,
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'x-ha-url': this.url
                     }
                 }
             );

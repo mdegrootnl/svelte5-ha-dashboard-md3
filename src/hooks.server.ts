@@ -15,7 +15,7 @@ export const handle: Handle = async ({ event, resolve }) => {
                 "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
                 "font-src 'self' https://fonts.gstatic.com",
                 "connect-src 'self' ws: wss: http: https:",
-                "img-src 'self' data: https://www.home-assistant.io",
+                "img-src 'self' data: https://www.home-assistant.io https://*.basemaps.cartocdn.com https://*.rainviewer.com https://tile.openstreetmap.org",
                 "frame-ancestors 'none'",
                 "base-uri 'self'",
                 "form-action 'self'"

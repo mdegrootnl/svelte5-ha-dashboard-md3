@@ -184,6 +184,12 @@
                     class:bg-primary={i === currentFrameIndex}
                     class:bg-outline-variant={i !== currentFrameIndex}
                     onclick={() => showFrame(i)}
+                    onkeydown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            showFrame(i);
+                        }
+                    }}
                     role="button"
                     tabindex="0"
                     aria-label={`Frame ${i + 1}`}
