@@ -2,9 +2,11 @@ import {
     getAuth,
     createConnection,
     subscribeEntities,
+    subscribeConfig,
     type Auth,
     type Connection,
     type HassEntities,
+    type HassConfig,
     ERR_HASS_HOST_REQUIRED,
     callService
 } from 'home-assistant-js-websocket';
@@ -16,6 +18,7 @@ export class HAStore {
     auth = $state<Auth | null>(null);
     url = $state<string | null>(null);
     states = $state<HassEntities>({});
+    config = $state<HassConfig | null>(null);
     error = $state<string | null>(null);
     connected = $derived(!!this.connection);
     user = $state<string | null>(null);
@@ -74,6 +77,12 @@ export class HAStore {
                 this.states = states;
             });
 
+            // Subscribe to configuration (location, units, etc.)
+            subscribeConfig(connection, (config) => {
+                console.log("[HA Debug] Config received:", config.latitude, config.longitude);
+                this.config = config;
+            });
+
             // Get user info if available (simplified)
             // In a real app we'd fetch config/user
         } catch (err) {
@@ -112,9 +121,21 @@ export class HAStore {
         return null;
     }
 
-    async callService(domain: string, service: string, serviceData?: object) {
+    async callService(domain: string, service: string, serviceData?: object, target?: object, returnResponse = false) {
         if (!this.connection) return;
-        return callService(this.connection, domain, service, serviceData);
+
+        if (returnResponse) {
+            return this.connection.sendMessagePromise({
+                type: 'call_service',
+                domain,
+                service,
+                service_data: serviceData,
+                target,
+                return_response: true
+            });
+        }
+
+        return callService(this.connection, domain, service, serviceData, target);
     }
 
     /**

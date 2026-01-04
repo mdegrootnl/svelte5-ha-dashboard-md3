@@ -41,8 +41,10 @@
 		"bits-ui": "^2.14.4",
 		"d3-scale": "^4.0.2",
 		"d3-shape": "^3.2.0",
+		"dotenv": "^17.2.3",
 		"home-assistant-js-websocket": "^9.6.0",
 		"leaflet": "^1.9.4",
+		"pexels": "^1.4.0",
 		"tailwindcss": "^4.1.18"
 	}
 }

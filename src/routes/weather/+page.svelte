@@ -6,6 +6,7 @@
     import WeatherGrid from "$lib/components/weather/WeatherGrid.svelte";
     import ForecastList from "$lib/components/weather/ForecastList.svelte";
     import RainRadar from "$lib/components/weather/RainRadarLeaflet.svelte";
+    import RainGraph from "$lib/components/weather/RainGraph.svelte";
 </script>
 
 <PageShell title="Weather">
@@ -54,6 +55,10 @@
                 <span class="text-label-md opacity-60">Buienradar (NL)</span>
             </div>
             <RainRadar />
+
+            <div class="h-[180px] w-full">
+                <RainGraph />
+            </div>
         </div>
     </div>
 </PageShell>

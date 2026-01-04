@@ -29,7 +29,6 @@
     };
 </script>
 
-```svelte
 <div class="h-full w-full bg-m3-surface overflow-y-auto p-8">
     <div class="{widthClasses[maxWidth]} mx-auto flex flex-col gap-8">
         <header class="flex items-start justify-between">

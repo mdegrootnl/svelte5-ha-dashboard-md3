@@ -52,7 +52,7 @@
                             alt=""
                             class="w-8 h-8 lg:w-10 lg:h-10 group-hover:scale-110 transition-transform flex-shrink-0"
                         />
-                        {#if day.precip > 20}
+                        {#if day.precip > 0}
                             <div
                                 class="flex items-center gap-0.5 text-xs lg:text-sm text-primary font-bold bg-primary-container px-1.5 py-0.5 rounded-md whitespace-nowrap flex-shrink-0"
                             >
@@ -60,7 +60,7 @@
                                     class="material-symbols-outlined text-[10px] lg:text-[12px]"
                                     >water_drop</span
                                 >
-                                {day.precip}%
+                                {Math.round(day.precip)}%
                             </div>
                         {/if}
                     </div>

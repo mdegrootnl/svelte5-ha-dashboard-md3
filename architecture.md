@@ -17,6 +17,8 @@ A Material Design 3 dashboard for Home Assistant built with **Svelte 5** and **S
 | HA Integration | [home-assistant-js-websocket](https://github.com/home-assistant/home-assistant-js-websocket) |
 | Testing | [Vitest](https://vitest.dev) + [@testing-library/svelte](https://testing-library.com/svelte) |
 | Icons | [Iconify](https://iconify.design) via unplugin-icons |
+| Data Viz | [D3.js](https://d3js.org) (Graphs) |
+| Maps | [Leaflet](https://leafletjs.com) (Radar) |
 
 ---
 
@@ -127,6 +129,21 @@ class HAStore {
 }
 ```
 
+### WeatherStore (`src/lib/stores/weather.svelte.ts`)
+    
+Manages weather data fetching (HA integration), caching, and normalization:
+
+```typescript
+class WeatherStore {
+    data = $state<WeatherData | null>(null);
+    loading = $state(false);
+    
+    fetch(force?); // Fetches from HA weather entities
+    getIconUrl(code, isDay, isDark); // Maps WMO codes to assets
+    // Features: Throttling (5m), Day/Night calculation, Fallback strategies
+}
+```
+
 ### ThemeStore (`src/lib/stores/theme.svelte.ts`)
 
 Dynamic MD3 theming with CSS custom properties:
@@ -168,6 +185,8 @@ class CardEditorStore {
 | `/library` | Component showcase |
 | `/settings` | Home Assistant connection |
 | `/theme` | Theme builder |
+| `/weather` | Weather dashboard & Rain radar |
+| `/rain-proxy` | Server-side proxy for Buienradar API |
 
 ---
 
