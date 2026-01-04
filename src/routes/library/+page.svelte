@@ -1,5 +1,12 @@
 <script lang="ts">
-    import { ButtonCard, MediaCard, haStore, PageShell, Button } from "$lib";
+    import {
+        ButtonCard,
+        MediaCard,
+        ThermostatCard,
+        haStore,
+        PageShell,
+        Button,
+    } from "$lib";
     import Fan from "~icons/material-symbols/mode-fan";
     import Lightbulb from "~icons/material-symbols/lightbulb";
     import VolumeUp from "~icons/material-symbols/volume-up";
@@ -65,6 +72,19 @@
         },
     ]);
 
+    let thermostat1 = $state({
+        entityId: "climate.diyless_thermostat_1_central_heating",
+        secondaryEntityId:
+            "sensor.diyless_thermostat_1_opentherm_outdoor_temperature",
+        name: "Thermostat",
+        secondaryName: "Outside",
+    });
+
+    let thermostat2 = $state({
+        entityId: "climate.diyless_thermostat_1_central_heating",
+        name: "Central Heating",
+    });
+
     function loadMockMedia() {
         haStore.states = {
             ...haStore.states,
@@ -119,6 +139,73 @@
             },
         };
     }
+
+    function loadMockClimate() {
+        haStore.states = {
+            ...haStore.states,
+            "climate.living_room": {
+                entity_id: "climate.living_room",
+                state: "heat",
+                attributes: {
+                    friendly_name: "Living Room",
+                    current_temperature: 21.5,
+                    temperature: 22,
+                    hvac_mode: "heat",
+                    hvac_action: "heating",
+                    hvac_modes: ["off", "heat", "cool", "auto"],
+                    min_temp: 5,
+                    max_temp: 35,
+                    target_temp_step: 0.5,
+                },
+                last_changed: new Date().toISOString(),
+                last_updated: new Date().toISOString(),
+                context: { id: "c1", parent_id: null, user_id: null },
+            },
+            "sensor.outdoor_temperature": {
+                entity_id: "sensor.outdoor_temperature",
+                state: "3.2",
+                attributes: {
+                    friendly_name: "Outdoor Temperature",
+                    device_class: "temperature",
+                    unit_of_measurement: "°C",
+                },
+                last_changed: new Date().toISOString(),
+                last_updated: new Date().toISOString(),
+                context: { id: "c2", parent_id: null, user_id: null },
+            },
+            "climate.diyless_thermostat_1_central_heating": {
+                entity_id: "climate.diyless_thermostat_1_central_heating",
+                state: "heat",
+                attributes: {
+                    friendly_name: "Diyless Thermostat",
+                    current_temperature: 17.9,
+                    temperature: 20.5,
+                    hvac_mode: "heat",
+                    hvac_action: "heating",
+                    hvac_modes: ["off", "heat"],
+                    min_temp: 5,
+                    max_temp: 35,
+                    target_temp_step: 0.5,
+                },
+                last_changed: new Date().toISOString(),
+                last_updated: new Date().toISOString(),
+                context: { id: "c3", parent_id: null, user_id: null },
+            },
+            "sensor.diyless_thermostat_1_opentherm_outdoor_temperature": {
+                entity_id:
+                    "sensor.diyless_thermostat_1_opentherm_outdoor_temperature",
+                state: "1.5",
+                attributes: {
+                    friendly_name: "Outdoor Temperature",
+                    device_class: "temperature",
+                    unit_of_measurement: "°C",
+                },
+                last_changed: new Date().toISOString(),
+                last_updated: new Date().toISOString(),
+                context: { id: "c4", parent_id: null, user_id: null },
+            },
+        };
+    }
 </script>
 
 <PageShell
@@ -129,6 +216,9 @@
     {#snippet actions()}
         <Button variant="filled" onclick={loadMockMedia}>
             Load Mock Media
+        </Button>
+        <Button variant="tonal" onclick={loadMockClimate}>
+            Load Mock Climate
         </Button>
     {/snippet}
 
@@ -200,6 +290,38 @@
                     onclick={() => {}}
                 />
             {/each}
+        </div>
+    </section>
+
+    <!-- Thermostat Cards Section -->
+    <section>
+        <h2 class="text-m3-title-large text-m3-on-surface mb-4">
+            Thermostat Cards
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- With Secondary Entity -->
+            <div class="flex flex-col gap-2">
+                <span class="text-m3-label-medium text-m3-on-surface-variant"
+                    >With Outdoor Sensor</span
+                >
+                <ThermostatCard
+                    bind:entityId={thermostat1.entityId}
+                    bind:secondaryEntityId={thermostat1.secondaryEntityId}
+                    bind:name={thermostat1.name}
+                    bind:secondaryName={thermostat1.secondaryName}
+                />
+            </div>
+
+            <!-- Without Secondary Entity -->
+            <div class="flex flex-col gap-2">
+                <span class="text-m3-label-medium text-m3-on-surface-variant"
+                    >Basic (No Outdoor Sensor)</span
+                >
+                <ThermostatCard
+                    bind:entityId={thermostat2.entityId}
+                    bind:name={thermostat2.name}
+                />
+            </div>
         </div>
     </section>
 </PageShell>

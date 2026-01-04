@@ -4,16 +4,44 @@
     import { fade, scale } from "svelte/transition";
     import IconClose from "~icons/material-symbols/close";
     import { cardEditorStore } from "$lib/stores/cardEditor.svelte";
+    import type { ThermostatCardConfig } from "$lib/types";
 
     // Computed proxy for cleaner access, though direct store usage is fine
     let isOpen = $derived(cardEditorStore.isOpen);
-    // Flexible binding for local edits
-    let tempConfig = $state({ entityId: "", name: "", icon: "" });
+
+    // Check if this is a thermostat card config
+    let isThermostatCard = $derived(
+        cardEditorStore.config?.type === "thermostat",
+    );
+
+    // Flexible binding for local edits (includes thermostat-specific fields)
+    let tempConfig = $state<{
+        entityId: string;
+        name: string;
+        icon: string;
+        type?: "button" | "thermostat";
+        secondaryEntityId: string;
+        secondaryName: string;
+    }>({
+        entityId: "",
+        name: "",
+        icon: "",
+        secondaryEntityId: "",
+        secondaryName: "",
+    });
 
     // Sync when opening
     $effect(() => {
         if (cardEditorStore.isOpen) {
-            tempConfig = { ...cardEditorStore.config };
+            const config = cardEditorStore.config;
+            tempConfig = {
+                entityId: config.entityId || "",
+                name: config.name || "",
+                icon: config.icon || "",
+                type: config.type,
+                secondaryEntityId: (config as any).secondaryEntityId || "",
+                secondaryName: (config as any).secondaryName || "",
+            };
         }
     });
 
@@ -52,7 +80,7 @@
             <!-- Header -->
             <div class="px-6 pt-6 pb-4 flex items-center justify-between">
                 <h2 class="text-m3-headline-small text-m3-on-surface">
-                    Edit Card
+                    {isThermostatCard ? "Edit Thermostat Card" : "Edit Card"}
                 </h2>
                 <button
                     class="text-m3-on-surface-variant hover:text-m3-on-surface rounded-full p-2 hover:bg-m3-on-surface/10 transition-colors"
@@ -66,13 +94,17 @@
             <div class="px-6 flex flex-col gap-4">
                 <TextField
                     label="Entity ID"
-                    placeholder="light.living_room"
+                    placeholder={isThermostatCard
+                        ? "climate.living_room"
+                        : "light.living_room"}
                     bind:value={tempConfig.entityId}
                     class="w-full"
                 />
                 <TextField
                     label="Custom Name"
-                    placeholder="Living Room Light"
+                    placeholder={isThermostatCard
+                        ? "Binnen"
+                        : "Living Room Light"}
                     bind:value={tempConfig.name}
                     class="w-full"
                 />
@@ -82,6 +114,33 @@
                     bind:value={tempConfig.icon}
                     class="w-full"
                 />
+
+                <!-- Thermostat-specific fields -->
+                {#if isThermostatCard}
+                    <div
+                        class="border-t border-m3-outline-variant/30 pt-4 mt-2"
+                    >
+                        <p
+                            class="text-m3-label-medium text-m3-on-surface-variant mb-3"
+                        >
+                            Secondary Sensor (Optional)
+                        </p>
+                        <TextField
+                            label="Outside Sensor Entity"
+                            placeholder="sensor.outdoor_temperature"
+                            bind:value={tempConfig.secondaryEntityId}
+                            class="w-full"
+                        />
+                        <div class="mt-3">
+                            <TextField
+                                label="Outside Label"
+                                placeholder="Buiten"
+                                bind:value={tempConfig.secondaryName}
+                                class="w-full"
+                            />
+                        </div>
+                    </div>
+                {/if}
             </div>
 
             <!-- Actions -->

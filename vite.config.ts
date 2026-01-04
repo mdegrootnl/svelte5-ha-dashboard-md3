@@ -4,5 +4,13 @@ import Icons from 'unplugin-icons/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-	plugins: [tailwindcss(), sveltekit(), Icons({ compiler: 'svelte' })]
+	plugins: [tailwindcss(), sveltekit(), Icons({ compiler: 'svelte' })],
+	server: {
+		proxy: {
+			'/api': {
+				target: 'http://homeassistant.local:8123',
+				changeOrigin: true,
+			}
+		}
+	}
 });

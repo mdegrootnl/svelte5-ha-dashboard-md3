@@ -20,6 +20,7 @@ export { default as TextField } from './components/md3/TextField.svelte';
 // Card Components
 export { default as ButtonCard } from './components/cards/ButtonCard.svelte';
 export { default as MediaCard } from './components/cards/MediaCard.svelte';
+export { default as ThermostatCard } from './components/cards/ThermostatCard.svelte';
 
 // Layout Components
 export { default as NavigationRail } from './components/NavigationRail.svelte';

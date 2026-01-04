@@ -51,6 +51,63 @@
             reader.readAsDataURL(file);
         }
     }
+    // Tooltip Action
+    function tooltip(node: HTMLElement, text: string) {
+        let tooltipComponent: HTMLDivElement | null = null;
+
+        function handleMouseEnter(event: MouseEvent) {
+            if (tooltipComponent) return;
+
+            tooltipComponent = document.createElement("div");
+            tooltipComponent.textContent = text;
+            tooltipComponent.style.position = "fixed";
+            tooltipComponent.style.background = "#333";
+            tooltipComponent.style.color = "#fff";
+            tooltipComponent.style.padding = "4px 8px";
+            tooltipComponent.style.borderRadius = "4px";
+            tooltipComponent.style.fontSize = "12px";
+            tooltipComponent.style.zIndex = "1000";
+            tooltipComponent.style.pointerEvents = "none";
+
+            // Calculate position
+            const rect = node.getBoundingClientRect();
+            tooltipComponent.style.top = `${rect.bottom + 5}px`;
+            tooltipComponent.style.left = `${rect.left + rect.width / 2}px`;
+            tooltipComponent.style.transform = "translateX(-50%)";
+
+            document.body.appendChild(tooltipComponent);
+        }
+
+        function handleMouseLeave() {
+            if (tooltipComponent && document.body.contains(tooltipComponent)) {
+                document.body.removeChild(tooltipComponent);
+                tooltipComponent = null;
+            }
+        }
+
+        node.addEventListener("mouseenter", handleMouseEnter);
+        node.addEventListener("mouseleave", handleMouseLeave);
+
+        return {
+            destroy() {
+                node.removeEventListener("mouseenter", handleMouseEnter);
+                node.removeEventListener("mouseleave", handleMouseLeave);
+                if (
+                    tooltipComponent &&
+                    document.body.contains(tooltipComponent)
+                ) {
+                    document.body.removeChild(tooltipComponent);
+                    tooltipComponent = null;
+                }
+            },
+            update(newText: string) {
+                text = newText;
+                if (tooltipComponent) {
+                    tooltipComponent.textContent = text;
+                }
+            },
+        };
+    }
 </script>
 
 <div class="flex h-full w-full overflow-hidden bg-m3-surface">
@@ -74,6 +131,7 @@
             >
             <div
                 class="relative w-full aspect-video bg-m3-surface-container-highest rounded-m3-md overflow-hidden flex items-center justify-center cursor-pointer group border border-m3-outline-variant hover:border-m3-primary transition-colors"
+                use:tooltip={"m3-surface-container-highest"}
             >
                 <input
                     type="file"
@@ -135,10 +193,22 @@
                 >Core Palette</span
             >
             <div class="grid grid-cols-4 gap-2 h-16">
-                <div class="bg-m3-primary h-full rounded-md"></div>
-                <div class="bg-m3-secondary h-full rounded-md"></div>
-                <div class="bg-m3-tertiary h-full rounded-md"></div>
-                <div class="bg-m3-error h-full rounded-md"></div>
+                <div
+                    class="bg-m3-primary h-full rounded-md"
+                    use:tooltip={"m3-primary"}
+                ></div>
+                <div
+                    class="bg-m3-secondary h-full rounded-md"
+                    use:tooltip={"m3-secondary"}
+                ></div>
+                <div
+                    class="bg-m3-tertiary h-full rounded-md"
+                    use:tooltip={"m3-tertiary"}
+                ></div>
+                <div
+                    class="bg-m3-error h-full rounded-md"
+                    use:tooltip={"m3-error"}
+                ></div>
             </div>
         </section>
     </aside>
@@ -152,11 +222,25 @@
         <section class="space-y-4">
             <h3 class="text-m3-title-medium text-m3-on-surface">Buttons</h3>
             <div class="flex flex-wrap gap-4 items-center">
-                <Button variant="filled" onclick={() => {}}>Filled</Button>
-                <Button variant="tonal" onclick={() => {}}>Tonal</Button>
-                <Button variant="elevated" onclick={() => {}}>Elevated</Button>
-                <Button variant="outlined" onclick={() => {}}>Outlined</Button>
-                <Button variant="text" onclick={() => {}}>Text</Button>
+                <div use:tooltip={"m3-primary"}>
+                    <Button variant="filled" onclick={() => {}}>Filled</Button>
+                </div>
+                <div use:tooltip={"m3-secondary-container"}>
+                    <Button variant="tonal" onclick={() => {}}>Tonal</Button>
+                </div>
+                <div use:tooltip={"m3-surface-container-low"}>
+                    <Button variant="elevated" onclick={() => {}}
+                        >Elevated</Button
+                    >
+                </div>
+                <div use:tooltip={"m3-outline"}>
+                    <Button variant="outlined" onclick={() => {}}
+                        >Outlined</Button
+                    >
+                </div>
+                <div use:tooltip={"m3-primary (text)"}>
+                    <Button variant="text" onclick={() => {}}>Text</Button>
+                </div>
             </div>
             <!-- With Icons -->
             <div class="flex flex-wrap gap-4 items-center">
@@ -172,12 +256,22 @@
                 Floating Action Buttons
             </h3>
             <div class="flex flex-wrap items-end gap-6">
-                <FAB variant="primary" size="small" icon={Add} />
-                <FAB variant="primary" size="standard" icon={Add} />
-                <FAB variant="primary" size="large" icon={Add} />
-                <FAB variant="tertiary" size="standard" icon={Edit} />
+                <div use:tooltip={"m3-primary-container"}>
+                    <FAB variant="primary" size="small" icon={Add} />
+                </div>
+                <div use:tooltip={"m3-primary-container"}>
+                    <FAB variant="primary" size="standard" icon={Add} />
+                </div>
+                <div use:tooltip={"m3-primary-container"}>
+                    <FAB variant="primary" size="large" icon={Add} />
+                </div>
+                <div use:tooltip={"m3-tertiary-container"}>
+                    <FAB variant="tertiary" size="standard" icon={Edit} />
+                </div>
                 <!-- Extended -->
-                <FAB variant="secondary" icon={Add} label={snippetLabel} />
+                <div use:tooltip={"m3-secondary-container"}>
+                    <FAB variant="secondary" icon={Add} label={snippetLabel} />
+                </div>
             </div>
         </section>
 
@@ -185,42 +279,48 @@
         <section class="space-y-4">
             <h3 class="text-m3-title-medium text-m3-on-surface">Cards</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card variant="elevated" class="w-full">
-                    <div class="p-6 flex flex-col gap-2">
-                        <h4 class="text-m3-title-medium text-m3-on-surface">
-                            Elevated Card
-                        </h4>
-                        <p
-                            class="text-m3-body-medium text-m3-on-surface-variant"
-                        >
-                            Surface Container Low + Shadow.
-                        </p>
-                    </div>
-                </Card>
-                <Card variant="filled" class="w-full">
-                    <div class="p-6 flex flex-col gap-2">
-                        <h4 class="text-m3-title-medium text-m3-on-surface">
-                            Filled Card
-                        </h4>
-                        <p
-                            class="text-m3-body-medium text-m3-on-surface-variant"
-                        >
-                            Surface Container Highest.
-                        </p>
-                    </div>
-                </Card>
-                <Card variant="outlined" class="w-full">
-                    <div class="p-6 flex flex-col gap-2">
-                        <h4 class="text-m3-title-medium text-m3-on-surface">
-                            Outlined Card
-                        </h4>
-                        <p
-                            class="text-m3-body-medium text-m3-on-surface-variant"
-                        >
-                            Surface + Outline Border.
-                        </p>
-                    </div>
-                </Card>
+                <div use:tooltip={"m3-surface-container-low"}>
+                    <Card variant="elevated" class="w-full">
+                        <div class="p-6 flex flex-col gap-2">
+                            <h4 class="text-m3-title-medium text-m3-on-surface">
+                                Elevated Card
+                            </h4>
+                            <p
+                                class="text-m3-body-medium text-m3-on-surface-variant"
+                            >
+                                Surface Container Low + Shadow.
+                            </p>
+                        </div>
+                    </Card>
+                </div>
+                <div use:tooltip={"m3-surface-container-highest"}>
+                    <Card variant="filled" class="w-full">
+                        <div class="p-6 flex flex-col gap-2">
+                            <h4 class="text-m3-title-medium text-m3-on-surface">
+                                Filled Card
+                            </h4>
+                            <p
+                                class="text-m3-body-medium text-m3-on-surface-variant"
+                            >
+                                Surface Container Highest.
+                            </p>
+                        </div>
+                    </Card>
+                </div>
+                <div use:tooltip={"m3-outline-variant"}>
+                    <Card variant="outlined" class="w-full">
+                        <div class="p-6 flex flex-col gap-2">
+                            <h4 class="text-m3-title-medium text-m3-on-surface">
+                                Outlined Card
+                            </h4>
+                            <p
+                                class="text-m3-body-medium text-m3-on-surface-variant"
+                            >
+                                Surface + Outline Border.
+                            </p>
+                        </div>
+                    </Card>
+                </div>
             </div>
         </section>
 
