@@ -2,6 +2,7 @@
 	import favicon from "$lib/assets/favicon.svg";
 	import "../app.css";
 	import NavigationRail from "$lib/components/NavigationRail.svelte";
+	import BottomNav from "$lib/components/BottomNav.svelte";
 	import CardConfigDialog from "$lib/components/CardConfigDialog.svelte";
 	import { themeStore } from "$lib/stores/theme.svelte";
 
@@ -9,10 +10,6 @@
 
 	// Initialize theme effect
 	$effect(() => {
-		// Accessing the store property to ensure reactivity if needed,
-		// though the store's constructor sets up its own root effect.
-		// Merely importing it might be enough if it's effortless, but
-		// using it here ensures it's alive.
 		const _ = themeStore.theme;
 	});
 </script>
@@ -28,13 +25,26 @@
 		href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
 		rel="stylesheet"
 	/>
+	<link
+		href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
+		rel="stylesheet"
+	/>
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<div class="flex h-screen bg-m3-surface">
-	<NavigationRail />
-	<main class="flex-1 overflow-auto bg-m3-surface">
+<div class="flex flex-col md:flex-row h-screen bg-m3-surface overflow-hidden">
+	<div class="hidden md:block h-full">
+		<NavigationRail />
+	</div>
+
+	<main class="flex-1 overflow-auto bg-m3-surface pb-20 md:pb-0">
 		{@render children()}
 	</main>
+
+	<!-- Mobile Bottom Nav -->
+	<div class="md:hidden fixed bottom-0 left-0 right-0 z-50">
+		<BottomNav />
+	</div>
+
 	<CardConfigDialog />
 </div>

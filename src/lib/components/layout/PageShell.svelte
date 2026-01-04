@@ -4,7 +4,7 @@
     interface Props {
         title: string;
         description?: string;
-        maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "4xl" | "6xl";
+        maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "4xl" | "6xl" | "full"; // Added "full"
         children: Snippet;
         actions?: Snippet;
     }
@@ -12,7 +12,7 @@
     let {
         title,
         description,
-        maxWidth = "2xl",
+        maxWidth = "full", // Changed default from "2xl" to "full"
         children,
         actions,
     }: Props = $props();
@@ -25,9 +25,11 @@
         "2xl": "max-w-2xl",
         "4xl": "max-w-4xl",
         "6xl": "max-w-6xl",
+        full: "max-w-full", // Added "full" class
     };
 </script>
 
+```svelte
 <div class="h-full w-full bg-m3-surface overflow-y-auto p-8">
     <div class="{widthClasses[maxWidth]} mx-auto flex flex-col gap-8">
         <header class="flex items-start justify-between">
