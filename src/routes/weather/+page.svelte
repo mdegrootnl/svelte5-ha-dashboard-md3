@@ -5,7 +5,7 @@
     import ForecastStrip from "$lib/components/weather/ForecastStrip.svelte";
     import WeatherGrid from "$lib/components/weather/WeatherGrid.svelte";
     import ForecastList from "$lib/components/weather/ForecastList.svelte";
-    import RainRadar from "$lib/components/weather/RainRadarLeaflet.svelte";
+    import RainRadar from "$lib/components/weather/RainRadar.svelte";
     import RainGraph from "$lib/components/weather/RainGraph.svelte";
 </script>
 

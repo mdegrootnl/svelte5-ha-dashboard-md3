@@ -43,10 +43,10 @@ describe('PageShell Component', () => {
         expect(container.querySelector('.max-w-4xl')).toBeInTheDocument();
     });
 
-    it('uses 2xl max-width by default', () => {
+    it('uses full max-width by default', () => {
         const children = createRawSnippet(() => ({ render: () => '<span>Content</span>' }));
         const { container } = render(PageShell, { props: { title: 'Page', children } });
 
-        expect(container.querySelector('.max-w-2xl')).toBeInTheDocument();
+        expect(container.querySelector('.max-w-full')).toBeInTheDocument();
     });
 });

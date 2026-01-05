@@ -57,6 +57,7 @@ graph TD
         A[+layout.svelte] --> B[NavigationRail]
         A --> C[CardConfigDialog]
         A --> D[PageShell]
+        A --> O[BottomNav]
     end
 
     subgraph MD3 Primitives
@@ -187,6 +188,7 @@ class CardEditorStore {
 | `/theme` | Theme builder |
 | `/weather` | Weather dashboard & Rain radar |
 | `/rain-proxy` | Server-side proxy for Buienradar API |
+| `/ha-history` | Proxy for Home Assistant history API |
 
 ---
 
@@ -228,7 +230,6 @@ All components have corresponding `.test.ts` files:
 - `src/lib/components/md3/*.test.ts` — MD3 primitives
 - `src/lib/components/cards/*.test.ts` — Entity cards
 - `src/lib/components/layout/*.test.ts` — Layout components
-- `src/lib/components/*.test.ts` — NavigationRail, CardConfigDialog
 - `src/lib/stores/*.test.ts` — Store unit tests
 - `src/lib/utils/*.test.ts` — Utility functions
 

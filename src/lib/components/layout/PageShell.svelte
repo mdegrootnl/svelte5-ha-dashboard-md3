@@ -12,7 +12,7 @@
     let {
         title,
         description,
-        maxWidth = "full", // Changed default from "2xl" to "full"
+        maxWidth = "full", // Reverted to "full" per user request
         children,
         actions,
     }: Props = $props();

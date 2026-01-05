@@ -23,7 +23,7 @@ export { default as MediaCard } from './components/cards/MediaCard.svelte';
 export { default as ThermostatCard } from './components/cards/ThermostatCard.svelte';
 
 // Layout Components
-export { default as NavigationRail } from './components/NavigationRail.svelte';
-export { default as CardConfigDialog } from './components/CardConfigDialog.svelte';
+export { default as NavigationRail } from './components/layout/NavigationRail.svelte';
+export { default as CardConfigDialog } from './components/layout/CardConfigDialog.svelte';
 export { default as PageShell } from './components/layout/PageShell.svelte';
 export { default as ErrorBoundary } from './components/layout/ErrorBoundary.svelte';

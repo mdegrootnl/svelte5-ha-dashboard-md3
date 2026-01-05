@@ -7,6 +7,7 @@ vi.mock('home-assistant-js-websocket', () => ({
     getAuth: vi.fn(),
     createConnection: vi.fn(),
     subscribeEntities: vi.fn(),
+    subscribeConfig: vi.fn(),
     callService: vi.fn(),
     createLongLivedTokenAuth: vi.fn(),
     ERR_HASS_HOST_REQUIRED: 'ERR_HASS_HOST_REQUIRED'
@@ -94,7 +95,7 @@ describe('HAStore', () => {
 
         await store.callService('light', 'turn_on', { entity_id: 'light.test' });
 
-        expect(haWS.callService).toHaveBeenCalledWith(mockConnection, 'light', 'turn_on', { entity_id: 'light.test' });
+        expect(haWS.callService).toHaveBeenCalledWith(mockConnection, 'light', 'turn_on', { entity_id: 'light.test' }, undefined);
     });
 
     it('should not call service if not connected', async () => {

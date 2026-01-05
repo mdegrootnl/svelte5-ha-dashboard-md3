@@ -1,9 +1,9 @@
 <script lang="ts">
 	import favicon from "$lib/assets/favicon.svg";
 	import "../app.css";
-	import NavigationRail from "$lib/components/NavigationRail.svelte";
-	import BottomNav from "$lib/components/BottomNav.svelte";
-	import CardConfigDialog from "$lib/components/CardConfigDialog.svelte";
+	import NavigationRail from "$lib/components/layout/NavigationRail.svelte";
+	import BottomNav from "$lib/components/layout/BottomNav.svelte";
+	import CardConfigDialog from "$lib/components/layout/CardConfigDialog.svelte";
 	import { themeStore } from "$lib/stores/theme.svelte";
 
 	let { children } = $props();
