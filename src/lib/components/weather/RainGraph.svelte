@@ -114,11 +114,9 @@
     );
 </script>
 
-<div
-    class="flex flex-col h-full w-full bg-surface-container-low/50 backdrop-blur-sm rounded-xl border border-outline-variant p-4"
->
+<div class="flex flex-col h-full w-full">
     <div class="flex justify-between items-center mb-2">
-        <h3 class="text-title-sm font-medium text-on-surface">
+        <h3 class="text-label-lg font-medium text-on-surface-variant">
             Precipitation (mm/h)
         </h3>
         {#if data.length > 0}

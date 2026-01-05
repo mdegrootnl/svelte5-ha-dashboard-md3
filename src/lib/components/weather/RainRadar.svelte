@@ -159,9 +159,7 @@
     });
 </script>
 
-<div
-    class="relative w-full h-[300px] md:h-[400px] rounded-3xl overflow-hidden border border-outline-variant bg-surface-container"
->
+<div class="relative w-full h-[300px] md:h-[400px] rounded-xl overflow-hidden">
     <!-- Map Container -->
     <div bind:this={mapContainer} class="w-full h-full"></div>
 

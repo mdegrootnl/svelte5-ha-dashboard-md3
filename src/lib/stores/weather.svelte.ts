@@ -5,6 +5,15 @@ interface WeatherState {
     current: any;
     hourly: any[];
     daily: any[];
+    astronomy: {
+        sunrise: Date;
+        sunset: Date;
+    } | null;
+    air_quality: {
+        aqi: number;
+        level: string; // 'Good', 'Moderate', etc.
+        description: string;
+    } | null;
 }
 
 export class WeatherStore {
@@ -113,6 +122,7 @@ export class WeatherStore {
                 is_day: isDay,
                 relative_humidity_2m: attributes.humidity,
                 wind_speed_10m: attributes.wind_speed,
+                wind_direction_10m: attributes.wind_bearing, // Direction in degrees
                 surface_pressure: attributes.pressure,
             };
 
@@ -168,10 +178,85 @@ export class WeatherStore {
                 daily = this.mapHAForecast(attributes.forecast, 'daily');
             }
 
+            // --- Astronomy Data ---
+            let astronomy = null;
+            const sunEntity = haStore.states['sun.sun'];
+            if (sunEntity?.attributes) {
+                // next_rising/setting are timestamps. 
+                // We want today's sunrise/sunset.
+                // If is_day is true, sunset is surely coming up today/tonight.
+                // If is_day is false (night), the next rising is tomorrow morning.
+                // Simple approach: Use next_rising/setting but we mostly need "Event time" for the widget.
+                // Better approach: HA 'sun.sun' attributes are next events.
+                // For a "Sun Path" widget we ideally need today's sunrise & sunset absolute times.
+                // We can approximate by taking next_rising/setting and adjusting date, or finding a proper integration.
+                // Let's use next_rising/next_setting directly for now.
+                astronomy = {
+                    sunrise: new Date(sunEntity.attributes.next_rising),
+                    sunset: new Date(sunEntity.attributes.next_setting)
+                };
+
+                // Fix: 'next_rising' might be tomorrow. If so, we need today's sunrise to show the correct day progress.
+                // If sunrise is after sunset, it means sunrise is following the current sunset (tomorrow).
+                // We want the sunrise *before* the current sunset.
+                if (astronomy.sunrise > astronomy.sunset) {
+                    astronomy.sunrise.setDate(astronomy.sunrise.getDate() - 1);
+                }
+            }
+
+            // --- AQI Data Discovery ---
+            let air_quality = null;
+
+            // Look for AQI sensors in order of preference:
+            // 1. WAQI integration: sensor.waqi_*
+            // 2. Any sensor containing 'aqi' in the name
+            // 3. Air quality entities (air_quality.*)
+            const sensorKeys = Object.keys(haStore.states);
+
+            let aqiEntityId = sensorKeys.find(id =>
+                id.startsWith('sensor.waqi_')
+            ) || sensorKeys.find(id =>
+                id.startsWith('sensor.') && id.toLowerCase().includes('aqi')
+            ) || sensorKeys.find(id =>
+                id.startsWith('air_quality.')
+            );
+
+            if (aqiEntityId) {
+                const aqiEntity = haStore.states[aqiEntityId];
+                let val: number;
+
+                // WAQI and most AQI sensors store the value in state
+                // Air quality entities might store it differently
+                if (aqiEntityId.startsWith('air_quality.')) {
+                    val = parseFloat(aqiEntity.attributes?.air_quality_index ?? aqiEntity.state);
+                } else {
+                    val = parseFloat(aqiEntity.state);
+                }
+
+                if (!isNaN(val)) {
+                    // US AQI banding
+                    let level = 'Good';
+                    let description = 'Air quality is satisfactory';
+                    if (val > 50) { level = 'Moderate'; description = 'Acceptable air quality'; }
+                    if (val > 100) { level = 'Unhealthy for Sensitive'; description = 'Sensitive groups may be affected'; }
+                    if (val > 150) { level = 'Unhealthy'; description = 'Everyone may experience health effects'; }
+                    if (val > 200) { level = 'Very Unhealthy'; description = 'Health alert: serious effects possible'; }
+                    if (val > 300) { level = 'Hazardous'; description = 'Emergency conditions'; }
+
+                    air_quality = {
+                        aqi: val,
+                        level,
+                        description
+                    };
+                }
+            }
+
             this.data = {
                 current,
                 hourly,
-                daily
+                daily,
+                astronomy,
+                air_quality
             };
             this.lastUpdated = new Date();
 

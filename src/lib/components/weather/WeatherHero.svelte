@@ -118,7 +118,7 @@
                     in:fade={{ duration: 1000 }}
                 ></video>
                 <!-- Overlay for legibility -->
-                <div class="absolute inset-0 bg-black/40"></div>
+                <div class="absolute inset-0 bg-black/60"></div>
             </div>
         {/key}
 
