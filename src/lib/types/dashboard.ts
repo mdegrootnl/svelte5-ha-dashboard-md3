@@ -51,9 +51,13 @@ export interface DashboardItem {
 /**
  * Complete grid configuration
  */
+/**
+ * Complete grid configuration (Essentially a single Tab)
+ */
 export interface GridConfig {
     id: string;
     name: string;
+    icon?: string; // Material Symbol icon name
     /** Number of columns (desktop uses 12, mobile uses 4) */
     columns: {
         desktop: number;
@@ -83,6 +87,18 @@ export interface GridConfig {
      */
     columnGap?: number;
 }
+
+/**
+ * Configuration for a Room containing multiple tabs
+ */
+export interface RoomDashboardConfig {
+    id: string;
+    /** Array of tabs, each is a GridConfig */
+    tabs: GridConfig[];
+    /** ID of the currently active tab */
+    activeTabId: string;
+}
+
 
 /**
  * Floor/Room hierarchy from Home Assistant
@@ -119,10 +135,11 @@ export type Breakpoint = "desktop" | "mobile";
 /**
  * Default grid configuration factory
  */
-export function createDefaultGridConfig(name: string = "Dashboard"): GridConfig {
+export function createDefaultGridConfig(name: string = "Dashboard", icon: string = "home"): GridConfig {
     return {
         id: crypto.randomUUID(),
         name,
+        icon,
         columns: {
             desktop: 12,
             mobile: 4

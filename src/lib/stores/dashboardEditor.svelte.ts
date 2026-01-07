@@ -4,7 +4,8 @@ import type {
     DashboardItem,
     ItemLayout,
     Breakpoint,
-    GridConfig
+    GridConfig,
+    RoomDashboardConfig
 } from '$lib/types/dashboard';
 import { dashboardStore } from './dashboard.svelte';
 
@@ -84,6 +85,19 @@ export class DashboardEditorStore {
     }
 
     /**
+     * Helper to get the currently active grid configuration (tab)
+     */
+    private getActiveGrid(): { root: RoomDashboardConfig; tab: GridConfig } | null {
+        const root = dashboardStore.config;
+        if (!root) return null;
+
+        const tab = root.tabs.find(t => t.id === root.activeTabId);
+        if (!tab) return null;
+
+        return { root, tab };
+    }
+
+    /**
      * Start dragging an item
      */
     startDrag(itemId: string) {
@@ -99,8 +113,9 @@ export class DashboardEditorStore {
     updateDragPosition(clientX: number, clientY: number, breakpoint: Breakpoint) {
         if (!this.isDragging || !this.gridRect || !this.dragItemId) return;
 
-        const config = dashboardStore.config;
-        if (!config) return;
+        const context = this.getActiveGrid();
+        if (!context) return;
+        const { tab: config } = context;
 
         const item = config.items.find(i => i.id === this.dragItemId);
         if (!item) return;
@@ -150,8 +165,9 @@ export class DashboardEditorStore {
      * Move an item to new grid position
      */
     moveItem(itemId: string, newCol: number, newRow: number, breakpoint: Breakpoint) {
-        const config = dashboardStore.config;
-        if (!config) return;
+        const context = this.getActiveGrid();
+        if (!context) return;
+        const { root, tab: config } = context;
 
         const item = config.items.find(i => i.id === itemId);
         if (!item) return;
@@ -169,7 +185,7 @@ export class DashboardEditorStore {
         this.resolveCollisions(itemId, breakpoint);
 
         // Save updated config
-        dashboardStore.setConfig(config);
+        dashboardStore.setConfig(root);
     }
 
     /**
@@ -189,8 +205,9 @@ export class DashboardEditorStore {
     updateResize(clientX: number, clientY: number, breakpoint: Breakpoint) {
         if (!this.isResizing || !this.gridRect || !this.resizeItemId) return;
 
-        const config = dashboardStore.config;
-        if (!config) return;
+        const context = this.getActiveGrid();
+        if (!context) return;
+        const { tab: config } = context;
 
         const item = config.items.find(i => i.id === this.resizeItemId);
         if (!item) return;
@@ -238,7 +255,7 @@ export class DashboardEditorStore {
      * End resize and save - resolves collisions by pushing overlapping items down
      */
     endResize(breakpoint: Breakpoint) {
-        if (!this.resizeItemId || !dashboardStore.config) {
+        if (!this.resizeItemId) {
             this.cancelResize();
             return;
         }
@@ -246,7 +263,11 @@ export class DashboardEditorStore {
         // Resolve any collisions caused by the resize
         this.resolveCollisions(this.resizeItemId, breakpoint);
 
-        dashboardStore.setConfig(dashboardStore.config);
+        const context = this.getActiveGrid();
+        if (context) {
+            dashboardStore.setConfig(context.root);
+        }
+
         this.cancelResize();
     }
 
@@ -275,8 +296,9 @@ export class DashboardEditorStore {
      * Resolve collisions by pushing overlapping items down
      */
     resolveCollisions(movedItemId: string, breakpoint: Breakpoint) {
-        const config = dashboardStore.config;
-        if (!config) return;
+        const context = this.getActiveGrid();
+        if (!context) return;
+        const { tab: config } = context;
 
         const movedItem = config.items.find(i => i.id === movedItemId);
         if (!movedItem) return;
@@ -336,8 +358,9 @@ export class DashboardEditorStore {
      * Resize an item's span
      */
     resizeItem(itemId: string, newColSpan: number, newRowSpan: number, breakpoint: Breakpoint) {
-        const config = dashboardStore.config;
-        if (!config) return;
+        const context = this.getActiveGrid();
+        if (!context) return;
+        const { root, tab: config } = context;
 
         const item = config.items.find(i => i.id === itemId);
         if (!item) return;
@@ -356,18 +379,21 @@ export class DashboardEditorStore {
             item.layout.mobile.rowSpan = newRowSpan;
         }
 
-        dashboardStore.setConfig(config);
+        dashboardStore.setConfig(root);
     }
 
     /**
      * Delete the selected item
      */
     deleteSelectedItem() {
-        if (!this.selectedItemId || !dashboardStore.config) return;
+        if (!this.selectedItemId) return;
 
-        const config = dashboardStore.config;
+        const context = this.getActiveGrid();
+        if (!context) return;
+        const { root, tab: config } = context;
+
         config.items = config.items.filter(i => i.id !== this.selectedItemId);
-        dashboardStore.setConfig(config);
+        dashboardStore.setConfig(root);
         this.clearSelection();
     }
 
@@ -375,8 +401,9 @@ export class DashboardEditorStore {
      * Auto-arrange items to fill gaps (simple pack from top-left)
      */
     autoArrange(breakpoint: Breakpoint) {
-        const config = dashboardStore.config;
-        if (!config) return;
+        const context = this.getActiveGrid();
+        if (!context) return;
+        const { root, tab: config } = context;
 
         const columnCount = breakpoint === 'desktop' ? config.columns.desktop : config.columns.mobile;
 
@@ -433,7 +460,7 @@ export class DashboardEditorStore {
             }
         }
 
-        dashboardStore.setConfig(config);
+        dashboardStore.setConfig(root);
     }
 
     /**
@@ -442,11 +469,12 @@ export class DashboardEditorStore {
     updateGridConfig(updates: Partial<Pick<GridConfig,
         'columns' | 'gap' | 'padding' | 'rowHeight' | 'rowGap' | 'columnGap' | 'rows'
     >>) {
-        const config = dashboardStore.config;
-        if (!config) return;
+        const context = this.getActiveGrid();
+        if (!context) return;
+        const { root, tab: config } = context;
 
         Object.assign(config, updates);
-        dashboardStore.setConfig(config);
+        dashboardStore.setConfig(root);
     }
 }
 

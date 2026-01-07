@@ -5,12 +5,11 @@ import type { HassEntities } from 'home-assistant-js-websocket';
 import type {
     GridConfig,
     DashboardItem,
-    ResponsiveLayout,
     DashboardCardType,
-    DashboardHierarchy,
+    RoomDashboardConfig,
     HAArea
 } from '$lib/types/dashboard';
-import { createDefaultGridConfig, createDefaultItemLayout } from '$lib/types/dashboard';
+import { createDefaultGridConfig } from '$lib/types/dashboard';
 
 /**
  * Entity domain to card type mapping
@@ -24,6 +23,15 @@ const DOMAIN_TO_CARD_TYPE: Record<string, DashboardCardType> = {
     'scene': 'button',
     'climate': 'thermostat',
     'media_player': 'media'
+};
+
+/**
+ * Domains for standard tabs
+ */
+const TAB_DOMAINS = {
+    lights: ['light', 'switch', 'button', 'input_boolean', 'script', 'scene'],
+    climate: ['climate', 'fan'],
+    media: ['media_player']
 };
 
 /**
@@ -187,35 +195,74 @@ export function sortEntitiesByPriority(entityIds: string[]): string[] {
     });
 }
 
-/**
- * Generate a complete dashboard configuration from Home Assistant entities
- */
-export function generateDashboardFromHA(
-    entities: HassEntities,
-    name: string = "Auto-Generated Dashboard"
-): GridConfig {
-    // Filter to displayable entities
-    const displayable = filterDisplayableEntities(entities);
-
-    // Sort by priority
-    const sorted = sortEntitiesByPriority(displayable);
-
-    // Map to card types
-    const items = sorted
+function generateTab(name: string, entityIds: string[]): GridConfig {
+    const items = entityIds
         .map(entityId => ({
             entityId,
             cardType: getCardTypeForEntity(entityId)!
         }))
         .filter(item => item.cardType !== null);
 
-    // Pack into grid
     const packedItems = packItemsIntoGrid(items);
 
-    // Create config
     const config = createDefaultGridConfig(name);
     config.items = packedItems;
-
     return config;
+}
+
+/**
+ * Internal helper to generate a room config with standard tabs
+ */
+function createRoomConfig(
+    id: string, // Dashboard ID (optional, can be set later)
+    allEntities: string[] // List of displayable entities
+): RoomDashboardConfig {
+    const tabs: GridConfig[] = [];
+
+    // Categorize entities
+    const lightsEnts = allEntities.filter(e => TAB_DOMAINS.lights.includes(getDomain(e)));
+    const climateEnts = allEntities.filter(e => TAB_DOMAINS.climate.includes(getDomain(e)));
+    const mediaEnts = allEntities.filter(e => TAB_DOMAINS.media.includes(getDomain(e)));
+
+    // "Other" is everything else involved in AllEntities that is NOT in the above lists
+    const processed = new Set([...lightsEnts, ...climateEnts, ...mediaEnts]);
+    const otherEnts = allEntities.filter(e => !processed.has(e));
+
+    // Create tabs if they have content (or always create them? User said "standard set up... 4 tabs")
+    // Let's create all 4 standard tabs, even if empty, so user can see them and add things.
+    // Or maybe only if not empty? 
+    // "The standard set up for each room will be 4 tabs... A user is able to delete these standard tabs".
+    // So we should create them.
+
+    tabs.push(generateTab('Lights', sortEntitiesByPriority(lightsEnts)));
+    tabs.push(generateTab('Climate', sortEntitiesByPriority(climateEnts)));
+    tabs.push(generateTab('Media', sortEntitiesByPriority(mediaEnts)));
+    tabs.push(generateTab('Other', sortEntitiesByPriority(otherEnts)));
+
+    // Ensure we have at least one tab and it is active. 
+    // Tabs are already created.
+
+    // ID generation
+    const configId = id || crypto.randomUUID();
+
+    return {
+        id: configId,
+        tabs,
+        activeTabId: tabs[0].id
+    };
+}
+
+
+/**
+ * Generate a complete dashboard configuration from Home Assistant entities
+ */
+export function generateDashboardFromHA(
+    entities: HassEntities,
+    name: string = "Auto-Generated Dashboard"
+): RoomDashboardConfig {
+    // Filter to displayable entities
+    const displayable = filterDisplayableEntities(entities);
+    return createRoomConfig(crypto.randomUUID(), displayable);
 }
 
 /**
@@ -225,28 +272,14 @@ export function generateDashboardForArea(
     areaName: string,
     entityIds: string[],
     entities: HassEntities
-): GridConfig {
-    // Filter to only entities in the provided list that are displayable
+): RoomDashboardConfig {
+    // Filter to only displayable
     const displayable = entityIds.filter(id => {
         const domain = getDomain(id);
         return DOMAIN_TO_CARD_TYPE[domain] && entities[id];
     });
 
-    const sorted = sortEntitiesByPriority(displayable);
-
-    const items = sorted
-        .map(entityId => ({
-            entityId,
-            cardType: getCardTypeForEntity(entityId)!
-        }))
-        .filter(item => item.cardType !== null);
-
-    const packedItems = packItemsIntoGrid(items);
-
-    const config = createDefaultGridConfig(areaName);
-    config.items = packedItems;
-
-    return config;
+    return createRoomConfig(crypto.randomUUID(), displayable);
 }
 
 /**
@@ -257,7 +290,7 @@ export function generateDashboardForFloor(
     areas: HAArea[],
     areaEntities: Record<string, string[]>,
     entities: HassEntities
-): GridConfig {
+): RoomDashboardConfig {
     // Combine all entities from all areas on this floor
     const allEntityIds: string[] = [];
 
@@ -266,5 +299,12 @@ export function generateDashboardForFloor(
         allEntityIds.push(...areaEnts);
     }
 
-    return generateDashboardForArea(floorName, allEntityIds, entities);
+    // Filter displayable
+    const displayable = allEntityIds.filter(id => {
+        const domain = getDomain(id);
+        return DOMAIN_TO_CARD_TYPE[domain] && entities[id];
+    });
+
+    return createRoomConfig(crypto.randomUUID(), displayable);
 }
+

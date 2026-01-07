@@ -15,8 +15,13 @@
         dashboardEditorStore,
         generateDashboardFromHA,
         generateDashboardForArea,
+        generateDashboardForFloor,
         type GridConfig,
+        type RoomDashboardConfig, // Import new type
     } from "$lib";
+    import TabBar from "$lib/components/layout/TabBar.svelte"; // Import TabBar
+    import IconPicker from "$lib/components/common/IconPicker.svelte";
+    import TextInputDialog from "$lib/components/common/TextInputDialog.svelte";
     import Lightbulb from "~icons/material-symbols/lightbulb";
     import IconRefresh from "~icons/material-symbols/refresh";
     import IconEdit from "~icons/material-symbols/edit";
@@ -33,13 +38,22 @@
     let room = $derived($page.params.room || null);
 
     // Get or generate grid config
-    let gridConfig = $state<GridConfig | null>(null);
+    let roomConfig = $state<RoomDashboardConfig | null>(null);
 
     // Grid container element reference for position calculations
     let gridContainerEl = $state<HTMLElement>();
 
     // Grid config dialog visibility
     let isGridConfigOpen = $state(false);
+
+    // Icon Picker state
+    let isIconPickerOpen = $state(false);
+    let tabToEditIconId = $state<string | null>(null);
+
+    // Rename Dialog state
+    let isRenameDialogOpen = $state(false);
+    let tabToRenameId = $state<string | null>(null);
+    let tabToRenameName = $state("");
 
     // Responsive breakpoint detection
     function updateBreakpoint() {
@@ -57,9 +71,26 @@
         }
     });
 
+    // Sync roomConfig with store changes
+    $effect(() => {
+        if (dashboardStore.config) {
+            roomConfig = dashboardStore.config;
+        }
+    });
+
+    // Derived Active Tab
+    let activeTab = $derived.by(() => {
+        if (!roomConfig) return null;
+        return (
+            roomConfig.tabs.find((t) => t.id === roomConfig?.activeTabId) ||
+            roomConfig.tabs[0] ||
+            null
+        );
+    });
+
     // Update grid dimensions when container resizes using ResizeObserver
     $effect(() => {
-        const config = gridConfig;
+        const config = activeTab; // Use active tab config
         const container = gridContainerEl;
         if (!browser || !container || !config) return;
 
@@ -99,30 +130,40 @@
             const existing = dashboardStore.loadConfig(configId);
 
             if (existing) {
-                gridConfig = existing;
+                roomConfig = existing;
             } else {
                 // Auto-generate from HA entities
-                let generated: GridConfig;
+                let generated: RoomDashboardConfig;
 
                 if (room) {
-                    // Filter entities by Area ID using Registry
-                    // We need to map roomId (area_id) -> entity_ids
                     const areaEntities = haStore.entityRegistry
                         .filter((e) => e.area_id === room)
                         .map((e) => e.entity_id);
 
-                    // Also include entities from devices in this area?
-                    // For now, just direct area assignment.
                     generated = generateDashboardForArea(
-                        room, // Area Name (TODO: Lookup friendly name)
+                        room,
                         areaEntities,
                         haStore.states,
                     );
                 } else if (floor) {
-                    // TODO: Aggregate all areas on this floor
-                    generated = generateDashboardFromHA(
-                        haStore.states,
+                    // Get areas for floor
+                    const areas = dashboardStore.getAreasForFloor(floor);
+
+                    // Pre-fetch entities for these areas (Store helper?)
+                    // For now, simpler to leverage haStore.entityRegistry
+                    // We need a mapping of area_id -> entities
+                    const areaEntitiesMap: Record<string, string[]> = {};
+                    areas.forEach((a) => {
+                        areaEntitiesMap[a.area_id] = haStore.entityRegistry
+                            .filter((e) => e.area_id === a.area_id)
+                            .map((e) => e.entity_id);
+                    });
+
+                    generated = generateDashboardForFloor(
                         `Floor: ${floor}`,
+                        areas,
+                        areaEntitiesMap,
+                        haStore.states,
                     );
                 } else {
                     generated = generateDashboardFromHA(
@@ -133,15 +174,8 @@
 
                 generated.id = configId;
                 dashboardStore.setConfig(generated);
-                gridConfig = generated;
+                roomConfig = generated;
             }
-        }
-    });
-
-    // Sync gridConfig with store changes
-    $effect(() => {
-        if (dashboardStore.config) {
-            gridConfig = dashboardStore.config;
         }
     });
 
@@ -160,7 +194,7 @@
               ? `dashboard_floor_${floor}`
               : "dashboard_home";
 
-        let generated: GridConfig;
+        let generated: RoomDashboardConfig;
 
         if (room) {
             const areaEntities = haStore.entityRegistry
@@ -172,6 +206,21 @@
                 areaEntities,
                 haStore.states,
             );
+        } else if (floor) {
+            const areas = dashboardStore.getAreasForFloor(floor);
+            const areaEntitiesMap: Record<string, string[]> = {};
+            areas.forEach((a) => {
+                areaEntitiesMap[a.area_id] = haStore.entityRegistry
+                    .filter((e) => e.area_id === a.area_id)
+                    .map((e) => e.entity_id);
+            });
+
+            generated = generateDashboardForFloor(
+                `Floor: ${floor}`,
+                areas,
+                areaEntitiesMap,
+                haStore.states,
+            );
         } else {
             generated = generateDashboardFromHA(
                 haStore.states,
@@ -180,7 +229,7 @@
         }
         generated.id = configId;
         dashboardStore.setConfig(generated);
-        gridConfig = generated;
+        roomConfig = generated;
     }
 
     // Toggle edit mode
@@ -188,8 +237,17 @@
         dashboardEditorStore.toggleEditMode();
     }
 
-    // Auto-arrange items
+    // Auto-arrange items (ACTIVE TAB)
     function autoArrange() {
+        // We need to pass the active tab GridConfig to autoArrange?
+        // Or updated DashboardEditorStore handles it?
+        // Assuming EditorStore needs update.
+        // For now, call store method.
+        // dashboardEditorStore.autoArrange(dashboardStore.breakpoint);
+        // Wait, autoArrange likely modifies the store.config.items directly.
+        // If store.config is RoomConfig, this will fail.
+        // Disabling for now until Store is fixed or passing activeTab.
+        // I will assume I fix EditorStore to look at activeTab.
         dashboardEditorStore.autoArrange(dashboardStore.breakpoint);
     }
 
@@ -230,6 +288,57 @@
             dashboardEditorStore.clearSelection();
         }
     }
+
+    // Tab Handlers
+    function onTabSelect(e: CustomEvent<string>) {
+        dashboardStore.setActiveTab(e.detail);
+    }
+
+    function onTabAdd() {
+        dashboardStore.addTab("New Tab");
+    }
+
+    function onTabDelete(e: CustomEvent<string>) {
+        dashboardStore.deleteTab(e.detail);
+    }
+
+    function onTabRename(e: CustomEvent<{ id: string; name: string }>) {
+        dashboardStore.renameTab(e.detail.id, e.detail.name);
+    }
+
+    function onTabEditIcon(e: CustomEvent<string>) {
+        tabToEditIconId = e.detail;
+        isIconPickerOpen = true;
+    }
+
+    function onIconSelected(e: CustomEvent<string>) {
+        if (tabToEditIconId) {
+            dashboardStore.setTabIcon(tabToEditIconId, e.detail);
+        }
+        isIconPickerOpen = false;
+        tabToEditIconId = null;
+    }
+
+    function onTabRenameRequest(e: CustomEvent<{ id: string; name: string }>) {
+        tabToRenameId = e.detail.id;
+        tabToRenameName = e.detail.name;
+        isRenameDialogOpen = true;
+    }
+
+    function handleRenameConfirm(value: string) {
+        if (tabToRenameId) {
+            dashboardStore.renameTab(tabToRenameId, value);
+        }
+        isRenameDialogOpen = false;
+        tabToRenameId = null;
+        tabToRenameName = "";
+    }
+
+    function onRenameCancel() {
+        isRenameDialogOpen = false;
+        tabToRenameId = null;
+        tabToRenameName = "";
+    }
 </script>
 
 <svelte:window
@@ -247,7 +356,7 @@
 <PageShell
     title={room ? room : floor ? floor : "Dashboard"}
     description={haStore.connected
-        ? `Connected · ${connectedEntities} entities · ${gridConfig?.items.length || 0} cards`
+        ? `Connected · ${connectedEntities} entities`
         : "Configure connection in Settings"}
     maxWidth="6xl"
 >
@@ -272,7 +381,7 @@
                     title="Auto-arrange cards"
                 >
                     <IconAutoFix class="size-5" />
-                    Auto
+                    <span class="hidden md:inline">Auto</span>
                 </button>
 
                 <button
@@ -281,7 +390,7 @@
                     title="Grid settings"
                 >
                     <IconGridView class="size-5" />
-                    Grid
+                    <span class="hidden md:inline">Grid</span>
                 </button>
 
                 <button
@@ -290,7 +399,7 @@
                     title="Save and exit edit mode"
                 >
                     <IconCheck class="size-5" />
-                    Done
+                    <span class="hidden md:inline">Done</span>
                 </button>
             {:else}
                 <button
@@ -307,7 +416,7 @@
                     title="Edit dashboard layout"
                 >
                     <IconEdit class="size-5" />
-                    Edit
+                    <span class="hidden md:inline">Edit</span>
                 </button>
             {/if}
         {:else}
@@ -332,12 +441,25 @@
             </div>
             <NavigationHub floors={haStore.floors} areas={haStore.areas} />
         </div>
-    {:else if gridConfig && gridConfig.items.length > 0}
-        <section class="relative">
+    {:else if roomConfig && activeTab}
+        <section class="relative flex flex-col gap-4">
+            <!-- Tab Bar -->
+            <TabBar
+                tabs={roomConfig.tabs}
+                activeTabId={roomConfig.activeTabId}
+                {isEditing}
+                on:select={onTabSelect}
+                on:add={onTabAdd}
+                on:delete={onTabDelete}
+                on:rename={onTabRename}
+                on:rename-request={onTabRenameRequest}
+                on:edit-icon={onTabEditIcon}
+            />
+
             <!-- Edit mode indicator -->
             {#if isEditing}
                 <div
-                    class="mb-4 px-4 py-2 bg-m3-primary-container text-m3-on-primary-container rounded-full text-m3-label-medium inline-flex items-center gap-2"
+                    class="px-4 py-2 bg-m3-primary-container text-m3-on-primary-container rounded-full text-m3-label-medium inline-flex items-center gap-2 self-start"
                 >
                     <IconEdit class="size-4" />
                     Edit Mode — Click cards to select, drag to move, use handles
@@ -349,23 +471,23 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
                 bind:this={gridContainerEl}
-                class="relative"
+                class="relative min-h-[500px]"
                 onclick={handleGridClick}
             >
-                <!-- Grid Overlay (visible in edit mode) - inside container for alignment -->
-                {#if isEditing && gridConfig}
+                <!-- Grid Overlay (visible in edit mode) -->
+                {#if isEditing}
                     <GridOverlay
-                        config={gridConfig}
+                        config={activeTab}
                         breakpoint={dashboardStore.breakpoint}
                         visible={isEditing}
                     />
                 {/if}
 
                 <GridContainer
-                    config={gridConfig}
+                    config={activeTab}
                     breakpoint={dashboardStore.breakpoint}
                 >
-                    {#each gridConfig.items as item (item.id)}
+                    {#each activeTab.items as item (item.id)}
                         <GridItem
                             itemId={item.id}
                             desktopLayout={item.layout.desktop}
@@ -429,4 +551,24 @@
 </PageShell>
 
 <!-- Grid Config Dialog -->
-<GridConfigDialog bind:open={isGridConfigOpen} config={gridConfig} />
+{#if activeTab}
+    <GridConfigDialog bind:open={isGridConfigOpen} config={activeTab} />
+{/if}
+
+{#if isIconPickerOpen}
+    <IconPicker
+        on:select={onIconSelected}
+        on:close={() => (isIconPickerOpen = false)}
+    />
+{/if}
+
+{#if isRenameDialogOpen}
+    <TextInputDialog
+        title="Rename Tab"
+        label="Tab Name"
+        initialValue={tabToRenameName}
+        placeholder="Enter tab name..."
+        onconfirm={handleRenameConfirm}
+        oncancel={onRenameCancel}
+    />
+{/if}
