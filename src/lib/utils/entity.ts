@@ -53,3 +53,37 @@ export function formatTemperature(value: number | undefined | null, unit = '°C'
     if (value === undefined || value === null) return '--';
     return `${value.toFixed(1)} ${unit}`;
 }
+
+/**
+ * Get default icon name for an entity domain
+ */
+export function getEntityIcon(domain: string): string {
+    const iconMap: Record<string, string> = {
+        light: 'lightbulb',
+        switch: 'toggle-on',
+        climate: 'thermostat',
+        sensor: 'sensors',
+        binary_sensor: 'radio-button-checked',
+        media_player: 'play-circle',
+        fan: 'mode-fan',
+        cover: 'blinds',
+        lock: 'lock',
+        camera: 'videocam',
+        vacuum: 'cleaning-services',
+        weather: 'partly-cloudy-day',
+        automation: 'smart-toy',
+        script: 'code',
+        scene: 'palette',
+        group: 'workspaces',
+        input_boolean: 'toggle-on',
+        input_number: 'dialpad',
+        input_text: 'text-fields',
+        input_select: 'list',
+        person: 'person',
+        zone: 'location-on',
+        sun: 'wb-sunny',
+        timer: 'timer',
+        counter: 'plus-one',
+    };
+    return iconMap[domain] || 'devices';
+}

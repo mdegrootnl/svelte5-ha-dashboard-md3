@@ -28,9 +28,11 @@
             "",
     );
     let artworkSrc = $derived(entity?.attributes?.entity_picture || null);
-    let state = $derived(entity?.state);
+    let entityState = $derived(entity?.state);
     let isOff = $derived(
-        state === "off" || state === "idle" || state === "unavailable",
+        entityState === "off" ||
+            entityState === "idle" ||
+            entityState === "unavailable",
     );
 
     // Dynamic theme: only use dark if we have artwork and immersive background
@@ -38,13 +40,26 @@
         background === "immersive" && artworkSrc && !isOff ? "dark" : "light",
     );
 
+    // Responsive Logic
+    let clientHeight = $state(0);
+    // 1 row (<145px): Condensed
+    // 2 rows (<220px): Standard
+    // 3+ rows (>=220px): Poster
+    let effectiveVariant = $derived(
+        clientHeight < 145
+            ? "condensed"
+            : clientHeight < 220
+              ? "standard"
+              : "poster",
+    );
+
     // Dynamic container class
     let containerClass = $derived(
         isOff
-            ? "bg-m3-surface-container-low text-m3-on-surface"
+            ? "bg-m3-surface-container-low text-m3-on-surface overflow-hidden"
             : background === "immersive" && artworkSrc
               ? "relative overflow-hidden"
-              : "bg-m3-surface-container-highest text-m3-on-surface",
+              : "bg-m3-surface-container-highest text-m3-on-surface overflow-hidden",
     );
 
     function turnOn() {
@@ -57,7 +72,6 @@
         cardEditorStore.open({
             entityId: entityId || "",
             name: name || "",
-            icon: "",
             onSave: (newConfig) => {
                 entityId = newConfig.entityId;
                 name = newConfig.name;
@@ -67,7 +81,8 @@
 </script>
 
 <div
-    class={`flex flex-col shadow-sm transition-all ${containerClass} rounded-[var(--radius-m3-lg)] relative group h-full`}
+    class={`flex flex-col w-full shadow-sm transition-all ${containerClass} rounded-[var(--radius-m3-md)] relative group h-full`}
+    bind:clientHeight
 >
     <!-- Immersive Background -->
     {#if background === "immersive" && artworkSrc && !isOff}
@@ -86,30 +101,62 @@
     <!-- Content -->
     {#if isOff}
         <!-- Off State -->
-        <div
-            class="flex flex-col items-center justify-center h-full gap-4 min-h-[150px] z-10 relative p-4"
-        >
-            <PowerOff class="w-12 h-12 text-m3-on-surface-variant opacity-50" />
-            <div class="text-center">
-                <p
-                    class="text-m3-label-small text-m3-on-surface-variant uppercase tracking-wider mb-1"
-                >
-                    {entityName}
-                </p>
-                <p
-                    class="text-m3-body-large text-m3-on-surface-variant font-medium"
-                >
-                    Powered Off
-                </p>
-            </div>
-            <button
-                class="bg-m3-primary text-m3-on-primary px-6 py-2 rounded-full hover:shadow-lg transition-all font-medium"
-                onclick={turnOn}
+        {#if effectiveVariant === "condensed"}
+            <!-- Compact Off State (Horizontal) -->
+            <div
+                class="flex items-center justify-between w-full h-full px-4 z-10 relative"
             >
-                Turn On
-            </button>
-        </div>
-    {:else if variant === "poster"}
+                <div class="flex items-center gap-3 min-w-0">
+                    <PowerOff
+                        class="w-8 h-8 text-m3-on-surface-variant opacity-50 shrink-0"
+                    />
+                    <div class="flex flex-col min-w-0">
+                        <span
+                            class="text-[10px] uppercase tracking-wider text-m3-on-surface-variant truncate"
+                            >{entityName}</span
+                        >
+                        <span
+                            class="text-m3-body-medium text-m3-on-surface-variant font-medium truncate"
+                            >Powered Off</span
+                        >
+                    </div>
+                </div>
+                <button
+                    class="bg-m3-primary text-m3-on-primary px-4 py-1.5 rounded-full hover:shadow-md transition-all text-sm font-medium shrink-0 ml-2"
+                    onclick={turnOn}
+                >
+                    Turn On
+                </button>
+            </div>
+        {:else}
+            <!-- Standard Off State (Vertical) -->
+            <div
+                class="flex flex-col items-center justify-center h-full gap-4 z-10 relative p-4"
+            >
+                <PowerOff
+                    class="w-12 h-12 text-m3-on-surface-variant opacity-50"
+                />
+                <div class="text-center">
+                    <p
+                        class="text-m3-label-small text-m3-on-surface-variant uppercase tracking-wider mb-1"
+                    >
+                        {entityName}
+                    </p>
+                    <p
+                        class="text-m3-body-large text-m3-on-surface-variant font-medium"
+                    >
+                        Powered Off
+                    </p>
+                </div>
+                <button
+                    class="bg-m3-primary text-m3-on-primary px-6 py-2 rounded-full hover:shadow-lg transition-all font-medium"
+                    onclick={turnOn}
+                >
+                    Turn On
+                </button>
+            </div>
+        {/if}
+    {:else if effectiveVariant === "poster"}
         <!-- Poster Variant: Artwork with overlay content -->
         <div class="relative z-10 flex flex-col h-full">
             <!-- Header with Entity Name -->
@@ -170,7 +217,7 @@
                 </div>
             </div>
         </div>
-    {:else if variant === "condensed"}
+    {:else if effectiveVariant === "condensed"}
         <!-- Condensed Variant: Slim row -->
         <div class="flex items-center gap-3 p-3 h-full overflow-hidden">
             {#if artworkSrc}
@@ -211,22 +258,22 @@
         </div>
     {:else}
         <!-- Standard Variant: Row layout -->
-        <div class="flex flex-col h-full p-2.5 gap-2">
-            <div class="flex items-start gap-4">
+        <div class="flex flex-col h-full p-3 gap-1 overflow-hidden">
+            <div class="flex items-start gap-3">
                 {#if artworkSrc}
                     <div class="relative group">
                         <img
                             src={artworkSrc}
                             alt="Cover"
-                            class="h-16 w-16 rounded-[var(--radius-m3-md)] object-cover shadow-md shrink-0"
+                            class="h-14 w-14 rounded-[var(--radius-m3-md)] object-cover shadow-md shrink-0"
                         />
                     </div>
                 {:else}
                     <div
-                        class="h-16 w-16 rounded-[var(--radius-m3-md)] bg-m3-surface-container-highest flex items-center justify-center shrink-0 border border-m3-outline-variant/10"
+                        class="h-14 w-14 rounded-[var(--radius-m3-md)] bg-m3-surface-container-highest flex items-center justify-center shrink-0 border border-m3-outline-variant/10"
                     >
                         <MusicNote
-                            class="w-8 h-8 text-m3-on-surface-variant opacity-40"
+                            class="w-7 h-7 text-m3-on-surface-variant opacity-40"
                         />
                     </div>
                 {/if}
@@ -250,8 +297,10 @@
                 </div>
             </div>
 
-            <div class="flex flex-col gap-2.5 mt-auto">
-                <MediaProgress {entityId} />
+            <div class="flex flex-col gap-1 mt-auto">
+                {#if clientHeight >= 200}
+                    <MediaProgress {entityId} />
+                {/if}
                 <MediaControls {entityId} />
                 <MediaVolume {entityId} />
             </div>

@@ -2,7 +2,6 @@ import {
     argbFromHex,
     hexFromArgb,
     themeFromSourceColor,
-    applyTheme,
     Blend,
     sourceColorFromImage,
     type Theme

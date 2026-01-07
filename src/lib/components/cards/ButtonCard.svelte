@@ -90,9 +90,9 @@
 
     // -- Styling --
 
-    // Base styles: Standard card rounding (rounded-m3-md), fixed height (h-20 approx), transition
+    // Base styles: Standard card rounding (rounded-m3-md), flexible height (min-h-20), transition
     const baseStyles =
-        "relative flex w-full h-20 rounded-m3-md overflow-hidden transition-all duration-200 select-none group";
+        "relative flex w-full h-full min-h-20 rounded-m3-md overflow-hidden transition-all duration-200 select-none group";
 
     // Dynamic background styles
     let backgroundStyles = $derived.by(() => {
@@ -133,7 +133,6 @@
         cardEditorStore.open({
             entityId: entityId || "",
             name: name || "",
-            icon: "",
             onSave: (newConfig) => {
                 entityId = newConfig.entityId;
                 name = newConfig.name;

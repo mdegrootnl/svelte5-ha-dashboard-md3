@@ -35,7 +35,7 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
 
         const targetUrl = `${normalizedHaUrl}/api/history/period/${encodedTimestamp}?end_time=${endTime}&filter_entity_id=${filter}`;
 
-        console.log('[History Proxy] Fetching:', targetUrl);
+        // console.log('[History Proxy] Fetching:', targetUrl);
 
         const res = await fetch(targetUrl, {
             headers: {
@@ -45,21 +45,18 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
         });
 
         if (!res.ok) {
-            console.error(`[History Proxy] Upstream Error: ${res.status} ${res.statusText}`);
+            // console.error(`[History Proxy] Upstream Error: ${res.status} ${res.statusText}`);
             // Return 502 Bad Gateway to distinguish "Proxy not found" (404) from "HA error"
-            throw error(502, `Home Assistant returned ${res.status}: ${res.statusText}`);
+            return new Response(JSON.stringify({ error: 'Upstream Error' }), { status: res.status });
         }
 
         const data = await res.json();
-
         return new Response(JSON.stringify(data), {
-            headers: {
-                'Content-Type': 'application/json'
-            }
+            headers: { 'Content-Type': 'application/json' }
         });
 
     } catch (err: any) {
-        console.error('[History Proxy] Error:', err);
+        // console.error('[History Proxy] Error:', err);
         // If it's already an HttpError (like our 502), rethrow it
         if (err.status) throw err;
 

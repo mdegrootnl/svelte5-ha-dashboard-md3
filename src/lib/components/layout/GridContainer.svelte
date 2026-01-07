@@ -1,0 +1,112 @@
+<script lang="ts">
+    import type {
+        GridConfig,
+        Breakpoint,
+        GridTrack,
+    } from "$lib/types/dashboard";
+    import type { Snippet } from "svelte";
+
+    import { dashboardEditorStore } from "$lib/stores/dashboardEditor.svelte";
+
+    interface Props {
+        config: GridConfig;
+        breakpoint?: Breakpoint;
+        children: Snippet;
+        class?: string;
+    }
+
+    let {
+        config,
+        breakpoint = "desktop",
+        children,
+        class: className = "",
+    }: Props = $props();
+
+    /**
+     * Generate CSS grid-template-columns string from config
+     * Uses minmax(0, 1fr) for "auto" to prevent content from forcing track wider
+     */
+    let gridTemplateCols = $derived.by(() => {
+        const colCount =
+            breakpoint === "desktop"
+                ? config.columns.desktop
+                : config.columns.mobile;
+        // Uniform columns: repeat(N, minmax(0, 1fr))
+        return `repeat(${colCount}, minmax(0, 1fr))`;
+    });
+
+    /**
+     * Generate CSS grid-template-rows string from config
+     * "implicit" → empty (uses grid-auto-rows)
+     * GridTrack[] → explicit sizes
+     */
+    let gridTemplateRows = $derived.by(() => {
+        if (config.rows === "implicit") {
+            // Return empty to let grid-auto-rows define row heights
+            return "";
+        }
+        return config.rows
+            .map((r: GridTrack) =>
+                r.size === "auto"
+                    ? `${config.rowHeight ?? 80}px`
+                    : `${r.size}px`,
+            )
+            .join(" ");
+    });
+
+    // -- Drag Ghost State --
+    let isDragging = $derived(dashboardEditorStore.isDragging);
+    let ghostPos = $derived(dashboardEditorStore.dragGhostPosition);
+    let draggingItem = $derived(
+        isDragging && dashboardEditorStore.dragItemId
+            ? config.items.find((i) => i.id === dashboardEditorStore.dragItemId)
+            : null,
+    );
+    let draggingLayout = $derived(
+        draggingItem
+            ? breakpoint === "desktop"
+                ? draggingItem.layout.desktop
+                : draggingItem.layout.mobile
+            : null,
+    );
+</script>
+
+<div
+    class="grid-container w-full h-full {className}"
+    style:display="grid"
+    style:grid-template-columns={gridTemplateCols}
+    style:grid-template-rows={gridTemplateRows || undefined}
+    style:column-gap="{config.columnGap ?? config.gap}px"
+    style:row-gap="{config.rowGap ?? config.gap}px"
+    style:padding="{config.padding}px"
+    style:grid-auto-rows="{config.rowHeight ?? 80}px"
+>
+    {@render children()}
+
+    <!-- Drag Ghost Outline -->
+    {#if isDragging && ghostPos && draggingLayout}
+        <div
+            class="grid-ghost-item"
+            style:grid-column-start={ghostPos.col}
+            style:grid-row-start={ghostPos.row}
+            style:grid-column-end={`span ${draggingLayout.colSpan}`}
+            style:grid-row-end={`span ${draggingLayout.rowSpan}`}
+        ></div>
+    {/if}
+</div>
+
+<style>
+    .grid-container {
+        /* Ensure grid doesn't overflow container */
+        min-width: 0;
+        min-height: 0;
+    }
+
+    .grid-ghost-item {
+        border: 2px dashed var(--m3-primary);
+        background: color-mix(in srgb, var(--m3-primary) 20%, transparent);
+        border-radius: var(--radius-m3-md, 12px);
+        pointer-events: none;
+        z-index: 0;
+    }
+</style>

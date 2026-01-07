@@ -11,7 +11,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
 
     try {
         const targetUrl = `https://gadgets.buienradar.nl/data/raintext/?lat=${lat}&lon=${lon}`;
-        console.log('[API Proxy] Fetching:', targetUrl);
+        // console.log('[API Proxy] Fetching:', targetUrl);
         const res = await fetch(targetUrl);
 
         if (!res.ok) {
@@ -26,7 +26,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
             }
         });
     } catch (err) {
-        console.error('[API Proxy] Error:', err);
+        // console.error('[API Proxy] Error:', err);
         throw error(500, 'Internal Server Error');
     }
 };

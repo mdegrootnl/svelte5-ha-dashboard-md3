@@ -298,29 +298,46 @@
         <h2 class="text-m3-title-large text-m3-on-surface mb-4">
             Thermostat Cards
         </h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- With Secondary Entity -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Condensed Variant -->
             <div class="flex flex-col gap-2">
                 <span class="text-m3-label-medium text-m3-on-surface-variant"
-                    >With Outdoor Sensor</span
+                    >Condensed</span
                 >
-                <ThermostatCard
-                    bind:entityId={thermostat1.entityId}
-                    bind:secondaryEntityId={thermostat1.secondaryEntityId}
-                    bind:name={thermostat1.name}
-                    bind:secondaryName={thermostat1.secondaryName}
-                />
+                <div class="h-24">
+                    <ThermostatCard
+                        bind:entityId={thermostat2.entityId}
+                        bind:name={thermostat2.name}
+                    />
+                </div>
             </div>
 
-            <!-- Without Secondary Entity -->
+            <!-- Standard Variant -->
             <div class="flex flex-col gap-2">
                 <span class="text-m3-label-medium text-m3-on-surface-variant"
-                    >Basic (No Outdoor Sensor)</span
+                    >Standard</span
                 >
-                <ThermostatCard
-                    bind:entityId={thermostat2.entityId}
-                    bind:name={thermostat2.name}
-                />
+                <div class="h-44">
+                    <ThermostatCard
+                        bind:entityId={thermostat2.entityId}
+                        bind:name={thermostat2.name}
+                    />
+                </div>
+            </div>
+
+            <!-- Expanded Variant -->
+            <div class="flex flex-col gap-2">
+                <span class="text-m3-label-medium text-m3-on-surface-variant"
+                    >Expanded (Immersive)</span
+                >
+                <div class="h-96">
+                    <ThermostatCard
+                        bind:entityId={thermostat1.entityId}
+                        bind:secondaryEntityId={thermostat1.secondaryEntityId}
+                        bind:name={thermostat1.name}
+                        bind:secondaryName={thermostat1.secondaryName}
+                    />
+                </div>
             </div>
         </div>
     </section>

@@ -27,6 +27,8 @@ describe('HAStore', () => {
         expect(store.auth).toBeNull();
         expect(store.states).toEqual({});
         expect(store.connected).toBe(false);
+        expect(store.connectionState).toBe('disconnected');
+        expect(store.connectionError).toBeNull();
     });
 
     it('should load tokens from localStorage', async () => {
@@ -49,7 +51,7 @@ describe('HAStore', () => {
     it('should login and connect', async () => {
         const store = new HAStore();
         const mockAuth = { data: { hassUrl: 'https://localhost:8123' } };
-        const mockConnection = { close: vi.fn() };
+        const mockConnection = { close: vi.fn(), addEventListener: vi.fn() };
 
         vi.mocked(haWS.getAuth).mockResolvedValue(mockAuth as any);
         vi.mocked(haWS.createConnection).mockResolvedValue(mockConnection as any);
@@ -61,7 +63,63 @@ describe('HAStore', () => {
         expect(store.auth).toEqual(mockAuth);
         expect(store.connection).toEqual(mockConnection);
         expect(store.url).toBe('https://localhost:8123');
+        expect(store.connectionState).toBe('connected');
         expect(haWS.subscribeEntities).toHaveBeenCalled();
+    });
+
+    it('should login with long-lived token', async () => {
+        const store = new HAStore();
+        const mockAuth = { data: { hassUrl: 'https://localhost:8123' } };
+        const mockConnection = { close: vi.fn(), addEventListener: vi.fn() };
+
+        vi.mocked(haWS.createLongLivedTokenAuth).mockReturnValue(mockAuth as any);
+        vi.mocked(haWS.createConnection).mockResolvedValue(mockConnection as any);
+
+        await store.loginWithToken('localhost', '8123', 'my-long-lived-token');
+
+        expect(haWS.createLongLivedTokenAuth).toHaveBeenCalledWith('https://localhost:8123', 'my-long-lived-token');
+        expect(store.auth).toEqual(mockAuth);
+        expect(store.connection).toEqual(mockConnection);
+        expect(store.connectionState).toBe('connected');
+
+        // Verify token is saved for reconnection
+        const savedTokens = JSON.parse(localStorage.getItem('hass_tokens') || '{}');
+        expect(savedTokens.type).toBe('long_lived');
+        expect(savedTokens.token).toBe('my-long-lived-token');
+        expect(savedTokens.hassUrl).toBe('https://localhost:8123');
+    });
+
+    it('should set connection state to error on failed login', async () => {
+        const store = new HAStore();
+        vi.mocked(haWS.getAuth).mockRejectedValue(new Error('Invalid credentials'));
+
+        await expect(store.login('localhost')).rejects.toThrow('Invalid credentials');
+
+        expect(store.connectionState).toBe('error');
+        expect(store.connectionError).toBe('Invalid credentials');
+    });
+
+    it('should set connection state to error on failed token login', async () => {
+        const store = new HAStore();
+        const mockAuth = { data: { hassUrl: 'https://localhost:8123' } };
+        vi.mocked(haWS.createLongLivedTokenAuth).mockReturnValue(mockAuth as any);
+        vi.mocked(haWS.createConnection).mockRejectedValue(new Error('Invalid token'));
+
+        await expect(store.loginWithToken('localhost', '8123', 'bad-token')).rejects.toThrow('Invalid token');
+
+        expect(store.connectionState).toBe('error');
+        expect(store.connectionError).toBe('Invalid token');
+    });
+
+    it('should clear error state with clearError', () => {
+        const store = new HAStore();
+        store.connectionState = 'error' as any;
+        store.connectionError = 'Some error';
+
+        store.clearError();
+
+        expect(store.connectionState).toBe('disconnected');
+        expect(store.connectionError).toBeNull();
     });
 
     it('should get entity by ID', () => {
@@ -78,6 +136,7 @@ describe('HAStore', () => {
         const mockConnection = { close: vi.fn() };
         store.connection = mockConnection as any;
         store.auth = { some: 'data' } as any;
+        store.connectionState = 'connected' as any;
         localStorage.setItem('hass_tokens', 'some-data');
 
         await store.disconnect();
@@ -85,6 +144,7 @@ describe('HAStore', () => {
         expect(mockConnection.close).toHaveBeenCalled();
         expect(store.connection).toBeNull();
         expect(store.auth).toBeNull();
+        expect(store.connectionState).toBe('disconnected');
         expect(localStorage.getItem('hass_tokens')).toBeNull();
     });
 
@@ -104,3 +164,4 @@ describe('HAStore', () => {
         expect(haWS.callService).not.toHaveBeenCalled();
     });
 });
+

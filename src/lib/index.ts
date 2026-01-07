@@ -6,6 +6,8 @@ export * from './utils';
 export { haStore, HAStore } from './stores/ha.svelte';
 export { themeStore, ThemeStore } from './stores/theme.svelte';
 export { cardEditorStore, CardEditorStore } from './stores/cardEditor.svelte';
+export { dashboardStore, DashboardStore } from './stores/dashboard.svelte';
+export { dashboardEditorStore, DashboardEditorStore } from './stores/dashboardEditor.svelte';
 
 // MD3 Components
 export { default as Button } from './components/md3/Button.svelte';
@@ -16,6 +18,7 @@ export { default as FAB } from './components/md3/FAB.svelte';
 export { default as Radio } from './components/md3/Radio.svelte';
 export { default as Switch } from './components/md3/Switch.svelte';
 export { default as TextField } from './components/md3/TextField.svelte';
+export { default as EntityPicker } from './components/md3/EntityPicker.svelte';
 
 // Card Components
 export { default as ButtonCard } from './components/cards/ButtonCard.svelte';
@@ -27,3 +30,10 @@ export { default as NavigationRail } from './components/layout/NavigationRail.sv
 export { default as CardConfigDialog } from './components/layout/CardConfigDialog.svelte';
 export { default as PageShell } from './components/layout/PageShell.svelte';
 export { default as ErrorBoundary } from './components/layout/ErrorBoundary.svelte';
+export { default as GridContainer } from './components/layout/GridContainer.svelte';
+export { default as GridItem } from './components/layout/GridItem.svelte';
+export { default as GridOverlay } from './components/layout/GridOverlay.svelte';
+export { default as GridConfigDialog } from './components/layout/GridConfigDialog.svelte';
+
+// Dashboard Types (re-export for convenience)
+export * from './types/dashboard';

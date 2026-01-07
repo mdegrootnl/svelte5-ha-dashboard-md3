@@ -1,6 +1,7 @@
 import {
     getAuth,
     createConnection,
+    createLongLivedTokenAuth,
     subscribeEntities,
     subscribeConfig,
     type Auth,
@@ -11,7 +12,14 @@ import {
     callService
 } from 'home-assistant-js-websocket';
 import { browser } from '$app/environment';
-import type { HistoryData, HistoryDataPoint } from '$lib/types';
+import type { HistoryData, HistoryDataPoint, HAEntityRegistryEntry, HAAreaRegistryEntry, HAFloorRegistryEntry } from '$lib/types';
+import type { HAArea, HAFloor } from '$lib/types/dashboard';
+import { createLogger } from '$lib/utils/logger';
+
+const logger = createLogger('HAStore');
+
+// Connection states for UI feedback
+export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'expired' | 'error';
 
 export class HAStore {
     connection = $state<Connection | null>(null);
@@ -19,9 +27,16 @@ export class HAStore {
     url = $state<string | null>(null);
     states = $state<HassEntities>({});
     config = $state<HassConfig | null>(null);
+    areas = $state<HAArea[]>([]);
+    floors = $state<HAFloor[]>([]);
+    entityRegistry = $state<HAEntityRegistryEntry[]>([]);
     error = $state<string | null>(null);
     connected = $derived(!!this.connection);
     user = $state<string | null>(null);
+
+    // Connection state tracking for UI feedback
+    connectionState = $state<ConnectionState>('disconnected');
+    connectionError = $state<string | null>(null);
 
     // History cache: key is "entityIds:startTime", value is HistoryData[]
     private historyCache = new Map<string, { data: HistoryData[], timestamp: number }>();
@@ -33,8 +48,25 @@ export class HAStore {
     }
 
     async init() {
+        // Check for long-lived token first
+        const stored = await this.loadTokens();
+        if (stored?.type === 'long_lived' && stored.token && stored.hassUrl) {
+            try {
+                const auth = createLongLivedTokenAuth(stored.hassUrl, stored.token);
+                this.auth = auth;
+                await this.connect(auth);
+                return;
+            } catch (err) {
+                logger.error("Token reconnect failed:", err);
+                this.connectionState = 'expired';
+                this.connectionError = 'Saved token is invalid or expired. Please re-enter your credentials.';
+                localStorage.removeItem('hass_tokens');
+                return;
+            }
+        }
+
+        // Fall through to OAuth flow
         try {
-            // Try to load saved auth
             const auth = await getAuth({ saveTokens: this.saveTokens.bind(this), loadTokens: this.loadTokens.bind(this) });
             if (auth) {
                 this.auth = auth;
@@ -42,7 +74,7 @@ export class HAStore {
             }
         } catch (err) {
             if (err !== ERR_HASS_HOST_REQUIRED) {
-                console.error("HA Init Error:", err);
+                logger.error("HA Init Error:", err);
             }
             // Expected if no auth saved
         }
@@ -52,25 +84,75 @@ export class HAStore {
         const protocol = host.startsWith("http") ? "" : "https://";
         const hassUrl = `${protocol}${host}:${port}`;
 
+        this.connectionState = 'connecting';
+        this.connectionError = null;
+
         try {
             this.error = null;
-            const auth = await getAuth({ hassUrl });
+            // CRITICAL: Must pass saveTokens/loadTokens for OAuth token refresh to work
+            // Without these, tokens are not persisted and cannot be refreshed when they expire
+            const auth = await getAuth({
+                hassUrl,
+                saveTokens: this.saveTokens.bind(this),
+                loadTokens: this.loadTokens.bind(this)
+            });
             this.auth = auth;
             await this.connect(auth);
             return true;
         } catch (err) {
-            this.error = err instanceof Error ? err.message : 'Login failed';
-            console.error("HA Login Error:", err);
+            this.connectionState = 'error';
+            this.connectionError = err instanceof Error ? err.message : 'Login failed';
+            this.error = this.connectionError;
+            logger.error("HA Login Error:", err);
+            throw err;
+        }
+    }
+
+    /**
+     * Login using a long-lived access token
+     * Use this for internal network deployments where OAuth redirects are problematic
+     */
+    async loginWithToken(host: string, port: string = "8123", token: string) {
+        const protocol = host.startsWith("http") ? "" : "https://";
+        const hassUrl = `${protocol}${host}:${port}`;
+
+        this.connectionState = 'connecting';
+        this.connectionError = null;
+
+        try {
+            this.error = null;
+            const auth = createLongLivedTokenAuth(hassUrl, token);
+            this.auth = auth;
+            await this.connect(auth);
+            // Store token info for reconnection
+            this.saveTokens({ hassUrl, token, type: 'long_lived' });
+            return true;
+        } catch (err) {
+            this.connectionState = 'error';
+            this.connectionError = err instanceof Error ? err.message : 'Token login failed';
+            this.error = this.connectionError;
+            logger.error("HA Token Login Error:", err);
             throw err;
         }
     }
 
     async connect(auth: Auth) {
+        this.connectionState = 'connecting';
+
         try {
             this.error = null;
             const connection = await createConnection({ auth });
             this.connection = connection;
             this.url = auth.data.hassUrl;
+            this.connectionState = 'connected';
+            this.connectionError = null;
+
+            // Listen for connection close/error
+            connection.addEventListener('disconnected', () => {
+                this.connection = null;
+                this.connectionState = 'expired';
+                this.connectionError = 'Connection lost. Token may be revoked or Home Assistant is unavailable.';
+            });
 
             // Subscribe to all entities
             subscribeEntities(connection, (states) => {
@@ -79,15 +161,20 @@ export class HAStore {
 
             // Subscribe to configuration (location, units, etc.)
             subscribeConfig(connection, (config) => {
-                console.log("[HA Debug] Config received:", config.latitude, config.longitude);
+                logger.debug("Config received:", config.latitude, config.longitude);
                 this.config = config;
             });
+
+            // Fetch Registries (Areas/Floors)
+            this.fetchRegistries();
 
             // Get user info if available (simplified)
             // In a real app we'd fetch config/user
         } catch (err) {
-            this.error = err instanceof Error ? err.message : 'Connection failed';
-            console.error("HA Connection Error:", err);
+            this.connectionState = 'error';
+            this.connectionError = err instanceof Error ? err.message : 'Connection failed';
+            this.error = this.connectionError;
+            logger.error("HA Connection Error:", err);
             throw err;
         }
     }
@@ -102,8 +189,20 @@ export class HAStore {
             this.connection = null;
         }
         this.auth = null;
-        // In a real implementation we might want to revoke tokens or clear storage
+        this.connectionState = 'disconnected';
+        this.connectionError = null;
+        // Clear stored tokens
         localStorage.removeItem('hass_tokens');
+    }
+
+    /**
+     * Clear connection error state (for reconnect UI)
+     */
+    clearError() {
+        this.connectionError = null;
+        if (this.connectionState === 'error' || this.connectionState === 'expired') {
+            this.connectionState = 'disconnected';
+        }
     }
 
     // Custom Token Storage to ensure persistence
@@ -147,10 +246,24 @@ export class HAStore {
         startTime: Date,
         endTime: Date = new Date()
     ): Promise<HistoryData[]> {
-        console.log("[HA Debug] getHistory called. Auth:", !!this.auth, "URL:", this.url);
+        logger.debug("getHistory called. Auth:", !!this.auth, "URL:", this.url);
         if (!this.auth || !this.url) {
-            console.warn("[HA Debug] Missing auth or url, returning empty history.");
+            logger.warn("Missing auth or url, returning empty history.");
             return [];
+        }
+
+        // Refresh token if expired (vital for OAuth sessions)
+        if (this.auth.expired) {
+            logger.debug("Token expired, refreshing...");
+            try {
+                await this.auth.refreshAccessToken();
+                // Persist new tokens if using OAuth
+                this.saveTokens(this.auth.data);
+            } catch (err) {
+                logger.error("Token refresh failed:", err);
+                // Let the fetch proceed and fail naturally, or return empty?
+                // Failing naturally allows the 401 logic elsewhere to trigger if needed.
+            }
         }
 
         // Validate entity IDs to prevent injection
@@ -166,14 +279,14 @@ export class HAStore {
         }
 
         try {
-            console.log("[HA Debug] Fetching history for:", validEntityIds);
+            logger.debug("Fetching history for:", validEntityIds);
             const start = startTime.toISOString();
             const end = endTime.toISOString();
             const filter = validEntityIds.join(',');
             // Use local proxy to avoid CORS issues in production and Vite proxy collisions
             const { dev } = await import('$app/environment');
             const proxyUrl = `/ha-history?timestamp=${start}&end_time=${end}&filter_entity_id=${filter}`;
-            console.log("[HA Debug] Request URL (Proxy):", proxyUrl);
+            logger.debug("Request URL (Proxy):", proxyUrl);
 
             const response = await fetch(
                 proxyUrl,
@@ -187,12 +300,12 @@ export class HAStore {
             );
 
             if (!response.ok) {
-                console.error("[HA Debug] Response not OK:", response.status, response.statusText);
+                logger.error("Response not OK:", response.status, response.statusText);
                 throw new Error(`History fetch failed: ${response.status}`);
             }
 
             const rawData = await response.json();
-            console.log("[HA Debug] Raw history data length:", rawData.length);
+            logger.debug("Raw history data length:", rawData.length);
             const historyData = this.transformHistoryResponse(rawData, validEntityIds);
 
             // Update cache
@@ -200,8 +313,31 @@ export class HAStore {
 
             return historyData;
         } catch (err) {
-            console.error('Failed to fetch history:', err);
+            logger.error('Failed to fetch history:', err);
             return [];
+        }
+    }
+
+    /**
+     * Fetch Area and Floor registries to build navigation structure
+     */
+    async fetchRegistries() {
+        if (!this.connection) return;
+        try {
+            logger.debug("Fetching registries...");
+            // Use parallel requests for speed
+            const [areas, floors, entityRegistry] = await Promise.all([
+                this.connection.sendMessagePromise<HAArea[]>({ type: 'config/area_registry/list' }),
+                this.connection.sendMessagePromise<HAFloor[]>({ type: 'config/floor_registry/list' }),
+                this.connection.sendMessagePromise<HAEntityRegistryEntry[]>({ type: 'config/entity_registry/list' })
+            ]);
+
+            this.areas = areas;
+            this.floors = floors;
+            this.entityRegistry = entityRegistry;
+            logger.debug(`Registries loaded: ${areas.length} areas, ${floors.length} floors, ${entityRegistry.length} entities.`);
+        } catch (err) {
+            logger.error("Failed to fetch registries:", err);
         }
     }
 

@@ -44,7 +44,7 @@ export interface HistoryData {
 export interface BaseCardConfig {
     entityId: string;
     name: string;
-    icon: string;
+    icon?: string;
     type?: 'button' | 'thermostat';
     onSave?: (config: CardConfig) => void;
 }
@@ -64,3 +64,41 @@ export type CardConfig = ButtonCardConfig | ThermostatCardConfig;
 export type CardVariant = 'switch' | 'slider';
 export type ButtonVariant = 'filled' | 'tonal' | 'outlined' | 'text' | 'elevated';
 export type MD3CardVariant = 'elevated' | 'filled' | 'outlined';
+
+
+// Registry Types
+export interface HAAreaRegistryEntry {
+    area_id: string;
+    name: string;
+    picture: string | null;
+    floor_id: string | null;
+    icon: string | null;
+    labels: string[];
+}
+
+export interface HAFloorRegistryEntry {
+    floor_id: string;
+    name: string;
+    level: number | null;
+    icon: string | null;
+    aliases: string[];
+}
+
+export interface HAEntityRegistryEntry {
+    entity_id: string;
+    name: string;
+    icon: string | null;
+    platform: string;
+    config_entry_id: string | null;
+    device_id: string | null;
+    area_id: string | null;
+    disabled_by: string | null;
+    hidden_by: string | null;
+    entity_category: 'config' | 'diagnostic' | null;
+    has_entity_name: boolean;
+    original_name: string;
+    unique_id: string;
+    options: Record<string, unknown> | null;
+    translation_key: string | null;
+    labels: string[];
+}

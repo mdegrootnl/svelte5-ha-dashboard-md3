@@ -182,7 +182,6 @@
         const config: ThermostatCardConfig = {
             entityId,
             name: name || "",
-            icon: "",
             type: "thermostat",
             secondaryEntityId,
             secondaryName,
@@ -195,117 +194,199 @@
         };
         cardEditorStore.open(config);
     }
+
+    // -- Responsive Layout --
+    let clientHeight = $state(0);
+    // 1 row (<130px): Compact Horizontal
+    let isCompact = $derived(clientHeight < 130);
+    // 3 rows (>=220px): Full with Graph. 2 rows: Vertical but no graph.
+    let isExpanded = $derived(clientHeight >= 220);
 </script>
 
 <!-- Card Container -->
 <div
-    class="relative flex flex-col w-full rounded-m3-xl bg-m3-surface-container overflow-hidden shadow-sm group {className}"
+    class="relative flex flex-col w-full h-full rounded-[var(--radius-m3-md)] bg-m3-surface-container overflow-hidden shadow-sm group {className}"
+    bind:clientHeight
 >
-    <!-- Header Section -->
-    <div class="flex justify-between items-start px-5 pt-5 pb-3">
-        <!-- Inside Temperature -->
-        <div class="flex items-center gap-3">
-            <div class="text-m3-secondary">
-                <HvacIconComponent class="size-6" />
-            </div>
-            <div class="flex flex-col">
-                <span
-                    class="text-m3-title-medium text-m3-on-surface font-medium"
-                >
-                    {formatTemperature(currentTemp)}
-                </span>
-                <span class="text-m3-label-small text-m3-on-surface-variant">
-                    {displayName}
-                </span>
-            </div>
+    <!-- Background Graph (Visible when NOT expanded) -->
+    {#if !isExpanded}
+        <div class="absolute inset-0 z-0 opacity-10 pointer-events-none">
+            <HistoryGraph
+                insideData={insideHistory?.points || []}
+                outsideData={outsideHistory?.points || []}
+            />
         </div>
+    {/if}
 
-        <!-- Outside Temperature -->
-        {#if secondaryEntityId && outsideTemp !== null}
-            <div class="flex items-center gap-3">
-                <div class="text-m3-primary">
-                    <IconCloud class="size-6" />
-                </div>
-                <div class="flex flex-col items-end">
-                    <span
-                        class="text-m3-title-medium text-m3-on-surface font-medium"
-                    >
-                        {formatTemperature(outsideTemp)}
-                    </span>
-                    <span
-                        class="text-m3-label-small text-m3-on-surface-variant"
-                    >
-                        {secondaryDisplayName}
-                    </span>
-                </div>
-            </div>
-        {/if}
-    </div>
-
-    <!-- History Graph -->
-    <div class="w-full h-32 px-2">
-        <HistoryGraph
-            insideData={insideHistory?.points || []}
-            outsideData={outsideHistory?.points || []}
-        />
-    </div>
-
-    <!-- Control Footer -->
-    <div
-        class="flex items-center justify-between px-4 py-4 border-t border-m3-outline-variant/30"
-    >
-        <!-- Temperature Stepper -->
+    {#if isCompact}
+        <!-- Compact Row Layout (Height < 130px) -->
         <div
-            class="flex items-center gap-3 bg-m3-surface-container-high rounded-full px-3 py-2"
+            class="relative z-10 flex items-center justify-between pl-4 pr-12 h-full gap-4"
         >
-            <button
-                class="w-8 h-8 flex items-center justify-center rounded-full text-m3-on-surface-variant hover:bg-m3-on-surface/10 transition-colors"
-                onclick={decrementTemp}
-                aria-label="Decrease temperature"
-            >
-                <span class="text-xl font-medium">−</span>
-            </button>
-            <span
-                class="text-m3-title-large font-bold text-m3-on-surface min-w-[4rem] text-center"
-            >
-                {targetTemp !== null ? targetTemp.toFixed(1) : "--"}
-            </span>
-            <button
-                class="w-8 h-8 flex items-center justify-center rounded-full text-m3-on-surface-variant hover:bg-m3-on-surface/10 transition-colors"
-                onclick={incrementTemp}
-                aria-label="Increase temperature"
-            >
-                <span class="text-xl font-medium">+</span>
-            </button>
-        </div>
+            <!-- Status & Info -->
+            <div class="flex items-center gap-3 min-w-0">
+                <button
+                    class="w-10 h-10 flex items-center justify-center rounded-full transition-colors shrink-0 {isActive
+                        ? 'bg-m3-primary-container text-m3-on-primary-container'
+                        : 'bg-m3-surface-container-high text-m3-on-surface-variant'}"
+                    onclick={cycleMode}
+                >
+                    <HvacIconComponent class="size-5" />
+                </button>
+                <div class="flex flex-col min-w-0">
+                    <span
+                        class="text-m3-title-medium text-m3-on-surface font-bold leading-none"
+                    >
+                        {formatTemperature(currentTemp)}
+                    </span>
+                    <span
+                        class="text-m3-body-small text-m3-on-surface-variant truncate leading-tight"
+                    >
+                        {displayName}
+                    </span>
+                </div>
+            </div>
 
-        <!-- Mode Controls -->
-        <div class="flex items-center gap-2">
-            <!-- HVAC Mode Button -->
-            <button
-                class="w-12 h-12 flex items-center justify-center rounded-full transition-colors {isActive
-                    ? 'bg-m3-primary-container text-m3-on-primary-container'
-                    : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-on-surface/10'}"
-                onclick={cycleMode}
-                aria-label="Toggle heating mode"
-            >
-                <IconFire class="size-6" />
-            </button>
-
-            <!-- Power Button -->
-            <button
-                class="w-12 h-12 flex items-center justify-center rounded-full bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-on-surface/10 transition-colors"
-                onclick={togglePower}
-                aria-label="Toggle power"
-            >
-                <IconPower class="size-6" />
-            </button>
+            <!-- Controls -->
+            <div class="flex items-center gap-2 shrink-0">
+                <!-- Mini Stepper -->
+                <div
+                    class="flex items-center bg-m3-surface-container-high rounded-full p-1 border border-m3-outline/10"
+                >
+                    <button
+                        class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-m3-on-surface/10 text-m3-on-surface-variant"
+                        onclick={decrementTemp}
+                    >
+                        −
+                    </button>
+                    <span
+                        class="text-m3-body-large text-m3-on-surface font-bold min-w-[2.5rem] text-center"
+                    >
+                        {targetTemp !== null ? targetTemp.toFixed(1) : "--"}
+                    </span>
+                    <button
+                        class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-m3-on-surface/10 text-m3-on-surface-variant"
+                        onclick={incrementTemp}
+                    >
+                        +
+                    </button>
+                </div>
+            </div>
         </div>
-    </div>
+    {:else}
+        <!-- Full Layout (Height >= 130px) -->
+        <div class="relative z-10 flex flex-col h-full">
+            <!-- Header Section -->
+            <div class="flex justify-between items-start px-5 pt-5 pb-3">
+                <!-- Inside Temperature -->
+                <div class="flex items-center gap-3">
+                    <div class="text-m3-secondary">
+                        <HvacIconComponent class="size-6" />
+                    </div>
+                    <div class="flex flex-col">
+                        <span
+                            class="text-m3-title-medium text-m3-on-surface font-medium"
+                        >
+                            {formatTemperature(currentTemp)}
+                        </span>
+                        <span
+                            class="text-m3-label-small text-m3-on-surface-variant"
+                        >
+                            {displayName}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Outside Temperature -->
+                {#if secondaryEntityId && outsideTemp !== null}
+                    <div class="flex items-center gap-3">
+                        <div class="text-m3-primary">
+                            <IconCloud class="size-6" />
+                        </div>
+                        <div class="flex flex-col items-end">
+                            <span
+                                class="text-m3-title-medium text-m3-on-surface font-medium"
+                            >
+                                {formatTemperature(outsideTemp)}
+                            </span>
+                            <span
+                                class="text-m3-label-small text-m3-on-surface-variant"
+                            >
+                                {secondaryDisplayName}
+                            </span>
+                        </div>
+                    </div>
+                {/if}
+            </div>
+
+            <!-- History Graph (Only in Expanded Mode) -->
+            {#if isExpanded}
+                <div class="w-full h-32 px-2 mt-auto">
+                    <HistoryGraph
+                        insideData={insideHistory?.points || []}
+                        outsideData={outsideHistory?.points || []}
+                    />
+                </div>
+            {/if}
+
+            <!-- Control Footer -->
+            <div
+                class="flex items-center justify-between px-4 py-4 border-t border-m3-outline-variant/30 mt-auto"
+            >
+                <!-- Temperature Stepper -->
+                <div
+                    class="flex items-center gap-3 bg-m3-surface-container-high rounded-full px-3 py-2"
+                >
+                    <button
+                        class="w-8 h-8 flex items-center justify-center rounded-full text-m3-on-surface-variant hover:bg-m3-on-surface/10 transition-colors"
+                        onclick={decrementTemp}
+                        aria-label="Decrease temperature"
+                    >
+                        <span class="text-xl font-medium">−</span>
+                    </button>
+                    <span
+                        class="text-m3-title-large font-bold text-m3-on-surface min-w-[4rem] text-center"
+                    >
+                        {targetTemp !== null ? targetTemp.toFixed(1) : "--"}
+                    </span>
+                    <button
+                        class="w-8 h-8 flex items-center justify-center rounded-full text-m3-on-surface-variant hover:bg-m3-on-surface/10 transition-colors"
+                        onclick={incrementTemp}
+                        aria-label="Increase temperature"
+                    >
+                        <span class="text-xl font-medium">+</span>
+                    </button>
+                </div>
+
+                <!-- Mode Controls -->
+                <div class="flex items-center gap-2">
+                    <!-- HVAC Mode Button -->
+                    <button
+                        class="w-12 h-12 flex items-center justify-center rounded-full transition-colors {isActive
+                            ? 'bg-m3-primary-container text-m3-on-primary-container'
+                            : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-on-surface/10'}"
+                        onclick={cycleMode}
+                        aria-label="Toggle heating mode"
+                    >
+                        <IconFire class="size-6" />
+                    </button>
+
+                    <!-- Power Button -->
+                    <button
+                        class="w-12 h-12 flex items-center justify-center rounded-full bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-on-surface/10 transition-colors"
+                        onclick={togglePower}
+                        aria-label="Toggle power"
+                    >
+                        <IconPower class="size-6" />
+                    </button>
+                </div>
+            </div>
+        </div>
+    {/if}
 
     <!-- Edit FAB (Visible on Hover) -->
     <button
-        class="absolute top-2 right-2 p-2 rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:brightness-110"
+        class="absolute top-2 right-2 p-2 rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:brightness-110 z-20"
         onclick={openConfig}
         title="Edit Card"
     >

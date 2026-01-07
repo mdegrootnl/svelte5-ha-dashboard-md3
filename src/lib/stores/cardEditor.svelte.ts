@@ -2,7 +2,7 @@ import type { CardConfig } from '$lib/types';
 
 export class CardEditorStore {
     isOpen = $state(false);
-    config = $state<CardConfig>({ entityId: "", name: "", icon: "", onSave: () => { } });
+    config = $state<CardConfig>({ entityId: "", name: "", onSave: () => { } });
 
     open(initialConfig: CardConfig) {
         this.config = { ...initialConfig };

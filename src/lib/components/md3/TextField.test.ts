@@ -56,10 +56,11 @@ describe('TextField Component', () => {
 
     it('applies outlined variant classes', () => {
         const { container } = render(TextField, { props: { label: 'Outlined', variant: 'outlined' } });
-        // The container is the child of the outer div
         const fieldContainer = container.querySelector('.flex-col > div:first-child');
-        expect(fieldContainer).toHaveClass('bg-transparent');
-        expect(fieldContainer).toHaveClass('border');
+
+        // In MD3 Outlined variant, the border is on the fieldset to support the notch
+        const fieldset = fieldContainer?.querySelector('fieldset');
+        expect(fieldset).toHaveClass('border');
     });
 
     it('disables the input', () => {

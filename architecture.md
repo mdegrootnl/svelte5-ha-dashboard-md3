@@ -53,11 +53,11 @@ src/
 
 ```mermaid
 graph TD
-    subgraph Layout
         A[+layout.svelte] --> B[NavigationRail]
         A --> C[CardConfigDialog]
         A --> D[PageShell]
-        A --> O[BottomNav]
+        D --> NH[NavigationHub]
+        D --> GC[GridContainer]
     end
 
     subgraph MD3 Primitives
@@ -104,6 +104,8 @@ Home Assistant entity control cards:
 ### Layout (`src/lib/components/layout/`)
 
 - **PageShell** — consistent page wrapper with title
+- **NavigationHub** — Floor/Room navigation center
+- **GridContainer/GridItem** — CSS Grid-based dashboard layout engine
 - **ErrorBoundary** — graceful error handling
 
 ---
@@ -175,6 +177,16 @@ class CardEditorStore {
 }
 ```
 
+### DashboardStore (`src/lib/types/dashboard.ts` logic & state)
+*Note: Implemented as persisted Svelte 5 state.*
+
+Manages grid configurations, layout persistance, and responsive breakpoints:
+
+- **GridConfig** — JSON schema for dashboard layouts
+- **Persistence** — Saves/loads to localStorage (key: `dashboard_config_{id}`)
+- **Auto-Generation** — Generates layouts from Entity Registry data
+
+
 ---
 
 ## Routing
@@ -182,7 +194,8 @@ class CardEditorStore {
 | Route | Purpose |
 |-------|---------|
 | `/` | Landing / redirect |
-| `/dashboard` | Main control interface |
+| `/dashboard` | Main control interface (Home) |
+| `/dashboard/[[floor]]/[[room]]` | Dynamic floor & room dashboards |
 | `/library` | Component showcase |
 | `/settings` | Home Assistant connection |
 | `/theme` | Theme builder |
@@ -250,6 +263,28 @@ sequenceDiagram
     HA-->>HAStore: State update (subscribeEntities)
     HAStore-->>ButtonCard: states[entity_id] reactive update
     ButtonCard-->>User: UI reflects new state
+```
+
+### Dashboard Generation Flow
+
+```mermaid
+sequenceDiagram
+    participant HAStore
+    participant Registry as HA Registry
+    participant Generator as DashboardGenerator
+    participant Store as DashboardStore
+
+    HAStore->>Registry: Fetch Areas, Floors, Entities
+    Registry-->>HAStore: Return Registry Data
+    
+    Note over Generator: User navigates to room
+    
+    HAStore->>Generator: generateDashboardForArea(room)
+    Generator->>Generator: Filter entities by area_id
+    Generator->>Generator: Sort by priority (Climate > Media...)
+    Generator->>Generator: Pack items (Bento algorithm)
+    Generator-->>Store: Return GridConfig
+    Store-->>UI: Render GridContainer
 ```
 
 ---

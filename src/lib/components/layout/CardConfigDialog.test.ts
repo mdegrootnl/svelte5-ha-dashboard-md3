@@ -20,7 +20,7 @@ describe('CardConfigDialog Component', () => {
         render(CardConfigDialog);
 
         // Open the dialog via store
-        cardEditorStore.open({ entityId: 'light.test', name: '', icon: '' });
+        cardEditorStore.open({ entityId: 'light.test', name: '' });
 
         await new Promise(resolve => setTimeout(resolve, 10));
 
@@ -31,23 +31,21 @@ describe('CardConfigDialog Component', () => {
     it('populates form with config values', async () => {
         render(CardConfigDialog);
 
-        cardEditorStore.open({ entityId: 'switch.kitchen', name: 'Kitchen Switch', icon: 'bolt' });
+        cardEditorStore.open({ entityId: 'switch.kitchen', name: 'Kitchen Switch' });
 
         await new Promise(resolve => setTimeout(resolve, 10));
 
         const entityField = screen.getByLabelText('Entity ID') as HTMLInputElement;
         const nameField = screen.getByLabelText('Custom Name') as HTMLInputElement;
-        const iconField = screen.getByLabelText('Icon Name') as HTMLInputElement;
 
         expect(entityField.value).toBe('switch.kitchen');
         expect(nameField.value).toBe('Kitchen Switch');
-        expect(iconField.value).toBe('bolt');
     });
 
     it('closes on cancel', async () => {
         render(CardConfigDialog);
 
-        cardEditorStore.open({ entityId: 'light.test', name: '', icon: '' });
+        cardEditorStore.open({ entityId: 'light.test', name: '' });
         await new Promise(resolve => setTimeout(resolve, 10));
 
         const cancelBtn = screen.getByText('Cancel');
@@ -61,7 +59,7 @@ describe('CardConfigDialog Component', () => {
 
         render(CardConfigDialog);
 
-        cardEditorStore.open({ entityId: 'light.test', name: '', icon: '', onSave });
+        cardEditorStore.open({ entityId: 'light.test', name: '', onSave });
         await new Promise(resolve => setTimeout(resolve, 10));
 
         const saveBtn = screen.getByText('Save');
@@ -74,7 +72,7 @@ describe('CardConfigDialog Component', () => {
     it('closes when clicking backdrop', async () => {
         render(CardConfigDialog);
 
-        cardEditorStore.open({ entityId: 'light.test', name: '', icon: '' });
+        cardEditorStore.open({ entityId: 'light.test', name: '' });
         await new Promise(resolve => setTimeout(resolve, 10));
 
         const backdrop = screen.getByRole('presentation');
