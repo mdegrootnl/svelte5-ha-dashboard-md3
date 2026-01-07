@@ -4,12 +4,57 @@ A modern Material Design 3 dashboard for Home Assistant with dynamic theming, bu
 
 ## Features
 
-- 🏠 **Home Assistant Integration** — Real-time entity sync via WebSocket
-- 🎨 **Dynamic MD3 Theming** — Generate themes from any source color
-- 🌙 **Persistent Dark Mode** — Theme preferences saved to localStorage
-- 🎚️ **Slider & Switch Cards** — Control lights, fans, and switches
-- 🎵 **Media Cards** — Standard, poster, and condensed variants
-- 🔐 **Security Hardened** — CSP headers, input validation, rate limiting
+### 🏠 Home Assistant Integration
+- Real-time entity sync via WebSocket
+- Entity Registry support for automatic dashboard generation
+- Floor and room-based navigation
+- History API integration for graphs and charts
+
+### 🎨 Dynamic MD3 Theming
+- Generate themes from any source color
+- Real-time theme preview and customization
+- Persistent dark mode preferences
+- Full MD3 color token support
+
+### 📊 Dashboard Engine
+- Configurable grid-based layouts
+- Auto-generation from Entity Registry
+- Multi-tab dashboard support with rename functionality
+- Section and stack organization
+- Responsive breakpoints
+
+### 🎛️ Entity Cards
+- **Button Card** — Switch/slider variants for lights, fans, and switches
+- **Media Card** — Standard, poster, and condensed variants for media players
+- **Thermostat Card** — Climate control with history graph and outdoor sensor support
+
+### 🌤️ Weather Dashboard
+- Weather hero display with current conditions
+- Hourly and daily forecast strips
+- Interactive rain radar (Leaflet + Buienradar)
+- Rain precipitation graph
+- Specialized widgets:
+  - UV Index
+  - Wind speed and direction
+  - Atmospheric pressure
+  - Humidity
+  - Sunrise/Sunset
+  - Air Quality Index (AQI)
+
+### 🎨 MD3 Component Library
+- Button (filled, tonal, outlined, text, elevated)
+- Card (elevated, filled, outlined)
+- TextField with validation and outlined variant
+- Switch, Checkbox, Radio controls
+- Chip (filter and action variants)
+- FAB (floating action button)
+- EntityPicker for entity selection
+
+### 🔐 Security Hardened
+- Strict CSP headers
+- Input validation
+- Rate limiting on service calls
+- HTTPS by default
 
 ## Getting Started
 
@@ -32,35 +77,50 @@ npm run check
 ```
 src/
 ├── lib/
-│   ├── components/     # Reusable UI components
-│   │   ├── md3/        # Material Design 3 primitives
-│   │   ├── cards/      # Entity cards (Button, Media)
-│   │   └── layout/     # Page shells, navigation
-│   ├── stores/         # Svelte 5 rune-based stores
-│   ├── types/          # TypeScript interfaces
-│   └── utils/          # Helper functions
+│   ├── components/
+│   │   ├── md3/          # Material Design 3 primitives
+│   │   ├── cards/        # Entity cards (Button, Media, Thermostat)
+│   │   ├── layout/       # Navigation, grids, dialogs
+│   │   └── weather/      # Weather components and widgets
+│   ├── stores/           # Svelte 5 rune-based stores
+│   ├── types/            # TypeScript interfaces
+│   └── utils/            # Helper functions
 ├── routes/
-│   ├── dashboard/      # Main control dashboard
-│   ├── library/        # Component showcase
-│   ├── settings/       # HA connection config
-│   └── theme/          # Theme customization
-└── tests/              # Test setup
+│   ├── dashboard/        # Main dashboard with floor/room routing
+│   ├── weather/          # Weather dashboard
+│   ├── library/          # Component showcase
+│   ├── settings/         # HA connection config
+│   └── theme/            # Theme builder
+└── tests/                # Test setup
 ```
 
 ## Configuration
 
 1. Navigate to **Settings**
 2. Enter your Home Assistant URL (e.g., `homeassistant.local`)
-3. Click **Connect** — you'll be redirected to HA for authentication
+3. Choose authentication method:
+   - **OAuth** — Redirects to HA for authentication
+   - **Long-Lived Token** — Paste a token from HA profile settings
+4. Click **Connect**
 
 ## Tech Stack
 
-- [Svelte 5](https://svelte.dev) with runes (`$state`, `$derived`, `$effect`)
-- [SvelteKit](https://kit.svelte.dev) for routing
-- [Tailwind CSS 4](https://tailwindcss.com) for styling
-- [Material Color Utilities](https://github.com/material-foundation/material-color-utilities) for theming
-- [home-assistant-js-websocket](https://github.com/home-assistant/home-assistant-js-websocket) for HA integration
-- [Vitest](https://vitest.dev) for testing
+| Layer | Technology |
+|-------|------------|
+| Framework | [Svelte 5](https://svelte.dev) with runes (`$state`, `$derived`, `$effect`) |
+| Routing | [SvelteKit](https://kit.svelte.dev) |
+| Styling | [Tailwind CSS 4](https://tailwindcss.com) |
+| Theming | [Material Color Utilities](https://github.com/material-foundation/material-color-utilities) |
+| HA Integration | [home-assistant-js-websocket](https://github.com/home-assistant/home-assistant-js-websocket) |
+| Testing | [Vitest](https://vitest.dev) + [@testing-library/svelte](https://testing-library.com/svelte) |
+| Icons | [Iconify](https://iconify.design) via unplugin-icons |
+| Data Viz | [D3.js](https://d3js.org) |
+| Maps | [Leaflet](https://leafletjs.com) |
+
+## Documentation
+
+- [Architecture Overview](./architecture.md) — Detailed technical documentation
+- [Security Risks](./securityrisks.md) — Security audit and hardening measures
 
 ## License
 
