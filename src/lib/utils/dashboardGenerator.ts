@@ -119,6 +119,10 @@ export function packItemsIntoGrid(
             id: crypto.randomUUID(),
             entityId: item.entityId,
             cardType: item.cardType,
+            name: "",
+            secondaryEntityId: "",
+            secondaryName: "",
+            domainFilter: "",
             layout: {
                 desktop: {
                     colStart: desktopPos.col,

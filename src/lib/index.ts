@@ -34,6 +34,7 @@ export { default as GridContainer } from './components/layout/GridContainer.svel
 export { default as GridItem } from './components/layout/GridItem.svelte';
 export { default as GridOverlay } from './components/layout/GridOverlay.svelte';
 export { default as GridConfigDialog } from './components/layout/GridConfigDialog.svelte';
+export { default as CardConfigSheet } from './components/layout/CardConfigSheet.svelte';
 
 // Dashboard Types (re-export for convenience)
 export * from './types/dashboard';

@@ -3,7 +3,7 @@
 	import "../app.css";
 	import NavigationRail from "$lib/components/layout/NavigationRail.svelte";
 	import BottomNav from "$lib/components/layout/BottomNav.svelte";
-	import CardConfigDialog from "$lib/components/layout/CardConfigDialog.svelte";
+
 	import { themeStore } from "$lib/stores/theme.svelte";
 
 	let { children } = $props();
@@ -45,6 +45,4 @@
 	<div class="md:hidden fixed bottom-0 left-0 right-0 z-50">
 		<BottomNav />
 	</div>
-
-	<CardConfigDialog />
 </div>

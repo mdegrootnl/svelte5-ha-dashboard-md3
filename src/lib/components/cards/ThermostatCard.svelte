@@ -19,9 +19,10 @@
 
     interface Props {
         entityId: string;
-        secondaryEntityId?: string;
-        name?: string;
-        secondaryName?: string;
+        secondaryEntityId: string;
+        name: string;
+        secondaryName: string;
+        domainFilter: string;
         class?: string;
     }
 
@@ -30,6 +31,7 @@
         secondaryEntityId = $bindable(""),
         name = $bindable(""),
         secondaryName = $bindable(""),
+        domainFilter = $bindable(""),
         class: className = "",
     }: Props = $props();
 
@@ -93,19 +95,37 @@
     let insideHistory = $state<HistoryData | null>(null);
     let outsideHistory = $state<HistoryData | null>(null);
     let lastFetchTime = 0;
+    let lastFetchedEntityId = ""; // Track which entity we last fetched
+    let lastFetchedSecondaryId = ""; // Track secondary entity too
 
     $effect(() => {
         // Trigger fetch on entity change, initial mount, or when connection is established
         if (entityId && haStore.connected) {
+            // If primary or secondary entity changed, reset throttle and clear old data
+            if (
+                entityId !== lastFetchedEntityId ||
+                secondaryEntityId !== lastFetchedSecondaryId
+            ) {
+                lastFetchTime = 0; // Reset throttle
+                insideHistory = null; // Clear old data
+                outsideHistory = null;
+            }
             fetchHistory();
         }
     });
 
     async function fetchHistory() {
-        // Prevent spamming calls
+        // Prevent spamming calls (only for same entities)
         const now = Date.now();
-        if (now - lastFetchTime < 60000) return; // Only fetch once per minute max
+        if (
+            now - lastFetchTime < 60000 &&
+            entityId === lastFetchedEntityId &&
+            secondaryEntityId === lastFetchedSecondaryId
+        )
+            return;
         lastFetchTime = now;
+        lastFetchedEntityId = entityId;
+        lastFetchedSecondaryId = secondaryEntityId || "";
 
         // Round to nearest 5 minutes for better cache hitting in HAStore
         const roundedNow = Math.floor(now / (5 * 60000)) * (5 * 60000);
@@ -185,6 +205,7 @@
             type: "thermostat",
             secondaryEntityId,
             secondaryName,
+            domainFilter: domainFilter || "climate",
             onSave: (newConfig: any) => {
                 entityId = newConfig.entityId;
                 name = newConfig.name;
@@ -321,7 +342,7 @@
 
             <!-- History Graph (Only in Expanded Mode) -->
             {#if isExpanded}
-                <div class="w-full h-32 px-2 mt-auto">
+                <div class="w-full h-32 mt-auto">
                     <HistoryGraph
                         insideData={insideHistory?.points || []}
                         outsideData={outsideHistory?.points || []}

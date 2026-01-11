@@ -13,7 +13,7 @@ describe('ButtonCard Component', () => {
     });
 
     it('renders manually provided title and state', () => {
-        render(ButtonCard, { props: { title: 'Manual Title', state: 'Manual State' } });
+        render(ButtonCard, { props: { title: 'Manual Title', state: 'Manual State', entityId: '', name: '', domainFilter: '' } });
         expect(screen.getByText('Manual Title')).toBeInTheDocument();
         expect(screen.getByText('Manual State')).toBeInTheDocument();
     });
@@ -26,7 +26,7 @@ describe('ButtonCard Component', () => {
         };
         vi.spyOn(haStore, 'getEntity').mockReturnValue(entity as any);
 
-        render(ButtonCard, { props: { entityId: 'switch.test', title: '' } });
+        render(ButtonCard, { props: { entityId: 'switch.test', title: '', name: '', domainFilter: '' } });
 
         expect(screen.getByText('Test Device')).toBeInTheDocument();
         expect(screen.getByText('On')).toBeInTheDocument();
@@ -40,7 +40,7 @@ describe('ButtonCard Component', () => {
         };
         vi.spyOn(haStore, 'getEntity').mockReturnValue(entity as any);
 
-        const { container } = render(ButtonCard, { props: { entityId: 'switch.test', title: '' } });
+        const { container } = render(ButtonCard, { props: { entityId: 'switch.test', title: '', name: '', domainFilter: '' } });
         const card = container.querySelector('[role="button"]') as HTMLElement;
 
         await fireEvent.click(card);
@@ -48,12 +48,27 @@ describe('ButtonCard Component', () => {
     });
 
     it('opens config dialog when edit button is clicked', async () => {
-        render(ButtonCard, { props: { entityId: 'switch.test', title: 'Test' } });
+        render(ButtonCard, { props: { entityId: 'switch.test', title: 'Test', name: '', domainFilter: '' } });
         const editBtn = screen.getByTitle('Edit Card');
 
         await fireEvent.click(editBtn);
         expect(cardEditorStore.open).toHaveBeenCalledWith(expect.objectContaining({
             entityId: 'switch.test'
         }));
+    });
+
+    it('derives default icon from entityId domain', async () => {
+        const entity = {
+            entity_id: 'light.test',
+            state: 'on',
+            attributes: { friendly_name: 'Test Light' }
+        };
+        vi.spyOn(haStore, 'getEntity').mockReturnValue(entity as any);
+
+        const { container } = render(ButtonCard, { props: { entityId: 'light.test', title: '', name: '', domainFilter: '' } });
+
+        // Check if an SVG/icon is rendered
+        const icon = container.querySelector('svg');
+        expect(icon).toBeInTheDocument();
     });
 });

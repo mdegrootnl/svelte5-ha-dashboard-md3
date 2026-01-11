@@ -40,12 +40,20 @@ export interface ResponsiveLayout {
  */
 export interface DashboardItem {
     id: string;
+    /** Optional display name override (empty string if not set) */
+    name: string;
     /** Home Assistant entity ID */
     entityId: string;
     /** Type of card to render */
     cardType: DashboardCardType;
     /** Responsive position and span configuration */
     layout: ResponsiveLayout;
+    /** Secondary entity ID (empty string if not set) */
+    secondaryEntityId: string;
+    /** Secondary entity display name (empty string if not set) */
+    secondaryName: string;
+    /** Domain filter for entity selection (empty string if not set) */
+    domainFilter: string;
 }
 
 /**
@@ -157,24 +165,28 @@ export function createDefaultGridConfig(name: string = "Dashboard", icon: string
  */
 export function createDefaultItemLayout(
     colStart: number = 1,
-    cardType: DashboardCardType = "button"
+    cardType: DashboardCardType = "button",
+    cardSize: 'condensed' | 'standard' | 'poster' = 'standard'
 ): ResponsiveLayout {
     // Size based on card type
     const desktopSpan = cardType === "button" ? 2 : cardType === "thermostat" ? 4 : 6;
     const mobileSpan = cardType === "button" ? 2 : 4;
+
+    // Row span based on card size
+    const rowSpan = cardSize === 'condensed' ? 1 : cardSize === 'standard' ? 2 : 3;
 
     return {
         desktop: {
             colStart,
             colSpan: desktopSpan,
             rowStart: 1,
-            rowSpan: 1
+            rowSpan
         },
         mobile: {
             colStart: 1,
             colSpan: mobileSpan,
             rowStart: 1,
-            rowSpan: 1
+            rowSpan
         }
     };
 }

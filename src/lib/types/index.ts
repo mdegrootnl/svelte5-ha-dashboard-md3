@@ -41,12 +41,18 @@ export interface HistoryData {
 }
 
 // Card Types
+export type CardSize = 'condensed' | 'standard' | 'poster';
+
 export interface BaseCardConfig {
     entityId: string;
     name: string;
     icon?: string;
-    type?: 'button' | 'thermostat';
+    type?: 'button' | 'thermostat' | 'media';
     onSave?: (config: CardConfig) => void;
+    /** Optional domain filter for entity picker (e.g. "light", "switch") */
+    domainFilter?: string;
+    /** Card size variant for grid layout */
+    cardSize?: CardSize;
 }
 
 export interface ButtonCardConfig extends BaseCardConfig {
@@ -59,7 +65,11 @@ export interface ThermostatCardConfig extends BaseCardConfig {
     secondaryName?: string;        // Override for "Outside" label
 }
 
-export type CardConfig = ButtonCardConfig | ThermostatCardConfig;
+export interface MediaCardConfig extends BaseCardConfig {
+    type: 'media';
+}
+
+export type CardConfig = ButtonCardConfig | ThermostatCardConfig | MediaCardConfig;
 
 export type CardVariant = 'switch' | 'slider';
 export type ButtonVariant = 'filled' | 'tonal' | 'outlined' | 'text' | 'elevated';

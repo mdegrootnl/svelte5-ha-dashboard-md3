@@ -6,7 +6,9 @@
         haStore,
         PageShell,
         Button,
+        CardConfigSheet,
     } from "$lib";
+    import { cardEditorStore } from "$lib/stores/cardEditor.svelte";
     import Fan from "~icons/material-symbols/mode-fan";
     import Lightbulb from "~icons/material-symbols/lightbulb";
     import VolumeUp from "~icons/material-symbols/volume-up";
@@ -20,8 +22,9 @@
         variant: "switch" | "slider";
         isActive: boolean;
         value?: number;
-        entityId?: string;
-        name?: string;
+        entityId: string;
+        name: string;
+        domainFilter: string;
     }
 
     // Initialize cards with state
@@ -35,6 +38,7 @@
             isActive: false,
             entityId: "",
             name: "",
+            domainFilter: "switch",
             value: 0,
         },
         {
@@ -46,6 +50,7 @@
             isActive: true,
             entityId: "",
             name: "",
+            domainFilter: "switch",
             value: 100,
         },
         {
@@ -58,6 +63,7 @@
             isActive: true,
             entityId: "",
             name: "",
+            domainFilter: "light",
         },
         {
             id: 4,
@@ -69,6 +75,7 @@
             isActive: true,
             entityId: "",
             name: "",
+            domainFilter: "sensor",
         },
     ]);
 
@@ -78,11 +85,15 @@
             "sensor.diyless_thermostat_1_opentherm_outdoor_temperature",
         name: "Thermostat",
         secondaryName: "Outside",
+        domainFilter: "climate",
     });
 
     let thermostat2 = $state({
         entityId: "climate.diyless_thermostat_1_central_heating",
+        secondaryEntityId: "",
         name: "Central Heating",
+        secondaryName: "",
+        domainFilter: "climate",
     });
 
     function loadMockMedia() {
@@ -206,6 +217,49 @@
             },
         };
     }
+
+    // Helper to open config for a card
+    function openCardConfig(card: any, index?: number) {
+        cardEditorStore.openConfig({
+            entityId: card.entityId,
+            name: card.name || card.title || "",
+            type: card.cardType || (card.id ? "button" : undefined),
+            domainFilter: card.domainFilter,
+            onSave: (newConfig) => {
+                if (index !== undefined) {
+                    // Update ButtonCard from 'cards' array
+                    cards[index].entityId = newConfig.entityId;
+                    cards[index].title = newConfig.name;
+                } else if (card === thermostat1) {
+                    thermostat1.entityId = newConfig.entityId;
+                    thermostat1.name = newConfig.name;
+                    thermostat1.secondaryEntityId =
+                        (newConfig as any).secondaryEntityId || "";
+                    thermostat1.secondaryName =
+                        (newConfig as any).secondaryName || "";
+                } else if (card === thermostat2) {
+                    thermostat2.entityId = newConfig.entityId;
+                    thermostat2.name = newConfig.name;
+                    thermostat2.secondaryEntityId =
+                        (newConfig as any).secondaryEntityId || "";
+                    thermostat2.secondaryName =
+                        (newConfig as any).secondaryName || "";
+                }
+            },
+        });
+    }
+
+    function openMediaConfig(entityId: string, name: string) {
+        cardEditorStore.openConfig({
+            entityId,
+            name,
+            type: "media",
+            domainFilter: "media_player",
+            onSave: (newConfig) => {
+                console.log("Media config saved:", newConfig);
+            },
+        });
+    }
 </script>
 
 <PageShell
@@ -231,9 +285,21 @@
                 <span class="text-m3-label-medium text-m3-on-surface-variant"
                     >Standard</span
                 >
-                <div class="h-48">
+                <div
+                    class="h-48 cursor-pointer"
+                    onclick={() =>
+                        openMediaConfig("media_player.spotify", "Spotify")}
+                    onkeydown={(e) =>
+                        e.key === "Enter" &&
+                        openMediaConfig("media_player.spotify", "Spotify")}
+                    role="button"
+                    tabindex="0"
+                    aria-label="Configure Spotify"
+                >
                     <MediaCard
                         entityId="media_player.spotify"
+                        name=""
+                        domainFilter="media_player"
                         variant="standard"
                     />
                 </div>
@@ -244,10 +310,28 @@
                 <span class="text-m3-label-medium text-m3-on-surface-variant"
                     >Poster (Immersive)</span
                 >
-                <div class="h-96">
+                <div
+                    class="h-96 cursor-pointer"
+                    onclick={() =>
+                        openMediaConfig(
+                            "media_player.living_room_tv",
+                            "Living Room TV",
+                        )}
+                    onkeydown={(e) =>
+                        e.key === "Enter" &&
+                        openMediaConfig(
+                            "media_player.living_room_tv",
+                            "Living Room TV",
+                        )}
+                    role="button"
+                    tabindex="0"
+                    aria-label="Configure Living Room TV"
+                >
                     <!-- taller container for poster -->
                     <MediaCard
                         entityId="media_player.living_room_tv"
+                        name=""
+                        domainFilter="media_player"
                         variant="poster"
                         background="immersive"
                     />
@@ -262,6 +346,8 @@
                 <div>
                     <MediaCard
                         entityId="media_player.kitchen_speaker"
+                        name=""
+                        domainFilter="media_player"
                         variant="condensed"
                     />
                 </div>
@@ -277,7 +363,7 @@
         <div
             class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
         >
-            {#each cards as card (card.id)}
+            {#each cards as card, i (card.id)}
                 <ButtonCard
                     bind:title={card.title}
                     bind:state={card.state}
@@ -287,7 +373,8 @@
                     bind:value={card.value}
                     bind:entityId={card.entityId}
                     bind:name={card.name}
-                    onclick={() => {}}
+                    bind:domainFilter={card.domainFilter}
+                    onclick={() => openCardConfig(card, i)}
                 />
             {/each}
         </div>
@@ -304,10 +391,29 @@
                 <span class="text-m3-label-medium text-m3-on-surface-variant"
                     >Condensed</span
                 >
-                <div class="h-24">
+                <div
+                    class="h-24 cursor-pointer"
+                    onclick={() =>
+                        openCardConfig(
+                            { ...thermostat2, cardType: "thermostat" },
+                            undefined,
+                        )}
+                    onkeydown={(e) =>
+                        e.key === "Enter" &&
+                        openCardConfig(
+                            { ...thermostat2, cardType: "thermostat" },
+                            undefined,
+                        )}
+                    role="button"
+                    tabindex="0"
+                    aria-label="Configure Thermostat 2"
+                >
                     <ThermostatCard
                         bind:entityId={thermostat2.entityId}
+                        bind:secondaryEntityId={thermostat2.secondaryEntityId}
                         bind:name={thermostat2.name}
+                        bind:secondaryName={thermostat2.secondaryName}
+                        bind:domainFilter={thermostat2.domainFilter}
                     />
                 </div>
             </div>
@@ -320,7 +426,10 @@
                 <div class="h-44">
                     <ThermostatCard
                         bind:entityId={thermostat2.entityId}
+                        bind:secondaryEntityId={thermostat2.secondaryEntityId}
                         bind:name={thermostat2.name}
+                        bind:secondaryName={thermostat2.secondaryName}
+                        bind:domainFilter={thermostat2.domainFilter}
                     />
                 </div>
             </div>
@@ -330,15 +439,34 @@
                 <span class="text-m3-label-medium text-m3-on-surface-variant"
                     >Expanded (Immersive)</span
                 >
-                <div class="h-96">
+                <div
+                    class="h-96 cursor-pointer"
+                    onclick={() =>
+                        openCardConfig(
+                            { ...thermostat1, cardType: "thermostat" },
+                            undefined,
+                        )}
+                    onkeydown={(e) =>
+                        e.key === "Enter" &&
+                        openCardConfig(
+                            { ...thermostat1, cardType: "thermostat" },
+                            undefined,
+                        )}
+                    role="button"
+                    tabindex="0"
+                    aria-label="Configure Thermostat 1"
+                >
                     <ThermostatCard
                         bind:entityId={thermostat1.entityId}
                         bind:secondaryEntityId={thermostat1.secondaryEntityId}
                         bind:name={thermostat1.name}
                         bind:secondaryName={thermostat1.secondaryName}
+                        bind:domainFilter={thermostat1.domainFilter}
                     />
                 </div>
             </div>
         </div>
     </section>
+
+    <CardConfigSheet />
 </PageShell>

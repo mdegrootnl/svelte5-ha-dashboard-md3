@@ -94,6 +94,18 @@ export class DashboardStore {
                         if (!config.tabs.find((t: any) => t.id === config.activeTabId)) {
                             config.activeTabId = config.tabs[0].id;
                         }
+
+                        // Repair items: Ensure required fields exist
+                        config.tabs.forEach((tab: any) => {
+                            if (tab.items) {
+                                tab.items.forEach((item: any) => {
+                                    if (item.name === undefined) item.name = "";
+                                    if (item.secondaryEntityId === undefined) item.secondaryEntityId = "";
+                                    if (item.secondaryName === undefined) item.secondaryName = "";
+                                    if (item.domainFilter === undefined) item.domainFilter = "";
+                                });
+                            }
+                        });
                     }
 
                     acc[key] = config;

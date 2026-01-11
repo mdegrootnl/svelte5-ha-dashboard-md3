@@ -9,7 +9,6 @@ vi.mock('home-assistant-js-websocket', () => ({
     subscribeEntities: vi.fn(),
     subscribeConfig: vi.fn(),
     callService: vi.fn(),
-    createLongLivedTokenAuth: vi.fn(),
     ERR_HASS_HOST_REQUIRED: 'ERR_HASS_HOST_REQUIRED'
 }));
 
@@ -67,27 +66,6 @@ describe('HAStore', () => {
         expect(haWS.subscribeEntities).toHaveBeenCalled();
     });
 
-    it('should login with long-lived token', async () => {
-        const store = new HAStore();
-        const mockAuth = { data: { hassUrl: 'https://localhost:8123' } };
-        const mockConnection = { close: vi.fn(), addEventListener: vi.fn() };
-
-        vi.mocked(haWS.createLongLivedTokenAuth).mockReturnValue(mockAuth as any);
-        vi.mocked(haWS.createConnection).mockResolvedValue(mockConnection as any);
-
-        await store.loginWithToken('localhost', '8123', 'my-long-lived-token');
-
-        expect(haWS.createLongLivedTokenAuth).toHaveBeenCalledWith('https://localhost:8123', 'my-long-lived-token');
-        expect(store.auth).toEqual(mockAuth);
-        expect(store.connection).toEqual(mockConnection);
-        expect(store.connectionState).toBe('connected');
-
-        // Verify token is saved for reconnection
-        const savedTokens = JSON.parse(localStorage.getItem('hass_tokens') || '{}');
-        expect(savedTokens.type).toBe('long_lived');
-        expect(savedTokens.token).toBe('my-long-lived-token');
-        expect(savedTokens.hassUrl).toBe('https://localhost:8123');
-    });
 
     it('should set connection state to error on failed login', async () => {
         const store = new HAStore();
@@ -99,17 +77,6 @@ describe('HAStore', () => {
         expect(store.connectionError).toBe('Invalid credentials');
     });
 
-    it('should set connection state to error on failed token login', async () => {
-        const store = new HAStore();
-        const mockAuth = { data: { hassUrl: 'https://localhost:8123' } };
-        vi.mocked(haWS.createLongLivedTokenAuth).mockReturnValue(mockAuth as any);
-        vi.mocked(haWS.createConnection).mockRejectedValue(new Error('Invalid token'));
-
-        await expect(store.loginWithToken('localhost', '8123', 'bad-token')).rejects.toThrow('Invalid token');
-
-        expect(store.connectionState).toBe('error');
-        expect(store.connectionError).toBe('Invalid token');
-    });
 
     it('should clear error state with clearError', () => {
         const store = new HAStore();

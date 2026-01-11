@@ -3,12 +3,11 @@
     import Button from "$lib/components/md3/Button.svelte";
     import Chip from "$lib/components/md3/Chip.svelte";
     import Switch from "$lib/components/md3/Switch.svelte";
-    import { fade, fly } from "svelte/transition";
-    import IconClose from "~icons/material-symbols/close";
     import IconGridView from "~icons/material-symbols/grid-view";
     import IconLink from "~icons/material-symbols/link";
     import IconLinkOff from "~icons/material-symbols/link-off";
     import { dashboardEditorStore } from "$lib/stores/dashboardEditor.svelte";
+    import SideSheet from "./SideSheet.svelte";
     import type { GridConfig, GridTrack } from "$lib/types/dashboard";
 
     interface Props {
@@ -212,385 +211,316 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
-{#if open}
-    <!-- Backdrop -->
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <div
-        class="fixed inset-0 z-50 bg-m3-scrim/40 backdrop-blur-sm"
-        transition:fade={{ duration: 200 }}
-        onclick={handleClose}
-        role="presentation"
-    ></div>
+<SideSheet
+    bind:open
+    title="Grid Settings"
+    subtitle={config?.name ?? "Dashboard"}
+    icon={IconGridView}
+    onclose={handleClose}
+>
+    <!-- Grid Dimensions Section -->
+    <section>
+        <h3 class="text-m3-title-small text-m3-on-surface mb-4">
+            Grid Dimensions
+        </h3>
+        <p class="text-m3-body-small text-m3-on-surface-variant mb-4">
+            Define columns and rows (e.g., "12×6" or leave rows empty for auto)
+        </p>
 
-    <!-- Slide-in Panel -->
-    <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
-    <div
-        class="fixed top-0 right-0 z-50 h-full w-full max-w-md bg-m3-surface-container flex flex-col shadow-2xl"
-        transition:fly={{ x: 400, duration: 300, opacity: 1 }}
-        role="dialog"
-        aria-labelledby="grid-config-title"
-        aria-modal="true"
-    >
-        <!-- Header -->
-        <header
-            class="flex items-center gap-3 px-6 py-5 border-b border-m3-outline-variant/30"
-        >
-            <div
-                class="flex items-center justify-center w-10 h-10 rounded-full bg-m3-primary-container text-m3-on-primary-container"
-            >
-                <IconGridView class="size-5" />
-            </div>
-            <div class="flex-1">
-                <h2
-                    id="grid-config-title"
-                    class="text-m3-title-large text-m3-on-surface"
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            <div>
+                <span
+                    class="text-m3-label-small text-m3-on-surface-variant mb-2 block"
                 >
-                    Grid Settings
-                </h2>
+                    Columns
+                </span>
+                <input
+                    type="number"
+                    min="2"
+                    max="24"
+                    bind:value={columns}
+                    onchange={() => {
+                        // Clamp and update dimension string
+                        if (columns < 2) columns = 2;
+                        if (columns > 24) columns = 24;
+                        dimensionInput =
+                            rows > 0 ? `${columns}×${rows}` : `${columns}`;
+                    }}
+                    class="w-full px-4 py-3 rounded-m3-sm bg-m3-surface-container-highest text-m3-on-surface text-m3-body-large border border-m3-outline focus:border-m3-primary focus:outline-none transition-colors"
+                />
+            </div>
+            <div>
+                <span
+                    class="text-m3-label-small text-m3-on-surface-variant mb-2 block"
+                >
+                    Rows
+                    <span class="text-m3-on-surface-variant/60">(0 = auto)</span
+                    >
+                </span>
+                <input
+                    type="number"
+                    min="0"
+                    max="20"
+                    bind:value={rows}
+                    onchange={() => {
+                        // Clamp value and update dimension string
+                        if (rows < 0) rows = 0;
+                        if (rows > 20) rows = 20;
+                        dimensionInput =
+                            rows > 0 ? `${columns}×${rows}` : `${columns}`;
+                        // Sync individual row heights array
+                        syncRowHeights();
+                    }}
+                    class="w-full px-4 py-3 rounded-m3-sm bg-m3-surface-container-highest text-m3-on-surface text-m3-body-large border border-m3-outline focus:border-m3-primary focus:outline-none transition-colors"
+                />
+            </div>
+        </div>
+
+        <!-- Preset Chips -->
+        <div class="flex flex-wrap gap-2">
+            {#each [4, 6, 8, 10, 12] as preset}
+                <Chip
+                    variant="filter"
+                    label="{preset} cols"
+                    selected={columns === preset}
+                    onclick={() => applyPreset(preset)}
+                />
+            {/each}
+        </div>
+    </section>
+
+    <!-- Row Height Section -->
+    <section>
+        <h3 class="text-m3-title-small text-m3-on-surface mb-4">Row Height</h3>
+        <p class="text-m3-body-small text-m3-on-surface-variant mb-4">
+            Height of each grid row in pixels
+        </p>
+
+        <div class="flex items-center gap-4">
+            <input
+                type="range"
+                min="40"
+                max="200"
+                step="10"
+                bind:value={rowHeight}
+                class="flex-1 h-2 bg-m3-surface-container-highest rounded-full appearance-none cursor-pointer accent-m3-primary"
+            />
+            <span
+                class="text-m3-body-medium text-m3-on-surface w-16 text-right tabular-nums"
+            >
+                {rowHeight}px
+            </span>
+        </div>
+
+        <!-- Row Height Presets -->
+        <div class="flex flex-wrap gap-2 mt-4">
+            {#each [60, 80, 100, 120] as preset}
+                <Chip
+                    variant="filter"
+                    label="{preset}px"
+                    selected={rowHeight === preset}
+                    onclick={() => (rowHeight = preset)}
+                />
+            {/each}
+        </div>
+    </section>
+
+    <!-- Individual Row Heights Section (when explicit rows are defined) -->
+    {#if rows > 0 && individualRowHeights.length > 0}
+        <section>
+            <h3 class="text-m3-title-small text-m3-on-surface mb-4">
+                Individual Row Heights
+            </h3>
+            <p class="text-m3-body-small text-m3-on-surface-variant mb-4">
+                Customize height for each row
+            </p>
+
+            <div class="flex flex-col gap-3 max-h-48 overflow-y-auto">
+                {#each individualRowHeights as height, i}
+                    <div
+                        class="flex items-center gap-3 p-2 bg-m3-surface-container-high rounded-m3-sm"
+                    >
+                        <span
+                            class="text-m3-label-medium text-m3-on-surface-variant w-16"
+                        >
+                            Row {i + 1}
+                        </span>
+                        <input
+                            type="range"
+                            min="40"
+                            max="200"
+                            step="10"
+                            value={height}
+                            oninput={(e) => {
+                                individualRowHeights[i] = parseInt(
+                                    (e.target as HTMLInputElement).value,
+                                );
+                                individualRowHeights = [
+                                    ...individualRowHeights,
+                                ]; // trigger reactivity
+                            }}
+                            class="flex-1 h-2 bg-m3-surface-container-highest rounded-full appearance-none cursor-pointer accent-m3-primary"
+                        />
+                        <span
+                            class="text-m3-body-small text-m3-on-surface w-12 text-right tabular-nums"
+                        >
+                            {height}px
+                        </span>
+                    </div>
+                {/each}
+            </div>
+
+            <!-- Apply default height to all rows -->
+            <button
+                class="mt-3 text-m3-label-medium text-m3-primary hover:underline"
+                onclick={() => {
+                    individualRowHeights = Array.from(
+                        { length: rows },
+                        () => rowHeight,
+                    );
+                }}
+            >
+                Apply default ({rowHeight}px) to all rows
+            </button>
+
+            <!-- Warning for rows below minimum height -->
+            {#if rowHeightWarnings().length > 0}
+                <div
+                    class="mt-3 p-3 bg-m3-error-container text-m3-on-error-container rounded-m3-sm text-m3-body-small flex items-start gap-2"
+                >
+                    <span class="text-lg leading-none">⚠️</span>
+                    <span>
+                        {#if rowHeightWarnings().length === 1}
+                            Row {rowHeightWarnings()[0].row} is below the minimum
+                            card height ({CARD_MIN_HEIGHT}px).
+                        {:else}
+                            Rows {rowHeightWarnings()
+                                .map((w) => w.row)
+                                .join(", ")} are below the minimum card height ({CARD_MIN_HEIGHT}px).
+                        {/if}
+                        Cards may overflow their cells.
+                    </span>
+                </div>
+            {/if}
+        </section>
+    {/if}
+
+    <!-- Gaps Section -->
+    <section>
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h3 class="text-m3-title-small text-m3-on-surface">Gaps</h3>
                 <p class="text-m3-body-small text-m3-on-surface-variant">
-                    {config?.name ?? "Dashboard"}
+                    Spacing between grid cells
                 </p>
             </div>
             <button
-                class="p-2 rounded-full hover:bg-m3-on-surface/10 text-m3-on-surface-variant hover:text-m3-on-surface transition-colors"
-                onclick={handleClose}
-                aria-label="Close"
+                onclick={toggleGapLink}
+                class="flex items-center gap-2 px-3 py-2 rounded-full text-m3-label-medium transition-colors
+                       {gapsLinked
+                    ? 'bg-m3-primary-container text-m3-on-primary-container'
+                    : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest'}"
+                title={gapsLinked ? "Unlink gaps" : "Link gaps"}
             >
-                <IconClose class="size-6" />
+                {#if gapsLinked}
+                    <IconLink class="size-4" />
+                    Linked
+                {:else}
+                    <IconLinkOff class="size-4" />
+                    Unlinked
+                {/if}
             </button>
-        </header>
-
-        <!-- Content -->
-        <div class="flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-8">
-            <!-- Grid Dimensions Section -->
-            <section>
-                <h3 class="text-m3-title-small text-m3-on-surface mb-4">
-                    Grid Dimensions
-                </h3>
-                <p class="text-m3-body-small text-m3-on-surface-variant mb-4">
-                    Define columns and rows (e.g., "12×6" or leave rows empty
-                    for auto)
-                </p>
-
-                <div class="grid grid-cols-2 gap-3 mb-4">
-                    <div>
-                        <span
-                            class="text-m3-label-small text-m3-on-surface-variant mb-2 block"
-                        >
-                            Columns
-                        </span>
-                        <input
-                            type="number"
-                            min="2"
-                            max="24"
-                            bind:value={columns}
-                            onchange={() => {
-                                // Clamp and update dimension string
-                                if (columns < 2) columns = 2;
-                                if (columns > 24) columns = 24;
-                                dimensionInput =
-                                    rows > 0
-                                        ? `${columns}×${rows}`
-                                        : `${columns}`;
-                            }}
-                            class="w-full px-4 py-3 rounded-m3-sm bg-m3-surface-container-highest text-m3-on-surface text-m3-body-large border border-m3-outline focus:border-m3-primary focus:outline-none transition-colors"
-                        />
-                    </div>
-                    <div>
-                        <span
-                            class="text-m3-label-small text-m3-on-surface-variant mb-2 block"
-                        >
-                            Rows
-                            <span class="text-m3-on-surface-variant/60"
-                                >(0 = auto)</span
-                            >
-                        </span>
-                        <input
-                            type="number"
-                            min="0"
-                            max="20"
-                            bind:value={rows}
-                            onchange={() => {
-                                // Clamp value and update dimension string
-                                if (rows < 0) rows = 0;
-                                if (rows > 20) rows = 20;
-                                dimensionInput =
-                                    rows > 0
-                                        ? `${columns}×${rows}`
-                                        : `${columns}`;
-                                // Sync individual row heights array
-                                syncRowHeights();
-                            }}
-                            class="w-full px-4 py-3 rounded-m3-sm bg-m3-surface-container-highest text-m3-on-surface text-m3-body-large border border-m3-outline focus:border-m3-primary focus:outline-none transition-colors"
-                        />
-                    </div>
-                </div>
-
-                <!-- Preset Chips -->
-                <div class="flex flex-wrap gap-2">
-                    {#each [4, 6, 8, 10, 12] as preset}
-                        <Chip
-                            variant="filter"
-                            label="{preset} cols"
-                            selected={columns === preset}
-                            onclick={() => applyPreset(preset)}
-                        />
-                    {/each}
-                </div>
-            </section>
-
-            <!-- Row Height Section -->
-            <section>
-                <h3 class="text-m3-title-small text-m3-on-surface mb-4">
-                    Row Height
-                </h3>
-                <p class="text-m3-body-small text-m3-on-surface-variant mb-4">
-                    Height of each grid row in pixels
-                </p>
-
-                <div class="flex items-center gap-4">
-                    <input
-                        type="range"
-                        min="40"
-                        max="200"
-                        step="10"
-                        bind:value={rowHeight}
-                        class="flex-1 h-2 bg-m3-surface-container-highest rounded-full appearance-none cursor-pointer accent-m3-primary"
-                    />
-                    <span
-                        class="text-m3-body-medium text-m3-on-surface w-16 text-right tabular-nums"
-                    >
-                        {rowHeight}px
-                    </span>
-                </div>
-
-                <!-- Row Height Presets -->
-                <div class="flex flex-wrap gap-2 mt-4">
-                    {#each [60, 80, 100, 120] as preset}
-                        <Chip
-                            variant="filter"
-                            label="{preset}px"
-                            selected={rowHeight === preset}
-                            onclick={() => (rowHeight = preset)}
-                        />
-                    {/each}
-                </div>
-            </section>
-
-            <!-- Individual Row Heights Section (when explicit rows are defined) -->
-            {#if rows > 0 && individualRowHeights.length > 0}
-                <section>
-                    <h3 class="text-m3-title-small text-m3-on-surface mb-4">
-                        Individual Row Heights
-                    </h3>
-                    <p
-                        class="text-m3-body-small text-m3-on-surface-variant mb-4"
-                    >
-                        Customize height for each row
-                    </p>
-
-                    <div class="flex flex-col gap-3 max-h-48 overflow-y-auto">
-                        {#each individualRowHeights as height, i}
-                            <div
-                                class="flex items-center gap-3 p-2 bg-m3-surface-container-high rounded-m3-sm"
-                            >
-                                <span
-                                    class="text-m3-label-medium text-m3-on-surface-variant w-16"
-                                >
-                                    Row {i + 1}
-                                </span>
-                                <input
-                                    type="range"
-                                    min="40"
-                                    max="200"
-                                    step="10"
-                                    value={height}
-                                    oninput={(e) => {
-                                        individualRowHeights[i] = parseInt(
-                                            (e.target as HTMLInputElement)
-                                                .value,
-                                        );
-                                        individualRowHeights = [
-                                            ...individualRowHeights,
-                                        ]; // trigger reactivity
-                                    }}
-                                    class="flex-1 h-2 bg-m3-surface-container-highest rounded-full appearance-none cursor-pointer accent-m3-primary"
-                                />
-                                <span
-                                    class="text-m3-body-small text-m3-on-surface w-12 text-right tabular-nums"
-                                >
-                                    {height}px
-                                </span>
-                            </div>
-                        {/each}
-                    </div>
-
-                    <!-- Apply default height to all rows -->
-                    <button
-                        class="mt-3 text-m3-label-medium text-m3-primary hover:underline"
-                        onclick={() => {
-                            individualRowHeights = Array.from(
-                                { length: rows },
-                                () => rowHeight,
-                            );
-                        }}
-                    >
-                        Apply default ({rowHeight}px) to all rows
-                    </button>
-
-                    <!-- Warning for rows below minimum height -->
-                    {#if rowHeightWarnings().length > 0}
-                        <div
-                            class="mt-3 p-3 bg-m3-error-container text-m3-on-error-container rounded-m3-sm text-m3-body-small flex items-start gap-2"
-                        >
-                            <span class="text-lg leading-none">⚠️</span>
-                            <span>
-                                {#if rowHeightWarnings().length === 1}
-                                    Row {rowHeightWarnings()[0].row} is below the
-                                    minimum card height ({CARD_MIN_HEIGHT}px).
-                                {:else}
-                                    Rows {rowHeightWarnings()
-                                        .map((w) => w.row)
-                                        .join(", ")} are below the minimum card height
-                                    ({CARD_MIN_HEIGHT}px).
-                                {/if}
-                                Cards may overflow their cells.
-                            </span>
-                        </div>
-                    {/if}
-                </section>
-            {/if}
-
-            <!-- Gaps Section -->
-            <section>
-                <div class="flex items-center justify-between mb-4">
-                    <div>
-                        <h3 class="text-m3-title-small text-m3-on-surface">
-                            Gaps
-                        </h3>
-                        <p
-                            class="text-m3-body-small text-m3-on-surface-variant"
-                        >
-                            Spacing between grid cells
-                        </p>
-                    </div>
-                    <button
-                        onclick={toggleGapLink}
-                        class="flex items-center gap-2 px-3 py-2 rounded-full text-m3-label-medium transition-colors
-                               {gapsLinked
-                            ? 'bg-m3-primary-container text-m3-on-primary-container'
-                            : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest'}"
-                        title={gapsLinked ? "Unlink gaps" : "Link gaps"}
-                    >
-                        {#if gapsLinked}
-                            <IconLink class="size-4" />
-                            Linked
-                        {:else}
-                            <IconLinkOff class="size-4" />
-                            Unlinked
-                        {/if}
-                    </button>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <span
-                            class="text-m3-label-small text-m3-on-surface-variant mb-2 block"
-                        >
-                            Horizontal
-                        </span>
-                        <div class="flex items-center gap-2">
-                            <input
-                                type="number"
-                                min="0"
-                                max="64"
-                                value={horizontalGap}
-                                oninput={(e) =>
-                                    handleHorizontalGapChange(
-                                        parseInt(
-                                            (e.target as HTMLInputElement)
-                                                .value,
-                                        ) || 0,
-                                    )}
-                                class="w-full px-4 py-3 rounded-m3-sm bg-m3-surface-container-highest text-m3-on-surface text-m3-body-large border border-m3-outline focus:border-m3-primary focus:outline-none transition-colors"
-                            />
-                            <span
-                                class="text-m3-body-small text-m3-on-surface-variant"
-                                >px</span
-                            >
-                        </div>
-                    </div>
-                    <div>
-                        <span
-                            class="text-m3-label-small text-m3-on-surface-variant mb-2 block"
-                        >
-                            Vertical
-                        </span>
-                        <div class="flex items-center gap-2">
-                            <input
-                                type="number"
-                                min="0"
-                                max="64"
-                                value={verticalGap}
-                                oninput={(e) =>
-                                    handleVerticalGapChange(
-                                        parseInt(
-                                            (e.target as HTMLInputElement)
-                                                .value,
-                                        ) || 0,
-                                    )}
-                                disabled={gapsLinked}
-                                class="w-full px-4 py-3 rounded-m3-sm bg-m3-surface-container-highest text-m3-on-surface text-m3-body-large border border-m3-outline focus:border-m3-primary focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            />
-                            <span
-                                class="text-m3-body-small text-m3-on-surface-variant"
-                                >px</span
-                            >
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Padding Section -->
-            <section>
-                <h3 class="text-m3-title-small text-m3-on-surface mb-4">
-                    Grid Padding
-                </h3>
-                <p class="text-m3-body-small text-m3-on-surface-variant mb-4">
-                    Space around the entire grid
-                </p>
-
-                <div class="flex items-center gap-4">
-                    <input
-                        type="range"
-                        min="0"
-                        max="48"
-                        step="4"
-                        bind:value={padding}
-                        class="flex-1 h-2 bg-m3-surface-container-highest rounded-full appearance-none cursor-pointer accent-m3-primary"
-                    />
-                    <span
-                        class="text-m3-body-medium text-m3-on-surface w-16 text-right tabular-nums"
-                    >
-                        {padding}px
-                    </span>
-                </div>
-            </section>
         </div>
 
-        <!-- Footer Actions -->
-        <footer
-            class="px-6 py-4 border-t border-m3-outline-variant/30 flex justify-between gap-3"
-        >
-            <Button variant="text" onclick={handleReset}>Reset</Button>
-            <div class="flex gap-3">
-                <Button variant="outlined" onclick={handleClose}>Cancel</Button>
-                <Button variant="filled" onclick={handleApply}>Apply</Button>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <span
+                    class="text-m3-label-small text-m3-on-surface-variant mb-2 block"
+                >
+                    Horizontal
+                </span>
+                <div class="flex items-center gap-2">
+                    <input
+                        type="number"
+                        min="0"
+                        max="64"
+                        value={horizontalGap}
+                        oninput={(e) =>
+                            handleHorizontalGapChange(
+                                parseInt(
+                                    (e.target as HTMLInputElement).value,
+                                ) || 0,
+                            )}
+                        class="w-full px-4 py-3 rounded-m3-sm bg-m3-surface-container-highest text-m3-on-surface text-m3-body-large border border-m3-outline focus:border-m3-primary focus:outline-none transition-colors"
+                    />
+                    <span class="text-m3-body-small text-m3-on-surface-variant"
+                        >px</span
+                    >
+                </div>
             </div>
-        </footer>
-    </div>
-{/if}
+            <div>
+                <span
+                    class="text-m3-label-small text-m3-on-surface-variant mb-2 block"
+                >
+                    Vertical
+                </span>
+                <div class="flex items-center gap-2">
+                    <input
+                        type="number"
+                        min="0"
+                        max="64"
+                        value={verticalGap}
+                        oninput={(e) =>
+                            handleVerticalGapChange(
+                                parseInt(
+                                    (e.target as HTMLInputElement).value,
+                                ) || 0,
+                            )}
+                        disabled={gapsLinked}
+                        class="w-full px-4 py-3 rounded-m3-sm bg-m3-surface-container-highest text-m3-on-surface text-m3-body-large border border-m3-outline focus:border-m3-primary focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    <span class="text-m3-body-small text-m3-on-surface-variant"
+                        >px</span
+                    >
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Padding Section -->
+    <section>
+        <h3 class="text-m3-title-small text-m3-on-surface mb-4">
+            Grid Padding
+        </h3>
+        <p class="text-m3-body-small text-m3-on-surface-variant mb-4">
+            Space around the entire grid
+        </p>
+
+        <div class="flex items-center gap-4">
+            <input
+                type="range"
+                min="0"
+                max="48"
+                step="4"
+                bind:value={padding}
+                class="flex-1 h-2 bg-m3-surface-container-highest rounded-full appearance-none cursor-pointer accent-m3-primary"
+            />
+            <span
+                class="text-m3-body-medium text-m3-on-surface w-16 text-right tabular-nums"
+            >
+                {padding}px
+            </span>
+        </div>
+    </section>
+
+    {#snippet actions()}
+        <Button variant="text" onclick={handleReset}>Reset</Button>
+        <div class="flex gap-3">
+            <Button variant="outlined" onclick={handleClose}>Cancel</Button>
+            <Button variant="filled" onclick={handleApply}>Apply</Button>
+        </div>
+    {/snippet}
+</SideSheet>
 
 <style>
     /* Custom range slider styling */

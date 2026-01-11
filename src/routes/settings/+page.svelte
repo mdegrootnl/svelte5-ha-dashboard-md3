@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { onMount } from "svelte";
     import { haStore, Button, TextField, Card, PageShell } from "$lib";
     import Link from "~icons/material-symbols/link";
     import LinkOff from "~icons/material-symbols/link-off";
@@ -9,12 +10,47 @@
     import Key from "~icons/material-symbols/key";
     import OpenInNew from "~icons/material-symbols/open-in-new";
 
-    let host = $state("homeassistant.local");
+    let host = $state("http://homeassistant.local");
     let port = $state("8123");
-    let token = $state("");
-    let authMode = $state<"oauth" | "token">("oauth");
+    let token = ""; // Local variable for internal use if needed, but removing from state
     let loading = $state(false);
     let error = $state<string | null>(null);
+
+    onMount(async () => {
+        const lastUrl = await haStore.getLastUsedUrl();
+        if (lastUrl) {
+            try {
+                const url = new URL(lastUrl);
+                // If it's a standard URL, extract host and port
+                // Handle protocol correctly as requested
+                host = `${url.protocol}//${url.hostname}`;
+
+                if (url.port) {
+                    port = url.port;
+                } else {
+                    port = url.protocol === "https:" ? "443" : "80";
+                }
+
+                console.log(
+                    "Persistence: Loaded last used URL:",
+                    lastUrl,
+                    "Parsed to:",
+                    host,
+                    port,
+                );
+            } catch (e) {
+                console.error("Failed to parse last used URL:", lastUrl, e);
+                // Fallback to simple split if URL parsing fails (for edge cases)
+                if (lastUrl.includes("://")) {
+                    const parts = lastUrl.split(":");
+                    if (parts.length >= 3) {
+                        host = `${parts[0]}:${parts[1]}`;
+                        port = parts[2].split("/")[0];
+                    }
+                }
+            }
+        }
+    });
 
     // Input validation patterns
     const HOSTNAME_REGEX = /^[a-zA-Z0-9]([a-zA-Z0-9\-\.]*[a-zA-Z0-9])?$/;
@@ -54,39 +90,6 @@
         return null;
     }
 
-    function validateToken(value: string): string | null {
-        if (!value || value.trim() === "") {
-            return "Access token is required";
-        }
-        if (value.trim().length < 10) {
-            return "Access token appears too short";
-        }
-        return null;
-    }
-
-    /**
-     * Open Home Assistant profile page to create a long-lived access token
-     * This opens in a new tab so users can login and copy the token
-     */
-    function openHATokenPage() {
-        const hostError = validateHost(host);
-        if (hostError) {
-            error = hostError;
-            return;
-        }
-        const portError = validatePort(port);
-        if (portError) {
-            error = portError;
-            return;
-        }
-
-        error = null;
-        const protocol = host.trim().startsWith("http") ? "" : "https://";
-        const hassUrl = `${protocol}${host.trim()}:${port.trim()}`;
-        // Open the HA profile page where users can create long-lived tokens
-        window.open(`${hassUrl}/profile/security`, "_blank");
-    }
-
     async function handleConnect() {
         // Validate inputs before connecting
         const hostError = validateHost(host);
@@ -100,26 +103,10 @@
             return;
         }
 
-        if (authMode === "token") {
-            const tokenError = validateToken(token);
-            if (tokenError) {
-                error = tokenError;
-                return;
-            }
-        }
-
         loading = true;
         error = null;
         try {
-            if (authMode === "token") {
-                await haStore.loginWithToken(
-                    host.trim(),
-                    port.trim(),
-                    token.trim(),
-                );
-            } else {
-                await haStore.login(host.trim(), port.trim());
-            }
+            await haStore.login(host.trim(), port.trim());
         } catch (e) {
             error =
                 haStore.connectionError ||
@@ -241,82 +228,6 @@
                 {/if}
 
                 {#if showLoginForm}
-                    <!-- Auth Mode Toggle -->
-                    <div class="flex gap-2">
-                        <button
-                            class="flex-1 px-4 py-2 rounded-full text-sm font-medium transition-colors {authMode ===
-                            'oauth'
-                                ? 'bg-m3-primary text-m3-on-primary'
-                                : 'bg-m3-surface-container text-m3-on-surface-variant hover:bg-m3-surface-container-high'}"
-                            onclick={() => (authMode = "oauth")}
-                        >
-                            OAuth (Recommended)
-                        </button>
-                        <button
-                            class="flex-1 px-4 py-2 rounded-full text-sm font-medium transition-colors {authMode ===
-                            'token'
-                                ? 'bg-m3-primary text-m3-on-primary'
-                                : 'bg-m3-surface-container text-m3-on-surface-variant hover:bg-m3-surface-container-high'}"
-                            onclick={() => (authMode = "token")}
-                        >
-                            Long-Lived Token
-                        </button>
-                    </div>
-
-                    <!-- Security Warning for Token Mode -->
-                    {#if authMode === "token"}
-                        <div
-                            class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 flex flex-col gap-3"
-                        >
-                            <div class="flex items-start gap-3">
-                                <Warning
-                                    class="w-6 h-6 text-amber-500 flex-shrink-0 mt-0.5"
-                                />
-                                <div class="flex-1">
-                                    <p
-                                        class="text-m3-body-medium text-amber-600 dark:text-amber-400 font-medium"
-                                    >
-                                        Security Notice
-                                    </p>
-                                    <p
-                                        class="text-m3-body-small text-m3-on-surface-variant mt-1"
-                                    >
-                                        Long-lived access tokens do not expire
-                                        and grant full API access. Only use on
-                                        trusted internal networks.
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="bg-m3-surface-container rounded-md p-3">
-                                <p
-                                    class="text-m3-body-small text-m3-on-surface-variant mb-2"
-                                >
-                                    <strong>To get a token:</strong>
-                                </p>
-                                <ol
-                                    class="text-m3-body-small text-m3-on-surface-variant list-decimal list-inside space-y-1"
-                                >
-                                    <li>
-                                        Enter your Home Assistant host and port
-                                        below
-                                    </li>
-                                    <li>
-                                        Click "Get Token from Home Assistant" to
-                                        open your HA instance
-                                    </li>
-                                    <li>
-                                        Log in if prompted, then scroll to
-                                        "Long-Lived Access Tokens"
-                                    </li>
-                                    <li>
-                                        Create a new token, copy it, and paste
-                                        it below
-                                    </li>
-                                </ol>
-                            </div>
-                        </div>
-                    {/if}
-
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div class="md:col-span-2">
                             <TextField
@@ -333,32 +244,6 @@
                             />
                         </div>
                     </div>
-
-                    <!-- Token Input (only for token mode) -->
-                    {#if authMode === "token"}
-                        <div class="flex flex-col gap-3">
-                            <Button
-                                variant="tonal"
-                                onclick={openHATokenPage}
-                                icon={OpenInNew}
-                                class="w-full justify-center"
-                            >
-                                Get Token from Home Assistant
-                            </Button>
-
-                            <div class="relative">
-                                <TextField
-                                    label="Long-Lived Access Token"
-                                    placeholder="Paste your token here"
-                                    bind:value={token}
-                                    type="password"
-                                />
-                                <Key
-                                    class="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-m3-on-surface-variant pointer-events-none"
-                                />
-                            </div>
-                        </div>
-                    {/if}
 
                     {#if error}
                         <p class="text-m3-error text-m3-body-medium">

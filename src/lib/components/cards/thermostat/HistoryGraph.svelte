@@ -37,6 +37,39 @@
         return [new Date(Math.min(...times)), new Date(Math.max(...times))];
     });
 
+    // Extend data to full time range (add synthetic edge points)
+    function extendToEdges(
+        data: HistoryDataPoint[],
+        extent: [Date, Date],
+    ): HistoryDataPoint[] {
+        const filtered = data.filter((d) => d.value !== null);
+        if (filtered.length === 0) return [];
+
+        const [startTime, endTime] = extent;
+        const result = [...filtered];
+
+        // Add start point if data starts after extent start
+        if (result[0].timestamp.getTime() > startTime.getTime()) {
+            result.unshift({
+                timestamp: startTime,
+                state: result[0].state,
+                value: result[0].value!,
+            });
+        }
+
+        // Add end point if data ends before extent end
+        const lastIdx = result.length - 1;
+        if (result[lastIdx].timestamp.getTime() < endTime.getTime()) {
+            result.push({
+                timestamp: endTime,
+                state: result[lastIdx].state,
+                value: result[lastIdx].value!,
+            });
+        }
+
+        return result;
+    }
+
     // Value domain with padding
     let valueExtent = $derived.by((): [number, number] => {
         const values = allData.map((d) => d.value!).filter((v) => !isNaN(v));
@@ -65,10 +98,9 @@
         scaleLinear<number>().domain(valueExtent).range([height, 0]),
     );
 
-    // Line generators
+    // Line generators - no .defined() needed since we pre-filter nulls
     let lineGenerator = $derived(
         line<HistoryDataPoint>()
-            .defined((d) => d.value !== null)
             .x((d) => xScale(d.timestamp))
             .y((d) => yScale(d.value!))
             .curve(curveMonotoneX),
@@ -77,25 +109,32 @@
     // Area generators
     let areaGenerator = $derived(
         area<HistoryDataPoint>()
-            .defined((d) => d.value !== null)
             .x((d) => xScale(d.timestamp))
             .y0(height)
             .y1((d) => yScale(d.value!))
             .curve(curveMonotoneX),
     );
 
-    // Generated paths
+    // Extend data to edges and filter nulls for smooth continuous lines
+    let extendedInsideData = $derived(extendToEdges(insideData, timeExtent));
+    let extendedOutsideData = $derived(extendToEdges(outsideData, timeExtent));
+
+    // Generated paths - use extended data for full-width lines
     let insideLine = $derived(
-        insideData.length > 0 ? lineGenerator(insideData) : "",
+        extendedInsideData.length > 0 ? lineGenerator(extendedInsideData) : "",
     );
     let insideArea = $derived(
-        insideData.length > 0 ? areaGenerator(insideData) : "",
+        extendedInsideData.length > 0 ? areaGenerator(extendedInsideData) : "",
     );
     let outsideLine = $derived(
-        outsideData.length > 0 ? lineGenerator(outsideData) : "",
+        extendedOutsideData.length > 0
+            ? lineGenerator(extendedOutsideData)
+            : "",
     );
     let outsideArea = $derived(
-        outsideData.length > 0 ? areaGenerator(outsideData) : "",
+        extendedOutsideData.length > 0
+            ? areaGenerator(extendedOutsideData)
+            : "",
     );
 </script>
 

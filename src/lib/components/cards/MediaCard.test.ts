@@ -19,7 +19,7 @@ describe('MediaCard Component', () => {
         };
         vi.spyOn(haStore, 'getEntity').mockReturnValue(entity as any);
 
-        render(MediaCard, { props: { entityId: 'media_player.test' } });
+        render(MediaCard, { props: { entityId: 'media_player.test', name: '', domainFilter: '' } });
 
         expect(screen.getByText('Powered Off')).toBeInTheDocument();
         expect(screen.getByText('Turn On')).toBeInTheDocument();
@@ -33,7 +33,7 @@ describe('MediaCard Component', () => {
         };
         vi.spyOn(haStore, 'getEntity').mockReturnValue(entity as any);
 
-        render(MediaCard, { props: { entityId: 'media_player.test' } });
+        render(MediaCard, { props: { entityId: 'media_player.test', name: '', domainFilter: '' } });
         const turnOnBtn = screen.getByText('Turn On');
 
         await fireEvent.click(turnOnBtn);
@@ -54,7 +54,7 @@ describe('MediaCard Component', () => {
         };
         vi.spyOn(haStore, 'getEntity').mockReturnValue(entity as any);
 
-        render(MediaCard, { props: { entityId: 'media_player.test' } });
+        render(MediaCard, { props: { entityId: 'media_player.test', name: '', domainFilter: '' } });
 
         expect(screen.getByText('Test Song')).toBeInTheDocument();
         expect(screen.getByText('Test Artist')).toBeInTheDocument();
@@ -68,7 +68,7 @@ describe('MediaCard Component', () => {
         };
         vi.spyOn(haStore, 'getEntity').mockReturnValue(entity as any);
 
-        render(MediaCard, { props: { entityId: 'media_player.test', variant: 'poster' } });
+        render(MediaCard, { props: { entityId: 'media_player.test', name: '', domainFilter: '', variant: 'poster' } });
 
         expect(screen.getByText('Poster Song')).toBeInTheDocument();
     });
@@ -81,7 +81,7 @@ describe('MediaCard Component', () => {
         };
         vi.spyOn(haStore, 'getEntity').mockReturnValue(entity as any);
 
-        render(MediaCard, { props: { entityId: 'media_player.test', variant: 'condensed' } });
+        render(MediaCard, { props: { entityId: 'media_player.test', name: '', domainFilter: '', variant: 'condensed' } });
 
         expect(screen.getByText('Condensed Song')).toBeInTheDocument();
     });
@@ -94,7 +94,7 @@ describe('MediaCard Component', () => {
         };
         vi.spyOn(haStore, 'getEntity').mockReturnValue(entity as any);
 
-        render(MediaCard, { props: { entityId: 'media_player.test' } });
+        render(MediaCard, { props: { entityId: 'media_player.test', name: '', domainFilter: '' } });
         const editBtn = screen.getByTitle('Edit Card');
 
         await fireEvent.click(editBtn);

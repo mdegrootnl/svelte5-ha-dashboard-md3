@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
     import { haStore } from "$lib/stores/ha.svelte";
     import IconEdit from "~icons/material-symbols/edit";
     import PowerOff from "~icons/material-symbols/power-off";
@@ -9,12 +9,21 @@
     import MediaProgress from "./media/MediaProgress.svelte";
 
     // Props
+    interface Props {
+        entityId: string;
+        name: string;
+        domainFilter: string;
+        variant?: "standard" | "condensed" | "poster";
+        background?: "surface" | "immersive";
+    }
+
     let {
-        entityId = $bindable(),
-        variant = "standard",
-        background = "surface",
+        entityId = $bindable(""),
         name = $bindable(""),
-    } = $props();
+        domainFilter = $bindable(""),
+        variant = "standard",
+        background: backgroundProp = "surface",
+    }: Props = $props();
 
     // Derived State
     let entity = $derived(haStore.getEntity(entityId));
@@ -35,11 +44,6 @@
             entityState === "unavailable",
     );
 
-    // Dynamic theme: only use dark if we have artwork and immersive background
-    let currentTheme = $derived(
-        background === "immersive" && artworkSrc && !isOff ? "dark" : "light",
-    );
-
     // Responsive Logic
     let clientHeight = $state(0);
     // 1 row (<145px): Condensed
@@ -53,11 +57,25 @@
               : "poster",
     );
 
+    // Default to immersive for posters if background not explicitly set to something else
+    let effectiveBackground = $derived(
+        effectiveVariant === "poster" && backgroundProp === "surface"
+            ? "immersive"
+            : backgroundProp,
+    );
+
+    // Dynamic theme: only use dark if we have artwork and immersive background
+    let currentTheme = $derived(
+        effectiveBackground === "immersive" && artworkSrc && !isOff
+            ? "dark"
+            : "light",
+    );
+
     // Dynamic container class
     let containerClass = $derived(
         isOff
             ? "bg-m3-surface-container-low text-m3-on-surface overflow-hidden"
-            : background === "immersive" && artworkSrc
+            : effectiveBackground === "immersive" && artworkSrc
               ? "relative overflow-hidden"
               : "bg-m3-surface-container-highest text-m3-on-surface overflow-hidden",
     );
@@ -67,11 +85,12 @@
     }
 
     /** @param {Event} e */
-    function openConfig(e) {
+    function openConfig(e: MouseEvent) {
         e.stopPropagation();
         cardEditorStore.open({
             entityId: entityId || "",
             name: name || "",
+            domainFilter: domainFilter || "media_player",
             onSave: (newConfig) => {
                 entityId = newConfig.entityId;
                 name = newConfig.name;
@@ -85,7 +104,7 @@
     bind:clientHeight
 >
     <!-- Immersive Background -->
-    {#if background === "immersive" && artworkSrc && !isOff}
+    {#if effectiveBackground === "immersive" && artworkSrc && !isOff}
         <div class="absolute inset-0 z-0">
             <img
                 src={artworkSrc}

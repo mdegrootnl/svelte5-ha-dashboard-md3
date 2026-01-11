@@ -2,11 +2,12 @@
 import { browser } from '$app/environment';
 import type {
     DashboardItem,
-    ItemLayout,
-    Breakpoint,
     GridConfig,
+    Breakpoint,
+    DashboardCardType,
     RoomDashboardConfig
 } from '$lib/types/dashboard';
+import { createDefaultItemLayout } from '$lib/types/dashboard';
 import { dashboardStore } from './dashboard.svelte';
 
 /**
@@ -474,6 +475,45 @@ export class DashboardEditorStore {
         const { root, tab: config } = context;
 
         Object.assign(config, updates);
+        dashboardStore.setConfig(root);
+    }
+    addItem(itemConfig: Partial<DashboardItem> & { type?: string; name?: string; cardSize?: 'condensed' | 'standard' | 'poster' }) {
+        const context = this.getActiveGrid();
+        if (!context) return;
+        const { root, tab: config } = context;
+
+        // Map generic type to card cards
+        let cardType: DashboardCardType = "button";
+        if (itemConfig.type === "thermostat") cardType = "thermostat";
+        if (itemConfig.type === "media") cardType = "media";
+
+        // Find next available row
+        let maxRow = 1;
+        for (const item of config.items) {
+            const layout = item.layout.desktop;
+            maxRow = Math.max(maxRow, layout.rowStart + layout.rowSpan);
+        }
+
+        // Create default layout at the new row with appropriate size
+        const layout = createDefaultItemLayout(1, cardType, itemConfig.cardSize || 'standard');
+        // Place at the bottom
+        layout.desktop.rowStart = maxRow;
+        layout.mobile.rowStart = maxRow;
+
+        // DashboardItem type should now have 'name'
+        const newItem: DashboardItem = {
+            id: crypto.randomUUID(),
+            cardType,
+            entityId: itemConfig.entityId || "",
+            name: itemConfig.name || "",
+            layout,
+            // Optional thermostat-specific fields (default to empty string)
+            secondaryEntityId: itemConfig.secondaryEntityId || "",
+            secondaryName: itemConfig.secondaryName || "",
+            domainFilter: itemConfig.domainFilter || ""
+        };
+
+        config.items.push(newItem);
         dashboardStore.setConfig(root);
     }
 }

@@ -53,7 +53,7 @@ describe('ThermostatCard', () => {
             },
         }));
 
-        render(ThermostatCard, { props: { entityId: 'climate.living_room' } });
+        render(ThermostatCard, { props: { entityId: 'climate.living_room', secondaryEntityId: '', name: '', secondaryName: '', domainFilter: '' } });
 
         expect(screen.getByText('21.5 °C')).toBeInTheDocument();
         expect(screen.getByText('Living Room')).toBeInTheDocument();
@@ -62,7 +62,7 @@ describe('ThermostatCard', () => {
     it('renders fallback when no entity data', () => {
         vi.mocked(haStore.getEntity).mockReturnValue(undefined as unknown as HassEntity);
 
-        render(ThermostatCard, { props: { entityId: 'climate.nonexistent' } });
+        render(ThermostatCard, { props: { entityId: 'climate.nonexistent', secondaryEntityId: '', name: '', secondaryName: '', domainFilter: '' } });
 
         // Should show -- for missing temperature (appears twice: header and target)
         const dashElements = screen.getAllByText('--');
@@ -81,7 +81,7 @@ describe('ThermostatCard', () => {
         }));
 
         render(ThermostatCard, {
-            props: { entityId: 'climate.living_room', name: 'Binnen' }
+            props: { entityId: 'climate.living_room', name: 'Binnen', secondaryEntityId: '', secondaryName: '', domainFilter: '' }
         });
 
         expect(screen.getByText('Binnen')).toBeInTheDocument();
@@ -114,7 +114,9 @@ describe('ThermostatCard', () => {
             props: {
                 entityId: 'climate.living_room',
                 secondaryEntityId: 'sensor.outdoor_temp',
-                secondaryName: 'Buiten'
+                name: '',
+                secondaryName: 'Buiten',
+                domainFilter: ''
             }
         });
 
@@ -133,7 +135,7 @@ describe('ThermostatCard', () => {
             },
         }));
 
-        render(ThermostatCard, { props: { entityId: 'climate.living_room' } });
+        render(ThermostatCard, { props: { entityId: 'climate.living_room', secondaryEntityId: '', name: '', secondaryName: '', domainFilter: '' } });
 
         expect(screen.getByLabelText('Decrease temperature')).toBeInTheDocument();
         expect(screen.getByLabelText('Increase temperature')).toBeInTheDocument();
@@ -150,7 +152,7 @@ describe('ThermostatCard', () => {
             },
         }));
 
-        render(ThermostatCard, { props: { entityId: 'climate.living_room' } });
+        render(ThermostatCard, { props: { entityId: 'climate.living_room', secondaryEntityId: '', name: '', secondaryName: '', domainFilter: '' } });
 
         expect(screen.getByLabelText('Toggle heating mode')).toBeInTheDocument();
         expect(screen.getByLabelText('Toggle power')).toBeInTheDocument();
@@ -167,7 +169,7 @@ describe('ThermostatCard', () => {
         }));
 
         const { container } = render(ThermostatCard, {
-            props: { entityId: 'climate.living_room', class: 'custom-class' }
+            props: { entityId: 'climate.living_room', class: 'custom-class', secondaryEntityId: '', name: '', secondaryName: '', domainFilter: '' }
         });
 
         expect(container.querySelector('.custom-class')).toBeInTheDocument();

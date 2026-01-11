@@ -1,6 +1,7 @@
 <script lang="ts">
     import { haStore } from "$lib/stores/ha.svelte";
     import IconSearch from "~icons/material-symbols/search";
+    import IconArrowDropDown from "~icons/material-symbols/arrow-drop-down";
 
     interface Props {
         label: string;
@@ -32,7 +33,7 @@
     let allEntityIds = $derived(Object.keys(haStore.states));
 
     // Filter entities based on search query and optional domain filter
-    let filteredEntities = $derived(() => {
+    let filteredEntities = $derived.by(() => {
         let entities = allEntityIds;
 
         // Apply domain filter if specified
@@ -56,7 +57,6 @@
             });
         }
 
-        // Limit results for performance
         return entities.slice(0, 50);
     });
 
@@ -93,7 +93,7 @@
 
     // Handle keyboard navigation
     function handleKeydown(e: KeyboardEvent) {
-        const entities = filteredEntities();
+        const entities = filteredEntities;
 
         switch (e.key) {
             case "ArrowDown":
@@ -131,7 +131,7 @@
 </script>
 
 <!-- MD3 Outlined EntityPicker with proper notch -->
-<div class="flex flex-col gap-1 w-full {className}">
+<div class="relative flex flex-col gap-1 w-full {className}">
     <div class="relative min-h-[56px]">
         <!-- Border container using fieldset for the notch effect -->
         <fieldset
@@ -147,7 +147,7 @@
                        {isFloating
                     ? 'text-m3-body-small'
                     : 'text-[0px] max-w-[0.01px]'}"
-                style="margin-left: 28px;"
+                style="margin-left: 8px;"
             >
                 <span class="px-0.5 invisible">{label}</span>
             </legend>
@@ -155,11 +155,6 @@
 
         <!-- Input container -->
         <div class="relative flex items-center min-h-[56px]">
-            <!-- Search Icon -->
-            <span class="pl-3 pr-2 text-m3-on-surface-variant z-10">
-                <IconSearch class="size-5" />
-            </span>
-
             <!-- Input wrapper -->
             <div class="relative flex-1 h-full">
                 <input
@@ -172,7 +167,7 @@
                     onkeydown={handleKeydown}
                     autocomplete="off"
                     class="
-                        w-full bg-transparent px-2 h-[56px]
+                        w-full bg-transparent px-4 h-[56px]
                         text-m3-body-large text-m3-on-surface caret-m3-primary
                         outline-none placeholder-transparent
                     "
@@ -183,7 +178,7 @@
                 <label
                     for="input-{label}"
                     class="
-                        absolute left-1 pointer-events-none
+                        absolute left-3 pointer-events-none
                         transition-all duration-200 origin-left
                         {isFloating
                         ? 'top-0 -translate-y-1/2 text-m3-body-small bg-m3-surface-container-high px-1'
@@ -196,16 +191,36 @@
                     {label}
                 </label>
             </div>
+
+            <!-- Trailing Dropdown Arrow -->
+            <button
+                class="pr-3 pl-2 text-m3-on-surface-variant hover:text-m3-on-surface transition-colors focus:outline-none"
+                onclick={() => {
+                    if (isOpen) {
+                        isOpen = false;
+                    } else {
+                        inputElement?.focus();
+                        // Focus handler will set isOpen=true
+                    }
+                }}
+                tabindex="-1"
+            >
+                <IconArrowDropDown
+                    class="size-6 transition-transform duration-200 {isOpen
+                        ? 'rotate-180'
+                        : ''}"
+                />
+            </button>
         </div>
     </div>
 
     <!-- Dropdown Suggestions -->
-    {#if isOpen && filteredEntities().length > 0}
+    {#if isOpen && filteredEntities.length > 0}
         <div
             class="absolute top-full left-0 right-0 z-50 mt-1 max-h-60 overflow-y-auto
                    bg-m3-surface-container-high rounded-m3-md shadow-lg border border-m3-outline-variant"
         >
-            {#each filteredEntities() as entityId, index}
+            {#each filteredEntities as entityId, index}
                 <button
                     type="button"
                     class="w-full px-4 py-3 text-left transition-colors flex flex-col

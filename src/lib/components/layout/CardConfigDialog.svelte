@@ -26,7 +26,7 @@
     let tempConfig = $state<{
         entityId: string;
         name: string;
-        type?: "button" | "thermostat";
+        type?: "button" | "thermostat" | "media";
         secondaryEntityId: string;
         secondaryName: string;
     }>({

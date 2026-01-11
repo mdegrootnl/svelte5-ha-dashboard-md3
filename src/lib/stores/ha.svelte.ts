@@ -48,22 +48,6 @@ export class HAStore {
     }
 
     async init() {
-        // Check for long-lived token first
-        const stored = await this.loadTokens();
-        if (stored?.type === 'long_lived' && stored.token && stored.hassUrl) {
-            try {
-                const auth = createLongLivedTokenAuth(stored.hassUrl, stored.token);
-                this.auth = auth;
-                await this.connect(auth);
-                return;
-            } catch (err) {
-                logger.error("Token reconnect failed:", err);
-                this.connectionState = 'expired';
-                this.connectionError = 'Saved token is invalid or expired. Please re-enter your credentials.';
-                localStorage.removeItem('hass_tokens');
-                return;
-            }
-        }
 
         // Fall through to OAuth flow
         try {
@@ -81,16 +65,27 @@ export class HAStore {
     }
 
     async login(host: string, port: string = "8123") {
-        const protocol = host.startsWith("http") ? "" : "https://";
-        const hassUrl = `${protocol}${host}:${port}`;
+        let hassUrl = host.trim();
 
+        // Ensure there is a protocol
+        if (!hassUrl.startsWith("http")) {
+            hassUrl = `https://${hassUrl}`;
+        }
+
+        // Strip trailing slash before appending port
+        hassUrl = hassUrl.replace(/\/$/, "");
+
+        // Append port if it's missing from the host string
+        if (port && port.trim() !== "" && !hassUrl.match(/:\d+$/)) {
+            hassUrl = `${hassUrl}:${port.trim()}`;
+        }
+
+        logger.info("Connecting to Home Assistant at:", hassUrl);
         this.connectionState = 'connecting';
         this.connectionError = null;
 
         try {
             this.error = null;
-            // CRITICAL: Must pass saveTokens/loadTokens for OAuth token refresh to work
-            // Without these, tokens are not persisted and cannot be refreshed when they expire
             const auth = await getAuth({
                 hassUrl,
                 saveTokens: this.saveTokens.bind(this),
@@ -101,40 +96,13 @@ export class HAStore {
             return true;
         } catch (err) {
             this.connectionState = 'error';
-            this.connectionError = err instanceof Error ? err.message : 'Login failed';
+            this.connectionError = err instanceof Error ? `${err.name}: ${err.message}` : 'Login failed';
             this.error = this.connectionError;
             logger.error("HA Login Error:", err);
             throw err;
         }
     }
 
-    /**
-     * Login using a long-lived access token
-     * Use this for internal network deployments where OAuth redirects are problematic
-     */
-    async loginWithToken(host: string, port: string = "8123", token: string) {
-        const protocol = host.startsWith("http") ? "" : "https://";
-        const hassUrl = `${protocol}${host}:${port}`;
-
-        this.connectionState = 'connecting';
-        this.connectionError = null;
-
-        try {
-            this.error = null;
-            const auth = createLongLivedTokenAuth(hassUrl, token);
-            this.auth = auth;
-            await this.connect(auth);
-            // Store token info for reconnection
-            this.saveTokens({ hassUrl, token, type: 'long_lived' });
-            return true;
-        } catch (err) {
-            this.connectionState = 'error';
-            this.connectionError = err instanceof Error ? err.message : 'Token login failed';
-            this.error = this.connectionError;
-            logger.error("HA Token Login Error:", err);
-            throw err;
-        }
-    }
 
     async connect(auth: Auth) {
         this.connectionState = 'connecting';
@@ -144,14 +112,31 @@ export class HAStore {
             const connection = await createConnection({ auth });
             this.connection = connection;
             this.url = auth.data.hassUrl;
+
+            // Persist the successful URL to a dedicated key for settings page recovery
+            if (browser && this.url) {
+                localStorage.setItem('last_hass_url', this.url);
+            }
+
             this.connectionState = 'connected';
             this.connectionError = null;
 
             // Listen for connection close/error
+            connection.addEventListener('ready', () => {
+                this.connectionState = 'connected';
+                this.connectionError = null;
+            });
+
             connection.addEventListener('disconnected', () => {
+                // Don't set this.connection = null immediately, as the library will try to reconnect
+                this.connectionState = 'connecting';
+                this.connectionError = 'Connection lost. Attempting to reconnect...';
+            });
+
+            connection.addEventListener('reconnect-error', () => {
                 this.connection = null;
-                this.connectionState = 'expired';
-                this.connectionError = 'Connection lost. Token may be revoked or Home Assistant is unavailable.';
+                this.connectionState = 'error';
+                this.connectionError = 'Failed to reconnect to Home Assistant.';
             });
 
             // Subscribe to all entities
@@ -218,6 +203,18 @@ export class HAStore {
             return tokens ? JSON.parse(tokens) : null;
         }
         return null;
+    }
+
+    /**
+     * Get the last successfully used URL from storage
+     */
+    async getLastUsedUrl(): Promise<string | null> {
+        if (browser) {
+            const dedicated = localStorage.getItem('last_hass_url');
+            if (dedicated) return dedicated;
+        }
+        const tokens = await this.loadTokens();
+        return tokens?.hassUrl || null;
     }
 
     async callService(domain: string, service: string, serviceData?: object, target?: object, returnResponse = false) {

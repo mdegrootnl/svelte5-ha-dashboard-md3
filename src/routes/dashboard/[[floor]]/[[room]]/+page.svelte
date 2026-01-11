@@ -29,7 +29,11 @@
     import IconAutoFix from "~icons/material-symbols/auto-fix-high";
     import IconDelete from "~icons/material-symbols/delete";
     import IconGridView from "~icons/material-symbols/grid-view";
+    import IconAdd from "~icons/material-symbols/add";
     import NavigationHub from "$lib/components/layout/NavigationHub.svelte";
+    import CardLibrarySheet from "$lib/components/layout/CardLibrarySheet.svelte";
+    import CardConfigSheet from "$lib/components/layout/CardConfigSheet.svelte";
+    import { cardEditorStore } from "$lib/stores/cardEditor.svelte";
 
     let { data } = $props();
 
@@ -75,6 +79,14 @@
     $effect(() => {
         if (dashboardStore.config) {
             roomConfig = dashboardStore.config;
+        }
+    });
+
+    // Auto-save dashboard config changes
+    $effect(() => {
+        if (roomConfig) {
+            // This will trigger whenever deep changes occur in roomConfig
+            dashboardStore.setConfig(roomConfig);
         }
     });
 
@@ -232,6 +244,19 @@
         roomConfig = generated;
     }
 
+    // Open card library
+    function openCardLibrary() {
+        // Set the save handler for when a new card is created
+        cardEditorStore.config = {
+            entityId: "",
+            name: "",
+            onSave: (config) => {
+                dashboardEditorStore.addItem(config);
+            },
+        };
+        cardEditorStore.openLibrary();
+    }
+
     // Toggle edit mode
     function toggleEditMode() {
         dashboardEditorStore.toggleEditMode();
@@ -364,6 +389,16 @@
         {#if haStore.connected}
             <!-- Edit Mode Controls -->
             {#if isEditing}
+                <button
+                    onclick={openCardLibrary}
+                    class="inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full bg-m3-primary text-m3-on-primary text-m3-label-large font-medium hover:brightness-95 transition-colors shadow-m3-elevation-1"
+                    title="Add new card"
+                >
+                    <IconAdd class="size-5" />
+                    <span class="hidden md:inline">Add</span>
+                </button>
+                <div class="w-px h-6 bg-m3-outline-variant mx-1"></div>
+
                 <!-- Selected item actions -->
                 {#if selectedItemId}
                     <button
@@ -496,17 +531,26 @@
                         >
                             {#if item.cardType === "button"}
                                 <ButtonCard
-                                    title="Loading..."
-                                    entityId={item.entityId}
-                                    icon={Lightbulb}
+                                    bind:name={item.name}
+                                    bind:entityId={item.entityId}
+                                    bind:domainFilter={item.domainFilter}
                                 />
                             {:else if item.cardType === "media"}
                                 <MediaCard
-                                    entityId={item.entityId}
-                                    variant="standard"
+                                    bind:entityId={item.entityId}
+                                    bind:name={item.name}
+                                    bind:domainFilter={item.domainFilter}
                                 />
                             {:else if item.cardType === "thermostat"}
-                                <ThermostatCard entityId={item.entityId} />
+                                <ThermostatCard
+                                    bind:entityId={item.entityId}
+                                    bind:name={item.name}
+                                    bind:secondaryEntityId={
+                                        item.secondaryEntityId
+                                    }
+                                    bind:secondaryName={item.secondaryName}
+                                    bind:domainFilter={item.domainFilter}
+                                />
                             {/if}
                         </GridItem>
                     {/each}
@@ -554,6 +598,9 @@
 {#if activeTab}
     <GridConfigDialog bind:open={isGridConfigOpen} config={activeTab} />
 {/if}
+
+<CardLibrarySheet />
+<CardConfigSheet />
 
 {#if isIconPickerOpen}
     <IconPicker

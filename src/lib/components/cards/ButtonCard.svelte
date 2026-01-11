@@ -10,9 +10,15 @@
         shouldThrottle,
     } from "$lib";
     import IconEdit from "~icons/material-symbols/edit";
+    import IconLightbulb from "~icons/material-symbols/lightbulb";
+    import IconThermostat from "~icons/material-symbols/thermostat";
+    import IconToggleOn from "~icons/material-symbols/toggle-on";
+    import IconSensors from "~icons/material-symbols/sensors";
+    import IconPlayCircle from "~icons/material-symbols/play-circle";
+    import IconDevices from "~icons/material-symbols/devices";
 
     interface Props {
-        title: string;
+        title?: string;
         state?: string;
         icon?: any; // Expecting a Material Symbol component
         isActive?: boolean;
@@ -23,14 +29,15 @@
         class?: string;
 
         // Smart/Config Props
-        entityId?: string;
-        name?: string;
+        entityId: string;
+        name: string;
+        domainFilter: string;
     }
 
     let {
         title = $bindable(),
         state: displayState = $bindable(""),
-        icon: Icon = $bindable(),
+        icon: iconProp = $bindable(),
         isActive = $bindable(false),
         variant = $bindable("switch"),
         value = $bindable(0),
@@ -39,6 +46,7 @@
         class: className = "",
         entityId = $bindable(""),
         name = $bindable(""),
+        domainFilter = $bindable(""),
     }: Props = $props();
 
     // -- State Logic --
@@ -88,6 +96,32 @@
         }
     });
 
+    // -- Icon Logic --
+    let effectiveIcon = $derived.by(() => {
+        if (iconProp) return iconProp;
+
+        if (entityId) {
+            const domain = getDomain(entityId);
+            switch (domain) {
+                case "light":
+                    return IconLightbulb;
+                case "climate":
+                    return IconThermostat;
+                case "switch":
+                    return IconToggleOn;
+                case "sensor":
+                case "binary_sensor":
+                    return IconSensors;
+                case "media_player":
+                    return IconPlayCircle;
+                default:
+                    return IconDevices;
+            }
+        }
+
+        return null;
+    });
+
     // -- Styling --
 
     // Base styles: Standard card rounding (rounded-m3-md), flexible height (min-h-20), transition
@@ -133,6 +167,7 @@
         cardEditorStore.open({
             entityId: entityId || "",
             name: name || "",
+            domainFilter: domainFilter || "",
             onSave: (newConfig) => {
                 entityId = newConfig.entityId;
                 name = newConfig.name;
@@ -282,8 +317,9 @@
         <div
             class="flex items-center justify-center w-10 h-10 rounded-full {iconStyles} shrink-0 transition-colors duration-200"
         >
-            {#if Icon}
-                <Icon class="size-6" />
+            {#if effectiveIcon}
+                {@const IconComponent = effectiveIcon}
+                <IconComponent class="size-6" />
             {/if}
         </div>
 
