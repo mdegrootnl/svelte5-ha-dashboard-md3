@@ -130,66 +130,68 @@
         return () => observer.disconnect();
     });
 
-    // Generate dashboard when HA connects
+    // Generate dashboard when HA connects and store is ready
     $effect(() => {
-        if (haStore.connected && Object.keys(haStore.states).length > 0) {
-            // Try to load existing config
-            const configId = room
-                ? `dashboard_${floor}_${room}`
-                : floor
-                  ? `dashboard_floor_${floor}`
-                  : "dashboard_home";
+        // Wait until both HA is connected AND dashboard store has server data
+        if (!dashboardStore.initialized) return;
+        if (!haStore.connected || Object.keys(haStore.states).length === 0)
+            return;
 
-            const existing = dashboardStore.loadConfig(configId);
+        // Try to load existing config
+        const configId = room
+            ? `dashboard_${floor}_${room}`
+            : floor
+              ? `dashboard_floor_${floor}`
+              : "dashboard_home";
 
-            if (existing) {
-                roomConfig = existing;
-            } else {
-                // Auto-generate from HA entities
-                let generated: RoomDashboardConfig;
+        const existing = dashboardStore.loadConfig(configId);
 
-                if (room) {
-                    const areaEntities = haRegistryStore.entityRegistry
-                        .filter((e) => e.area_id === room)
+        if (existing) {
+            roomConfig = existing;
+        } else {
+            // Auto-generate from HA entities ONLY if no saved config exists
+            let generated: RoomDashboardConfig;
+
+            if (room) {
+                const areaEntities = haRegistryStore.entityRegistry
+                    .filter((e) => e.area_id === room)
+                    .map((e) => e.entity_id);
+
+                generated = generateDashboardForArea(
+                    room,
+                    areaEntities,
+                    haStore.states,
+                );
+            } else if (floor) {
+                // Get areas for floor
+                const areas = dashboardStore.getAreasForFloor(floor);
+
+                // Pre-fetch entities for these areas (Store helper?)
+                // For now, simpler to leverage haStore.entityRegistry
+                // We need a mapping of area_id -> entities
+                const areaEntitiesMap: Record<string, string[]> = {};
+                areas.forEach((a) => {
+                    areaEntitiesMap[a.area_id] = haRegistryStore.entityRegistry
+                        .filter((e) => e.area_id === a.area_id)
                         .map((e) => e.entity_id);
+                });
 
-                    generated = generateDashboardForArea(
-                        room,
-                        areaEntities,
-                        haStore.states,
-                    );
-                } else if (floor) {
-                    // Get areas for floor
-                    const areas = dashboardStore.getAreasForFloor(floor);
-
-                    // Pre-fetch entities for these areas (Store helper?)
-                    // For now, simpler to leverage haStore.entityRegistry
-                    // We need a mapping of area_id -> entities
-                    const areaEntitiesMap: Record<string, string[]> = {};
-                    areas.forEach((a) => {
-                        areaEntitiesMap[a.area_id] =
-                            haRegistryStore.entityRegistry
-                                .filter((e) => e.area_id === a.area_id)
-                                .map((e) => e.entity_id);
-                    });
-
-                    generated = generateDashboardForFloor(
-                        `Floor: ${floor}`,
-                        areas,
-                        areaEntitiesMap,
-                        haStore.states,
-                    );
-                } else {
-                    generated = generateDashboardFromHA(
-                        haStore.states,
-                        "Home Dashboard",
-                    );
-                }
-
-                generated.id = configId;
-                dashboardStore.setConfig(generated);
-                roomConfig = generated;
+                generated = generateDashboardForFloor(
+                    `Floor: ${floor}`,
+                    areas,
+                    areaEntitiesMap,
+                    haStore.states,
+                );
+            } else {
+                generated = generateDashboardFromHA(
+                    haStore.states,
+                    "Home Dashboard",
+                );
             }
+
+            generated.id = configId;
+            dashboardStore.setConfig(generated);
+            roomConfig = generated;
         }
     });
 

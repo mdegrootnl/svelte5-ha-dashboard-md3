@@ -29,6 +29,9 @@ export class DashboardStore {
     // Current breakpoint
     breakpoint = $state<Breakpoint>("desktop");
 
+    // Track if store has been initialized with server data
+    initialized = $state(false);
+
     private ha: HAStore;
 
     // Debounce timer for server sync
@@ -44,11 +47,12 @@ export class DashboardStore {
      */
     init(configs: Record<string, RoomDashboardConfig>) {
         // Skip if already initialized with same data
-        if (JSON.stringify(this.savedConfigs) === JSON.stringify(configs)) {
+        if (this.initialized && JSON.stringify(this.savedConfigs) === JSON.stringify(configs)) {
             return;
         }
 
         this.savedConfigs = configs;
+        this.initialized = true;
 
         // Don't save to localStorage here - only save on user-initiated changes
     }

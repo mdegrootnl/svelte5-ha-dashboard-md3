@@ -2511,7 +2511,7 @@
       "id": "dashboard_begane_grond_woonkamer",
       "tabs": [
         {
-          "id": "fe06e1f8-7d8c-42c3-ba38-e9a8dc23a7cf",
+          "id": "e8ce3c51-4d4f-4ca6-90ec-3d0b1538cac2",
           "name": "Lights",
           "icon": "home",
           "columns": {
@@ -2524,7 +2524,7 @@
           "rowHeight": 80,
           "items": [
             {
-              "id": "8bd73ca4-70e0-4631-8efc-c4c623bbb2ed",
+              "id": "74a3a73e-7535-4e8c-9f49-7cb9ad05404c",
               "entityId": "light.kamerkast",
               "cardType": "button",
               "name": "",
@@ -2547,7 +2547,7 @@
               }
             },
             {
-              "id": "a06e9916-5e26-4cec-867d-78f200fde830",
+              "id": "b16c92ce-1c1d-48e4-bc5c-1f2a0e33c533",
               "entityId": "light.schemerlampen_woonkamer",
               "cardType": "button",
               "name": "",
@@ -2570,7 +2570,7 @@
               }
             },
             {
-              "id": "684574aa-4f3a-4a8d-998a-e9c0c35e2b90",
+              "id": "623b5a46-76b0-4706-bb77-748af5947a13",
               "entityId": "light.strips_woonkamer",
               "cardType": "button",
               "name": "",
@@ -2595,7 +2595,7 @@
           ]
         },
         {
-          "id": "dbd56964-14db-406c-bcfb-42b4e3d365af",
+          "id": "21801157-c466-404e-aaba-a41855d9cd3f",
           "name": "Climate",
           "icon": "home",
           "columns": {
@@ -2609,7 +2609,7 @@
           "items": []
         },
         {
-          "id": "00b596b7-fcca-438f-b4ca-d8aae08d2d77",
+          "id": "68eb1c80-7653-4548-a433-e43e04becabf",
           "name": "Media",
           "icon": "home",
           "columns": {
@@ -2623,7 +2623,7 @@
           "items": []
         },
         {
-          "id": "1ff9a291-6cfb-4050-9df3-48e12c124e67",
+          "id": "23b2b49f-e695-4c30-84b7-12fed938717a",
           "name": "Other",
           "icon": "home",
           "columns": {
@@ -2637,7 +2637,7 @@
           "items": []
         }
       ],
-      "activeTabId": "fe06e1f8-7d8c-42c3-ba38-e9a8dc23a7cf"
+      "activeTabId": "e8ce3c51-4d4f-4ca6-90ec-3d0b1538cac2"
     }
   }
 }
