@@ -536,18 +536,29 @@
                         >
                             {#if item.cardType === "button"}
                                 <ButtonCard
+                                    id={item.id}
                                     bind:name={item.name}
                                     bind:entityId={item.entityId}
                                     bind:domainFilter={item.domainFilter}
+                                    ondelete={() =>
+                                        dashboardEditorStore.deleteItem(
+                                            item.id,
+                                        )}
                                 />
                             {:else if item.cardType === "media"}
                                 <MediaCard
+                                    id={item.id}
                                     bind:entityId={item.entityId}
                                     bind:name={item.name}
                                     bind:domainFilter={item.domainFilter}
+                                    ondelete={() =>
+                                        dashboardEditorStore.deleteItem(
+                                            item.id,
+                                        )}
                                 />
                             {:else if item.cardType === "thermostat"}
                                 <ThermostatCard
+                                    id={item.id}
                                     bind:entityId={item.entityId}
                                     bind:name={item.name}
                                     bind:secondaryEntityId={
@@ -555,6 +566,10 @@
                                     }
                                     bind:secondaryName={item.secondaryName}
                                     bind:domainFilter={item.domainFilter}
+                                    ondelete={() =>
+                                        dashboardEditorStore.deleteItem(
+                                            item.id,
+                                        )}
                                 />
                             {/if}
                         </GridItem>

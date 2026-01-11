@@ -28,7 +28,7 @@ export { default as ThermostatCard } from './components/cards/ThermostatCard.sve
 
 // Layout Components
 export { default as NavigationRail } from './components/layout/NavigationRail.svelte';
-export { default as CardConfigDialog } from './components/layout/CardConfigDialog.svelte';
+
 export { default as PageShell } from './components/layout/PageShell.svelte';
 export { default as ErrorBoundary } from './components/layout/ErrorBoundary.svelte';
 export { default as GridContainer } from './components/layout/GridContainer.svelte';

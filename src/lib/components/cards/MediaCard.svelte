@@ -10,19 +10,25 @@
 
     // Props
     interface Props {
+        id?: string;
         entityId: string;
         name: string;
         domainFilter: string;
+        ondelete?: () => void;
         variant?: "standard" | "condensed" | "poster";
         background?: "surface" | "immersive";
+        class?: string;
     }
 
     let {
+        id,
         entityId = $bindable(""),
         name = $bindable(""),
         domainFilter = $bindable(""),
+        ondelete,
         variant = "standard",
         background: backgroundProp = "surface",
+        class: className = "",
     }: Props = $props();
 
     // Derived State
@@ -88,13 +94,16 @@
     function openConfig(e: MouseEvent) {
         e.stopPropagation();
         cardEditorStore.open({
+            id,
             entityId: entityId || "",
             name: name || "",
             domainFilter: domainFilter || "media_player",
             onSave: (newConfig) => {
                 entityId = newConfig.entityId;
+                entityId = newConfig.entityId;
                 name = newConfig.name;
             },
+            onDelete: ondelete,
         });
     }
 </script>

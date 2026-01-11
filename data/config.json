@@ -1,0 +1,2643 @@
+{
+  "theme": {
+    "sourceColor": "#ff8000",
+    "isDark": true
+  },
+  "dashboards": {
+    "dashboard_home": {
+      "id": "dashboard_home",
+      "tabs": [
+        {
+          "id": "a3fd1ed5-0719-4647-9ac1-2413321ae749",
+          "name": "Lights",
+          "icon": "home",
+          "columns": {
+            "desktop": 12,
+            "mobile": 4
+          },
+          "rows": "implicit",
+          "gap": 16,
+          "padding": 16,
+          "rowHeight": 80,
+          "items": [
+            {
+              "id": "0d784c0a-d048-464c-a836-cc6806b73a7e",
+              "entityId": "light.keukenkast",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "7875fadc-a991-4cd6-99fd-2eff94ab197c",
+              "entityId": "light.keukenplafond",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "529f9857-ea28-4f55-9233-257da98cac63",
+              "entityId": "light.kamerkast",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 5,
+                  "colSpan": 2,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 2,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "e7b27946-b1d5-4168-940b-4f84603d483e",
+              "entityId": "light.schemerlampen_woonkamer",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 7,
+                  "colSpan": 2,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 2,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "a26c43c4-4f27-4a0b-96fe-218208613ba2",
+              "entityId": "light.strips_woonkamer",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 9,
+                  "colSpan": 2,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 3,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "62fc3b2d-dfcb-47e2-b881-acf744d22aee",
+              "entityId": "light.eettafel_lampen",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 11,
+                  "colSpan": 2,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 3,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "21a7c672-0820-4419-b12d-3473952cb7d8",
+              "entityId": "light.keuken",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 2,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 4,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "94b2ddf7-8447-427a-b5ce-50a10e85e8ba",
+              "entityId": "light.woonkamer",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 2,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 4,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "8e9b1c29-0b63-4caa-84f6-0c4c3d7b9376",
+              "entityId": "light.keukentafel",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 5,
+                  "colSpan": 2,
+                  "rowStart": 2,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 5,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "98906f30-60fa-4e21-a685-6ace6cce6c2b",
+              "entityId": "light.woonkamer_2",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 7,
+                  "colSpan": 2,
+                  "rowStart": 2,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 5,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "0b3073a3-a7d0-452b-b52e-da6f420ccbcc",
+              "entityId": "light.keukenkast_4",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 9,
+                  "colSpan": 2,
+                  "rowStart": 2,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 6,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "e69bf795-1664-4b23-9005-bbf09d747dcd",
+              "entityId": "light.kamerkast_8",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 11,
+                  "colSpan": 2,
+                  "rowStart": 2,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 6,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "42a83457-47d8-45bf-9242-35e4b282df9c",
+              "entityId": "light.kamerkast_3",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 3,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 7,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "8f565ba9-8faa-4ea7-8796-d5fb62047b19",
+              "entityId": "light.schemerlamp_2",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 3,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 7,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "ced73356-9a91-4bb9-8ea2-e93f6089194c",
+              "entityId": "light.192_168_0_164_4",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 5,
+                  "colSpan": 2,
+                  "rowStart": 3,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 8,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "e678725c-10a1-46a9-9880-05d136531690",
+              "entityId": "light.schemerlamp_1_lamp",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 7,
+                  "colSpan": 2,
+                  "rowStart": 3,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 8,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "ae994084-f633-4641-874e-55ea3fa45854",
+              "entityId": "light.plafond_4",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 9,
+                  "colSpan": 2,
+                  "rowStart": 3,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 9,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "0cd89cac-506e-40a2-a8c2-a82220ef5014",
+              "entityId": "light.kamerkast_5",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 11,
+                  "colSpan": 2,
+                  "rowStart": 3,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 9,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "6b71b680-ea48-4388-8e42-3b6ab30d40db",
+              "entityId": "light.keukenkast_5",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 4,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 10,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "a7d29bbd-3c47-4dd0-8895-7e564ccfb75b",
+              "entityId": "light.192_168_0_164_6",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 4,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 10,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "4ac54d75-b109-4326-bcd0-dc4250694bc7",
+              "entityId": "light.192_168_0_164_2",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 5,
+                  "colSpan": 2,
+                  "rowStart": 4,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 11,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "29d1a083-f0ca-46e8-8e8b-7382d1e96c4e",
+              "entityId": "light.plafond_2",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 7,
+                  "colSpan": 2,
+                  "rowStart": 4,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 11,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "1b96169f-e0e9-426d-9b8b-8dc2dee59ff5",
+              "entityId": "light.kamerkast_7",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 9,
+                  "colSpan": 2,
+                  "rowStart": 4,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 12,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "c289b0da-cb25-4437-8cf1-f1192a3eacf4",
+              "entityId": "light.plafond_3",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 11,
+                  "colSpan": 2,
+                  "rowStart": 4,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 12,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "66ea6d3a-4921-4b8b-8a0a-a90e28d605a0",
+              "entityId": "light.keukenkast_3",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 5,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 13,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "fc4ea42f-331a-4b48-9129-519160f07f7d",
+              "entityId": "light.keukenkast_6",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 5,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 13,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "f916e786-3ef7-4fc2-aaa6-46a4ab045bd2",
+              "entityId": "light.plafond_5",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 5,
+                  "colSpan": 2,
+                  "rowStart": 5,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 14,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "bf9f76d7-d317-42f5-b89a-b27f5687f4fe",
+              "entityId": "light.192_168_0_164_5",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 7,
+                  "colSpan": 2,
+                  "rowStart": 5,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 14,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "9555f5bd-b7f4-4e10-8883-ea8a992e5910",
+              "entityId": "light.keukenkast_2",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 9,
+                  "colSpan": 2,
+                  "rowStart": 5,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 15,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "14fdbf42-2180-49d4-adf4-d884967dfe18",
+              "entityId": "light.kamerkast_2",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 11,
+                  "colSpan": 2,
+                  "rowStart": 5,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 15,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "8cf5f2d0-4dc8-459b-a215-eed1c931ef9c",
+              "entityId": "light.keukenkast_7",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 6,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 16,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "fce0968f-5437-4b95-8a95-608a972ef359",
+              "entityId": "light.kamerkast_1",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 6,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 16,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "80f970f8-5c99-4e72-b075-e567b90a6821",
+              "entityId": "light.keukenkast_1",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 5,
+                  "colSpan": 2,
+                  "rowStart": 6,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 17,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "f2b0c94a-0514-4d28-a9dd-ca851030757d",
+              "entityId": "light.192_168_0_164_3",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 7,
+                  "colSpan": 2,
+                  "rowStart": 6,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 17,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "5f9ea643-bb75-4c7f-9a0e-08a05244a1dd",
+              "entityId": "light.keukenkast_8",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 9,
+                  "colSpan": 2,
+                  "rowStart": 6,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 18,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "13595615-421e-4be2-a30e-9214e80cb72d",
+              "entityId": "light.kamerkast_6",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 11,
+                  "colSpan": 2,
+                  "rowStart": 6,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 18,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "20ed4f08-ed98-4d7a-bb05-5a8bdcc1cf8f",
+              "entityId": "light.192_168_0_164",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 7,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 19,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "9d5561d8-1d31-45de-b26f-f8b2eee62c5b",
+              "entityId": "light.keukenkast_9",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 7,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 19,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "92eda65d-827f-4134-b624-537a423f8572",
+              "entityId": "light.kamerkast_4",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 5,
+                  "colSpan": 2,
+                  "rowStart": 7,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 20,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "03d49824-7f11-4f75-968a-c5036e947702",
+              "entityId": "light.plafond_1",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 7,
+                  "colSpan": 2,
+                  "rowStart": 7,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 20,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "0afc4deb-99f8-4482-8e61-5ded47a897a2",
+              "entityId": "light.plafond_6",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 9,
+                  "colSpan": 2,
+                  "rowStart": 7,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 21,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "da6ffb46-9a26-4e9b-aef7-b46209b2a40e",
+              "entityId": "light.muur_strip",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 11,
+                  "colSpan": 2,
+                  "rowStart": 7,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 21,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "7d5aa9ac-3bcb-464d-a422-62ff77b34891",
+              "entityId": "light.raam_strip",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 8,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 22,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "d10dc3aa-dd89-406e-a9e7-64b8dc42c070",
+              "entityId": "light.midden_strip",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 8,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 22,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "c36d8a26-eca9-4c31-baf7-fa0fbf634e6b",
+              "entityId": "switch.reboot_valve_controller_to_re_calibrate",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 5,
+                  "colSpan": 2,
+                  "rowStart": 8,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 23,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "92c4054e-c80e-48ec-98ee-4af206e9e8b4",
+              "entityId": "switch.reboot_valve_controller_to_recalibrate",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 7,
+                  "colSpan": 2,
+                  "rowStart": 8,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 23,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "4c2cf538-0673-4078-b9fc-0b9e1d006816",
+              "entityId": "switch.reboot_valve_controller_to_recalibrate_2",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 9,
+                  "colSpan": 2,
+                  "rowStart": 8,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 24,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "22b4618f-4d0a-44af-9157-5a4d4a87b7ca",
+              "entityId": "switch.zigbee2mqtt_bridge_permit_join",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 11,
+                  "colSpan": 2,
+                  "rowStart": 8,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 24,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "2303383b-12cf-4290-82d9-2472777f8a06",
+              "entityId": "switch.smartplug_tv",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 9,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 25,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "550a45cd-42d3-4ff0-9c5c-79bbe4453287",
+              "entityId": "switch.smartplug_tv_power_outage_memory",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 9,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 25,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "43010c03-1e8c-4429-8b10-a94afe83cb42",
+              "entityId": "switch.smartplug_tv_led_disabled_night",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 5,
+                  "colSpan": 2,
+                  "rowStart": 9,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 26,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "e1b64851-e211-4336-a80e-44b8f8dec2a2",
+              "entityId": "switch.smartplug_tv_auto_off",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 7,
+                  "colSpan": 2,
+                  "rowStart": 9,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 26,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "fd3ee7ec-b187-401c-9ccc-7bc6d1cadb27",
+              "entityId": "switch.smartplug_tv_button_lock",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 9,
+                  "colSpan": 2,
+                  "rowStart": 9,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 27,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "f6a9c267-3811-477a-b8a8-166ba00acdd6",
+              "entityId": "switch.smartplug_versterker",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 11,
+                  "colSpan": 2,
+                  "rowStart": 9,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 27,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "c84e1b25-16a7-4e4c-9a91-6e6caa6c0a7b",
+              "entityId": "switch.smartplug_versterker_power_outage_memory",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 10,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 28,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "f75f0364-bf4b-444e-80d6-add2ee471f27",
+              "entityId": "switch.smartplug_versterker_led_disabled_night",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 10,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 28,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "7636a817-09a1-4693-9521-2de691eb8dad",
+              "entityId": "switch.smartplug_versterker_auto_off",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 5,
+                  "colSpan": 2,
+                  "rowStart": 10,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 29,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "a545dcb4-b9a8-44f2-be00-108e53f9d8dc",
+              "entityId": "switch.smartplug_versterker_button_lock",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 7,
+                  "colSpan": 2,
+                  "rowStart": 10,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 29,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "4b698871-16b7-4ca1-81bd-7d116f16991c",
+              "entityId": "switch.smartplug_computer",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 9,
+                  "colSpan": 2,
+                  "rowStart": 10,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 30,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "edb3984a-896c-4b69-bf5c-19af3e7da273",
+              "entityId": "switch.smartplug_computer_power_outage_memory",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 11,
+                  "colSpan": 2,
+                  "rowStart": 10,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 30,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "c932270a-c68d-41c0-b9cf-ad62b4d6769c",
+              "entityId": "switch.smartplug_computer_led_disabled_night",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 11,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 31,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "e998ae10-9a97-40f4-a1f8-0dbd9505fcb0",
+              "entityId": "switch.smartplug_computer_auto_off",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 11,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 31,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "55b79a41-64b3-4008-a3e6-1effbeda12f7",
+              "entityId": "switch.smartplug_computer_button_lock",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 5,
+                  "colSpan": 2,
+                  "rowStart": 11,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 32,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "a8732918-9172-4902-9088-53d26741b160",
+              "entityId": "switch.bewegingsensor_keuken_indicator",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 7,
+                  "colSpan": 2,
+                  "rowStart": 11,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 32,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "5733295e-7b3d-4713-878b-2bad4f19cea0",
+              "entityId": "switch.synology_surveillance_station_thuismodus_2",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 9,
+                  "colSpan": 2,
+                  "rowStart": 11,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 33,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "0178a135-2595-479b-959e-0a71beec70a9",
+              "entityId": "switch.synology_surveillance_station_thuismodus",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 11,
+                  "colSpan": 2,
+                  "rowStart": 11,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 33,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "3f8d3674-b57e-4958-ac54-b6156fe6ee6c",
+              "entityId": "switch.muur_effect_direction",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 12,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 34,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "d6845c25-226e-40b8-a422-f4ced82a9f6d",
+              "entityId": "switch.raam_effect_direction",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 12,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 34,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "94994067-d10d-4950-ac49-681b48442a86",
+              "entityId": "switch.midden_effect_direction",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 5,
+                  "colSpan": 2,
+                  "rowStart": 12,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 35,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "3abb019b-7806-4425-af91-eb57f5e8847d",
+              "entityId": "input_boolean.verdwijning_knoppen",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 7,
+                  "colSpan": 2,
+                  "rowStart": 12,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 35,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "8137e543-c8f1-4116-b13e-936f27fe6478",
+              "entityId": "input_boolean.material_you_styles_3e1fa829aaa44ef8ab7cbade7b7cbebe",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 9,
+                  "colSpan": 2,
+                  "rowStart": 12,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 36,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "83e6aa7f-29fb-4136-838e-89f61bc06860",
+              "entityId": "input_boolean.material_you_navbar_3e1fa829aaa44ef8ab7cbade7b7cbebe",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 11,
+                  "colSpan": 2,
+                  "rowStart": 12,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 36,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "ffa937e0-4e48-4a43-973a-176259011a08",
+              "entityId": "input_boolean.material_you_harmonize_3e1fa829aaa44ef8ab7cbade7b7cbebe",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 13,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 37,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "91f3a4eb-ad22-44f2-9bf9-99c0c976955c",
+              "entityId": "input_boolean.material_you_styles",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 13,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 37,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "2c9f19bd-bfc7-47ba-b9ec-3cd59873a0ad",
+              "entityId": "input_boolean.material_you_styles_2",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 5,
+                  "colSpan": 2,
+                  "rowStart": 13,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 38,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "334b3a4d-77f0-4328-bcb2-73c27676d655",
+              "entityId": "input_boolean.material_you_appbar",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 7,
+                  "colSpan": 2,
+                  "rowStart": 13,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 38,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "50973553-8b91-415e-a4f1-e8ff648bc83d",
+              "entityId": "input_boolean.material_you_appbar_2",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 9,
+                  "colSpan": 2,
+                  "rowStart": 13,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 39,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "ee688e30-203d-4e2a-9a55-516b0fceedf2",
+              "entityId": "input_boolean.material_you_navbar",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 11,
+                  "colSpan": 2,
+                  "rowStart": 13,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 39,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "329d018c-ebf7-4fef-b2fb-6698c94f95d3",
+              "entityId": "input_boolean.material_you_navbar_2",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 14,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 40,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "267bb9ee-fa16-47cf-bf33-197818eebf50",
+              "entityId": "input_boolean.material_you_harmonize",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 14,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 40,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "94bf9f3a-397d-4a8a-b9e2-796f0cff360f",
+              "entityId": "input_boolean.material_you_harmonize_2",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 5,
+                  "colSpan": 2,
+                  "rowStart": 14,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 41,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "14d8d973-8419-45ff-9df3-72765f2b2220",
+              "entityId": "input_boolean.material_you_styles_b49e2a59ff1248e99b78bfafa2c725d1",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 7,
+                  "colSpan": 2,
+                  "rowStart": 14,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 41,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "9e345cd3-268c-49fd-9eeb-51a0638605be",
+              "entityId": "input_boolean.material_you_appbar_b49e2a59ff1248e99b78bfafa2c725d1",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 9,
+                  "colSpan": 2,
+                  "rowStart": 14,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 42,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "0368f7c1-b224-4712-be36-a1c94f440c79",
+              "entityId": "input_boolean.material_you_navbar_b49e2a59ff1248e99b78bfafa2c725d1",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 11,
+                  "colSpan": 2,
+                  "rowStart": 14,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 42,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "0c7ca421-7d23-4034-ada1-7ccf1c4ddeea",
+              "entityId": "input_boolean.material_you_harmonize_b49e2a59ff1248e99b78bfafa2c725d1",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 15,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 43,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "d88efbf8-26a8-4f26-a3a4-b0fc67aebf6c",
+              "entityId": "input_boolean.ventilatie",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 15,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 43,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "2726d62c-8afc-412e-9789-3865b89352cd",
+              "entityId": "input_boolean.ventilatie_handmatig",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 5,
+                  "colSpan": 2,
+                  "rowStart": 15,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 44,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "b0343367-cc20-48df-91ff-5f8a20f1813a",
+              "entityId": "input_boolean.manual_fan",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 7,
+                  "colSpan": 2,
+                  "rowStart": 15,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 44,
+                  "rowSpan": 1
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "8ba8b8c9-771c-4a54-b038-4673941dde08",
+          "name": "Climate",
+          "icon": "home",
+          "columns": {
+            "desktop": 12,
+            "mobile": 4
+          },
+          "rows": "implicit",
+          "gap": 16,
+          "padding": 16,
+          "rowHeight": 80,
+          "items": [
+            {
+              "id": "668fece9-99b2-42c5-b156-f7c2da0caa6a",
+              "entityId": "climate.airco_zolder_mqtt_hvac",
+              "cardType": "thermostat",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "30267525-3349-4b9f-9075-9d45e6bc21a3",
+              "entityId": "climate.air_overloop_mqtt_hvac",
+              "cardType": "thermostat",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 5,
+                  "colSpan": 4,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 2,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "02c4117f-b5e1-4170-a852-2b579b30d5e3",
+              "entityId": "climate.diyless_thermostat_1_central_heating",
+              "cardType": "thermostat",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 9,
+                  "colSpan": 4,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 3,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "9893fe78-fd44-4391-af46-cc7072450cd1",
+              "entityId": "climate.diyless_thermostat_1_domestic_hot_water",
+              "cardType": "thermostat",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 2,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 4,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "c71b1ab3-b0e3-452b-a726-3843802c3574",
+              "entityId": "climate.diyless_thermostat_1_heating_manual_mode",
+              "cardType": "thermostat",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 5,
+                  "colSpan": 4,
+                  "rowStart": 2,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 5,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "1a124960-434a-48ca-bbc3-92f22c461d88",
+              "entityId": "fan.open_duco",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 9,
+                  "colSpan": 2,
+                  "rowStart": 2,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 6,
+                  "rowSpan": 1
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "f5ac9a35-e5bd-4fbd-9fa8-4861640d4fad",
+          "name": "Media",
+          "icon": "home",
+          "columns": {
+            "desktop": 12,
+            "mobile": 4
+          },
+          "rows": "implicit",
+          "gap": 16,
+          "padding": 16,
+          "rowHeight": 80,
+          "items": [
+            {
+              "id": "bcfea093-bb51-408f-becf-677cd7b29c3b",
+              "entityId": "media_player.xbox",
+              "cardType": "media",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 6,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "a7a14a01-20fd-4311-a6de-3d6c69b4ae3f",
+              "entityId": "media_player.slaapkamer_2",
+              "cardType": "media",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 7,
+                  "colSpan": 6,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 2,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "2d849481-00ed-4643-9977-4739f8b378d8",
+              "entityId": "media_player.chromecastaudio1471",
+              "cardType": "media",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 6,
+                  "rowStart": 2,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 3,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "ac965516-b456-4e78-b88d-35236b854cac",
+              "entityId": "media_player.nest_mini",
+              "cardType": "media",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 7,
+                  "colSpan": 6,
+                  "rowStart": 2,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 4,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "1ee1205d-a734-4fbc-98a6-1832f44b170f",
+              "entityId": "media_player.kamer_ben",
+              "cardType": "media",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 6,
+                  "rowStart": 3,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 5,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "b4c66a3e-4f29-4eb2-8ff5-224d2d4404fe",
+              "entityId": "media_player.kamer_tom",
+              "cardType": "media",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 7,
+                  "colSpan": 6,
+                  "rowStart": 3,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 6,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "2521c898-604c-46e8-b77c-2d4710201a7f",
+              "entityId": "media_player.shield_3",
+              "cardType": "media",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 6,
+                  "rowStart": 4,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 7,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "6d9a1d72-16b6-4237-98b7-b23e833f223f",
+              "entityId": "media_player.lg_webos_tv_oled48a26la",
+              "cardType": "media",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 7,
+                  "colSpan": 6,
+                  "rowStart": 4,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 8,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "52fa5756-c646-47b0-a0ba-33f7ba5e5044",
+              "entityId": "media_player.marantz_sr6011",
+              "cardType": "media",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 6,
+                  "rowStart": 5,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 9,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "ab312250-44e3-4e74-b69a-3852b094ac82",
+              "entityId": "media_player.slaapkamer_3",
+              "cardType": "media",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 7,
+                  "colSpan": 6,
+                  "rowStart": 5,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 10,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "75876396-db08-45f7-825d-7ca97a8fee2d",
+              "entityId": "media_player.slaapkamer_4",
+              "cardType": "media",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 6,
+                  "rowStart": 6,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 11,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "5966e0b2-b4b0-424f-8f6e-8983686b5b7c",
+              "entityId": "media_player.lg_webos_tv_oled48a26la_2",
+              "cardType": "media",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 7,
+                  "colSpan": 6,
+                  "rowStart": 6,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 12,
+                  "rowSpan": 1
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "5fc8bd72-b594-4432-b070-b565df334dff",
+          "name": "Other",
+          "icon": "home",
+          "columns": {
+            "desktop": 12,
+            "mobile": 4
+          },
+          "rows": "implicit",
+          "gap": 16,
+          "padding": 16,
+          "rowHeight": 80,
+          "items": []
+        }
+      ],
+      "activeTabId": "a3fd1ed5-0719-4647-9ac1-2413321ae749"
+    },
+    "dashboard_begane_grond_woonkamer": {
+      "id": "dashboard_begane_grond_woonkamer",
+      "tabs": [
+        {
+          "id": "fe06e1f8-7d8c-42c3-ba38-e9a8dc23a7cf",
+          "name": "Lights",
+          "icon": "home",
+          "columns": {
+            "desktop": 12,
+            "mobile": 4
+          },
+          "rows": "implicit",
+          "gap": 16,
+          "padding": 16,
+          "rowHeight": 80,
+          "items": [
+            {
+              "id": "8bd73ca4-70e0-4631-8efc-c4c623bbb2ed",
+              "entityId": "light.kamerkast",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "a06e9916-5e26-4cec-867d-78f200fde830",
+              "entityId": "light.schemerlampen_woonkamer",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "684574aa-4f3a-4a8d-998a-e9c0c35e2b90",
+              "entityId": "light.strips_woonkamer",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 5,
+                  "colSpan": 2,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 2,
+                  "rowSpan": 1
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "dbd56964-14db-406c-bcfb-42b4e3d365af",
+          "name": "Climate",
+          "icon": "home",
+          "columns": {
+            "desktop": 12,
+            "mobile": 4
+          },
+          "rows": "implicit",
+          "gap": 16,
+          "padding": 16,
+          "rowHeight": 80,
+          "items": []
+        },
+        {
+          "id": "00b596b7-fcca-438f-b4ca-d8aae08d2d77",
+          "name": "Media",
+          "icon": "home",
+          "columns": {
+            "desktop": 12,
+            "mobile": 4
+          },
+          "rows": "implicit",
+          "gap": 16,
+          "padding": 16,
+          "rowHeight": 80,
+          "items": []
+        },
+        {
+          "id": "1ff9a291-6cfb-4050-9df3-48e12c124e67",
+          "name": "Other",
+          "icon": "home",
+          "columns": {
+            "desktop": 12,
+            "mobile": 4
+          },
+          "rows": "implicit",
+          "gap": 16,
+          "padding": 16,
+          "rowHeight": 80,
+          "items": []
+        }
+      ],
+      "activeTabId": "fe06e1f8-7d8c-42c3-ba38-e9a8dc23a7cf"
+    }
+  }
+}

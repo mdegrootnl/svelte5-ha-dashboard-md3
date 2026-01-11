@@ -5,13 +5,47 @@
 	import BottomNav from "$lib/components/layout/BottomNav.svelte";
 
 	import { themeStore } from "$lib/stores/theme.svelte";
+	import { dashboardStore } from "$lib/stores/dashboard.svelte";
 
-	let { children } = $props();
+	import { browser } from "$app/environment";
 
-	// Initialize theme effect
+	let { data, children } = $props();
+
+	// Track if stores have been initialized (prevents re-init on every render)
+	let initialized = false;
+
+	// Initialize stores with server data (runs ONCE on initial load)
+	$effect(() => {
+		if (initialized) return;
+		initialized = true;
+
+		themeStore.init(data.config.theme);
+		dashboardStore.init(data.config.dashboards);
+	});
+
+	// Flush pending syncs on page unload
+	$effect(() => {
+		if (!browser) return;
+
+		const handleUnload = () => {
+			themeStore.flushSync();
+			dashboardStore.flushSync();
+		};
+
+		window.addEventListener("beforeunload", handleUnload);
+
+		return () => {
+			window.removeEventListener("beforeunload", handleUnload);
+		};
+	});
+
+	// Apply theme changes
 	$effect(() => {
 		const _ = themeStore.theme;
 	});
+
+	// NOTE: Real-time sync via SSE has been removed.
+	// Changes save to localStorage immediately and sync to server with 2s debounce.
 </script>
 
 <svelte:head>

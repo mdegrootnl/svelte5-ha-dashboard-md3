@@ -183,8 +183,24 @@
             </div>
 
             <!-- Actions -->
-            <div class="p-6 flex justify-end gap-2">
+            <div class="px-6 pb-6 flex justify-end gap-2 items-center">
                 <Button variant="text" onclick={handleCancel}>Cancel</Button>
+
+                {#if cardEditorStore.config.onDelete}
+                    <Button
+                        variant="text"
+                        class="!text-m3-error hover:!bg-m3-error/10"
+                        onclick={() => {
+                            if (cardEditorStore.config.onDelete) {
+                                cardEditorStore.config.onDelete();
+                                cardEditorStore.close();
+                            }
+                        }}
+                    >
+                        Delete
+                    </Button>
+                {/if}
+
                 <Button variant="filled" onclick={handleSave}>Save</Button>
             </div>
         </div>

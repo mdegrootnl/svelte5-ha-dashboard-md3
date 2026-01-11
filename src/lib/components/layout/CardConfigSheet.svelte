@@ -12,9 +12,18 @@
     import IconToggleOn from "~icons/material-symbols/toggle-on";
     import IconSensors from "~icons/material-symbols/sensors";
     import IconPlayCircle from "~icons/material-symbols/play-circle";
+    import IconDelete from "~icons/material-symbols/delete";
+    import { dashboardEditorStore } from "$lib/stores/dashboardEditor.svelte";
     import { cardEditorStore } from "$lib/stores/cardEditor.svelte";
     import { getDomain } from "$lib/utils/entity";
     import type { ThermostatCardConfig, CardSize } from "$lib/types";
+
+    function handleDelete() {
+        if (cardEditorStore.config.id) {
+            dashboardEditorStore.deleteItem(cardEditorStore.config.id);
+            cardEditorStore.close();
+        }
+    }
 
     // Computed proxy for cleaner access
     let open = $derived(cardEditorStore.mode === "config");
@@ -227,6 +236,20 @@
 
     {#snippet actions()}
         <Button variant="text" onclick={handleClose}>Cancel</Button>
+        {#if cardEditorStore.config.onDelete}
+            <Button
+                variant="text"
+                class="!text-m3-error hover:!bg-m3-error/10"
+                onclick={() => {
+                    if (cardEditorStore.config.onDelete) {
+                        cardEditorStore.config.onDelete();
+                        cardEditorStore.close();
+                    }
+                }}
+            >
+                Delete
+            </Button>
+        {/if}
         <Button variant="filled" onclick={handleSave}>Save</Button>
     {/snippet}
 </SideSheet>

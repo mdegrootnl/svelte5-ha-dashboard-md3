@@ -9,8 +9,8 @@
         Switch,
         Checkbox,
         Radio,
-        PageShell,
     } from "$lib";
+    import PageShell from "$lib/components/layout/PageShell.svelte";
 
     // Icons
     import Settings from "~icons/material-symbols/settings";
@@ -171,7 +171,9 @@
             <div class="flex items-center gap-4">
                 <input
                     type="color"
-                    bind:value={themeStore.sourceColor}
+                    value={themeStore.sourceColor}
+                    onchange={(e) =>
+                        themeStore.setSourceColor(e.currentTarget.value)}
                     class="w-12 h-12 rounded-full cursor-pointer border-none bg-transparent p-0"
                 />
                 <span class="text-m3-body-large text-m3-on-surface font-mono"
@@ -184,7 +186,10 @@
         <section class="flex items-center justify-between">
             <span class="text-m3-label-large text-m3-on-surface">Dark Mode</span
             >
-            <Switch bind:checked={themeStore.isDark} />
+            <Switch
+                checked={themeStore.isDark}
+                onchange={() => themeStore.toggleDark()}
+            />
         </section>
 
         <!-- Core Palette Visualization (Mini) -->

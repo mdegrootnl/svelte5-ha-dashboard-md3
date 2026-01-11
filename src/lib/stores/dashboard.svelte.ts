@@ -1,21 +1,17 @@
 import { browser } from '$app/environment';
 import {
-    type HAFloor,
-    type HAArea,
     type Breakpoint,
     type RoomDashboardConfig,
-    createDefaultGridConfig
+    createDefaultGridConfig,
+    type HAArea
 } from '$lib/types/dashboard';
-import { RoomDashboardConfigSchema } from '$lib/domain/schemas';
-import { ok, err, type Result } from '$lib/utils/result';
 import { haStore, HAStore } from './ha.svelte';
 import { haRegistryStore } from './haRegistry.svelte';
 import { createLogger } from '$lib/utils/logger';
 
 const logger = createLogger('DashboardStore');
-
-const STORAGE_KEY = 'dashboard_configs';
-const HIERARCHY_STORAGE_KEY = 'dashboard_hierarchy';
+const STORAGE_KEY = 'dashboard-config';
+const SYNC_DEBOUNCE_MS = 2000;
 
 /**
  * Dashboard Store - Manages grid configurations and HA hierarchy
@@ -35,54 +31,118 @@ export class DashboardStore {
 
     private ha: HAStore;
 
+    // Debounce timer for server sync
+    private syncTimer: ReturnType<typeof setTimeout> | null = null;
+
     constructor(ha: HAStore) {
         this.ha = ha;
-        if (browser) {
-            this.loadFromStorage();
-        }
     }
 
     /**
-     * Load saved configurations from localStorage with strict validation.
+     * Initialize from server config (called on page load)
+     * Server is the source of truth - always use it.
      */
-    loadFromStorage(): Result<void, Error> {
+    init(configs: Record<string, RoomDashboardConfig>) {
+        // Skip if already initialized with same data
+        if (JSON.stringify(this.savedConfigs) === JSON.stringify(configs)) {
+            return;
+        }
+
+        this.savedConfigs = configs;
+
+        // Don't save to localStorage here - only save on user-initiated changes
+    }
+
+    /**
+     * Load config from localStorage
+     */
+    private loadFromLocalStorage(): Record<string, RoomDashboardConfig> | null {
         try {
             const stored = localStorage.getItem(STORAGE_KEY);
             if (stored) {
-                const rawParsed = JSON.parse(stored);
-                const validatedConfigs: Record<string, RoomDashboardConfig> = {};
-
-                for (const [id, rawConfig] of Object.entries(rawParsed)) {
-                    // Try to validate/parse with Zod
-                    const result = RoomDashboardConfigSchema.safeParse(rawConfig);
-                    if (result.success) {
-                        validatedConfigs[id] = result.data as RoomDashboardConfig;
-                    } else {
-                        logger.warn(`Config ${id} failed validation, attempting legacy migration`, result.error);
-                        // Fallback to minimal legacy repair if needed, or skip
-                    }
-                }
-                this.savedConfigs = validatedConfigs;
+                return JSON.parse(stored);
             }
-            return ok(undefined);
         } catch (e) {
-            const error = e instanceof Error ? e : new Error(String(e));
-            logger.error('Failed to load dashboard configs:', error);
-            return err(error);
+            logger.error('Failed to load from localStorage:', e);
         }
+        return null;
     }
 
     /**
-     * Save current configurations to localStorage
+     * Save config to localStorage (immediate)
      */
-    saveToStorage() {
+    private saveToLocalStorage() {
         if (!browser) return;
 
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(this.savedConfigs));
-        } catch (err) {
-            logger.error('Failed to save dashboard configs:', err);
+        } catch (e) {
+            logger.error('Failed to save to localStorage:', e);
         }
+    }
+
+    /**
+     * Schedule server sync (debounced)
+     */
+    private scheduleSyncToServer() {
+        if (!browser) return;
+
+        // Clear any pending sync
+        if (this.syncTimer) {
+            clearTimeout(this.syncTimer);
+        }
+
+        // Schedule new sync
+        this.syncTimer = setTimeout(() => {
+            this.syncToServer();
+        }, SYNC_DEBOUNCE_MS);
+    }
+
+    /**
+     * Actually sync to server
+     */
+    async syncToServer() {
+        if (!browser) return;
+
+        const config = {
+            dashboards: this.savedConfigs
+        };
+
+        try {
+            await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            });
+            logger.info('Dashboards synced to server');
+        } catch (e) {
+            logger.error('Failed to sync to server:', e);
+        }
+    }
+
+    /**
+     * Flush any pending sync (call on page unload)
+     */
+    flushSync() {
+        if (this.syncTimer) {
+            clearTimeout(this.syncTimer);
+            this.syncTimer = null;
+            // Use sendBeacon for reliable unload sync
+            if (browser && navigator.sendBeacon) {
+                const config = {
+                    dashboards: this.savedConfigs
+                };
+                navigator.sendBeacon('/api/settings', JSON.stringify(config));
+            }
+        }
+    }
+
+    /**
+     * Helper to save changes
+     */
+    private persistChanges() {
+        this.saveToLocalStorage();
+        this.scheduleSyncToServer();
     }
 
     /**
@@ -91,7 +151,7 @@ export class DashboardStore {
     setConfig(config: RoomDashboardConfig) {
         this.config = config;
         this.savedConfigs[config.id] = config;
-        this.saveToStorage();
+        this.persistChanges();
     }
 
     /**
@@ -99,10 +159,6 @@ export class DashboardStore {
      */
     loadConfig(id: string): RoomDashboardConfig | null {
         let config = this.savedConfigs[id];
-
-        // Handle in-memory migration if somehow we got a GridConfig passed (not likley with types, but dependent on legacy calls)
-        // But TS will enforce RoomDashboardConfig used in setConfig.
-        // If loadConfig returns null, the consumer usually generates a new one.
 
         if (config) {
             this.config = config;
@@ -118,7 +174,7 @@ export class DashboardStore {
         if (this.config?.id === id) {
             this.config = null;
         }
-        this.saveToStorage();
+        this.persistChanges();
     }
 
     /**
@@ -135,8 +191,8 @@ export class DashboardStore {
 
         const newTab = createDefaultGridConfig(name);
         this.config.tabs.push(newTab);
-        this.config.activeTabId = newTab.id; // Switch to new tab
-        this.saveToStorage();
+        this.config.activeTabId = newTab.id;
+        this.persistChanges();
     }
 
     deleteTab(tabId: string) {
@@ -145,16 +201,10 @@ export class DashboardStore {
         const index = this.config.tabs.findIndex(t => t.id === tabId);
         if (index === -1) return;
 
-        // Don't delete the last tab? Or allow it and show empty state?
-        // Let's allow it, but maybe ensure at least one tab exists if we want strictness.
-        // For now, allow deleting.
-
         this.config.tabs = this.config.tabs.filter(t => t.id !== tabId);
 
-        // If we deleted the active tab, switch to another
         if (this.config.activeTabId === tabId) {
             if (this.config.tabs.length > 0) {
-                // Determine new active tab (previous or next)
                 const newIndex = Math.max(0, index - 1);
                 this.config.activeTabId = this.config.tabs[newIndex].id;
             } else {
@@ -162,7 +212,7 @@ export class DashboardStore {
             }
         }
 
-        this.saveToStorage();
+        this.persistChanges();
     }
 
     renameTab(tabId: string, name: string) {
@@ -170,7 +220,7 @@ export class DashboardStore {
         const tab = this.config.tabs.find(t => t.id === tabId);
         if (tab) {
             tab.name = name;
-            this.saveToStorage();
+            this.persistChanges();
         }
     }
 
@@ -179,7 +229,7 @@ export class DashboardStore {
         const tab = this.config.tabs.find(t => t.id === tabId);
         if (tab) {
             tab.icon = icon;
-            this.saveToStorage();
+            this.persistChanges();
         }
     }
 
@@ -187,7 +237,7 @@ export class DashboardStore {
         if (!this.config) return;
         if (this.config.tabs.find(t => t.id === tabId)) {
             this.config.activeTabId = tabId;
-            this.saveToStorage();
+            this.persistChanges();
         }
     }
 

@@ -7,12 +7,21 @@ import {
     type Theme
 } from '@material/material-color-utilities';
 import { browser } from '$app/environment';
+import type { ThemeConfig } from '$lib/types/config';
+import { createLogger } from '$lib/utils/logger';
+
+const logger = createLogger('ThemeStore');
+const STORAGE_KEY = 'theme-config';
+const SYNC_DEBOUNCE_MS = 2000;
 
 export class ThemeStore {
     // Source color for the theme (default: M3 Blue)
     sourceColor = $state('#6750A4');
     // Dark mode toggle
     isDark = $state(false);
+
+    // Debounce timer for server sync
+    private syncTimer: ReturnType<typeof setTimeout> | null = null;
 
     // Derived theme object using material-color-utilities
     theme = $derived.by(() => {
@@ -30,9 +39,134 @@ export class ThemeStore {
         });
     }
 
+    /**
+     * Initialize from server config (called on page load)
+     * Server is the source of truth - always use it.
+     */
+    init(config: ThemeConfig) {
+        // Skip if already initialized with same values
+        if (this.sourceColor === config.sourceColor && this.isDark === config.isDark) {
+            return;
+        }
+
+        this.sourceColor = config.sourceColor;
+        this.isDark = config.isDark;
+
+        // Don't save to localStorage here - only save on user-initiated changes
+    }
+
+    /**
+     * Load config from localStorage
+     */
+    private loadFromLocalStorage(): ThemeConfig | null {
+        try {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                return JSON.parse(stored);
+            }
+        } catch (e) {
+            logger.error('Failed to load from localStorage:', e);
+        }
+        return null;
+    }
+
+    /**
+     * Save config to localStorage (immediate)
+     */
+    private saveToLocalStorage() {
+        if (!browser) return;
+
+        const config: ThemeConfig = {
+            sourceColor: this.sourceColor,
+            isDark: this.isDark
+        };
+
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+        } catch (e) {
+            logger.error('Failed to save to localStorage:', e);
+        }
+    }
+
+    /**
+     * Sync config to server (debounced)
+     */
+    private scheduleSyncToServer() {
+        if (!browser) return;
+
+        // Clear any pending sync
+        if (this.syncTimer) {
+            clearTimeout(this.syncTimer);
+        }
+
+        // Schedule new sync
+        this.syncTimer = setTimeout(() => {
+            this.syncToServer();
+        }, SYNC_DEBOUNCE_MS);
+    }
+
+    /**
+     * Actually sync to server
+     */
+    async syncToServer() {
+        if (!browser) return;
+
+        const config = {
+            theme: {
+                sourceColor: this.sourceColor,
+                isDark: this.isDark
+            }
+        };
+
+        try {
+            await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            });
+            logger.info('Theme synced to server');
+        } catch (e) {
+            logger.error('Failed to sync to server:', e);
+        }
+    }
+
+    /**
+     * Flush any pending sync (call on page unload)
+     */
+    flushSync() {
+        if (this.syncTimer) {
+            clearTimeout(this.syncTimer);
+            this.syncTimer = null;
+            // Use sendBeacon for reliable unload sync
+            if (browser && navigator.sendBeacon) {
+                const config = {
+                    theme: {
+                        sourceColor: this.sourceColor,
+                        isDark: this.isDark
+                    }
+                };
+                navigator.sendBeacon('/api/settings', JSON.stringify(config));
+            }
+        }
+    }
+
     async setSourceFromImage(image: HTMLImageElement) {
         const argb = await sourceColorFromImage(image);
         this.sourceColor = hexFromArgb(argb);
+        this.saveToLocalStorage();
+        this.scheduleSyncToServer();
+    }
+
+    toggleDark() {
+        this.isDark = !this.isDark;
+        this.saveToLocalStorage();
+        this.scheduleSyncToServer();
+    }
+
+    setSourceColor(color: string) {
+        this.sourceColor = color;
+        this.saveToLocalStorage();
+        this.scheduleSyncToServer();
     }
 
     // Apply the current theme to CSS variables
@@ -93,15 +227,14 @@ export class ThemeStore {
 
         if (this.isDark) {
             // Dark Mode Tones with Contrast Boost & Surface Tinting
-            // Tinting mimics MD3 elevation overlay by blending Primary into Surface
             const primaryArg = scheme.primary;
-            const tint = (tone: number) => Blend.cam16Ucs(neutral.tone(tone), primaryArg, 0.05); // 5% Primary Blend
+            const tint = (tone: number) => Blend.cam16Ucs(neutral.tone(tone), primaryArg, 0.05);
 
-            set('surface-container-lowest', tint(4));  // Base is 4
-            set('surface-container-low', tint(11));    // Base was 10 -> Boost to 11
-            set('surface-container', tint(14));        // Base was 12 -> Boost to 14
-            set('surface-container-high', tint(19));   // Base was 17 -> Boost to 19
-            set('surface-container-highest', tint(24)); // Base was 22 -> Boost to 24
+            set('surface-container-lowest', tint(4));
+            set('surface-container-low', tint(11));
+            set('surface-container', tint(14));
+            set('surface-container-high', tint(19));
+            set('surface-container-highest', tint(24));
         } else {
             // Light Mode Tones
             set('surface-container-lowest', neutral.tone(100));

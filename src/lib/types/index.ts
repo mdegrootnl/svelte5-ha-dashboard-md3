@@ -44,11 +44,13 @@ export interface HistoryData {
 export type CardSize = 'condensed' | 'standard' | 'poster';
 
 export interface BaseCardConfig {
+    id?: string;
     entityId: string;
     name: string;
     icon?: string;
     type?: 'button' | 'thermostat' | 'media';
     onSave?: (config: CardConfig) => void;
+    onDelete?: () => void;
     /** Optional domain filter for entity picker (e.g. "light", "switch") */
     domainFilter?: string;
     /** Card size variant for grid layout */

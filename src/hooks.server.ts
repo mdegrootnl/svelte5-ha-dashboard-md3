@@ -2,6 +2,11 @@ import type { Handle } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 
 export const handle: Handle = async ({ event, resolve }) => {
+    // Debug logging for API requests
+    if (event.url.pathname.startsWith('/api')) {
+        console.log(`[Server Hook] Request: ${event.request.method} ${event.url.pathname}`);
+    }
+
     const response = await resolve(event);
 
     // Security Headers - only apply CSP in production

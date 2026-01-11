@@ -80,4 +80,31 @@ describe('CardConfigDialog Component', () => {
 
         expect(cardEditorStore.isOpen).toBe(false);
     });
+    it('shows delete button when onDelete is provided', async () => {
+        const onDelete = vi.fn();
+        render(CardConfigDialog);
+
+        cardEditorStore.open({
+            entityId: 'light.test',
+            name: '',
+            onDelete
+        });
+        await new Promise(resolve => setTimeout(resolve, 10));
+
+        const deleteBtn = screen.getByText('Delete');
+        expect(deleteBtn).toBeInTheDocument();
+
+        await fireEvent.click(deleteBtn);
+        expect(onDelete).toHaveBeenCalled();
+        expect(cardEditorStore.isOpen).toBe(false);
+    });
+
+    it('hides delete button when onDelete is missing', async () => {
+        render(CardConfigDialog);
+
+        cardEditorStore.open({ entityId: 'light.test', name: '' });
+        await new Promise(resolve => setTimeout(resolve, 10));
+
+        expect(screen.queryByText('Delete')).not.toBeInTheDocument();
+    });
 });

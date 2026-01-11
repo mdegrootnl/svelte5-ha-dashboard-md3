@@ -1,6 +1,6 @@
 # Architecture Overview
 
-**Last Updated**: January 3, 2026
+**Last Updated**: January 11, 2026
 
 A Material Design 3 dashboard for Home Assistant built with **Svelte 5** and **SvelteKit**.
 
@@ -150,7 +150,7 @@ class WeatherStore {
 
 ### ThemeStore (`src/lib/stores/theme.svelte.ts`)
 
-Dynamic MD3 theming with CSS custom properties:
+Dynamic MD3 theming with CSS custom properties and server persistence:
 
 ```typescript
 class ThemeStore {
@@ -158,10 +158,14 @@ class ThemeStore {
     isDark = $state(false);
     theme = $derived.by(() => themeFromSourceColor(argbFromHex(this.sourceColor)));
     
-    async setSourceFromImage(image);
-    private applyToDocument();  // Sets --color-m3-* CSS variables
+    init(config);              // Load from server on page load
+    toggleDark();              // Toggle + persist
+    setSourceColor(color);     // Update + persist
+    private applyToDocument(); // Sets --color-m3-* CSS variables
 }
 ```
+
+**Persistence**: localStorage (immediate) + server sync (2s debounce)
 
 ### CardEditorStore (`src/lib/stores/cardEditor.svelte.ts`)
 
@@ -178,14 +182,25 @@ class CardEditorStore {
 }
 ```
 
-### DashboardStore (`src/lib/types/dashboard.ts` logic & state)
-*Note: Implemented as persisted Svelte 5 state.*
+### DashboardStore (`src/lib/stores/dashboard.svelte.ts`)
 
-Manages grid configurations, layout persistance, and responsive breakpoints:
+Manages grid configurations, layout persistence, and responsive breakpoints:
 
-- **GridConfig** — JSON schema for dashboard layouts
-- **Persistence** — Saves/loads to localStorage (key: `dashboard_config_{id}`)
-- **Auto-Generation** — Generates layouts from Entity Registry data
+```typescript
+class DashboardStore {
+    config = $state<RoomDashboardConfig | null>(null);
+    savedConfigs = $state<Record<string, RoomDashboardConfig>>({});
+    
+    init(configs);         // Load from server on page load
+    setConfig(config);     // Save + persist changes
+    persistChanges();      // localStorage (immediate) + server (debounced)
+}
+```
+
+**Persistence Strategy**:
+- **Server**: Source of truth (`/api/settings` → `./data/config.json`)
+- **localStorage**: Fast caching for instant local updates
+- **Debounced sync**: 2-second delay prevents excessive server writes
 
 
 ---

@@ -118,6 +118,26 @@ src/
 | Data Viz | [D3.js](https://d3js.org) |
 | Maps | [Leaflet](https://leafletjs.com) |
 
+
+## 🚀 Deployment & Persistence
+
+Configuration (themes, layouts, dashboards) is stored server-side in a JSON file with localStorage caching:
+
+### How It Works
+- **Page load**: Server provides config from `./data/config.json`
+- **User changes**: Saved to localStorage immediately, then synced to server after 2 seconds
+- **Page refresh**: Server config is loaded (source of truth)
+- **Cross-device**: Changes persist across all browsers/devices
+
+### Deployment Requirements
+- **Node.js**: Ensure the process has write permissions to `./data/`
+- **Docker**: You **MUST** mount a volume to persist settings:
+  ```bash
+  -v $(pwd)/data:/app/data
+  ```
+
+See [Deployment Guide](./deployment.md) for full details.
+
 ## Documentation
 
 - [Architecture Overview](./architecture.md) — Detailed technical documentation

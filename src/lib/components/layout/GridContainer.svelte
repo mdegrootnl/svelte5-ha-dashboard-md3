@@ -80,6 +80,11 @@
     style:row-gap="{config.rowGap ?? config.gap}px"
     style:padding="{config.padding}px"
     style:grid-auto-rows="{config.rowHeight ?? 80}px"
+    onclick={() => dashboardEditorStore.clearSelection()}
+    role="button"
+    tabindex="-1"
+    onkeydown={(e) =>
+        e.key === "Escape" && dashboardEditorStore.clearSelection()}
 >
     {@render children()}
 

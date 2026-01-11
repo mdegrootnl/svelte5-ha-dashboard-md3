@@ -15,6 +15,13 @@ if (typeof window !== 'undefined') {
         finish: vi.fn(),
         onfinish: null
     });
+
+    // Mock ResizeObserver for Svelte 5 bind:clientWidth/clientHeight
+    (window as any).ResizeObserver = class ResizeObserver {
+        observe() { }
+        unobserve() { }
+        disconnect() { }
+    };
 }
 
 // Mock Home Assistant WebSocket if needed

@@ -18,6 +18,7 @@
     import IconDevices from "~icons/material-symbols/devices";
 
     interface Props {
+        id?: string;
         title?: string;
         state?: string;
         icon?: any; // Expecting a Material Symbol component
@@ -32,9 +33,11 @@
         entityId: string;
         name: string;
         domainFilter: string;
+        ondelete?: () => void;
     }
 
     let {
+        id,
         title = $bindable(),
         state: displayState = $bindable(""),
         icon: iconProp = $bindable(),
@@ -47,6 +50,7 @@
         entityId = $bindable(""),
         name = $bindable(""),
         domainFilter = $bindable(""),
+        ondelete,
     }: Props = $props();
 
     // -- State Logic --
@@ -165,6 +169,7 @@
     function openConfig(e: Event) {
         e.stopPropagation();
         cardEditorStore.open({
+            id: id,
             entityId: entityId || "",
             name: name || "",
             domainFilter: domainFilter || "",
@@ -172,7 +177,9 @@
                 entityId = newConfig.entityId;
                 name = newConfig.name;
                 // Icon string handling...
+                // Icon string handling...
             },
+            onDelete: ondelete,
         });
     }
 

@@ -18,20 +18,24 @@
     import IconEdit from "~icons/material-symbols/edit";
 
     interface Props {
+        id?: string;
         entityId: string;
-        secondaryEntityId: string;
         name: string;
-        secondaryName: string;
+        secondaryEntityId?: string;
+        secondaryName?: string;
         domainFilter: string;
+        ondelete?: () => void;
         class?: string;
     }
 
     let {
+        id,
         entityId = $bindable(""),
-        secondaryEntityId = $bindable(""),
         name = $bindable(""),
+        secondaryEntityId = $bindable(""),
         secondaryName = $bindable(""),
         domainFilter = $bindable(""),
+        ondelete,
         class: className = "",
     }: Props = $props();
 
@@ -200,6 +204,7 @@
     function openConfig(e: Event) {
         e.stopPropagation();
         const config: ThermostatCardConfig = {
+            id,
             entityId,
             name: name || "",
             type: "thermostat",
@@ -210,8 +215,10 @@
                 entityId = newConfig.entityId;
                 name = newConfig.name;
                 secondaryEntityId = newConfig.secondaryEntityId || "";
+                secondaryEntityId = newConfig.secondaryEntityId || "";
                 secondaryName = newConfig.secondaryName || "";
             },
+            onDelete: ondelete,
         };
         cardEditorStore.open(config);
     }

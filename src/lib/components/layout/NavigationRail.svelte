@@ -63,7 +63,7 @@
     <!-- Dark Mode Toggle -->
     <div class="mt-auto mb-4 w-full flex justify-center">
         <button
-            onclick={() => (themeStore.isDark = !themeStore.isDark)}
+            onclick={() => themeStore.toggleDark()}
             class="flex items-center justify-center w-12 h-12 rounded-full transition-colors hover:bg-m3-surface-container-highest text-m3-on-surface-variant hover:text-m3-primary"
             aria-label="Toggle Dark Mode"
         >
