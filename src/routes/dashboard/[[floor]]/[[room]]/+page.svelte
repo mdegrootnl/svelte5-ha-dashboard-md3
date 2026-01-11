@@ -6,6 +6,7 @@
         MediaCard,
         ThermostatCard,
         haStore,
+        haRegistryStore,
         PageShell,
         GridContainer,
         GridItem,
@@ -148,7 +149,7 @@
                 let generated: RoomDashboardConfig;
 
                 if (room) {
-                    const areaEntities = haStore.entityRegistry
+                    const areaEntities = haRegistryStore.entityRegistry
                         .filter((e) => e.area_id === room)
                         .map((e) => e.entity_id);
 
@@ -166,9 +167,10 @@
                     // We need a mapping of area_id -> entities
                     const areaEntitiesMap: Record<string, string[]> = {};
                     areas.forEach((a) => {
-                        areaEntitiesMap[a.area_id] = haStore.entityRegistry
-                            .filter((e) => e.area_id === a.area_id)
-                            .map((e) => e.entity_id);
+                        areaEntitiesMap[a.area_id] =
+                            haRegistryStore.entityRegistry
+                                .filter((e) => e.area_id === a.area_id)
+                                .map((e) => e.entity_id);
                     });
 
                     generated = generateDashboardForFloor(
@@ -209,7 +211,7 @@
         let generated: RoomDashboardConfig;
 
         if (room) {
-            const areaEntities = haStore.entityRegistry
+            const areaEntities = haRegistryStore.entityRegistry
                 .filter((e) => e.area_id === room)
                 .map((e) => e.entity_id);
 
@@ -222,7 +224,7 @@
             const areas = dashboardStore.getAreasForFloor(floor);
             const areaEntitiesMap: Record<string, string[]> = {};
             areas.forEach((a) => {
-                areaEntitiesMap[a.area_id] = haStore.entityRegistry
+                areaEntitiesMap[a.area_id] = haRegistryStore.entityRegistry
                     .filter((e) => e.area_id === a.area_id)
                     .map((e) => e.entity_id);
             });
@@ -474,7 +476,10 @@
                     Select a room to view its dashboard.
                 </p>
             </div>
-            <NavigationHub floors={haStore.floors} areas={haStore.areas} />
+            <NavigationHub
+                floors={haRegistryStore.floors}
+                areas={haRegistryStore.areas}
+            />
         </div>
     {:else if roomConfig && activeTab}
         <section class="relative flex flex-col gap-4">

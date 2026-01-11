@@ -107,7 +107,7 @@
     {#if effectiveBackground === "immersive" && artworkSrc && !isOff}
         <div class="absolute inset-0 z-0">
             <img
-                src={artworkSrc}
+                src={haStore.getProxiedUrl(artworkSrc)}
                 alt=""
                 class="w-full h-full object-cover opacity-70 blur-xl scale-110"
             />
@@ -191,7 +191,7 @@
             <div class="flex-1 flex items-center justify-center p-2 min-h-0">
                 {#if artworkSrc}
                     <img
-                        src={artworkSrc}
+                        src={haStore.getProxiedUrl(artworkSrc)}
                         alt="Cover"
                         class="h-full max-h-[200px] aspect-square rounded-[var(--radius-m3-md)] object-cover shadow-2xl"
                     />
@@ -241,7 +241,7 @@
         <div class="flex items-center gap-3 p-3 h-full overflow-hidden">
             {#if artworkSrc}
                 <img
-                    src={artworkSrc}
+                    src={haStore.getProxiedUrl(artworkSrc)}
                     alt="Cover"
                     class="h-12 w-12 rounded-[var(--radius-m3-sm)] object-cover shadow-sm shrink-0"
                 />
@@ -282,7 +282,7 @@
                 {#if artworkSrc}
                     <div class="relative group">
                         <img
-                            src={artworkSrc}
+                            src={haStore.getProxiedUrl(artworkSrc)}
                             alt="Cover"
                             class="h-14 w-14 rounded-[var(--radius-m3-md)] object-cover shadow-md shrink-0"
                         />

@@ -342,7 +342,7 @@
 
             <!-- History Graph (Only in Expanded Mode) -->
             {#if isExpanded}
-                <div class="w-full h-32 mt-auto">
+                <div class="w-full flex-1 min-h-[120px]">
                     <HistoryGraph
                         insideData={insideHistory?.points || []}
                         outsideData={outsideHistory?.points || []}

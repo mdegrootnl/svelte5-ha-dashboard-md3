@@ -239,10 +239,6 @@ export class DashboardEditorStore {
             const endRow = Math.floor(relY / (this.cellHeight + config.gap)) + 1;
             let newRowSpan = Math.max(1, endRow - layout.rowStart + 1);
 
-            // Constraint: Thermostat cards max 3 rows
-            if (item.cardType === 'thermostat') {
-                newRowSpan = Math.min(newRowSpan, 3);
-            }
 
             if (breakpoint === 'desktop') {
                 item.layout.desktop.rowSpan = newRowSpan;

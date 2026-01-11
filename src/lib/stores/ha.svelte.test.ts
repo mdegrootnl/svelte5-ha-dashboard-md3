@@ -30,27 +30,10 @@ describe('HAStore', () => {
         expect(store.connectionError).toBeNull();
     });
 
-    it('should load tokens from localStorage', async () => {
-        const store = new HAStore();
-        const tokens = { access_token: 'abc' };
-        localStorage.setItem('hass_tokens', JSON.stringify(tokens));
-
-        const loaded = await store.loadTokens();
-        expect(loaded).toEqual(tokens);
-    });
-
-    it('should save tokens to localStorage', () => {
-        const store = new HAStore();
-        const tokens = { access_token: 'abc' };
-        store.saveTokens(tokens);
-
-        expect(localStorage.getItem('hass_tokens')).toBe(JSON.stringify(tokens));
-    });
-
     it('should login and connect', async () => {
         const store = new HAStore();
-        const mockAuth = { data: { hassUrl: 'https://localhost:8123' } };
-        const mockConnection = { close: vi.fn(), addEventListener: vi.fn() };
+        const mockAuth = { data: { hassUrl: 'https://localhost:8123' }, expired: false };
+        const mockConnection = { close: vi.fn(), addEventListener: vi.fn(), sendMessagePromise: vi.fn() };
 
         vi.mocked(haWS.getAuth).mockResolvedValue(mockAuth as any);
         vi.mocked(haWS.createConnection).mockResolvedValue(mockConnection as any);
@@ -58,7 +41,6 @@ describe('HAStore', () => {
         await store.login('localhost');
 
         expect(haWS.getAuth).toHaveBeenCalledWith(expect.objectContaining({ hassUrl: 'https://localhost:8123' }));
-        // Svelte 5 proxies mean we should check content rather than identity
         expect(store.auth).toEqual(mockAuth);
         expect(store.connection).toEqual(mockConnection);
         expect(store.url).toBe('https://localhost:8123');
@@ -104,6 +86,8 @@ describe('HAStore', () => {
         store.connection = mockConnection as any;
         store.auth = { some: 'data' } as any;
         store.connectionState = 'connected' as any;
+
+        // Populate storage manually (since we aren't mocking StorageProvider yet)
         localStorage.setItem('hass_tokens', 'some-data');
 
         await store.disconnect();

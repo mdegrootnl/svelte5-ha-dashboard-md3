@@ -1,5 +1,11 @@
 import { untrack } from 'svelte';
 import { haStore } from './ha.svelte';
+import { Poller } from '$lib/utils/poller';
+import { HAEntityStateSchema } from '$lib/domain/schemas';
+import { ok, err, type Result } from '$lib/utils/result';
+import { createLogger } from '$lib/utils/logger';
+
+const logger = createLogger('WeatherStore');
 
 interface WeatherState {
     current: any;
@@ -22,27 +28,22 @@ export class WeatherStore {
     data = $state<WeatherState | null>(null);
     loading = $state(false);
     lastUpdated = $state<Date | null>(null);
-    private intervalId: any;
+
+    private poller: Poller;
 
     constructor() {
+        this.poller = new Poller("WeatherStore", 15 * 60 * 1000, async () => { await this.fetch(); });
         this.init();
     }
 
     init() {
-        // Fetch immediately on load
         if (typeof window !== 'undefined') {
-            this.fetch();
-            // Poll every 15 minutes
-            this.intervalId = setInterval(() => {
-                this.fetch();
-            }, 15 * 60 * 1000);
+            this.poller.start();
         }
     }
 
     destroy() {
-        if (this.intervalId) {
-            clearInterval(this.intervalId);
-        }
+        this.poller.stop();
     }
 
     // State to WMO Code Mapping
@@ -68,18 +69,15 @@ export class WeatherStore {
         return this.haStateMap[state] ?? 3; // Default to cloudy if unknown
     }
 
-    async fetch(force = false) {
+    async fetch(force = false): Promise<Result<void, Error>> {
         if (!haStore.connection || !haStore.config) {
-            // Retry later if not connected
-            return;
+            return err(new Error("No HA connection"));
         }
 
-        // Throttle: Don't fetch if updated less than 5 minutes ago, unless forced
-        // or if we have no valid data yet (e.g. initial load failed)
         const isStale = !this.lastUpdated || (Date.now() - this.lastUpdated.getTime()) > (5 * 60 * 1000);
         if (!force && !isStale && this.data?.current) {
-            console.log('[Weather] Skipping fetch, data is fresh');
-            return;
+            logger.debug('Skipping fetch, data is fresh');
+            return ok(undefined);
         }
 
         this.loading = true;
@@ -98,12 +96,17 @@ export class WeatherStore {
             const entityId = entities.includes('weather.home') ? 'weather.home' : entities[0];
 
             if (!entityId) {
-                console.warn('No weather entity found in Home Assistant');
                 this.loading = false;
-                return;
+                return err(new Error('No weather entity found'));
             }
 
-            const entity = haStore.states[entityId];
+            // Boundary Validation
+            const entityParse = HAEntityStateSchema.safeParse(haStore.states[entityId]);
+            if (!entityParse.success) {
+                this.loading = false;
+                return err(new Error(`Invalid weather entity data: ${entityParse.error.message}`));
+            }
+            const entity = entityParse.data;
             const attributes = entity.attributes;
 
             // Map Current Conditions
@@ -156,11 +159,11 @@ export class WeatherStore {
                 const hourlyData = hourlyPayload?.[entityId] || Object.values(hourlyPayload || {})[0];
                 const dailyData = dailyPayload?.[entityId] || Object.values(dailyPayload || {})[0];
 
-                if (hourlyData?.forecast) {
+                if (Array.isArray(hourlyData?.forecast)) {
                     hourly = this.mapHAForecast(hourlyData.forecast, 'hourly');
                 }
 
-                if (dailyData?.forecast) {
+                if (Array.isArray(dailyData?.forecast)) {
                     daily = this.mapHAForecast(dailyData.forecast, 'daily');
                 }
 
@@ -173,8 +176,8 @@ export class WeatherStore {
             }
 
             // Always check attributes if we still have no daily forecast (either service failed or returned empty)
-            if (daily.length === 0 && attributes.forecast) {
-                console.log('[Weather] Using attribute forecast fallback');
+            if (daily.length === 0 && Array.isArray(attributes.forecast)) {
+                logger.info('[Weather] Using attribute forecast fallback');
                 daily = this.mapHAForecast(attributes.forecast, 'daily');
             }
 
@@ -259,9 +262,12 @@ export class WeatherStore {
                 air_quality
             };
             this.lastUpdated = new Date();
+            return ok(undefined);
 
         } catch (e) {
-            console.error("Weather fetch from HA failed", e);
+            const error = e instanceof Error ? e : new Error(String(e));
+            logger.error("Weather fetch failed", error);
+            return err(error);
         } finally {
             this.loading = false;
         }

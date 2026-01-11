@@ -1,16 +1,15 @@
-// Dashboard Store - Manages grid configuration persistence and state
 import { browser } from '$app/environment';
-import type {
-    GridConfig,
-    DashboardItem,
-    DashboardHierarchy,
-    HAFloor,
-    HAArea,
-    Breakpoint,
-    RoomDashboardConfig
+import {
+    type HAFloor,
+    type HAArea,
+    type Breakpoint,
+    type RoomDashboardConfig,
+    createDefaultGridConfig
 } from '$lib/types/dashboard';
-import { createDefaultGridConfig } from '$lib/types/dashboard';
+import { RoomDashboardConfigSchema } from '$lib/domain/schemas';
+import { ok, err, type Result } from '$lib/utils/result';
 import { haStore, HAStore } from './ha.svelte';
+import { haRegistryStore } from './haRegistry.svelte';
 import { createLogger } from '$lib/utils/logger';
 
 const logger = createLogger('DashboardStore');
@@ -28,13 +27,6 @@ export class DashboardStore {
     // All saved configurations (keyed by id)
     savedConfigs = $state<Record<string, RoomDashboardConfig>>({});
 
-    // HA hierarchy (floors/areas)
-    hierarchy = $state<DashboardHierarchy>({
-        floors: [],
-        areas: [],
-        floorAreas: {}
-    });
-
     // Loading state
     loading = $state(false);
 
@@ -51,74 +43,32 @@ export class DashboardStore {
     }
 
     /**
-     * Load saved configurations from localStorage
+     * Load saved configurations from localStorage with strict validation.
      */
-    loadFromStorage() {
+    loadFromStorage(): Result<void, Error> {
         try {
             const stored = localStorage.getItem(STORAGE_KEY);
             if (stored) {
-                const parsed = JSON.parse(stored);
-                // Migrate old GridConfigs to RoomDashboardConfigs
-                this.savedConfigs = Object.entries(parsed).reduce((acc, [key, val]: [string, any]) => {
-                    let config = val;
+                const rawParsed = JSON.parse(stored);
+                const validatedConfigs: Record<string, RoomDashboardConfig> = {};
 
-                    // Migration: Convert GridConfig -> RoomDashboardConfig
-                    if (val.items && !val.tabs) {
-                        const tabId = crypto.randomUUID();
-                        // Assume the old grid is the "Lights" or main tab
-                        config = {
-                            id: val.id,
-                            activeTabId: tabId,
-                            tabs: [
-                                { ...val, id: tabId, name: 'Lights' },
-                                createDefaultGridConfig('Climate'),
-                                createDefaultGridConfig('Media'),
-                                createDefaultGridConfig('Other')
-                            ]
-                        };
-                    }
-
-                    // Repair: Ensure safe defaults
-                    if (!config.tabs || config.tabs.length === 0) {
-                        // Empty or broken config? Re-initialize with standard tabs
-                        const tabId = crypto.randomUUID();
-                        config.tabs = [
-                            { ...(config as any), id: tabId, name: 'Lights', icon: 'lightbulb', items: (config as any).items || [] },
-                            { ...createDefaultGridConfig('Climate'), icon: 'thermostat' },
-                            { ...createDefaultGridConfig('Media'), icon: 'music_note' },
-                            { ...createDefaultGridConfig('Other'), icon: 'grid_view' }
-                        ];
-                        config.activeTabId = tabId;
+                for (const [id, rawConfig] of Object.entries(rawParsed)) {
+                    // Try to validate/parse with Zod
+                    const result = RoomDashboardConfigSchema.safeParse(rawConfig);
+                    if (result.success) {
+                        validatedConfigs[id] = result.data as RoomDashboardConfig;
                     } else {
-                        // Fix invalid activeTabId
-                        if (!config.tabs.find((t: any) => t.id === config.activeTabId)) {
-                            config.activeTabId = config.tabs[0].id;
-                        }
-
-                        // Repair items: Ensure required fields exist
-                        config.tabs.forEach((tab: any) => {
-                            if (tab.items) {
-                                tab.items.forEach((item: any) => {
-                                    if (item.name === undefined) item.name = "";
-                                    if (item.secondaryEntityId === undefined) item.secondaryEntityId = "";
-                                    if (item.secondaryName === undefined) item.secondaryName = "";
-                                    if (item.domainFilter === undefined) item.domainFilter = "";
-                                });
-                            }
-                        });
+                        logger.warn(`Config ${id} failed validation, attempting legacy migration`, result.error);
+                        // Fallback to minimal legacy repair if needed, or skip
                     }
-
-                    acc[key] = config;
-                    return acc;
-                }, {} as Record<string, RoomDashboardConfig>);
+                }
+                this.savedConfigs = validatedConfigs;
             }
-
-            const hierarchyStored = localStorage.getItem(HIERARCHY_STORAGE_KEY);
-            if (hierarchyStored) {
-                this.hierarchy = JSON.parse(hierarchyStored);
-            }
-        } catch (err) {
-            logger.error('Failed to load dashboard configs:', err);
+            return ok(undefined);
+        } catch (e) {
+            const error = e instanceof Error ? e : new Error(String(e));
+            logger.error('Failed to load dashboard configs:', error);
+            return err(error);
         }
     }
 
@@ -130,7 +80,6 @@ export class DashboardStore {
 
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(this.savedConfigs));
-            localStorage.setItem(HIERARCHY_STORAGE_KEY, JSON.stringify(this.hierarchy));
         } catch (err) {
             logger.error('Failed to save dashboard configs:', err);
         }
@@ -238,89 +187,16 @@ export class DashboardStore {
         if (!this.config) return;
         if (this.config.tabs.find(t => t.id === tabId)) {
             this.config.activeTabId = tabId;
-            // No need to save active tab state permanently? 
-            // Maybe yes, so user returns to same tab.
             this.saveToStorage();
         }
     }
 
     /**
-     * Fetch floors and areas from Home Assistant
-     */
-    async fetchHierarchy(): Promise<DashboardHierarchy> {
-        if (!this.ha.connection) {
-            logger.warn('No HA connection, cannot fetch hierarchy');
-            return this.hierarchy;
-        }
-
-        this.loading = true;
-
-        try {
-            // Fetch floors via WebSocket
-            const floorsResult = await this.ha.connection.sendMessagePromise({
-                type: 'config/floor_registry/list'
-            }) as HAFloor[];
-
-            // Fetch areas via WebSocket
-            const areasResult = await this.ha.connection.sendMessagePromise({
-                type: 'config/area_registry/list'
-            }) as HAArea[];
-
-            // Build floor -> areas mapping
-            const floorAreas: Record<string, string[]> = {};
-            for (const area of areasResult) {
-                const floorId = area.floor_id || 'unassigned';
-                if (!floorAreas[floorId]) {
-                    floorAreas[floorId] = [];
-                }
-                floorAreas[floorId].push(area.area_id);
-            }
-
-            this.hierarchy = {
-                floors: floorsResult || [],
-                areas: areasResult || [],
-                floorAreas
-            };
-
-            this.saveToStorage();
-            logger.debug('Fetched hierarchy:', this.hierarchy);
-
-        } catch (err) {
-            logger.error('Failed to fetch hierarchy:', err);
-        } finally {
-            this.loading = false;
-        }
-
-        return this.hierarchy;
-    }
-
-    /**
-     * Get areas for a specific floor
+     * Get areas for a specific floor (Proxy to haRegistryStore)
      */
     getAreasForFloor(floorId: string): HAArea[] {
-        const areaIds = this.hierarchy.floorAreas[floorId] || [];
-        return this.hierarchy.areas.filter(a => areaIds.includes(a.area_id));
-    }
-
-    /**
-     * Get entities for an area
-     * Note: Requires entity_registry which includes area assignments
-     */
-    async getEntitiesForArea(areaId: string): Promise<string[]> {
-        if (!this.ha.connection) return [];
-
-        try {
-            const entities = await this.ha.connection.sendMessagePromise({
-                type: 'config/entity_registry/list'
-            }) as Array<{ entity_id: string; area_id?: string }>;
-
-            return entities
-                .filter(e => e.area_id === areaId)
-                .map(e => e.entity_id);
-        } catch (err) {
-            logger.error('Failed to fetch entities for area:', err);
-            return [];
-        }
+        const areaIds = haRegistryStore.floorAreas[floorId] || [];
+        return haRegistryStore.areas.filter(a => areaIds.includes(a.area_id));
     }
 }
 

@@ -4,6 +4,7 @@ export * from './utils';
 
 // Stores
 export { haStore, HAStore } from './stores/ha.svelte';
+export { haRegistryStore, HARegistryStore } from './stores/haRegistry.svelte';
 export { themeStore, ThemeStore } from './stores/theme.svelte';
 export { cardEditorStore, CardEditorStore } from './stores/cardEditor.svelte';
 export { dashboardStore, DashboardStore } from './stores/dashboard.svelte';

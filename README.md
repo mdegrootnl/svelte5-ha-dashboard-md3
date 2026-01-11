@@ -16,17 +16,17 @@ A modern Material Design 3 dashboard for Home Assistant with dynamic theming, bu
 - Persistent dark mode preferences
 - Full MD3 color token support
 
-### 📊 Dashboard Engine
-- Configurable grid-based layouts
-- Auto-generation from Entity Registry
-- Multi-tab dashboard support with rename functionality
-- Section and stack organization
-- Responsive breakpoints
+### 🎛️ Dashboard Engine
+- **Decoupled Architecture** — Clean separation between Auth, Registry, and Component state.
+- **Monadic Error Handling** — Robust error propagation using the `Result` type.
+- **Type Sovereignty** — Zod-validated data boundaries for ultimate reliability.
+- **Configurable Grid** — Full drag-and-drop support with responsive breakpoints.
+- **Auto-Generation** — Intelligent layout generation from Entity Registry metadata.
 
 ### 🎛️ Entity Cards
 - **Button Card** — Switch/slider variants for lights, fans, and switches
-- **Media Card** — Standard, poster, and condensed variants for media players
-- **Thermostat Card** — Climate control with history graph and outdoor sensor support
+- **Media Card** — Secure artwork proxying for reliable production display
+- **Thermostat Card** — Fully resizable climate control with integrated history graphs
 
 ### 🌤️ Weather Dashboard
 - Weather hero display with current conditions
@@ -112,6 +112,7 @@ src/
 | Styling | [Tailwind CSS 4](https://tailwindcss.com) |
 | Theming | [Material Color Utilities](https://github.com/material-foundation/material-color-utilities) |
 | HA Integration | [home-assistant-js-websocket](https://github.com/home-assistant/home-assistant-js-websocket) |
+| Validation | [Zod](https://zod.dev) |
 | Testing | [Vitest](https://vitest.dev) + [@testing-library/svelte](https://testing-library.com/svelte) |
 | Icons | [Iconify](https://iconify.design) via unplugin-icons |
 | Data Viz | [D3.js](https://d3js.org) |

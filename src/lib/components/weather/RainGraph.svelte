@@ -1,70 +1,32 @@
 <script lang="ts">
+    import {
+        WeatherEnricher,
+        type RainDataPoint,
+    } from "$lib/domain/weatherEnricher";
     import { haStore } from "$lib/stores/ha.svelte";
     import { area, line, curveMonotoneX } from "d3-shape";
     import { scaleLinear, scaleTime } from "d3-scale";
-    import { onMount } from "svelte";
+
+    import { Poller } from "$lib/utils/poller";
 
     let width = $state(300);
     let height = $state(100);
-    let data = $state<{ time: Date; value: number; intensity: number }[]>([]);
+    let data = $state<RainDataPoint[]>([]);
     let loading = $state(false);
 
-    // Debug: confirm module load
-    console.log("[RainGraph] Module Loaded");
+    // Create poller
+    const poller = new Poller("RainGraph", 5 * 60 * 1000, fetchData);
 
     async function fetchData() {
-        if (!haStore.config) {
-            console.log("[RainGraph] No HA config, waiting...");
-            return;
-        }
+        if (!haStore.config) return;
 
         const url = `/rain-proxy?lat=${haStore.config.latitude}&lon=${haStore.config.longitude}`;
-        console.log("[RainGraph] Fetching Proxy:", url);
         loading = true;
         try {
             const res = await fetch(url);
-
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
             const text = await res.text();
-            console.log(
-                "[RainGraph] Received text:",
-                text.substring(0, 50) + "...",
-            );
-
-            // Format: "000|15:30" (value|time)
-            const lines = text.trim().split("\n");
-            const now = new Date();
-
-            data = lines.map((l) => {
-                const [valStr, timeStr] = l.split("|");
-                const val = parseInt(valStr);
-
-                // Parse Time
-                const [h, m] = timeStr.split(":").map(Number);
-                let date = new Date(now);
-                date.setHours(h, m, 0, 0);
-
-                // Handle date rollover (if time is much earlier than now, assume tomorrow)
-                // Buienradar gives ~2hr forecast.
-                // If now is 23:00 and time is 00:30, 00:30 < 23:00.
-                if (date.getTime() < now.getTime() - 4 * 60 * 60 * 1000) {
-                    date.setDate(date.getDate() + 1);
-                }
-                // Also if now is 00:30 and time is 23:30 (unlikely for forecast, but possible for history?)
-                // Buienradar is purely forecast.
-
-                // Formula: 10^((val-109)/32)
-                let intensity = Math.pow(10, (val - 109) / 32);
-                if (val === 0) intensity = 0; // Explicit 0 for no rain
-
-                return {
-                    time: date,
-                    value: val,
-                    intensity,
-                };
-            });
-            console.log("[RainGraph] Parsed data points:", data.length);
+            data = WeatherEnricher.parseBuienradarData(text);
         } catch (e) {
             console.error("[RainGraph] Fetch failed", e);
         } finally {
@@ -74,11 +36,8 @@
 
     $effect(() => {
         if (haStore.config) {
-            console.log("[RainGraph] Config detected, triggering fetch");
-            fetchData();
-            // Refresh every 5 mins
-            const i = setInterval(fetchData, 5 * 60 * 1000);
-            return () => clearInterval(i);
+            poller.start();
+            return () => poller.stop();
         }
     });
 
@@ -94,7 +53,7 @@
 
     let yScale = $derived(
         scaleLinear()
-            .domain([0, Math.max(2, ...data.map((d) => d.intensity))]) // Min max 2 for visual stability
+            .domain(WeatherEnricher.getRainScaleDomain(data))
             .range([height, 0]),
     );
 

@@ -17,6 +17,8 @@ A Material Design 3 dashboard for Home Assistant built with **Svelte 5** and **S
 | HA Integration | [home-assistant-js-websocket](https://github.com/home-assistant/home-assistant-js-websocket) |
 | Testing | [Vitest](https://vitest.dev) + [@testing-library/svelte](https://testing-library.com/svelte) |
 | Icons | [Iconify](https://iconify.design) via unplugin-icons |
+| Validation | [Zod](https://zod.dev) (Schema validation) |
+| Error Handling | [Monadic Result](src/lib/utils/result.ts) (Safe error propagation) |
 | Data Viz | [D3.js](https://d3js.org) (Graphs) |
 | Maps | [Leaflet](https://leafletjs.com) (Radar) |
 
@@ -37,6 +39,7 @@ src/
 │   │   └── layout/      # Page shells, error boundaries
 │   ├── stores/          # Svelte 5 rune-based stores
 │   ├── types/           # TypeScript interfaces
+│   ├── domain/          # Pure domain logic & services
 │   └── utils/           # Helper functions
 ├── routes/
 │   ├── +layout.svelte   # Root layout with NavigationRail
@@ -114,25 +117,23 @@ Home Assistant entity control cards:
 
 All stores use Svelte 5 runes for fine-grained reactivity:
 
-### HAStore (`src/lib/stores/ha.svelte.ts`)
+### HA Integration Layer
 
-Manages Home Assistant connection and entity state:
+The "God Object" HAStore has been decomposed into specialized, decoupled modules adhering to the Single Responsibility Principle:
 
-```typescript
-class HAStore {
-    connection = $state<Connection | null>(null);
-    states = $state<HassEntities>({});
-    connected = $derived(!!this.connection);
-    
-    async login(host, port);
-    async connect(auth);
-    async disconnect();
-    getEntity(entityId);
-    callService(domain, service, data);
-}
-```
+- **HAAuthService** (`src/lib/domain/haAuthService.ts`) — Encapsulates OAuth and token refresh logic.
+- **HARegistryStore** (`src/lib/stores/haRegistry.svelte.ts`) — Manages areas, floors, and entity registry metadata.
+- **HAStore** (`src/lib/stores/ha.svelte.ts`) — Unified reactive interface for states and service calls.
+- **StorageProvider** (`src/lib/utils/storageProvider.ts`) — Abstracted persistence for tokens and session data.
+- **HistoryService** (`src/lib/domain/historyService.ts`) — Pure logic for transforming raw HA history into graphable data.
 
 ### WeatherStore (`src/lib/stores/weather.svelte.ts`)
+    
+Manages weather data with background polling and Zod-guaranteed type safety:
+
+- **Poller Service** — Centralized background task management.
+- **Zod Validation** — Incoming API responses are validated against schemas before use.
+- **Monadic Handling** — All fetch operations return a `Result<T, E>` type.
     
 Manages weather data fetching (HA integration), caching, and normalization:
 
@@ -200,7 +201,7 @@ Manages grid configurations, layout persistance, and responsive breakpoints:
 | `/settings` | Home Assistant connection |
 | `/theme` | Theme builder |
 | `/weather` | Weather dashboard & Rain radar |
-| `/rain-proxy` | Server-side proxy for Buienradar API |
+| `/api/ha-proxy` | Secure generic proxy for HA resources (images/icons) |
 | `/ha-history` | Proxy for Home Assistant history API |
 
 ---
@@ -286,6 +287,16 @@ sequenceDiagram
     Generator-->>Store: Return GridConfig
     Store-->>UI: Render GridContainer
 ```
+
+---
+
+## Perfect Project Standards
+
+1. **Domain-Driven Design (DDD)** — Complex logic is extracted from stores into pure, testable domain services.
+2. **Type Sovereignty** — Use of `Zod` schemas at all data boundaries (APIs, LocalStorage).
+3. **Monadic Error Handling** — Consistent use of the `Result` type to prevent swallowed exceptions.
+4. **Fine-Grained Reactivity** — Pure Svelte 5 Runes architecture for predictable state updates.
+5. **Decoupled Architecture** — Singleton stores are decomposed into specialized modules to avoid God Objects.
 
 ---
 
