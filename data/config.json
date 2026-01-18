@@ -2635,23 +2635,9 @@
           "padding": 16,
           "rowHeight": 80,
           "items": []
-        },
-        {
-          "id": "7ca6ce28-dda7-4da0-a69c-4a98dd8278b5",
-          "name": "New Tab",
-          "icon": "home",
-          "columns": {
-            "desktop": 12,
-            "mobile": 4
-          },
-          "rows": "implicit",
-          "gap": 16,
-          "padding": 16,
-          "rowHeight": 80,
-          "items": []
         }
       ],
-      "activeTabId": "7ca6ce28-dda7-4da0-a69c-4a98dd8278b5"
+      "activeTabId": "e8ce3c51-4d4f-4ca6-90ec-3d0b1538cac2"
     }
   },
   "musicLibrary": {
@@ -2667,16 +2653,6 @@
         "image_url": "https://lh6.ggpht.com/Erk3qAjj5KgecFCC0FNjYfdjUI1foRAs980wR5AdxKDEPUOWs-KV9sLV0fbNLszc4wo=w300"
       },
       {
-        "media_type": "radio",
-        "uri": "radiobrowser://radio/b20de429-e1b3-4624-a1ac-12e2bf0cadb0",
-        "name": "Sky Radio",
-        "version": "",
-        "image": "https://www.skyradio.nl/favicon.ico",
-        "favorite": false,
-        "explicit": null,
-        "image_url": "https://www.skyradio.nl/favicon.ico"
-      },
-      {
         "media_type": "playlist",
         "uri": "library://playlist/12",
         "name": "'t Koffiehuis",
@@ -2685,6 +2661,90 @@
         "favorite": true,
         "explicit": null,
         "image_url": "https://i.scdn.co/image/ab67706f00000002251a1562acf3c4326ea0c623"
+      },
+      {
+        "media_type": "artist",
+        "uri": "library://artist/60",
+        "name": "220 KID",
+        "version": "",
+        "image": "https://i.scdn.co/image/ab6761610000e5ebcc8343e5affc87c4370bb024",
+        "favorite": false,
+        "explicit": null,
+        "fanart_image": null,
+        "image_url": "https://i.scdn.co/image/ab6761610000e5ebcc8343e5affc87c4370bb024"
+      },
+      {
+        "media_type": "album",
+        "uri": "library://album/22",
+        "name": "÷",
+        "version": "Deluxe",
+        "image": "https://i.scdn.co/image/ab67616d0000b273ba5db46f4b838ef6027e6f96",
+        "favorite": false,
+        "explicit": null,
+        "discart_image": null,
+        "artists": [
+          {
+            "media_type": "artist",
+            "uri": "library://artist/26",
+            "name": "Ed Sheeran",
+            "version": "",
+            "image": null
+          }
+        ],
+        "image_url": "https://i.scdn.co/image/ab67616d0000b273ba5db46f4b838ef6027e6f96"
+      },
+      {
+        "media_type": "album",
+        "uri": "library://album/2",
+        "name": "20 Minute Non-Sleep Deep Rest (NSDR)",
+        "version": "",
+        "image": "https://i.scdn.co/image/ab67616d0000b273b2e4068188ff47b8307ef118",
+        "favorite": false,
+        "explicit": null,
+        "discart_image": null,
+        "artists": [
+          {
+            "media_type": "artist",
+            "uri": "library://artist/31",
+            "name": "Dr. Andrew Huberman",
+            "version": "",
+            "image": null
+          }
+        ],
+        "image_url": "https://i.scdn.co/image/ab67616d0000b273b2e4068188ff47b8307ef118"
+      },
+      {
+        "media_type": "playlist",
+        "uri": "spotify--jASndrZU://playlist/6TFHI1i8f8AyS4SbVmvjd8",
+        "name": "Adele - Greatest Hits",
+        "version": "",
+        "image": "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84437f03596214fdcbe2d88591",
+        "favorite": false,
+        "explicit": null,
+        "image_url": "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84437f03596214fdcbe2d88591"
+      },
+      {
+        "media_type": "album",
+        "uri": "spotify--jASndrZU://album/5duyQokC4FMcWPYTV9Gpf9",
+        "name": "21",
+        "version": "",
+        "image": "https://i.scdn.co/image/ab67616d0000b273164feb363334f93b6458d2a9",
+        "favorite": false,
+        "explicit": null,
+        "discart_image": null,
+        "artists": [
+          {
+            "media_type": "artist",
+            "uri": "spotify--jASndrZU://artist/4dpARuHxo51G3z768sgnrY",
+            "name": "Adele",
+            "version": "",
+            "image": null,
+            "favorite": false,
+            "explicit": null,
+            "fanart_image": null
+          }
+        ],
+        "image_url": "https://i.scdn.co/image/ab67616d0000b273164feb363334f93b6458d2a9"
       }
     ],
     "lastSyncedAt": 0,

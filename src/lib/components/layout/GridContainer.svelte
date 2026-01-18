@@ -6,7 +6,7 @@
     } from "$lib/types/dashboard";
     import type { Snippet } from "svelte";
 
-    import { dashboardEditorStore } from "$lib/stores/dashboardEditor.svelte";
+    import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
 
     interface Props {
         config: GridConfig;

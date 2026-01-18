@@ -48,7 +48,7 @@ A modern Material Design 3 dashboard for Home Assistant with dynamic theming, bu
 - **Global Search** — Search your entire music library instantly.
 
 ### ✏️ Dashboard Editor
-- **Drag & Drop** — Rearrange cards effortlessly (Implementation in progress).
+- **Drag & Drop** — Rearrange cards effortlessly.
 - **Live Configuration** — Edit card settings directly on the dashboard.
 
 

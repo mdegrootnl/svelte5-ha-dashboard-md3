@@ -34,7 +34,7 @@
     import NavigationHub from "$lib/components/layout/NavigationHub.svelte";
     import CardLibrarySheet from "$lib/components/layout/CardLibrarySheet.svelte";
     import CardConfigSheet from "$lib/components/layout/CardConfigSheet.svelte";
-    import { cardEditorStore } from "$lib/stores/cardEditor.svelte";
+    import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
 
     let { data } = $props();
 

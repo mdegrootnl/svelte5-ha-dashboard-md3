@@ -3,9 +3,9 @@
     import TextField from "$lib/components/md3/TextField.svelte";
     import EntityPicker from "$lib/components/md3/EntityPicker.svelte";
     import Button from "$lib/components/md3/Button.svelte";
-    import ButtonCard from "$lib/components/cards/ButtonCard.svelte";
-    import ThermostatCard from "$lib/components/cards/ThermostatCard.svelte";
-    import MediaCard from "$lib/components/cards/MediaCard.svelte";
+    import ButtonCard from "$lib/features/dashboard/components/cards/ButtonCard.svelte";
+    import ThermostatCard from "$lib/features/dashboard/components/cards/ThermostatCard.svelte";
+    import MediaCard from "$lib/features/dashboard/components/cards/MediaCard.svelte";
     import IconLightbulb from "~icons/material-symbols/lightbulb";
     import IconThermostat from "~icons/material-symbols/thermostat";
     import IconDevices from "~icons/material-symbols/devices";
@@ -13,8 +13,8 @@
     import IconSensors from "~icons/material-symbols/sensors";
     import IconPlayCircle from "~icons/material-symbols/play-circle";
     import IconDelete from "~icons/material-symbols/delete";
-    import { dashboardEditorStore } from "$lib/stores/dashboardEditor.svelte";
-    import { cardEditorStore } from "$lib/stores/cardEditor.svelte";
+    import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
+    import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import { getDomain } from "$lib/utils/entity";
     import type { ThermostatCardConfig, CardSize } from "$lib/types";
 

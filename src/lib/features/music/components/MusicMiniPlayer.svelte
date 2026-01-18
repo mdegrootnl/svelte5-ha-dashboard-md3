@@ -10,7 +10,8 @@
   - Tapping expands to full Now Playing view
 -->
 <script lang="ts">
-    import { maStore, haStore } from "$lib";
+    import { haStore } from "$lib/stores/ha.svelte";
+    import { maStore } from "../stores/maStore.svelte";
 
     import PlayArrow from "~icons/material-symbols/play-arrow";
     import Pause from "~icons/material-symbols/pause";

@@ -8,7 +8,9 @@
   - Different sections: home, browse, radio, library, search
 -->
 <script lang="ts">
-    import { maStore, haStore, musicLibraryStore } from "$lib";
+    import { haStore } from "$lib/stores/ha.svelte";
+    import { maStore } from "../stores/maStore.svelte";
+    import { musicLibraryStore } from "../stores/musicLibrary.svelte";
     import { onMount } from "svelte";
     import type {
         MAMediaItem,
@@ -94,16 +96,18 @@
         if (section === "browse") {
             loading = true;
             try {
-                const [artists, albums, playlists, tracks] = await Promise.all([
-                    maStore.getArtists(20),
-                    maStore.getAlbums(20),
-                    maStore.getPlaylists(20),
-                    maStore.getTracks(20),
-                ]);
-                browseArtists = artists;
-                browseAlbums = albums;
-                browsePlaylists = playlists;
-                browseTracks = tracks;
+                const [artistsRes, albumsRes, playlistsRes, tracksRes] =
+                    await Promise.all([
+                        maStore.getArtists(20),
+                        maStore.getAlbums(20),
+                        maStore.getPlaylists(20),
+                        maStore.getTracks(20),
+                    ]);
+
+                if (artistsRes.ok) browseArtists = artistsRes.value;
+                if (albumsRes.ok) browseAlbums = albumsRes.value;
+                if (playlistsRes.ok) browsePlaylists = playlistsRes.value;
+                if (tracksRes.ok) browseTracks = tracksRes.value;
             } finally {
                 loading = false;
             }
@@ -119,7 +123,13 @@
         }
         loading = true;
         try {
-            searchResults = await maStore.search(query, 20);
+            const result = await maStore.search(query, 20);
+            if (result.ok) {
+                searchResults = result.value;
+            } else {
+                console.error("Search failed:", result.error);
+                searchResults = null;
+            }
         } finally {
             loading = false;
         }
@@ -928,7 +938,150 @@
             </section>
         {/if}
 
-        {#if localTracks.length === 0 && localPlaylists.length === 0}
+        {#if localAlbums.length > 0}
+            <section class="mb-8">
+                <h3
+                    class="text-m3-title-medium font-bold text-m3-on-surface mb-4"
+                >
+                    Albums
+                </h3>
+                <div
+                    class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
+                >
+                    {#each localAlbums as item}
+                        <div class="relative group">
+                            <button
+                                class="w-full bg-m3-surface-container rounded-lg p-3 text-left hover:bg-m3-surface-container-high transition-colors"
+                                onclick={() => onPlay(item)}
+                            >
+                                <div
+                                    class="aspect-square rounded-md bg-m3-surface-container-highest mb-3 overflow-hidden relative"
+                                >
+                                    {#if item.image_url}
+                                        <img
+                                            src={haStore.getProxiedUrl(
+                                                item.image_url,
+                                            )}
+                                            alt={item.name}
+                                            class="w-full h-full object-cover"
+                                        />
+                                    {:else}
+                                        <div
+                                            class="w-full h-full flex items-center justify-center"
+                                        >
+                                            <Album
+                                                class="w-12 h-12 text-m3-on-surface-variant opacity-30"
+                                            />
+                                        </div>
+                                    {/if}
+                                    <div
+                                        class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                                    >
+                                        <div
+                                            class="w-12 h-12 rounded-full bg-m3-primary flex items-center justify-center shadow-lg"
+                                        >
+                                            <PlayArrow
+                                                class="w-6 h-6 text-m3-on-primary"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <p
+                                    class="text-m3-body-medium font-medium text-m3-on-surface truncate"
+                                >
+                                    {item.name}
+                                </p>
+                                <p
+                                    class="text-m3-body-small text-m3-on-surface-variant truncate"
+                                >
+                                    {getSubtitle(item)}
+                                </p>
+                            </button>
+                            <button
+                                class="absolute top-4 right-4 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-m3-primary hover:scale-110 z-10"
+                                onclick={(e) => {
+                                    e.stopPropagation();
+                                    musicLibraryStore.toggleFavorite(item);
+                                }}
+                            >
+                                <Favorite class="w-5 h-5 text-m3-primary" />
+                            </button>
+                        </div>
+                    {/each}
+                </div>
+            </section>
+        {/if}
+
+        {#if localArtists.length > 0}
+            <section class="mb-8">
+                <h3
+                    class="text-m3-title-medium font-bold text-m3-on-surface mb-4"
+                >
+                    Artists
+                </h3>
+                <div
+                    class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
+                >
+                    {#each localArtists as item}
+                        <div class="relative group">
+                            <button
+                                class="w-full bg-m3-surface-container rounded-lg p-3 text-left hover:bg-m3-surface-container-high transition-colors"
+                                onclick={() => onPlay(item)}
+                            >
+                                <div
+                                    class="aspect-square rounded-full bg-m3-surface-container-highest mb-3 overflow-hidden relative"
+                                >
+                                    {#if item.image_url}
+                                        <img
+                                            src={haStore.getProxiedUrl(
+                                                item.image_url,
+                                            )}
+                                            alt={item.name}
+                                            class="w-full h-full object-cover"
+                                        />
+                                    {:else}
+                                        <div
+                                            class="w-full h-full flex items-center justify-center"
+                                        >
+                                            <Person
+                                                class="w-12 h-12 text-m3-on-surface-variant opacity-30"
+                                            />
+                                        </div>
+                                    {/if}
+                                    <div
+                                        class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                                    >
+                                        <div
+                                            class="w-12 h-12 rounded-full bg-m3-primary flex items-center justify-center shadow-lg"
+                                        >
+                                            <PlayArrow
+                                                class="w-6 h-6 text-m3-on-primary"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <p
+                                    class="text-m3-body-medium font-medium text-m3-on-surface truncate text-center"
+                                >
+                                    {item.name}
+                                </p>
+                            </button>
+                            <button
+                                class="absolute top-4 right-4 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-m3-primary hover:scale-110 z-10"
+                                onclick={(e) => {
+                                    e.stopPropagation();
+                                    musicLibraryStore.toggleFavorite(item);
+                                }}
+                            >
+                                <Favorite class="w-5 h-5 text-m3-primary" />
+                            </button>
+                        </div>
+                    {/each}
+                </div>
+            </section>
+        {/if}
+
+        {#if localTracks.length === 0 && localPlaylists.length === 0 && localAlbums.length === 0 && localArtists.length === 0}
             <div
                 class="flex flex-col items-center justify-center py-12 text-center"
             >

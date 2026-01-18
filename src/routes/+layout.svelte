@@ -5,8 +5,8 @@
 	import BottomNav from "$lib/components/layout/BottomNav.svelte";
 
 	import { themeStore } from "$lib/stores/theme.svelte";
-	import { dashboardStore } from "$lib/stores/dashboard.svelte";
-	import { musicLibraryStore } from "$lib/stores/musicLibrary.svelte";
+	import { dashboardStore } from "$lib/features/dashboard/stores/dashboard.svelte";
+	import { musicLibraryStore } from "$lib/features/music/stores/musicLibrary.svelte";
 
 	import { browser } from "$app/environment";
 

@@ -4,8 +4,8 @@
         Breakpoint,
         GridTrack,
     } from "$lib/types/dashboard";
-    import { dashboardEditorStore } from "$lib/stores/dashboardEditor.svelte";
-    import { cardEditorStore } from "$lib/stores/cardEditor.svelte";
+    import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
+    import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
 
     import GridDimensionLabel from "./GridDimensionLabel.svelte";
     import IconPlus from "~icons/material-symbols/add";

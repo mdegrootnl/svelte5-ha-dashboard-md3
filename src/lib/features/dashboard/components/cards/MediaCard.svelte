@@ -3,7 +3,7 @@
     import IconEdit from "~icons/material-symbols/edit";
     import PowerOff from "~icons/material-symbols/power-off";
     import MusicNote from "~icons/material-symbols/music-note";
-    import { cardEditorStore } from "$lib/stores/cardEditor.svelte";
+    import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import MediaControls from "./media/MediaControls.svelte";
     import MediaVolume from "./media/MediaVolume.svelte";
     import MediaProgress from "./media/MediaProgress.svelte";

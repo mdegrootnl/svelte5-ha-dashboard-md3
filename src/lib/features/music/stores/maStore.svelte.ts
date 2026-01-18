@@ -7,8 +7,8 @@
 
 import { browser } from '$app/environment';
 import { untrack } from 'svelte';
-import { haStore } from './ha.svelte';
-import { haRegistryStore } from './haRegistry.svelte';
+import { haStore } from '$lib/stores/ha.svelte';
+import { haRegistryStore } from '$lib/stores/haRegistry.svelte';
 import { musicLibraryStore } from './musicLibrary.svelte';
 import { createLogger } from '$lib/utils/logger';
 import type {
@@ -26,6 +26,7 @@ import type {
     MAProvider,
     MARepeatMode
 } from '$lib/types/musicAssistant';
+import { type Result, ok, err, wrap } from '$lib/utils/result';
 
 const logger = createLogger('MAStore');
 
@@ -315,7 +316,7 @@ export class MusicAssistantStore {
     // Playback Controls
     // ====================================================
 
-    async play(mediaUri?: string, playerId?: string): Promise<void> {
+    async play(mediaUri?: string, playerId?: string): Promise<Result<void>> {
         let targetPlayer = playerId || this.activePlayerId;
 
         // Auto-select first player if none active
@@ -331,7 +332,7 @@ export class MusicAssistantStore {
 
         if (!targetPlayer) {
             logger.warn('No players found. Cannot play media.');
-            return;
+            return err(new Error('No players found'));
         }
 
         logger.info('Play called:', { mediaUri, targetPlayer, domain: this.activeDomain });
@@ -346,8 +347,9 @@ export class MusicAssistantStore {
                 await haStore.callService('media_player', 'media_play', undefined, { entity_id: targetPlayer });
             }
             logger.info('Play command sent successfully');
-        } catch (err) {
-            logger.error('Play failed:', err);
+            return ok(undefined);
+        } catch (error) {
+            logger.error('Play failed:', error);
             // Fallback: try standard media_player.play_media if the custom service fails
             if (mediaUri) {
                 logger.info('Fallback: trying media_player.play_media');
@@ -356,10 +358,13 @@ export class MusicAssistantStore {
                         { media_content_id: mediaUri, media_content_type: 'playlist' },
                         { entity_id: targetPlayer }
                     );
+                    return ok(undefined);
                 } catch (fallbackErr) {
                     logger.error('Fallback also failed:', fallbackErr);
+                    return err(fallbackErr instanceof Error ? fallbackErr : new Error(String(fallbackErr)));
                 }
             }
+            return err(error instanceof Error ? error : new Error(String(error)));
         }
     }
 
@@ -421,8 +426,8 @@ export class MusicAssistantStore {
     // Library & Search
     // ====================================================
 
-    async search(query: string, limit = 20): Promise<MASearchResults> {
-        if (!query.trim()) return { artists: [], albums: [], tracks: [], playlists: [], radio: [] };
+    async search(query: string, limit = 20): Promise<Result<MASearchResults>> {
+        if (!query.trim()) return ok({ artists: [], albums: [], tracks: [], playlists: [], radio: [] });
 
         try {
             logger.info('Search request:', { query, limit, domain: this.activeDomain });
@@ -452,33 +457,26 @@ export class MusicAssistantStore {
             const playlists = (resp?.playlists || []).map(i => this.mapMAItem(i)) as MAPlaylist[];
             const radio = (resp?.radio || []).map(i => this.mapMAItem(i)) as MARadio[];
 
-            return { artists, albums, tracks, playlists, radio };
-        } catch (err: any) {
-            const errorMsg = typeof err === 'object' ? JSON.stringify(err, Object.getOwnPropertyNames(err)) : String(err);
+            return ok({ artists, albums, tracks, playlists, radio });
+        } catch (error: any) {
+            const errorMsg = typeof error === 'object' ? JSON.stringify(error, Object.getOwnPropertyNames(error)) : String(error);
             logger.error(`Search failed: ${errorMsg}`);
-
-            try {
-                // Legacy fallback for music_assistant
-                if (this.activeDomain === 'music_assistant') {
-                    // This block is only reached if the primary search failed
-                    // But we already handle domain logic above, so this fallback is likely redundant or for older API versions
-                    // Keeping simple empty return on error to avoid complexity
-                }
-            } catch (e) { }
-
-            return { artists: [], albums: [], tracks: [], playlists: [], radio: [] };
+            // Return empty result instead of throwing, or you could return err(error) if you want to show it
+            // For search, returning empty is often UX friendly, but strict Result pattern might prefer error.
+            // Let's return error so UI can decide.
+            return err(error instanceof Error ? error : new Error(errorMsg));
         }
     }
 
     async getLibrary(
         mediaType: MAMediaType,
         options: { limit?: number; offset?: number; favorite?: boolean; search?: string; provider?: string; } = {}
-    ): Promise<MAMediaItem[]> {
+    ): Promise<Result<MAMediaItem[]>> {
         const { limit = 50, offset = 0, favorite, search, provider } = options;
         const cacheKey = `${mediaType}:${limit}:${offset}:${favorite}:${search}:${provider}`;
 
         const cached = this.libraryCache.get(cacheKey);
-        if (cached && (Date.now() - cached.timestamp) < LIBRARY_CACHE_TTL) return cached.data;
+        if (cached && (Date.now() - cached.timestamp) < LIBRARY_CACHE_TTL) return ok(cached.data);
 
         try {
             const result = await this.callMA('get_library', { media_type: mediaType, limit, offset, favorite, search }, undefined, true) as { response?: { items: MAMediaItem[] } };
@@ -488,10 +486,10 @@ export class MusicAssistantStore {
             const items = rawItems.map(this.mapMAItem);
 
             this.libraryCache.set(cacheKey, { data: items, timestamp: Date.now() });
-            return items;
-        } catch (err) {
-            logger.error('Get library failed:', err);
-            return [];
+            return ok(items);
+        } catch (error) {
+            logger.error('Get library failed:', error);
+            return err(error instanceof Error ? error : new Error(String(error)));
         }
     }
 
@@ -506,11 +504,11 @@ export class MusicAssistantStore {
         };
     }
 
-    async getRadioStations(limit = 50): Promise<MARadio[]> { return this.getLibrary('radio', { limit }) as Promise<MARadio[]>; }
-    async getPlaylists(limit = 50): Promise<MAPlaylist[]> { return this.getLibrary('playlist', { limit }) as Promise<MAPlaylist[]>; }
-    async getArtists(limit = 50, favorite = false): Promise<MAArtist[]> { return this.getLibrary('artist', { limit, favorite }) as Promise<MAArtist[]>; }
-    async getAlbums(limit = 50, favorite = false): Promise<MAAlbum[]> { return this.getLibrary('album', { limit, favorite }) as Promise<MAAlbum[]>; }
-    async getTracks(limit = 50, favorite = false): Promise<MATrack[]> { return this.getLibrary('track', { limit, favorite }) as Promise<MATrack[]>; }
+    async getRadioStations(limit = 50): Promise<Result<MARadio[]>> { return this.getLibrary('radio', { limit }) as Promise<Result<MARadio[]>>; }
+    async getPlaylists(limit = 50): Promise<Result<MAPlaylist[]>> { return this.getLibrary('playlist', { limit }) as Promise<Result<MAPlaylist[]>>; }
+    async getArtists(limit = 50, favorite = false): Promise<Result<MAArtist[]>> { return this.getLibrary('artist', { limit, favorite }) as Promise<Result<MAArtist[]>>; }
+    async getAlbums(limit = 50, favorite = false): Promise<Result<MAAlbum[]>> { return this.getLibrary('album', { limit, favorite }) as Promise<Result<MAAlbum[]>>; }
+    async getTracks(limit = 50, favorite = false): Promise<Result<MATrack[]>> { return this.getLibrary('track', { limit, favorite }) as Promise<Result<MATrack[]>>; }
 
     async getQueue(playerId?: string): Promise<MAQueueItem[]> {
         const targetPlayer = playerId || this.activePlayerId;

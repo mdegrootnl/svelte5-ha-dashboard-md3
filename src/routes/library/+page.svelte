@@ -8,7 +8,7 @@
         Button,
         CardConfigSheet,
     } from "$lib";
-    import { cardEditorStore } from "$lib/stores/cardEditor.svelte";
+    import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import Fan from "~icons/material-symbols/mode-fan";
     import Lightbulb from "~icons/material-symbols/lightbulb";
     import VolumeUp from "~icons/material-symbols/volume-up";

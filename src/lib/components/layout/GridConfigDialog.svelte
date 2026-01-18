@@ -6,7 +6,7 @@
     import IconGridView from "~icons/material-symbols/grid-view";
     import IconLink from "~icons/material-symbols/link";
     import IconLinkOff from "~icons/material-symbols/link-off";
-    import { dashboardEditorStore } from "$lib/stores/dashboardEditor.svelte";
+    import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
     import SideSheet from "./SideSheet.svelte";
     import type { GridConfig, GridTrack } from "$lib/types/dashboard";
 

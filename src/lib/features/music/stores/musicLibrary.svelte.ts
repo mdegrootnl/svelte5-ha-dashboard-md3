@@ -280,7 +280,7 @@ export class MusicLibraryStore {
      * Sync favorites from Music Assistant's library
      * This imports MA's favorites into our local library
      */
-    async syncFromMA(maStore: { getLibrary: (type: MAMediaType, options?: { favorite?: boolean }) => Promise<MAMediaItem[]> }): Promise<void> {
+    async syncFromMA(maStore: { getLibrary: (type: MAMediaType, options?: { favorite?: boolean }) => Promise<import('$lib/utils/result').Result<MAMediaItem[]>> }): Promise<void> {
         this.loading = true;
 
         try {
@@ -290,10 +290,14 @@ export class MusicLibraryStore {
 
             for (const type of types) {
                 try {
-                    const items = await maStore.getLibrary(type, { favorite: true });
-                    allFavorites.push(...items);
+                    const result = await maStore.getLibrary(type, { favorite: true });
+                    if (result.ok) {
+                        allFavorites.push(...result.value);
+                    } else {
+                        logger.warn(`Failed to fetch ${type} favorites from MA:`, result.error);
+                    }
                 } catch (e) {
-                    logger.warn(`Failed to fetch ${type} favorites from MA:`, e);
+                    logger.warn(`Unexpected error fetching ${type} favorites from MA:`, e);
                 }
             }
 

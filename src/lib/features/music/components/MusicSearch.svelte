@@ -3,7 +3,7 @@
   Search input component with debounced search functionality
 -->
 <script lang="ts">
-    import { maStore } from "$lib";
+    import { maStore } from "../stores/maStore.svelte";
     import Search from "~icons/material-symbols/search";
     import Close from "~icons/material-symbols/close";
 

@@ -5,8 +5,8 @@ import {
     createDefaultGridConfig,
     type HAArea
 } from '$lib/types/dashboard';
-import { haStore, HAStore } from './ha.svelte';
-import { haRegistryStore } from './haRegistry.svelte';
+import { haStore, HAStore } from '$lib/stores/ha.svelte';
+import { haRegistryStore } from '$lib/stores/haRegistry.svelte';
 import { createLogger } from '$lib/utils/logger';
 
 const logger = createLogger('DashboardStore');

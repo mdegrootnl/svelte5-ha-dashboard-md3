@@ -11,7 +11,8 @@
   - Volume slider
 -->
 <script lang="ts">
-    import { maStore, haStore } from "$lib";
+    import { haStore } from "$lib/stores/ha.svelte";
+    import { maStore } from "../stores/maStore.svelte";
     import { onMount, onDestroy } from "svelte";
 
     import Close from "~icons/material-symbols/close";

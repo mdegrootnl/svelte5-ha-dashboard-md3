@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { ItemLayout, Breakpoint } from "$lib/types/dashboard";
     import type { Snippet } from "svelte";
-    import { dashboardEditorStore } from "$lib/stores/dashboardEditor.svelte";
+    import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
     import IconDragIndicator from "~icons/material-symbols/drag-indicator";
 
     interface Props {

@@ -1,10 +1,11 @@
 <script lang="ts">
     import { PageShell, maStore, haStore, Card, Button } from "$lib";
-    import MusicNowPlaying from "$lib/components/music/MusicNowPlaying.svelte";
-    import MusicMiniPlayer from "$lib/components/music/MusicMiniPlayer.svelte";
-    import MusicBrowser from "$lib/components/music/MusicBrowser.svelte";
-    import MusicSearch from "$lib/components/music/MusicSearch.svelte";
-    import MusicPlayerSelector from "$lib/components/music/MusicPlayerSelector.svelte";
+    import MusicNowPlaying from "$lib/features/music/components/MusicNowPlaying.svelte";
+    import MusicMiniPlayer from "$lib/features/music/components/MusicMiniPlayer.svelte";
+    import MusicBrowser from "$lib/features/music/components/MusicBrowser.svelte";
+    import MusicSearch from "$lib/features/music/components/MusicSearch.svelte";
+    import MusicPlayerSelector from "$lib/features/music/components/MusicPlayerSelector.svelte";
+    import type { MAMediaItem } from "$lib/types/musicAssistant";
 
     import AlertIcon from "~icons/material-symbols/warning";
     import SettingsIcon from "~icons/material-symbols/settings";
@@ -172,28 +173,28 @@
                 {#if activeTab === "home"}
                     <MusicBrowser
                         section="home"
-                        onPlay={(item) => maStore.play(item.uri)}
+                        onPlay={(item: MAMediaItem) => maStore.play(item.uri)}
                     />
                 {:else if activeTab === "browse"}
                     <MusicBrowser
                         section="browse"
-                        onPlay={(item) => maStore.play(item.uri)}
+                        onPlay={(item: MAMediaItem) => maStore.play(item.uri)}
                     />
                 {:else if activeTab === "radio"}
                     <MusicBrowser
                         section="radio"
-                        onPlay={(item) => maStore.play(item.uri)}
+                        onPlay={(item: MAMediaItem) => maStore.play(item.uri)}
                     />
                 {:else if activeTab === "library"}
                     <MusicBrowser
                         section="library"
-                        onPlay={(item) => maStore.play(item.uri)}
+                        onPlay={(item: MAMediaItem) => maStore.play(item.uri)}
                     />
                 {:else if activeTab === "search"}
                     <MusicBrowser
                         section="search"
                         searchQuery={currentSearchQuery}
-                        onPlay={(item) => maStore.play(item.uri)}
+                        onPlay={(item: MAMediaItem) => maStore.play(item.uri)}
                     />
                 {/if}
             </div>

@@ -7,7 +7,7 @@
     import IconSensors from "~icons/material-symbols/sensors";
     import IconPlayCircle from "~icons/material-symbols/play-circle";
 
-    import { cardEditorStore } from "$lib/stores/cardEditor.svelte";
+    import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import type { CardConfig } from "$lib/types";
 
     let open = $derived(cardEditorStore.mode === "library");

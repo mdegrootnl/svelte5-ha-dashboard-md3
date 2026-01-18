@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import CardConfigDialog from './CardConfigDialog.svelte';
-import { cardEditorStore } from '$lib/stores/cardEditor.svelte';
+import { cardEditorStore } from '$lib/features/dashboard/stores/cardEditor.svelte';
 
 describe('CardConfigDialog Component', () => {
     beforeEach(() => {

@@ -10,7 +10,7 @@
     import IconToggleOn from "~icons/material-symbols/toggle-on";
     import IconSensors from "~icons/material-symbols/sensors";
     import IconPlayCircle from "~icons/material-symbols/play-circle";
-    import { cardEditorStore } from "$lib/stores/cardEditor.svelte";
+    import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import { getDomain } from "$lib/utils/entity";
     import type { ThermostatCardConfig } from "$lib/types";
 

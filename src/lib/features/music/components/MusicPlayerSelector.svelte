@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { maStore, musicLibraryStore } from "$lib";
+    import { maStore } from "../stores/maStore.svelte";
+    import { musicLibraryStore } from "../stores/musicLibrary.svelte";
     import SpeakerIcon from "~icons/material-symbols/speaker";
     import ExpandMore from "~icons/material-symbols/expand-more";
     import Check from "~icons/material-symbols/check";

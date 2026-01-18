@@ -6,11 +6,11 @@ export * from './utils';
 export { haStore, HAStore } from './stores/ha.svelte';
 export { haRegistryStore, HARegistryStore } from './stores/haRegistry.svelte';
 export { themeStore, ThemeStore } from './stores/theme.svelte';
-export { cardEditorStore, CardEditorStore } from './stores/cardEditor.svelte';
-export { dashboardStore, DashboardStore } from './stores/dashboard.svelte';
-export { dashboardEditorStore, DashboardEditorStore } from './stores/dashboardEditor.svelte';
-export { maStore, MusicAssistantStore } from './stores/maStore.svelte';
-export { musicLibraryStore, MusicLibraryStore } from './stores/musicLibrary.svelte';
+export { cardEditorStore, CardEditorStore } from './features/dashboard/stores/cardEditor.svelte';
+export { dashboardStore, DashboardStore } from './features/dashboard/stores/dashboard.svelte';
+export { dashboardEditorStore, DashboardEditorStore } from './features/dashboard/stores/dashboardEditor.svelte';
+export { maStore, MusicAssistantStore } from './features/music/stores/maStore.svelte';
+export { musicLibraryStore, MusicLibraryStore } from './features/music/stores/musicLibrary.svelte';
 
 // MD3 Components
 export { default as Button } from './components/md3/Button.svelte';
@@ -24,9 +24,9 @@ export { default as TextField } from './components/md3/TextField.svelte';
 export { default as EntityPicker } from './components/md3/EntityPicker.svelte';
 
 // Card Components
-export { default as ButtonCard } from './components/cards/ButtonCard.svelte';
-export { default as MediaCard } from './components/cards/MediaCard.svelte';
-export { default as ThermostatCard } from './components/cards/ThermostatCard.svelte';
+export { default as ButtonCard } from './features/dashboard/components/cards/ButtonCard.svelte';
+export { default as MediaCard } from './features/dashboard/components/cards/MediaCard.svelte';
+export { default as ThermostatCard } from './features/dashboard/components/cards/ThermostatCard.svelte';
 
 // Layout Components
 export { default as NavigationRail } from './components/layout/NavigationRail.svelte';
