@@ -6,6 +6,7 @@
 
 	import { themeStore } from "$lib/stores/theme.svelte";
 	import { dashboardStore } from "$lib/stores/dashboard.svelte";
+	import { musicLibraryStore } from "$lib/stores/musicLibrary.svelte";
 
 	import { browser } from "$app/environment";
 
@@ -21,6 +22,9 @@
 
 		themeStore.init(data.config.theme);
 		dashboardStore.init(data.config.dashboards);
+		if (data.config.musicLibrary) {
+			musicLibraryStore.init(data.config.musicLibrary);
+		}
 	});
 
 	// Flush pending syncs on page unload
@@ -30,6 +34,7 @@
 		const handleUnload = () => {
 			themeStore.flushSync();
 			dashboardStore.flushSync();
+			musicLibraryStore.flushSync();
 		};
 
 		window.addEventListener("beforeunload", handleUnload);

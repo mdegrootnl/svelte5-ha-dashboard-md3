@@ -9,6 +9,8 @@ export { themeStore, ThemeStore } from './stores/theme.svelte';
 export { cardEditorStore, CardEditorStore } from './stores/cardEditor.svelte';
 export { dashboardStore, DashboardStore } from './stores/dashboard.svelte';
 export { dashboardEditorStore, DashboardEditorStore } from './stores/dashboardEditor.svelte';
+export { maStore, MusicAssistantStore } from './stores/maStore.svelte';
+export { musicLibraryStore, MusicLibraryStore } from './stores/musicLibrary.svelte';
 
 // MD3 Components
 export { default as Button } from './components/md3/Button.svelte';
@@ -39,3 +41,6 @@ export { default as CardConfigSheet } from './components/layout/CardConfigSheet.
 
 // Dashboard Types (re-export for convenience)
 export * from './types/dashboard';
+
+// Music Assistant Types
+export * from './types/musicAssistant';

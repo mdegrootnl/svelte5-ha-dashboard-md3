@@ -26,12 +26,12 @@ export class JsonStorageService {
         try {
             await this.ensureDir();
             const content = await fs.readFile(CONFIG_PATH, 'utf-8');
-            
+
             // Handle empty file
             if (!content.trim()) {
                 return DEFAULT_CONFIG;
             }
-            
+
             const data = JSON.parse(content);
 
             // Merge with default to ensure structure
@@ -39,7 +39,8 @@ export class JsonStorageService {
                 ...DEFAULT_CONFIG,
                 ...data,
                 theme: { ...DEFAULT_CONFIG.theme, ...data.theme },
-                dashboards: { ...DEFAULT_CONFIG.dashboards, ...data.dashboards }
+                dashboards: { ...DEFAULT_CONFIG.dashboards, ...data.dashboards },
+                musicLibrary: { ...DEFAULT_CONFIG.musicLibrary, ...data.musicLibrary }
             };
         } catch (error) {
             // If file doesn't exist or is invalid, return default
@@ -68,13 +69,17 @@ export class JsonStorageService {
             const newConfig: AppConfig = {
                 ...current,
                 theme: { ...current.theme, ...(partial.theme || {}) },
-                dashboards: { ...current.dashboards, ...(partial.dashboards as any || {}) }
+                dashboards: { ...current.dashboards, ...(partial.dashboards as any || {}) },
+                musicLibrary: {
+                    ...current.musicLibrary!,
+                    ...(partial.musicLibrary || {})
+                }
             };
             await this.save(newConfig);
         }).catch(err => {
             console.error('[JsonStorageService] Save failed:', err);
         });
-        
+
         return saveLock;
     }
 }

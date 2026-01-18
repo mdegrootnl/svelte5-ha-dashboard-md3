@@ -1,6 +1,6 @@
 {
   "theme": {
-    "sourceColor": "#ff8000",
+    "sourceColor": "#e100ff",
     "isDark": true
   },
   "dashboards": {
@@ -2635,9 +2635,59 @@
           "padding": 16,
           "rowHeight": 80,
           "items": []
+        },
+        {
+          "id": "7ca6ce28-dda7-4da0-a69c-4a98dd8278b5",
+          "name": "New Tab",
+          "icon": "home",
+          "columns": {
+            "desktop": 12,
+            "mobile": 4
+          },
+          "rows": "implicit",
+          "gap": 16,
+          "padding": 16,
+          "rowHeight": 80,
+          "items": []
         }
       ],
-      "activeTabId": "e8ce3c51-4d4f-4ca6-90ec-3d0b1538cac2"
+      "activeTabId": "7ca6ce28-dda7-4da0-a69c-4a98dd8278b5"
     }
+  },
+  "musicLibrary": {
+    "favorites": [
+      {
+        "media_type": "radio",
+        "uri": "radiobrowser://radio/c6b9e84f-6c5a-11ea-b1cf-52543be04c81",
+        "name": "Radio 538",
+        "version": "",
+        "image": "https://lh6.ggpht.com/Erk3qAjj5KgecFCC0FNjYfdjUI1foRAs980wR5AdxKDEPUOWs-KV9sLV0fbNLszc4wo=w300",
+        "favorite": false,
+        "explicit": null,
+        "image_url": "https://lh6.ggpht.com/Erk3qAjj5KgecFCC0FNjYfdjUI1foRAs980wR5AdxKDEPUOWs-KV9sLV0fbNLszc4wo=w300"
+      },
+      {
+        "media_type": "radio",
+        "uri": "radiobrowser://radio/b20de429-e1b3-4624-a1ac-12e2bf0cadb0",
+        "name": "Sky Radio",
+        "version": "",
+        "image": "https://www.skyradio.nl/favicon.ico",
+        "favorite": false,
+        "explicit": null,
+        "image_url": "https://www.skyradio.nl/favicon.ico"
+      },
+      {
+        "media_type": "playlist",
+        "uri": "library://playlist/12",
+        "name": "'t Koffiehuis",
+        "version": "",
+        "image": "https://i.scdn.co/image/ab67706f00000002251a1562acf3c4326ea0c623",
+        "favorite": true,
+        "explicit": null,
+        "image_url": "https://i.scdn.co/image/ab67706f00000002251a1562acf3c4326ea0c623"
+      }
+    ],
+    "lastSyncedAt": 0,
+    "defaultPlayerId": "media_player.keuken"
   }
 }

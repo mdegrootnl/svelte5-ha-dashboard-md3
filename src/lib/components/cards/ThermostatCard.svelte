@@ -215,7 +215,7 @@
                 entityId = newConfig.entityId;
                 name = newConfig.name;
                 secondaryEntityId = newConfig.secondaryEntityId || "";
-                secondaryEntityId = newConfig.secondaryEntityId || "";
+
                 secondaryName = newConfig.secondaryName || "";
             },
             onDelete: ondelete,

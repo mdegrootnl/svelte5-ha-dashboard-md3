@@ -276,17 +276,27 @@ export class HAStore {
         if (!path) return null;
         if (!this.auth || !this.url) return path;
 
+        // Debug logging for MA images
+        if (path.includes('music_assistant') || path.includes('mass')) {
+            logger.debug('Proxying MA URL:', { input: path });
+        }
+
         // If it's an absolute URL, check if it's our HA URL
         if (path.startsWith('http')) {
             // If it's not our HA URL, return as is (CSP now allows it)
-            if (!this.url || !path.startsWith(this.url)) return path;
+            if (!this.url || !path.startsWith(this.url)) {
+                // logger.debug('Returning absolute URL as is:', path);
+                return path;
+            }
 
             // It IS our HA URL but absolute, we should still proxy it to add the token
             // Strip the base URL to make it relative for the proxy
             path = path.replace(this.url, '');
         }
 
-        return `/api/ha-proxy?path=${encodeURIComponent(path)}&token=${encodeURIComponent(this.auth.accessToken)}&url=${encodeURIComponent(this.url)}`;
+        const proxied = `/api/ha-proxy?path=${encodeURIComponent(path)}&token=${encodeURIComponent(this.auth.accessToken)}&url=${encodeURIComponent(this.url)}`;
+        if (path.includes('music_assistant')) logger.debug('Proxied result:', proxied);
+        return proxied;
     }
 
     /**

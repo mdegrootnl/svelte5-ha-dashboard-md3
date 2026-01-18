@@ -104,6 +104,14 @@ Home Assistant entity control cards:
 - **MediaCard** — standard, poster, condensed variants for media players
 - **ThermostatCard** — climate control with history graph, supports secondary outdoor sensor
 
+### Music Components (`src/lib/components/music/`)
+
+- **MusicBrowser** — Full-screen media browser with search and drill-down support.
+- **MusicPlayer** — Expanded player view with queue and controls.
+- **MusicMiniPlayer** — Persistent bottom bar player.
+- **MusicSearch** — Global music search functionality.
+
+
 ### Layout (`src/lib/components/layout/`)
 
 - **PageShell** — consistent page wrapper with title
@@ -148,6 +156,19 @@ class WeatherStore {
 }
 ```
 
+### Music Assistant Integration
+
+Native integration with Music Assistant via Home Assistant WebSocket:
+
+- **MAStore** (`src/lib/stores/maStore.svelte.ts`) — Main integration logic.
+    - Handles discovery and connection to `mass` or `music_assistant` domains.
+    - Manages player state (players, queues, now playing).
+    - Proxies library searching and browsing.
+- **MusicLibraryStore** (`src/lib/stores/musicLibrary.svelte.ts`) — Frontend view state.
+    - Manages browsing stack (drill-down navigation).
+    - Handles search query state.
+
+
 ### ThemeStore (`src/lib/stores/theme.svelte.ts`)
 
 Dynamic MD3 theming with CSS custom properties and server persistence:
@@ -181,6 +202,23 @@ class CardEditorStore {
     save();
 }
 ```
+
+### DashboardEditorStore (`src/lib/stores/dashboardEditor.svelte.ts`)
+
+Manages the edit mode for dashboard customization:
+
+```typescript
+class DashboardEditorStore {
+    isEditing = $state(false);
+    selectedItems = $state<Set<string>>(new Set());
+    
+    toggleEditMode();
+    moveItem(itemId, newPosition);
+    resizeItem(itemId, newSize);
+    saveChanges();
+}
+```
+
 
 ### DashboardStore (`src/lib/stores/dashboard.svelte.ts`)
 

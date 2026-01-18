@@ -41,6 +41,17 @@ A modern Material Design 3 dashboard for Home Assistant with dynamic theming, bu
   - Sunrise/Sunset
   - Air Quality Index (AQI)
 
+### 🎵 Music Assistant
+- **Native Integration** — Direct control of Music Assistant via HA WebSocket.
+- **Media Browsing** — Browse Artists, Albums, Tracks, Playlists, and Radio.
+- **Unified Player** — Control all MA-enabled players with a rich UI.
+- **Global Search** — Search your entire music library instantly.
+
+### ✏️ Dashboard Editor
+- **Drag & Drop** — Rearrange cards effortlessly (Implementation in progress).
+- **Live Configuration** — Edit card settings directly on the dashboard.
+
+
 ### 🎨 MD3 Component Library
 - Button (filled, tonal, outlined, text, elevated)
 - Card (elevated, filled, outlined)
@@ -87,7 +98,9 @@ src/
 │   └── utils/            # Helper functions
 ├── routes/
 │   ├── dashboard/        # Main dashboard with floor/room routing
+│   ├── music/            # Music Assistant browser
 │   ├── weather/          # Weather dashboard
+
 │   ├── library/          # Component showcase
 │   ├── settings/         # HA connection config
 │   └── theme/            # Theme builder

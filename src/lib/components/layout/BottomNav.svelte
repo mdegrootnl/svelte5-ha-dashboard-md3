@@ -2,6 +2,7 @@
     import { page } from "$app/stores";
     import Home from "~icons/material-symbols/home";
     import LayoutDashboard from "~icons/material-symbols/dashboard";
+    import MusicNote from "~icons/material-symbols/music-note";
     import Settings from "~icons/material-symbols/settings";
     import Palette from "~icons/material-symbols/palette";
     import Widgets from "~icons/material-symbols/widgets";
@@ -13,6 +14,7 @@
     const links = [
         { href: "/", label: "Home", icon: Home },
         { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { href: "/music", label: "Music", icon: MusicNote },
         { href: "/weather", label: "Weather", icon: PartlyCloudyDay },
         { href: "/library", label: "Library", icon: Widgets },
         { href: "/theme", label: "Theme", icon: Palette },

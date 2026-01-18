@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import { haStore, Button, TextField, Card, PageShell } from "$lib";
+    import { haStore, maStore, Button, TextField, Card, PageShell } from "$lib";
     import Link from "~icons/material-symbols/link";
     import LinkOff from "~icons/material-symbols/link-off";
     import CheckCircle from "~icons/material-symbols/check-circle";
@@ -9,6 +9,7 @@
     import Warning from "~icons/material-symbols/warning";
     import Key from "~icons/material-symbols/key";
     import OpenInNew from "~icons/material-symbols/open-in-new";
+    import MusicIcon from "~icons/material-symbols/music-note";
 
     let host = $state("http://homeassistant.local");
     let port = $state("8123");
@@ -281,6 +282,118 @@
                             Disconnect
                         </Button>
                     </div>
+                {/if}
+            </div>
+        </Card>
+    </section>
+
+    <!-- Music Assistant Section -->
+    <section class="mt-6">
+        <Card variant="outlined" class="w-full">
+            <div class="p-6 flex flex-col gap-4">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="w-10 h-10 rounded-lg bg-m3-primary/10 flex items-center justify-center"
+                    >
+                        <MusicIcon class="w-6 h-6 text-m3-primary" />
+                    </div>
+                    <div class="flex-1">
+                        <h2 class="text-m3-title-large text-m3-on-surface">
+                            Music Assistant
+                        </h2>
+                        <p
+                            class="text-m3-body-medium text-m3-on-surface-variant"
+                        >
+                            Stream from Spotify, TuneIn, and local files.
+                        </p>
+                    </div>
+
+                    <!-- Connection State Badge -->
+                    {#if maStore.integrationStatus === "available"}
+                        <div
+                            class="flex items-center gap-2 text-green-500 bg-green-500/10 px-3 py-1 rounded-full"
+                        >
+                            <CheckCircle class="w-5 h-5" />
+                            <span class="text-sm font-medium">Connected</span>
+                        </div>
+                    {:else if maStore.integrationStatus === "checking"}
+                        <div
+                            class="flex items-center gap-2 text-blue-500 bg-blue-500/10 px-3 py-1 rounded-full"
+                        >
+                            <Sync class="w-5 h-5 animate-spin" />
+                            <span class="text-sm font-medium">Checking...</span>
+                        </div>
+                    {:else if maStore.integrationStatus === "not_installed"}
+                        <div
+                            class="flex items-center gap-2 text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full"
+                        >
+                            <Warning class="w-5 h-5" />
+                            <span class="text-sm font-medium"
+                                >Not Installed</span
+                            >
+                        </div>
+                    {:else}
+                        <div
+                            class="flex items-center gap-2 text-m3-on-surface-variant bg-m3-surface-container px-3 py-1 rounded-full"
+                        >
+                            <LinkOff class="w-5 h-5" />
+                            <span class="text-sm font-medium">Unavailable</span>
+                        </div>
+                    {/if}
+                </div>
+
+                {#if maStore.integrationStatus === "not_installed"}
+                    <div
+                        class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 flex items-start gap-3"
+                    >
+                        <Warning
+                            class="w-6 h-6 text-amber-500 flex-shrink-0 mt-0.5"
+                        />
+                        <div class="flex-1">
+                            <p
+                                class="text-m3-body-medium text-amber-600 dark:text-amber-400 font-medium"
+                            >
+                                Music Assistant Addon Required
+                            </p>
+                            <p
+                                class="text-m3-body-small text-m3-on-surface-variant mt-1"
+                            >
+                                Install the Music Assistant addon in Home
+                                Assistant to stream music.
+                            </p>
+                        </div>
+                        <a
+                            href="https://music-assistant.io/installation/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="text-m3-primary hover:underline text-sm font-medium flex items-center gap-1"
+                        >
+                            Install Guide
+                            <OpenInNew class="w-4 h-4" />
+                        </a>
+                    </div>
+                {:else if maStore.integrationStatus === "available"}
+                    <div class="bg-m3-surface-container p-4 rounded-md">
+                        <p
+                            class="text-m3-body-medium text-m3-on-surface-variant"
+                        >
+                            Connected via Home Assistant. Providers and players
+                            are configured in the Music Assistant addon.
+                        </p>
+                    </div>
+                    <div class="flex justify-end">
+                        <a
+                            href="/music"
+                            class="inline-flex items-center justify-center h-10 px-6 rounded-full text-m3-label-large font-medium bg-m3-primary text-m3-on-primary hover:bg-m3-primary/92 transition-colors"
+                        >
+                            Open Music
+                        </a>
+                    </div>
+                {:else if haStore.connectionState !== "connected"}
+                    <p class="text-m3-body-medium text-m3-on-surface-variant">
+                        Connect to Home Assistant first to enable Music
+                        Assistant.
+                    </p>
                 {/if}
             </div>
         </Card>
