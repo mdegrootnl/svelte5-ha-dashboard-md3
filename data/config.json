@@ -2518,7 +2518,48 @@
             "desktop": 12,
             "mobile": 4
           },
-          "rows": "implicit",
+          "rows": [
+            {
+              "id": "aae23922-ec45-47ca-bff0-079adbde7fde",
+              "type": "row",
+              "size": 40
+            },
+            {
+              "id": "30870586-7bad-4c65-a2a4-76b11055cca8",
+              "type": "row",
+              "size": 80
+            },
+            {
+              "id": "bfc26b81-a322-400b-9adf-6f19c78f3501",
+              "type": "row",
+              "size": 80
+            },
+            {
+              "id": "53973126-c518-42e5-94db-9ad427f89a4c",
+              "type": "row",
+              "size": 80
+            },
+            {
+              "id": "46f2b1c2-00bb-4d1f-9136-40df791fc6e9",
+              "type": "row",
+              "size": 80
+            },
+            {
+              "id": "f1e8360e-8efa-4b12-b6e2-237091851874",
+              "type": "row",
+              "size": 80
+            },
+            {
+              "id": "2e32c047-1159-406d-8b98-a07fef598d6c",
+              "type": "row",
+              "size": 80
+            },
+            {
+              "id": "b9a4b831-837e-49d8-b4a6-5726c0dc4bbc",
+              "type": "row",
+              "size": 80
+            }
+          ],
           "gap": 16,
           "padding": 16,
           "rowHeight": 80,
@@ -2535,13 +2576,13 @@
                 "desktop": {
                   "colStart": 1,
                   "colSpan": 2,
-                  "rowStart": 1,
+                  "rowStart": 2,
                   "rowSpan": 1
                 },
                 "mobile": {
                   "colStart": 1,
                   "colSpan": 2,
-                  "rowStart": 1,
+                  "rowStart": 2,
                   "rowSpan": 1
                 }
               }
@@ -2558,13 +2599,13 @@
                 "desktop": {
                   "colStart": 3,
                   "colSpan": 2,
-                  "rowStart": 1,
+                  "rowStart": 2,
                   "rowSpan": 1
                 },
                 "mobile": {
                   "colStart": 3,
                   "colSpan": 2,
-                  "rowStart": 1,
+                  "rowStart": 2,
                   "rowSpan": 1
                 }
               }
@@ -2581,16 +2622,41 @@
                 "desktop": {
                   "colStart": 5,
                   "colSpan": 2,
-                  "rowStart": 1,
+                  "rowStart": 2,
                   "rowSpan": 1
                 },
                 "mobile": {
                   "colStart": 1,
                   "colSpan": 2,
-                  "rowStart": 2,
+                  "rowStart": 3,
                   "rowSpan": 1
                 }
               }
+            },
+            {
+              "id": "ca1df12a-d66c-4cd3-aa9f-237ee7958223",
+              "cardType": "title",
+              "entityId": "",
+              "name": "Test",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 3,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 4,
+                  "rowSpan": 2
+                }
+              },
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "subtitle": "test",
+              "alignment": "end"
             }
           ]
         },

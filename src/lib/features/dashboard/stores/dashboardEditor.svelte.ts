@@ -157,6 +157,7 @@ export class DashboardEditorStore {
         let cardType: DashboardCardType = "button";
         if (itemConfig.type === "thermostat") cardType = "thermostat";
         if (itemConfig.type === "media") cardType = "media";
+        if (itemConfig.type === "title") cardType = "title";
 
         // Create base layout
         const layout = createDefaultItemLayout(1, cardType, itemConfig.cardSize || 'standard');
@@ -202,7 +203,9 @@ export class DashboardEditorStore {
             layout,
             secondaryEntityId: itemConfig.secondaryEntityId || "",
             secondaryName: itemConfig.secondaryName || "",
-            domainFilter: itemConfig.domainFilter || ""
+            domainFilter: itemConfig.domainFilter || "",
+            subtitle: itemConfig.subtitle || "",
+            alignment: itemConfig.alignment || "start"
         };
 
         config.items.push(newItem);
@@ -854,7 +857,7 @@ export class DashboardEditorStore {
         console.log(`Setting column ${colIndex} width to ${width}px for ${breakpoint}`);
     }
 
-    addItem(itemConfig: Partial<DashboardItem> & { type?: string; name?: string; cardSize?: 'condensed' | 'standard' | 'poster' }) {
+    addItem(itemConfig: Partial<DashboardItem> & { type?: string; name?: string; cardSize?: 'condensed' | 'standard' | 'poster'; subtitle?: string; alignment?: string }) {
         const context = this.getActiveGrid();
         if (!context) return;
         const { root, tab: config } = context;
@@ -863,6 +866,7 @@ export class DashboardEditorStore {
         let cardType: DashboardCardType = "button";
         if (itemConfig.type === "thermostat") cardType = "thermostat";
         if (itemConfig.type === "media") cardType = "media";
+        if (itemConfig.type === "title") cardType = "title";
 
         // Find next available row
         let maxRow = 1;
@@ -870,6 +874,13 @@ export class DashboardEditorStore {
             const layout = item.layout.desktop;
             maxRow = Math.max(maxRow, layout.rowStart + layout.rowSpan);
         }
+        // Correction: above loop was using item.layout.desktop correctly in original code but I see 'maxRow = Math.max(maxRow, layout.rowStart + layout.rowSpan);' 
+        // I will stick to original logic but ensure I copy it correctly.
+        // Re-reading original logic:
+        // for (const item of config.items) {
+        //    const layout = item.layout.desktop;
+        //    maxRow = Math.max(maxRow, layout.rowStart + layout.rowSpan);
+        // }
 
         // Create default layout at the new row with appropriate size
         const layout = createDefaultItemLayout(1, cardType, itemConfig.cardSize || 'standard');
@@ -887,7 +898,9 @@ export class DashboardEditorStore {
             // Optional thermostat-specific fields (default to empty string)
             secondaryEntityId: itemConfig.secondaryEntityId || "",
             secondaryName: itemConfig.secondaryName || "",
-            domainFilter: itemConfig.domainFilter || ""
+            domainFilter: itemConfig.domainFilter || "",
+            subtitle: itemConfig.subtitle || "",
+            alignment: itemConfig.alignment as "start" | "center" | "end" || "start"
         };
 
         config.items.push(newItem);

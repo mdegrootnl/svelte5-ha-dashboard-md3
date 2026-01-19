@@ -6,6 +6,7 @@
     import ButtonCard from "$lib/features/dashboard/components/cards/ButtonCard.svelte";
     import ThermostatCard from "$lib/features/dashboard/components/cards/ThermostatCard.svelte";
     import MediaCard from "$lib/features/dashboard/components/cards/MediaCard.svelte";
+    import TitleCard from "$lib/features/dashboard/components/cards/TitleCard.svelte";
     import IconLightbulb from "~icons/material-symbols/lightbulb";
     import IconThermostat from "~icons/material-symbols/thermostat";
     import IconDevices from "~icons/material-symbols/devices";
@@ -13,6 +14,7 @@
     import IconSensors from "~icons/material-symbols/sensors";
     import IconPlayCircle from "~icons/material-symbols/play-circle";
     import IconDelete from "~icons/material-symbols/delete";
+    import IconHdrAuto from "~icons/material-symbols/hdr-auto";
     import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import { getDomain } from "$lib/utils/entity";
@@ -33,11 +35,13 @@
     let tempConfig = $state<{
         entityId: string;
         name: string;
-        type?: "button" | "thermostat" | "media";
+        type?: "button" | "thermostat" | "media" | "title";
         secondaryEntityId: string;
         secondaryName: string;
         domainFilter?: string;
         cardSize: CardSize;
+        subtitle: string;
+        alignment: "start" | "center" | "end";
     }>({
         entityId: "",
         name: "",
@@ -45,6 +49,8 @@
         secondaryName: "",
         domainFilter: undefined,
         cardSize: "standard",
+        subtitle: "",
+        alignment: "start",
     });
 
     // Get current entity domain for icon display
@@ -59,6 +65,7 @@
         cardEditorStore.config?.type === "media" ||
             currentDomain === "media_player",
     );
+    let isTitleCard = $derived(cardEditorStore.config?.type === "title");
 
     // Sync when opening
     $effect(() => {
@@ -72,12 +79,16 @@
                 secondaryName: (config as any).secondaryName || "",
                 domainFilter: config.domainFilter,
                 cardSize: config.cardSize || "standard",
+                subtitle: (config as any).subtitle || "",
+                alignment: (config as any).alignment || "start",
             };
         }
     });
 
     // Get the appropriate icon component based on domain
     function getIconComponent(domain: string) {
+        if (isTitleCard) return IconHdrAuto;
+
         switch (domain) {
             case "light":
                 return IconLightbulb;
@@ -116,7 +127,11 @@
 
 <SideSheet
     bind:open
-    title={isThermostatCard ? "Edit Thermostat" : "Edit Card"}
+    title={isThermostatCard
+        ? "Edit Thermostat"
+        : isTitleCard
+          ? "Edit Title"
+          : "Edit Card"}
     subtitle={tempConfig.name || "Configure card settings"}
     icon={CurrentIcon}
     {showBack}
@@ -124,27 +139,62 @@
     onback={handleBack}
 >
     <div class="flex flex-col gap-4 pb-64">
-        <!-- Card Size Selector -->
-        <div class="flex flex-col gap-2">
-            <span class="text-m3-label-medium text-m3-on-surface-variant"
-                >Card Size</span
-            >
-            <div
-                class="flex rounded-full bg-m3-surface-container-highest p-1 gap-1"
-            >
-                {#each ["condensed", "standard", "poster"] as size}
-                    <button
-                        class="flex-1 py-2 px-3 rounded-full text-m3-label-medium transition-all duration-200
+        <!-- Card Size Selector (Hidden for Title Card) -->
+        {#if !isTitleCard}
+            <div class="flex flex-col gap-2">
+                <span class="text-m3-label-medium text-m3-on-surface-variant"
+                    >Card Size</span
+                >
+                <div
+                    class="flex rounded-full bg-m3-surface-container-highest p-1 gap-1"
+                >
+                    {#each ["condensed", "standard", "poster"] as size}
+                        <button
+                            class="flex-1 py-2 px-3 rounded-full text-m3-label-medium transition-all duration-200
                                {tempConfig.cardSize === size
-                            ? 'bg-m3-secondary-container text-m3-on-secondary-container shadow-sm'
-                            : 'text-m3-on-surface-variant hover:bg-m3-on-surface/5'}"
-                        onclick={() => (tempConfig.cardSize = size as CardSize)}
-                    >
-                        {size.charAt(0).toUpperCase() + size.slice(1)}
-                    </button>
-                {/each}
+                                ? 'bg-m3-secondary-container text-m3-on-secondary-container shadow-sm'
+                                : 'text-m3-on-surface-variant hover:bg-m3-on-surface/5'}"
+                            onclick={() =>
+                                (tempConfig.cardSize = size as CardSize)}
+                        >
+                            {size.charAt(0).toUpperCase() + size.slice(1)}
+                        </button>
+                    {/each}
+                </div>
             </div>
-        </div>
+        {/if}
+
+        <!-- Alignment Selector (Only for Title Card) -->
+        {#if isTitleCard}
+            <div class="flex flex-col gap-2">
+                <span class="text-m3-label-medium text-m3-on-surface-variant"
+                    >Alignment</span
+                >
+                <div
+                    class="flex rounded-full bg-m3-surface-container-highest p-1 gap-1"
+                >
+                    {#each ["start", "center", "end"] as align}
+                        <button
+                            class="flex-1 py-2 px-3 rounded-full text-m3-label-medium transition-all duration-200
+                                   {tempConfig.alignment === align
+                                ? 'bg-m3-secondary-container text-m3-on-secondary-container shadow-sm'
+                                : 'text-m3-on-surface-variant hover:bg-m3-on-surface/5'}"
+                            onclick={() =>
+                                (tempConfig.alignment = align as
+                                    | "start"
+                                    | "center"
+                                    | "end")}
+                        >
+                            {align === "start"
+                                ? "Top"
+                                : align === "center"
+                                  ? "Middle"
+                                  : "Bottom"}
+                        </button>
+                    {/each}
+                </div>
+            </div>
+        {/if}
 
         <!-- Live Preview -->
         <div class="flex flex-col gap-2">
@@ -154,10 +204,12 @@
             <!-- Preview container with visible card boundary -->
             <div class="bg-m3-surface-container-high p-2 rounded-m3-md">
                 <div
-                    class="pointer-events-none select-none rounded-m3-md overflow-hidden shadow-md transition-all duration-300"
+                    class="pointer-events-none select-none transition-all duration-300 {isTitleCard
+                        ? ''
+                        : 'rounded-m3-md overflow-hidden shadow-md'}"
                     style="height: {tempConfig.cardSize === 'condensed'
                         ? '80px'
-                        : tempConfig.cardSize === 'standard'
+                        : tempConfig.cardSize === 'standard' || isTitleCard
                           ? '170px'
                           : '280px'};"
                 >
@@ -175,6 +227,12 @@
                             name={tempConfig.name}
                             domainFilter={tempConfig.domainFilter || ""}
                         />
+                    {:else if isTitleCard}
+                        <TitleCard
+                            name={tempConfig.name}
+                            subtitle={tempConfig.subtitle}
+                            alignment={tempConfig.alignment}
+                        />
                     {:else}
                         <ButtonCard
                             title={tempConfig.name || "Card Preview"}
@@ -187,23 +245,40 @@
                 </div>
             </div>
 
-            <!-- Entity ID with autocomplete -->
-            <EntityPicker
-                label="Entity ID"
-                placeholder={isThermostatCard
-                    ? "climate.living_room"
-                    : "light.living_room"}
-                bind:value={tempConfig.entityId}
-                domainFilter={tempConfig.domainFilter}
-                class="w-full"
-            />
+            <!-- Entity ID with autocomplete (Hidden for Title Card) -->
+            {#if !isTitleCard}
+                <EntityPicker
+                    label="Entity ID"
+                    placeholder={isThermostatCard
+                        ? "climate.living_room"
+                        : "light.living_room"}
+                    bind:value={tempConfig.entityId}
+                    domainFilter={tempConfig.domainFilter}
+                    class="w-full"
+                />
+            {/if}
+
             <TextField
                 variant="outlined"
-                label="Custom Name"
-                placeholder={isThermostatCard ? "Binnen" : "Living Room Light"}
+                label={isTitleCard ? "Title" : "Custom Name"}
+                placeholder={isThermostatCard
+                    ? "Binnen"
+                    : isTitleCard
+                      ? "Living Room"
+                      : "Living Room Light"}
                 bind:value={tempConfig.name}
                 class="w-full"
             />
+
+            {#if isTitleCard}
+                <TextField
+                    variant="outlined"
+                    label="Subtitle"
+                    placeholder="Main floor"
+                    bind:value={tempConfig.subtitle}
+                    class="w-full"
+                />
+            {/if}
 
             <!-- Thermostat-specific fields -->
             {#if isThermostatCard}

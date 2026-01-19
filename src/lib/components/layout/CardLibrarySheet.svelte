@@ -1,6 +1,7 @@
 <script lang="ts">
     import SideSheet from "./SideSheet.svelte";
     import IconLibraryAdd from "~icons/material-symbols/library-add";
+    import IconHdrAuto from "~icons/material-symbols/hdr-auto";
     import IconLightbulb from "~icons/material-symbols/lightbulb";
     import IconThermostat from "~icons/material-symbols/thermostat";
     import IconToggleOn from "~icons/material-symbols/toggle-on";
@@ -19,6 +20,13 @@
             description: "Control lights and dimmers",
             icon: IconLightbulb,
             domain: "light",
+        },
+        {
+            type: "title",
+            name: "Title",
+            description: "Section header",
+            icon: IconHdrAuto,
+            domain: "",
         },
         {
             type: "switch",
@@ -59,7 +67,9 @@
             // Use 'button' for light/switch, specific types for others
             // Mapping needs to match what GridItem expects
             type:
-                cardType.type === "thermostat" || cardType.type === "media"
+                cardType.type === "thermostat" ||
+                cardType.type === "media" ||
+                cardType.type === "title"
                     ? cardType.type
                     : "button",
         };

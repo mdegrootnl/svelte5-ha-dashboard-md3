@@ -27,6 +27,7 @@ export { default as EntityPicker } from './components/md3/EntityPicker.svelte';
 export { default as ButtonCard } from './features/dashboard/components/cards/ButtonCard.svelte';
 export { default as MediaCard } from './features/dashboard/components/cards/MediaCard.svelte';
 export { default as ThermostatCard } from './features/dashboard/components/cards/ThermostatCard.svelte';
+export { default as TitleCard } from './features/dashboard/components/cards/TitleCard.svelte';
 
 // Layout Components
 export { default as NavigationRail } from './components/layout/NavigationRail.svelte';

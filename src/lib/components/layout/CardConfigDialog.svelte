@@ -22,18 +22,22 @@
         cardEditorStore.config?.type === "thermostat",
     );
 
+    let isTitleCard = $derived(cardEditorStore.config?.type === "title");
+
     // Flexible binding for local edits (includes thermostat-specific fields)
     let tempConfig = $state<{
         entityId: string;
         name: string;
-        type?: "button" | "thermostat" | "media";
+        type?: "button" | "thermostat" | "media" | "title";
         secondaryEntityId: string;
         secondaryName: string;
+        subtitle: string;
     }>({
         entityId: "",
         name: "",
         secondaryEntityId: "",
         secondaryName: "",
+        subtitle: "",
     });
 
     // Sync when opening
@@ -46,6 +50,7 @@
                 type: config.type,
                 secondaryEntityId: (config as any).secondaryEntityId || "",
                 secondaryName: (config as any).secondaryName || "",
+                subtitle: (config as any).subtitle || "",
             };
         }
     });
@@ -57,6 +62,10 @@
 
     // Get the appropriate icon component based on domain
     function getIconComponent(domain: string) {
+        // If it's a title card, maybe show a generic icon or the one passed in config?
+        // For now, logic relies on domain.
+        if (isTitleCard) return IconDevices; // Or HdrAuto if we imported it
+
         switch (domain) {
             case "light":
                 return IconLightbulb;
@@ -118,7 +127,11 @@
                         <CurrentIcon class="size-5" />
                     </div>
                     <h2 class="text-m3-headline-small text-m3-on-surface">
-                        {isThermostatCard ? "Edit Thermostat" : "Edit Card"}
+                        {isThermostatCard
+                            ? "Edit Thermostat"
+                            : isTitleCard
+                              ? "Edit Title Card"
+                              : "Edit Card"}
                     </h2>
                 </div>
                 <button
@@ -131,25 +144,38 @@
 
             <!-- Content -->
             <div class="px-6 flex flex-col gap-4">
-                <!-- Entity ID with autocomplete -->
-                <EntityPicker
-                    label="Entity ID"
-                    placeholder={isThermostatCard
-                        ? "climate.living_room"
-                        : "light.living_room"}
-                    bind:value={tempConfig.entityId}
-                    domainFilter={isThermostatCard ? "climate" : undefined}
-                    class="w-full"
-                />
+                <!-- Entity ID with autocomplete (Hidden for Title Card) -->
+                {#if !isTitleCard}
+                    <EntityPicker
+                        label="Entity ID"
+                        placeholder={isThermostatCard
+                            ? "climate.living_room"
+                            : "light.living_room"}
+                        bind:value={tempConfig.entityId}
+                        domainFilter={isThermostatCard ? "climate" : undefined}
+                        class="w-full"
+                    />
+                {/if}
+
                 <TextField
                     variant="outlined"
-                    label="Custom Name"
+                    label={isTitleCard ? "Title" : "Custom Name"}
                     placeholder={isThermostatCard
                         ? "Binnen"
                         : "Living Room Light"}
                     bind:value={tempConfig.name}
                     class="w-full"
                 />
+
+                {#if isTitleCard}
+                    <TextField
+                        variant="outlined"
+                        label="Subtitle"
+                        placeholder="Optional subtitle"
+                        bind:value={tempConfig.subtitle}
+                        class="w-full"
+                    />
+                {/if}
 
                 <!-- Thermostat-specific fields -->
                 {#if isThermostatCard}

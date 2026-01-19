@@ -263,6 +263,7 @@
                         class="row-trigger pointer-events-auto absolute -left-4 top-0 bottom-0 w-8 flex items-center justify-center transition-opacity duration-200 z-50"
                         onmouseenter={() => (hoveredRow = row)}
                         onmouseleave={() => (hoveredRow = null)}
+                        onpointerdown={(e) => e.stopPropagation()}
                         role="button"
                         tabindex="-1"
                     >
@@ -284,6 +285,7 @@
                     <button
                         class="insert-trigger pointer-events-auto absolute -left-6 -top-3 w-12 h-6 flex items-center justify-center z-50 opacity-0 hover:opacity-100 transition-opacity"
                         onclick={() => dashboardEditorStore.addRow(row)}
+                        onpointerdown={(e) => e.stopPropagation()}
                         title="Insert row above"
                     >
                         <div
@@ -302,6 +304,7 @@
                                 dashboardEditorStore.removeRow(row);
                             }}
                             onmouseenter={() => (hoveredRow = row)}
+                            onpointerdown={(e) => e.stopPropagation()}
                             title="Delete row"
                         >
                             <div
@@ -317,6 +320,7 @@
                         <button
                             class="insert-trigger pointer-events-auto absolute -left-6 -bottom-3 w-12 h-6 flex items-center justify-center z-50 opacity-0 hover:opacity-100 transition-opacity"
                             onclick={() => dashboardEditorStore.addRow(row + 1)}
+                            onpointerdown={(e) => e.stopPropagation()}
                             title="Insert row below"
                         >
                             <div

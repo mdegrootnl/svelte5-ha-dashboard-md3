@@ -5,6 +5,7 @@
         ButtonCard,
         MediaCard,
         ThermostatCard,
+        TitleCard,
         haStore,
         haRegistryStore,
         PageShell,
@@ -535,6 +536,7 @@
                             desktopLayout={item.layout.desktop}
                             mobileLayout={item.layout.mobile}
                             breakpoint={dashboardStore.breakpoint}
+                            class={item.cardType === "title" ? "z-10" : ""}
                         >
                             {#if item.cardType === "button"}
                                 <ButtonCard
@@ -553,6 +555,17 @@
                                     bind:entityId={item.entityId}
                                     bind:name={item.name}
                                     bind:domainFilter={item.domainFilter}
+                                    ondelete={() =>
+                                        dashboardEditorStore.deleteItem(
+                                            item.id,
+                                        )}
+                                />
+                            {:else if item.cardType === "title"}
+                                <TitleCard
+                                    id={item.id}
+                                    bind:name={item.name}
+                                    bind:subtitle={item.subtitle}
+                                    bind:alignment={item.alignment}
                                     ondelete={() =>
                                         dashboardEditorStore.deleteItem(
                                             item.id,

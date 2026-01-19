@@ -14,7 +14,7 @@ export interface GridTrack {
 /**
  * Card types that can be rendered in the grid
  */
-export type DashboardCardType = "button" | "media" | "thermostat";
+export type DashboardCardType = "button" | "media" | "thermostat" | "title";
 
 /**
  * Layout definition for a specific breakpoint
@@ -54,6 +54,9 @@ export interface DashboardItem {
     secondaryName: string;
     /** Domain filter for entity selection (empty string if not set) */
     domainFilter: string;
+    /** Subtitle for title card */
+    subtitle?: string;
+    alignment?: "start" | "center" | "end";
 }
 
 /**
@@ -169,7 +172,7 @@ export function createDefaultItemLayout(
     cardSize: 'condensed' | 'standard' | 'poster' = 'standard'
 ): ResponsiveLayout {
     // Size based on card type
-    const desktopSpan = cardType === "button" ? 2 : cardType === "thermostat" ? 4 : 6;
+    const desktopSpan = cardType === "button" ? 2 : (cardType === "thermostat" || cardType === "title") ? 4 : 6;
     const mobileSpan = cardType === "button" ? 2 : 4;
 
     // Row span based on card size
