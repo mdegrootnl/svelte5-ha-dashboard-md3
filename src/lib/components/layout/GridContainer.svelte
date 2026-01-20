@@ -13,6 +13,7 @@
         breakpoint?: Breakpoint;
         children: Snippet;
         class?: string;
+        isNested?: boolean;
     }
 
     let {
@@ -20,7 +21,10 @@
         breakpoint = "desktop",
         children,
         class: className = "",
+        isNested = false,
     }: Props = $props();
+
+    let gridElement: HTMLDivElement | undefined = $state();
 
     /**
      * Generate CSS grid-template-columns string from config
@@ -54,8 +58,45 @@
             .join(" ");
     });
 
+    // Resize Observer to update store with grid dimensions for drag calculations
+    $effect(() => {
+        if (!gridElement) return;
+
+        const observer = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                // If this is the focused grid (or the root one and no focus is set)
+                // We update the store's dimensions
+                const isFocused =
+                    dashboardEditorStore.focusedGridId === config.id;
+                const isRootAndDefault =
+                    !dashboardEditorStore.focusedGridId && !isNested;
+
+                if (isFocused || isRootAndDefault) {
+                    const colCount =
+                        breakpoint === "desktop"
+                            ? config.columns.desktop
+                            : config.columns.mobile;
+                    dashboardEditorStore.updateGridDimensions(
+                        entry.target.getBoundingClientRect(),
+                        colCount,
+                        config.gap,
+                    );
+                }
+            }
+        });
+
+        observer.observe(gridElement);
+        return () => observer.disconnect();
+    });
+
     // -- Drag Ghost State --
-    let isDragging = $derived(dashboardEditorStore.isDragging);
+    // Only show ghost if we are the active target
+    let isActiveGrid = $derived(
+        dashboardEditorStore.focusedGridId === config.id ||
+            (!dashboardEditorStore.focusedGridId && !isNested),
+    );
+
+    let isDragging = $derived(isActiveGrid && dashboardEditorStore.isDragging);
     let ghostPos = $derived(dashboardEditorStore.dragGhostPosition);
     let draggingItem = $derived(
         isDragging && dashboardEditorStore.dragItemId
@@ -72,6 +113,7 @@
 </script>
 
 <div
+    bind:this={gridElement}
     class="grid-container w-full h-full {className}"
     style:display="grid"
     style:grid-template-columns={gridTemplateCols}
@@ -80,7 +122,12 @@
     style:row-gap="{config.rowGap ?? config.gap}px"
     style:padding="{config.padding}px"
     style:grid-auto-rows="{config.rowHeight ?? 80}px"
-    onclick={() => dashboardEditorStore.clearSelection()}
+    onpointerdown={(e) => {
+        // Only clear if interacting with the background of the active grid
+        if (isActiveGrid && e.target === e.currentTarget) {
+            dashboardEditorStore.clearSelection();
+        }
+    }}
     role="button"
     tabindex="-1"
     onkeydown={(e) =>

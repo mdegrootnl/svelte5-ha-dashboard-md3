@@ -10,9 +10,11 @@
     import IconToggleOn from "~icons/material-symbols/toggle-on";
     import IconSensors from "~icons/material-symbols/sensors";
     import IconPlayCircle from "~icons/material-symbols/play-circle";
+    import IconList from "~icons/material-symbols/list";
+    import IconViewModule from "~icons/material-symbols/view-module";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import { getDomain } from "$lib/utils/entity";
-    import type { ThermostatCardConfig } from "$lib/types";
+    import type { ThermostatCardConfig, CardConfig } from "$lib/types";
 
     // Computed proxy for cleaner access, though direct store usage is fine
     let isOpen = $derived(cardEditorStore.isOpen);
@@ -23,12 +25,13 @@
     );
 
     let isTitleCard = $derived(cardEditorStore.config?.type === "title");
+    let isTabCard = $derived(cardEditorStore.config?.type === "tabs");
 
     // Flexible binding for local edits (includes thermostat-specific fields)
     let tempConfig = $state<{
         entityId: string;
         name: string;
-        type?: "button" | "thermostat" | "media" | "title";
+        type?: "button" | "thermostat" | "media" | "title" | "tabs";
         secondaryEntityId: string;
         secondaryName: string;
         subtitle: string;
@@ -62,9 +65,8 @@
 
     // Get the appropriate icon component based on domain
     function getIconComponent(domain: string) {
-        // If it's a title card, maybe show a generic icon or the one passed in config?
-        // For now, logic relies on domain.
-        if (isTitleCard) return IconDevices; // Or HdrAuto if we imported it
+        if (isTitleCard) return IconList;
+        if (isTabCard) return IconViewModule;
 
         switch (domain) {
             case "light":
@@ -131,7 +133,9 @@
                             ? "Edit Thermostat"
                             : isTitleCard
                               ? "Edit Title Card"
-                              : "Edit Card"}
+                              : isTabCard
+                                ? "Edit Tab Card"
+                                : "Edit Card"}
                     </h2>
                 </div>
                 <button
@@ -144,8 +148,8 @@
 
             <!-- Content -->
             <div class="px-6 flex flex-col gap-4">
-                <!-- Entity ID with autocomplete (Hidden for Title Card) -->
-                {#if !isTitleCard}
+                <!-- Entity ID with autocomplete (Hidden for Title Card and Tab Card) -->
+                {#if !isTitleCard && !isTabCard}
                     <EntityPicker
                         label="Entity ID"
                         placeholder={isThermostatCard

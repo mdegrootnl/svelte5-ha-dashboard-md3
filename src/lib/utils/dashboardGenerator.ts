@@ -40,7 +40,9 @@ const TAB_DOMAINS = {
 const CARD_TYPE_SPANS: Record<DashboardCardType, { desktop: number; mobile: number }> = {
     'button': { desktop: 2, mobile: 2 },
     'thermostat': { desktop: 4, mobile: 4 },
-    'media': { desktop: 6, mobile: 4 }
+    'media': { desktop: 6, mobile: 4 },
+    'title': { desktop: 4, mobile: 4 },
+    'tabs': { desktop: 6, mobile: 4 }
 };
 
 /**

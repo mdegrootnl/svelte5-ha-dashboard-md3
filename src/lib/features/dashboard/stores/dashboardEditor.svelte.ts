@@ -83,13 +83,14 @@ export class DashboardEditorStore {
 
     // Grid Region Selection
     isSelectingGrid = $state(false);
-    gridSelection = $state<{ start: { col: number; row: number }; end: { col: number; row: number } } | null>(null);
+    gridSelection = $state<{ gridId: string; start: { col: number; row: number }; end: { col: number; row: number } } | null>(null);
 
-    startGridSelection(col: number, row: number) {
+    startGridSelection(gridId: string, col: number, row: number) {
         if (!this.isEditing) return;
         this.isSelectingGrid = true;
         this.selectedItemId = null; // Clear item selection when starting grid selection
         this.gridSelection = {
+            gridId,
             start: { col, row },
             end: { col, row }
         };
@@ -110,6 +111,7 @@ export class DashboardEditorStore {
             const maxRow = Math.max(this.gridSelection.start.row, this.gridSelection.end.row);
 
             this.gridSelection = {
+                gridId: this.gridSelection.gridId,
                 start: { col: minCol, row: minRow },
                 end: { col: maxCol, row: maxRow }
             };
@@ -158,6 +160,7 @@ export class DashboardEditorStore {
         if (itemConfig.type === "thermostat") cardType = "thermostat";
         if (itemConfig.type === "media") cardType = "media";
         if (itemConfig.type === "title") cardType = "title";
+        if (itemConfig.type === "tabs") cardType = "tabs";
 
         // Create base layout
         const layout = createDefaultItemLayout(1, cardType, itemConfig.cardSize || 'standard');
@@ -205,7 +208,9 @@ export class DashboardEditorStore {
             secondaryName: itemConfig.secondaryName || "",
             domainFilter: itemConfig.domainFilter || "",
             subtitle: itemConfig.subtitle || "",
-            alignment: itemConfig.alignment || "start"
+            alignment: itemConfig.alignment || "start",
+            tabs: itemConfig.tabs,
+            activeTabIndex: 0
         };
 
         config.items.push(newItem);
@@ -226,6 +231,27 @@ export class DashboardEditorStore {
         this.cellWidth = (rect.width - (gap * (columnCount - 1))) / columnCount;
     }
 
+    // Grid focus state for nested editing
+    focusedGridId = $state<string | null>(null);
+
+    /**
+     * Enter a specific grid context
+     */
+    enterGrid(gridId: string) {
+        this.focusedGridId = gridId;
+        this.clearSelection();
+    }
+
+    /**
+     * Exit the current grid context (go up one level or to root)
+     */
+    exitGrid() {
+        // For now, simpler implementation: just clear focus (return to root active tab)
+        // Ideally we would push/pop a stack, but user interaction is likely "Back to Dashboard"
+        this.focusedGridId = null;
+        this.clearSelection();
+    }
+
     /**
      * Helper to get the currently active grid configuration (tab)
      */
@@ -233,10 +259,91 @@ export class DashboardEditorStore {
         const root = dashboardStore.config;
         if (!root) return null;
 
-        const tab = root.tabs.find(t => t.id === root.activeTabId);
-        if (!tab) return null;
+        const activeRootTab = root.tabs.find(t => t.id === root.activeTabId);
+        if (!activeRootTab) return null;
 
-        return { root, tab };
+        // If no specific grid is focused, return the root active tab
+        if (!this.focusedGridId) {
+            return { root, tab: activeRootTab };
+        }
+
+        // Otherwise search for the focused grid
+        const found = this.findGridRecursive(activeRootTab, this.focusedGridId);
+        if (found) {
+            return { root, tab: found };
+        }
+
+        // Fallback if not found (e.g. invalid ID), reset focus
+        this.focusedGridId = null;
+        return { root, tab: activeRootTab };
+    }
+
+    /**
+     * Check if a specific item contains the currently focused grid (recursively)
+     * Used to highlight the parent card when editing its nested content
+     */
+    isItemAncestorOfFocus(itemId: string): boolean {
+        if (!this.focusedGridId) return false;
+
+        const root = dashboardStore.config;
+        if (!root) return false;
+        const activeRootTab = root.tabs.find(t => t.id === root.activeTabId);
+        if (!activeRootTab) return false;
+
+        return this.isGridDescendantOfItem(activeRootTab, itemId, this.focusedGridId);
+    }
+
+    private isGridDescendantOfItem(contextGrid: GridConfig, targetItemId: string, searchedGridId: string): boolean {
+        for (const item of contextGrid.items) {
+            // Case 1: We found the target item. Check if the grid is inside it.
+            if (item.id === targetItemId) {
+                if (item.cardType !== 'tabs' || !item.tabs) return false;
+
+                for (const tab of item.tabs) {
+                    if (tab.id === searchedGridId) return true;
+                    if (this.gridContainsGrid(tab, searchedGridId)) return true;
+                }
+                return false;
+            }
+
+            // Case 2: This is not the item, but it might contain the item. Recurse.
+            if (item.cardType === 'tabs' && item.tabs) {
+                for (const tab of item.tabs) {
+                    if (this.isGridDescendantOfItem(tab, targetItemId, searchedGridId)) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private gridContainsGrid(parentGrid: GridConfig, searchedGridId: string): boolean {
+        for (const item of parentGrid.items) {
+            if (item.cardType === 'tabs' && item.tabs) {
+                for (const tab of item.tabs) {
+                    if (tab.id === searchedGridId) return true;
+                    if (this.gridContainsGrid(tab, searchedGridId)) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Recursively find a grid config by ID
+     */
+    private findGridRecursive(currentGrid: GridConfig, targetId: string): GridConfig | null {
+        if (currentGrid.id === targetId) return currentGrid;
+
+        for (const item of currentGrid.items) {
+            if (item.cardType === 'tabs' && item.tabs) {
+                // Check each tab in the tab card
+                for (const tab of item.tabs) {
+                    const found = this.findGridRecursive(tab, targetId);
+                    if (found) return found;
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -867,6 +974,7 @@ export class DashboardEditorStore {
         if (itemConfig.type === "thermostat") cardType = "thermostat";
         if (itemConfig.type === "media") cardType = "media";
         if (itemConfig.type === "title") cardType = "title";
+        if (itemConfig.type === "tabs") cardType = "tabs";
 
         // Find next available row
         let maxRow = 1;

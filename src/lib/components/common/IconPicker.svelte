@@ -2,6 +2,7 @@
     import { createEventDispatcher } from "svelte";
     import IconClose from "~icons/material-symbols/close";
     import IconSearch from "~icons/material-symbols/search";
+    import { portal } from "$lib/actions/portal";
 
     // Comprehensive list of Material Symbols icons for smart home/dashboard use
     // Users can type any valid Material Symbols name to search
@@ -215,11 +216,12 @@
 </script>
 
 <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+    class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
     onclick={() => dispatch("close")}
     role="button"
     tabindex="-1"
     onkeydown={(e) => e.key === "Escape" && dispatch("close")}
+    use:portal
 >
     <div
         class="bg-m3-surface-container-high rounded-m3-xl p-4 w-full max-w-md flex flex-col gap-4 shadow-xl"

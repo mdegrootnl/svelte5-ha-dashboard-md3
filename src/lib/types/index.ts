@@ -48,7 +48,7 @@ export interface BaseCardConfig {
     entityId: string;
     name: string;
     icon?: string;
-    type?: 'button' | 'thermostat' | 'media' | 'title';
+    type?: 'button' | 'thermostat' | 'media' | 'title' | 'tabs';
     onSave?: (config: CardConfig) => void;
     onDelete?: () => void;
     /** Optional domain filter for entity picker (e.g. "light", "switch") */
@@ -77,7 +77,11 @@ export interface TitleCardConfig extends BaseCardConfig {
     alignment?: 'start' | 'center' | 'end';
 }
 
-export type CardConfig = ButtonCardConfig | ThermostatCardConfig | MediaCardConfig | TitleCardConfig;
+export interface TabEditorConfig extends BaseCardConfig {
+    type: 'tabs';
+}
+
+export type CardConfig = ButtonCardConfig | ThermostatCardConfig | MediaCardConfig | TitleCardConfig | TabEditorConfig;
 
 export type CardVariant = 'switch' | 'slider';
 export type ButtonVariant = 'filled' | 'tonal' | 'outlined' | 'text' | 'elevated';

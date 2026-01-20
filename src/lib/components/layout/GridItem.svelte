@@ -17,6 +17,11 @@
         children: Snippet;
         /** Additional CSS classes */
         class?: string;
+        /** If true, overlay is suppressed and content is interactive */
+        isInteractive?: boolean;
+        /** Optional controls to render on top of the item in edit mode */
+        // eslint-disable-next-line no-undef
+        controls?: Snippet;
     }
 
     let {
@@ -26,6 +31,8 @@
         breakpoint = "desktop",
         children,
         class: className = "",
+        isInteractive = false,
+        controls,
     }: Props = $props();
 
     // Get current layout based on breakpoint
@@ -46,11 +53,15 @@
     let isEditing = $derived(dashboardEditorStore.isEditing);
     let isDragging = $derived(dashboardEditorStore.dragItemId === itemId);
 
-    // Handle click to select
-    function handleClick(e: MouseEvent) {
+    // Check if this item allows focus mode (is an ancestor of the currently focused grid)
+    let isFocusedContext = $derived(
+        dashboardEditorStore.isItemAncestorOfFocus(itemId),
+    );
+
+    // Handle pointer down to select
+    function handleClick(e: PointerEvent) {
         if (!isEditing) return;
         e.stopPropagation();
-        e.preventDefault();
         dashboardEditorStore.selectItem(itemId);
     }
 
@@ -126,74 +137,79 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
     class="grid-item h-full w-full {className}"
-    class:selected={isSelected && isEditing}
+    class:selected={isSelected && isEditing && !isInteractive}
     class:editing={isEditing}
     class:dragging={isDragging}
+    class:focused-context={isFocusedContext}
     style:grid-column={gridColumn}
     style:grid-row={gridRow}
-    onclick={handleClick}
+    onpointerdown={handleClick}
 >
-    <!-- Content wrapper - blocks pointer events in edit mode -->
-    <div class="content-wrapper" class:edit-mode={isEditing}>
+    <!-- Content wrapper - blocks pointer events in edit mode unless interactive -->
+    <div class="content-wrapper" class:edit-mode={isEditing && !isInteractive}>
         {@render children()}
     </div>
 
     <!-- Edit mode overlay and controls -->
     {#if isEditing}
-        <!-- Selection overlay -->
-        <div
-            class="edit-overlay"
-            class:selected={isSelected}
-            onclick={handleClick}
-        ></div>
+        {#if !isInteractive}
+            <!-- Selection overlay -->
+            <div
+                class="edit-overlay"
+                class:selected={isSelected}
+                onpointerdown={handleClick}
+            ></div>
 
-        <!-- Drag Handle (visible when selected) -->
-        {#if isSelected}
-            <button
-                class="drag-handle"
-                onpointerdown={handleDragStart}
-                onpointermove={handleDragMove}
-                onpointerup={handleDragEnd}
-                onpointercancel={handleDragEnd}
-                aria-label="Drag to move"
-            >
-                <IconDragIndicator class="size-5" />
-            </button>
+            <!-- Drag Handle (visible when selected) -->
+            {#if isSelected}
+                <button
+                    class="drag-handle"
+                    onpointerdown={handleDragStart}
+                    onpointermove={handleDragMove}
+                    onpointerup={handleDragEnd}
+                    onpointercancel={handleDragEnd}
+                    aria-label="Drag to move"
+                >
+                    <IconDragIndicator class="size-5" />
+                </button>
 
-            <!-- Resize Handles -->
-            <button
-                class="resize-handle resize-handle-right"
-                onpointerdown={(e) => handleResizeStart(e, "right")}
-                onpointermove={handleResizeMove}
-                onpointerup={handleResizeEnd}
-                onpointercancel={handleResizeEnd}
-                aria-label="Resize width"
-            >
-                <span class="handle-line"></span>
-            </button>
+                <!-- Resize Handles -->
+                <button
+                    class="resize-handle resize-handle-right"
+                    onpointerdown={(e) => handleResizeStart(e, "right")}
+                    onpointermove={handleResizeMove}
+                    onpointerup={handleResizeEnd}
+                    onpointercancel={handleResizeEnd}
+                    aria-label="Resize width"
+                >
+                    <span class="handle-line"></span>
+                </button>
 
-            <button
-                class="resize-handle resize-handle-bottom"
-                onpointerdown={(e) => handleResizeStart(e, "bottom")}
-                onpointermove={handleResizeMove}
-                onpointerup={handleResizeEnd}
-                onpointercancel={handleResizeEnd}
-                aria-label="Resize height"
-            >
-                <span class="handle-line horizontal"></span>
-            </button>
+                <button
+                    class="resize-handle resize-handle-bottom"
+                    onpointerdown={(e) => handleResizeStart(e, "bottom")}
+                    onpointermove={handleResizeMove}
+                    onpointerup={handleResizeEnd}
+                    onpointercancel={handleResizeEnd}
+                    aria-label="Resize height"
+                >
+                    <span class="handle-line horizontal"></span>
+                </button>
 
-            <button
-                class="resize-handle resize-handle-corner"
-                onpointerdown={(e) => handleResizeStart(e, "corner")}
-                onpointermove={handleResizeMove}
-                onpointerup={handleResizeEnd}
-                onpointercancel={handleResizeEnd}
-                aria-label="Resize"
-            >
-                <span class="handle-corner"></span>
-            </button>
+                <button
+                    class="resize-handle resize-handle-corner"
+                    onpointerdown={(e) => handleResizeStart(e, "corner")}
+                    onpointermove={handleResizeMove}
+                    onpointerup={handleResizeEnd}
+                    onpointercancel={handleResizeEnd}
+                    aria-label="Resize"
+                >
+                    <span class="handle-corner"></span>
+                </button>
+            {/if}
         {/if}
+
+        {@render controls?.()}
     {/if}
 </div>
 
@@ -264,6 +280,14 @@
             var(--color-m3-primary, #6750a4) 20%,
             transparent
         );
+    }
+
+    /* Focus Mode - Elevate above backdrop */
+    .grid-item.focused-context {
+        z-index: 50; /* Above the backdrop (z-40) */
+        box-shadow:
+            0 20px 25px -5px rgb(0 0 0 / 0.1),
+            0 8px 10px -6px rgb(0 0 0 / 0.1); /* Elevation-3 approx */
     }
 
     /* Drag handle */

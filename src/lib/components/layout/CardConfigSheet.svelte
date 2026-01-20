@@ -15,6 +15,7 @@
     import IconPlayCircle from "~icons/material-symbols/play-circle";
     import IconDelete from "~icons/material-symbols/delete";
     import IconHdrAuto from "~icons/material-symbols/hdr-auto";
+    import IconViewModule from "~icons/material-symbols/view-module";
     import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import { getDomain } from "$lib/utils/entity";
@@ -35,7 +36,7 @@
     let tempConfig = $state<{
         entityId: string;
         name: string;
-        type?: "button" | "thermostat" | "media" | "title";
+        type?: "button" | "thermostat" | "media" | "title" | "tabs";
         secondaryEntityId: string;
         secondaryName: string;
         domainFilter?: string;
@@ -66,6 +67,7 @@
             currentDomain === "media_player",
     );
     let isTitleCard = $derived(cardEditorStore.config?.type === "title");
+    let isTabCard = $derived(cardEditorStore.config?.type === "tabs");
 
     // Sync when opening
     $effect(() => {
@@ -88,6 +90,7 @@
     // Get the appropriate icon component based on domain
     function getIconComponent(domain: string) {
         if (isTitleCard) return IconHdrAuto;
+        if (isTabCard) return IconViewModule;
 
         switch (domain) {
             case "light":
@@ -131,7 +134,9 @@
         ? "Edit Thermostat"
         : isTitleCard
           ? "Edit Title"
-          : "Edit Card"}
+          : isTabCard
+            ? "Edit Tab Card"
+            : "Edit Card"}
     subtitle={tempConfig.name || "Configure card settings"}
     icon={CurrentIcon}
     {showBack}
@@ -139,8 +144,8 @@
     onback={handleBack}
 >
     <div class="flex flex-col gap-4 pb-64">
-        <!-- Card Size Selector (Hidden for Title Card) -->
-        {#if !isTitleCard}
+        <!-- Card Size Selector (Hidden for Title and Tab Card) -->
+        {#if !isTitleCard && !isTabCard}
             <div class="flex flex-col gap-2">
                 <span class="text-m3-label-medium text-m3-on-surface-variant"
                     >Card Size</span
@@ -233,6 +238,44 @@
                             subtitle={tempConfig.subtitle}
                             alignment={tempConfig.alignment}
                         />
+                    {:else if isTabCard}
+                        <!-- Tab Card Preview -->
+                        <div
+                            class="w-full h-full flex flex-col bg-m3-surface-container-low rounded-xl border border-m3-outline-variant overflow-hidden"
+                        >
+                            <div
+                                class="flex items-center gap-4 px-4 py-3 bg-m3-surface-container border-b border-m3-outline-variant/50"
+                            >
+                                <div
+                                    class="flex items-center gap-2 text-m3-primary border-b-2 border-m3-primary pb-0.5"
+                                >
+                                    <IconViewModule class="size-4" />
+                                    <span class="text-xs font-medium"
+                                        >Tab 1</span
+                                    >
+                                </div>
+                                <div
+                                    class="flex items-center gap-2 text-m3-on-surface-variant/50"
+                                >
+                                    <div
+                                        class="w-4 h-4 rounded bg-current opacity-20"
+                                    ></div>
+                                    <div
+                                        class="w-12 h-2 rounded bg-current opacity-20"
+                                    ></div>
+                                </div>
+                            </div>
+                            <div
+                                class="flex-1 p-2 grid grid-cols-2 gap-2 opacity-50"
+                            >
+                                <div
+                                    class="bg-m3-surface-container-high rounded-lg h-full"
+                                ></div>
+                                <div
+                                    class="bg-m3-surface-container-high rounded-lg h-full"
+                                ></div>
+                            </div>
+                        </div>
                     {:else}
                         <ButtonCard
                             title={tempConfig.name || "Card Preview"}
@@ -245,8 +288,8 @@
                 </div>
             </div>
 
-            <!-- Entity ID with autocomplete (Hidden for Title Card) -->
-            {#if !isTitleCard}
+            <!-- Entity ID with autocomplete (Hidden for Title and Tab Card) -->
+            {#if !isTitleCard && !isTabCard}
                 <EntityPicker
                     label="Entity ID"
                     placeholder={isThermostatCard

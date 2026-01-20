@@ -2,6 +2,7 @@
     import SideSheet from "./SideSheet.svelte";
     import IconLibraryAdd from "~icons/material-symbols/library-add";
     import IconHdrAuto from "~icons/material-symbols/hdr-auto";
+    import IconViewModule from "~icons/material-symbols/view-module";
     import IconLightbulb from "~icons/material-symbols/lightbulb";
     import IconThermostat from "~icons/material-symbols/thermostat";
     import IconToggleOn from "~icons/material-symbols/toggle-on";
@@ -10,6 +11,7 @@
 
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import type { CardConfig } from "$lib/types";
+    import { createDefaultGridConfig } from "$lib/types/dashboard";
 
     let open = $derived(cardEditorStore.mode === "library");
 
@@ -26,6 +28,13 @@
             name: "Title",
             description: "Section header",
             icon: IconHdrAuto,
+            domain: "",
+        },
+        {
+            type: "tabs",
+            name: "Tabs",
+            description: "Container with multiple tabs",
+            icon: IconViewModule,
             domain: "",
         },
         {
@@ -60,7 +69,7 @@
 
     function handleSelect(cardType: any) {
         // Create initial config for the selected type
-        const initialConfig: CardConfig = {
+        const initialConfig: any = {
             entityId: "",
             name: "",
             domainFilter: cardType.domain,
@@ -69,17 +78,22 @@
             type:
                 cardType.type === "thermostat" ||
                 cardType.type === "media" ||
-                cardType.type === "title"
+                cardType.type === "title" ||
+                cardType.type === "tabs"
                     ? cardType.type
                     : "button",
         };
+
+        if (cardType.type === "tabs") {
+            initialConfig.tabs = [createDefaultGridConfig("Tab 1")];
+        }
 
         // Capture the save handler defined when opening the library
         // We must capture it NOW, because when we call openConfig(), cardEditorStore.config will be overwritten
         const parentOnSave = cardEditorStore.config.onSave;
 
         // Pass a callback to handle the save from the config sheet
-        initialConfig.onSave = (config) => {
+        initialConfig.onSave = (config: CardConfig) => {
             parentOnSave?.(config);
         };
 

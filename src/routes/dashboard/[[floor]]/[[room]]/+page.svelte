@@ -20,7 +20,10 @@
         generateDashboardForFloor,
         type GridConfig,
         type RoomDashboardConfig, // Import new type
+        type TabCardConfig,
+        TabCard,
     } from "$lib";
+    import { fade } from "svelte/transition";
     import TabBar from "$lib/components/layout/TabBar.svelte"; // Import TabBar
     import IconPicker from "$lib/components/common/IconPicker.svelte";
     import TextInputDialog from "$lib/components/common/TextInputDialog.svelte";
@@ -390,6 +393,15 @@
         : "Configure connection in Settings"}
     maxWidth="6xl"
 >
+    {#if dashboardEditorStore.focusedGridId}
+        <!-- Backdrop for Focus Mode -->
+        <div
+            class="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-all duration-300"
+            transition:fade={{ duration: 200 }}
+            role="presentation"
+        ></div>
+    {/if}
+
     {#snippet actions()}
         {#if haStore.connected}
             <!-- Edit Mode Controls -->
@@ -536,7 +548,12 @@
                             desktopLayout={item.layout.desktop}
                             mobileLayout={item.layout.mobile}
                             breakpoint={dashboardStore.breakpoint}
-                            class={item.cardType === "title" ? "z-10" : ""}
+                            class={(item.cardType === "title" ? "z-10 " : "") +
+                                "group"}
+                            isInteractive={item.cardType === "tabs" &&
+                                dashboardEditorStore.isItemAncestorOfFocus(
+                                    item.id,
+                                )}
                         >
                             {#if item.cardType === "button"}
                                 <ButtonCard
@@ -586,7 +603,32 @@
                                             item.id,
                                         )}
                                 />
+                            {:else if item.cardType === "tabs"}
+                                <TabCard config={item as TabCardConfig} />
                             {/if}
+                            {#snippet controls()}
+                                {#if item.cardType === "tabs"}
+                                    <button
+                                        class="absolute top-2 right-2 p-2 rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-md z-50 hover:brightness-110 pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onclick={(e) => {
+                                            e.stopPropagation();
+                                            const activeIdx =
+                                                (item as TabCardConfig)
+                                                    .activeTabIndex ?? 0;
+                                            const gridId = (
+                                                item as TabCardConfig
+                                            ).tabs?.[activeIdx]?.id;
+                                            if (gridId)
+                                                dashboardEditorStore.enterGrid(
+                                                    gridId,
+                                                );
+                                        }}
+                                        title="Edit Content"
+                                    >
+                                        <IconEdit class="size-4" />
+                                    </button>
+                                {/if}
+                            {/snippet}
                         </GridItem>
                     {/each}
                 </GridContainer>

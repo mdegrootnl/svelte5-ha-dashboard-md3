@@ -141,7 +141,7 @@
 
     // Check if cell is in selection
     function isCellSelected(index: number) {
-        if (!selection) return false;
+        if (!selection || selection.gridId !== config.id) return false;
         const col = (index % columnCount) + 1;
         const row = Math.floor(index / columnCount) + 1;
 
@@ -172,7 +172,7 @@
 
     // Selection Dimensions for Button
     let selectionBounds = $derived.by(() => {
-        if (!selection) return null;
+        if (!selection || selection.gridId !== config.id) return null;
         const minCol = Math.min(selection.start.col, selection.end.col);
         const maxCol = Math.max(selection.start.col, selection.end.col);
         const minRow = Math.min(selection.start.row, selection.end.row);
@@ -189,7 +189,8 @@
         // Only left click
         if (e.button !== 0) return;
         e.preventDefault();
-        dashboardEditorStore.startGridSelection(col, row);
+        e.stopPropagation();
+        dashboardEditorStore.startGridSelection(config.id, col, row);
     }
 
     function handlePointerEnter(col: number, row: number) {
@@ -198,7 +199,8 @@
         }
     }
 
-    function handleAddCard() {
+    function handleAddCard(e: MouseEvent) {
+        e.stopPropagation();
         cardEditorStore.config = {
             entityId: "",
             name: "",
@@ -344,6 +346,7 @@
                 <button
                     class="pointer-events-auto inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full bg-m3-primary text-m3-on-primary text-m3-label-large font-medium hover:brightness-95 transition-colors shadow-m3-elevation-1"
                     onclick={handleAddCard}
+                    onpointerdown={(e) => e.stopPropagation()}
                 >
                     <IconPlus class="size-5" />
                     <span>Add</span>

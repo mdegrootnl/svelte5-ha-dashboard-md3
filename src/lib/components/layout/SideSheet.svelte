@@ -3,6 +3,7 @@
     import IconClose from "~icons/material-symbols/close";
     import IconArrowBack from "~icons/material-symbols/arrow-back";
     import { type Snippet } from "svelte";
+    import { portal } from "$lib/actions/portal";
 
     interface Props {
         open: boolean;
@@ -54,20 +55,22 @@
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div
-        class="fixed inset-0 z-50 bg-m3-scrim/40 backdrop-blur-sm"
+        class="fixed inset-0 z-[100] bg-m3-scrim/40 backdrop-blur-sm"
         transition:fade={{ duration: 200 }}
         onclick={handleClose}
         role="presentation"
+        use:portal
     ></div>
 
     <!-- Slide-in Panel -->
     <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
     <div
-        class="fixed top-0 right-0 z-50 h-full w-full {maxWidth} bg-m3-surface-container-low flex flex-col shadow-2xl"
+        class="fixed top-0 right-0 z-[100] h-full w-full {maxWidth} bg-m3-surface-container-low flex flex-col shadow-2xl"
         transition:fly={{ x: 400, duration: 300, opacity: 1 }}
         role="dialog"
         aria-labelledby="side-sheet-title"
         aria-modal="true"
+        use:portal
     >
         <!-- Header -->
         <header

@@ -276,10 +276,11 @@ describe('DashboardEditorStore', () => {
     describe('Grid Selection', () => {
         it('starts selection correctly', () => {
             dashboardEditorStore.enterEditMode();
-            dashboardEditorStore.startGridSelection(1, 1);
+            dashboardEditorStore.startGridSelection("test-grid", 1, 1);
 
             expect(dashboardEditorStore.isSelectingGrid).toBe(true);
             expect(dashboardEditorStore.gridSelection).toEqual({
+                gridId: "test-grid",
                 start: { col: 1, row: 1 },
                 end: { col: 1, row: 1 }
             });
@@ -287,7 +288,7 @@ describe('DashboardEditorStore', () => {
 
         it('updates selection end point', () => {
             dashboardEditorStore.enterEditMode();
-            dashboardEditorStore.startGridSelection(1, 1);
+            dashboardEditorStore.startGridSelection("test-grid", 1, 1);
             dashboardEditorStore.updateGridSelection(2, 3);
 
             expect(dashboardEditorStore.gridSelection?.end).toEqual({ col: 2, row: 3 });
@@ -295,11 +296,12 @@ describe('DashboardEditorStore', () => {
 
         it('normalizes selection on end', () => {
             dashboardEditorStore.enterEditMode();
-            dashboardEditorStore.startGridSelection(3, 3);
+            dashboardEditorStore.startGridSelection("test-grid", 3, 3);
             dashboardEditorStore.updateGridSelection(1, 1);
             dashboardEditorStore.endGridSelection();
 
             expect(dashboardEditorStore.gridSelection).toEqual({
+                gridId: "test-grid",
                 start: { col: 1, row: 1 },
                 end: { col: 3, row: 3 }
             });
@@ -307,7 +309,7 @@ describe('DashboardEditorStore', () => {
 
         it('clears selection when exiting edit mode', () => {
             dashboardEditorStore.enterEditMode();
-            dashboardEditorStore.startGridSelection(1, 1);
+            dashboardEditorStore.startGridSelection("test-grid", 1, 1);
 
             dashboardEditorStore.exitEditMode();
 
@@ -318,7 +320,7 @@ describe('DashboardEditorStore', () => {
         it('creates item from selection and triggers collision resolution', () => {
             // Arrange
             dashboardEditorStore.enterEditMode();
-            dashboardEditorStore.startGridSelection(1, 1);
+            dashboardEditorStore.startGridSelection("test-grid", 1, 1);
             dashboardEditorStore.updateGridSelection(2, 2); // 2x2 area
             dashboardEditorStore.endGridSelection();
 

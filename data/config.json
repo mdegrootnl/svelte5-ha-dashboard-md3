@@ -1,7 +1,7 @@
 {
   "theme": {
     "sourceColor": "#e100ff",
-    "isDark": true
+    "isDark": false
   },
   "dashboards": {
     "dashboard_home": {
@@ -2657,6 +2657,153 @@
               "domainFilter": "",
               "subtitle": "test",
               "alignment": "end"
+            },
+            {
+              "id": "e1c211c8-3ce0-4df2-8505-d9891bf933e0",
+              "cardType": "tabs",
+              "entityId": "",
+              "name": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 5,
+                  "rowStart": 4,
+                  "rowSpan": 5
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 6,
+                  "rowSpan": 2
+                }
+              },
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "subtitle": "",
+              "alignment": "start",
+              "tabs": [
+                {
+                  "id": "6c7ecf68-573e-4bf9-956b-c22cce998441",
+                  "name": "Test TAb",
+                  "icon": "home",
+                  "columns": {
+                    "desktop": 6,
+                    "mobile": 4
+                  },
+                  "rows": [
+                    {
+                      "id": "row-0",
+                      "size": 100,
+                      "type": "row"
+                    },
+                    {
+                      "id": "row-1",
+                      "size": 80,
+                      "type": "row"
+                    }
+                  ],
+                  "gap": 16,
+                  "padding": 16,
+                  "rowHeight": 80,
+                  "items": [
+                    {
+                      "id": "dc24226a-ee21-4418-b1a0-9026bf980385",
+                      "cardType": "thermostat",
+                      "entityId": "climate.airco_zolder_mqtt_hvac",
+                      "name": "",
+                      "layout": {
+                        "desktop": {
+                          "colStart": 1,
+                          "colSpan": 4,
+                          "rowStart": 1,
+                          "rowSpan": 1
+                        },
+                        "mobile": {
+                          "colStart": 1,
+                          "colSpan": 4,
+                          "rowStart": 1,
+                          "rowSpan": 1
+                        }
+                      },
+                      "secondaryEntityId": "",
+                      "secondaryName": "",
+                      "domainFilter": "climate",
+                      "subtitle": "",
+                      "alignment": "start"
+                    }
+                  ],
+                  "columnGap": 16,
+                  "rowGap": 16
+                },
+                {
+                  "id": "63cbd046-fbdc-4432-86d6-83e7c6387d66",
+                  "name": "TWewak",
+                  "icon": "home",
+                  "columns": {
+                    "desktop": 12,
+                    "mobile": 4
+                  },
+                  "rows": "implicit",
+                  "gap": 16,
+                  "padding": 16,
+                  "rowHeight": 80,
+                  "items": [
+                    {
+                      "id": "bc7ed4f9-f6be-41eb-9212-330bbcde5ea2",
+                      "cardType": "thermostat",
+                      "entityId": "climate.airco_zolder_mqtt_hvac",
+                      "name": "",
+                      "layout": {
+                        "desktop": {
+                          "colStart": 1,
+                          "colSpan": 9,
+                          "rowStart": 1,
+                          "rowSpan": 2
+                        },
+                        "mobile": {
+                          "colStart": 1,
+                          "colSpan": 4,
+                          "rowStart": 1,
+                          "rowSpan": 2
+                        }
+                      },
+                      "secondaryEntityId": "sensor.backup_backup_manager_state",
+                      "secondaryName": "",
+                      "domainFilter": "climate",
+                      "subtitle": "",
+                      "alignment": "start"
+                    },
+                    {
+                      "id": "cb0113ed-0a0f-4e32-96e5-88cc90fad9eb",
+                      "cardType": "button",
+                      "entityId": "light.keukenkast_1",
+                      "name": "",
+                      "layout": {
+                        "desktop": {
+                          "colStart": 4,
+                          "colSpan": 6,
+                          "rowStart": 3,
+                          "rowSpan": 2
+                        },
+                        "mobile": {
+                          "colStart": 1,
+                          "colSpan": 2,
+                          "rowStart": 3,
+                          "rowSpan": 2
+                        }
+                      },
+                      "secondaryEntityId": "",
+                      "secondaryName": "",
+                      "domainFilter": "light",
+                      "subtitle": "",
+                      "alignment": "start",
+                      "activeTabIndex": 0
+                    }
+                  ]
+                }
+              ],
+              "activeTabIndex": 1
             }
           ]
         },
@@ -2672,7 +2819,164 @@
           "gap": 16,
           "padding": 16,
           "rowHeight": 80,
-          "items": []
+          "items": [
+            {
+              "id": "89674003-c153-4ccf-9548-94ffee259044",
+              "cardType": "tabs",
+              "entityId": "",
+              "name": "Whatdoesitdo",
+              "layout": {
+                "desktop": {
+                  "colStart": 2,
+                  "colSpan": 11,
+                  "rowStart": 1,
+                  "rowSpan": 6
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 1,
+                  "rowSpan": 2
+                }
+              },
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "subtitle": "",
+              "alignment": "start",
+              "tabs": [
+                {
+                  "id": "b8d228f0-2f41-427b-a407-0f30a18105d2",
+                  "name": "Eerste tab",
+                  "icon": "home",
+                  "columns": {
+                    "desktop": 8,
+                    "mobile": 4
+                  },
+                  "rows": [
+                    {
+                      "id": "row-0",
+                      "size": 80,
+                      "type": "row"
+                    },
+                    {
+                      "id": "row-1",
+                      "size": 80,
+                      "type": "row"
+                    },
+                    {
+                      "id": "row-2",
+                      "size": 80,
+                      "type": "row"
+                    },
+                    {
+                      "id": "row-3",
+                      "size": 80,
+                      "type": "row"
+                    },
+                    {
+                      "id": "row-4",
+                      "size": 80,
+                      "type": "row"
+                    }
+                  ],
+                  "gap": 5,
+                  "padding": 0,
+                  "rowHeight": 80,
+                  "items": [
+                    {
+                      "id": "08375af1-17e0-4801-adf6-33b4004d2ccd",
+                      "cardType": "tabs",
+                      "entityId": "",
+                      "name": "test",
+                      "layout": {
+                        "desktop": {
+                          "colStart": 1,
+                          "colSpan": 3,
+                          "rowStart": 1,
+                          "rowSpan": 3
+                        },
+                        "mobile": {
+                          "colStart": 1,
+                          "colSpan": 4,
+                          "rowStart": 1,
+                          "rowSpan": 2
+                        }
+                      },
+                      "secondaryEntityId": "",
+                      "secondaryName": "",
+                      "domainFilter": "",
+                      "subtitle": "",
+                      "alignment": "start",
+                      "tabs": [
+                        {
+                          "id": "04dbe8e8-0e07-47ef-8df8-658daa02e077",
+                          "name": "Tab 1",
+                          "icon": "home",
+                          "columns": {
+                            "desktop": 4,
+                            "mobile": 4
+                          },
+                          "rows": "implicit",
+                          "gap": 3,
+                          "padding": 0,
+                          "rowHeight": 60,
+                          "items": [
+                            {
+                              "id": "32e36c7d-1f3d-49cd-bef9-b83aa815fcbc",
+                              "cardType": "button",
+                              "entityId": "light.keukenplafond",
+                              "name": "",
+                              "layout": {
+                                "desktop": {
+                                  "colStart": 1,
+                                  "colSpan": 3,
+                                  "rowStart": 1,
+                                  "rowSpan": 2
+                                },
+                                "mobile": {
+                                  "colStart": 1,
+                                  "colSpan": 2,
+                                  "rowStart": 1,
+                                  "rowSpan": 2
+                                }
+                              },
+                              "secondaryEntityId": "",
+                              "secondaryName": "",
+                              "domainFilter": "light",
+                              "subtitle": "",
+                              "alignment": "start",
+                              "activeTabIndex": 0
+                            }
+                          ],
+                          "columnGap": 3,
+                          "rowGap": 3
+                        }
+                      ],
+                      "activeTabIndex": 0
+                    }
+                  ],
+                  "columnGap": 5,
+                  "rowGap": 5
+                },
+                {
+                  "id": "ca82c455-4f18-45fc-9fd3-c73144a515e1",
+                  "name": "Tweede tab",
+                  "icon": "home",
+                  "columns": {
+                    "desktop": 12,
+                    "mobile": 4
+                  },
+                  "rows": "implicit",
+                  "gap": 16,
+                  "padding": 16,
+                  "rowHeight": 80,
+                  "items": []
+                }
+              ],
+              "activeTabIndex": 0
+            }
+          ]
         },
         {
           "id": "68eb1c80-7653-4548-a433-e43e04becabf",
@@ -2703,7 +3007,7 @@
           "items": []
         }
       ],
-      "activeTabId": "e8ce3c51-4d4f-4ca6-90ec-3d0b1538cac2"
+      "activeTabId": "21801157-c466-404e-aaba-a41855d9cd3f"
     }
   },
   "musicLibrary": {

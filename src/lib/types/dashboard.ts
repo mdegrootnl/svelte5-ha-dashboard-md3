@@ -14,7 +14,7 @@ export interface GridTrack {
 /**
  * Card types that can be rendered in the grid
  */
-export type DashboardCardType = "button" | "media" | "thermostat" | "title";
+export type DashboardCardType = "button" | "media" | "thermostat" | "title" | "tabs";
 
 /**
  * Layout definition for a specific breakpoint
@@ -57,6 +57,18 @@ export interface DashboardItem {
     /** Subtitle for title card */
     subtitle?: string;
     alignment?: "start" | "center" | "end";
+
+    /** Tab Card Properties */
+    activeTabIndex?: number;
+    tabs?: GridConfig[]; // Recursive definition: a tab just holds another GridConfig
+}
+
+/**
+ * Special config for Tab Cards to enforce presence of tabs array
+ */
+export interface TabCardConfig extends DashboardItem {
+    cardType: "tabs";
+    tabs: GridConfig[];
 }
 
 /**

@@ -28,6 +28,7 @@ export { default as ButtonCard } from './features/dashboard/components/cards/But
 export { default as MediaCard } from './features/dashboard/components/cards/MediaCard.svelte';
 export { default as ThermostatCard } from './features/dashboard/components/cards/ThermostatCard.svelte';
 export { default as TitleCard } from './features/dashboard/components/cards/TitleCard.svelte';
+export { default as TabCard } from './features/dashboard/components/cards/TabCard.svelte';
 
 // Layout Components
 export { default as NavigationRail } from './components/layout/NavigationRail.svelte';
