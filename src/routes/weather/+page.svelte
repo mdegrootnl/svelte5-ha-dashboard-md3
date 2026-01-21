@@ -8,9 +8,19 @@
     import RainRadar from "$lib/components/weather/RainRadar.svelte";
     import RainGraph from "$lib/components/weather/RainGraph.svelte";
     import Card from "$lib/components/md3/Card.svelte";
+    import IconButton from "$lib/components/md3/IconButton.svelte";
+    import WeatherSettingsSheet from "./WeatherSettingsSheet.svelte";
+    import IconSettings from "~icons/material-symbols/settings";
+
+    let settingsOpen = $state(false);
 </script>
 
+<WeatherSettingsSheet bind:open={settingsOpen} />
+
 <PageShell title="Weather">
+    {#snippet actions()}
+        <IconButton icon={IconSettings} onclick={() => (settingsOpen = true)} />
+    {/snippet}
     <div
         class="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-4 md:gap-6 max-w-[2200px] mx-auto p-4 md:p-6 pb-24 md:pb-6 overflow-hidden"
     >

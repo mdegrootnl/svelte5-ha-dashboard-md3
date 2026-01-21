@@ -62,4 +62,30 @@ export class StorageProvider {
         localStorage.removeItem(KEYS.TOKENS);
         localStorage.removeItem(KEYS.LAST_URL);
     }
+
+    /**
+     * Save Weather Configuration.
+     */
+    static saveWeatherConfig(config: any): void {
+        if (!browser) return;
+        try {
+            localStorage.setItem('weather_config', JSON.stringify(config));
+        } catch (e) {
+            logger.error('Failed to save weather config', e);
+        }
+    }
+
+    /**
+     * Load Weather Configuration.
+     */
+    static loadWeatherConfig(): any | null {
+        if (!browser) return null;
+        try {
+            const config = localStorage.getItem('weather_config');
+            return config ? JSON.parse(config) : null;
+        } catch (e) {
+            logger.error('Failed to load weather config', e);
+            return null;
+        }
+    }
 }

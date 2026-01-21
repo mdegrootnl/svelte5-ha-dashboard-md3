@@ -1,7 +1,7 @@
 {
   "theme": {
-    "sourceColor": "#e100ff",
-    "isDark": false
+    "sourceColor": "#308bcf",
+    "isDark": true
   },
   "dashboards": {
     "dashboard_home": {
@@ -2520,47 +2520,47 @@
           },
           "rows": [
             {
-              "id": "aae23922-ec45-47ca-bff0-079adbde7fde",
-              "type": "row",
-              "size": 40
+              "id": "row-0",
+              "size": 40,
+              "type": "row"
             },
             {
-              "id": "30870586-7bad-4c65-a2a4-76b11055cca8",
-              "type": "row",
-              "size": 80
+              "id": "row-1",
+              "size": 80,
+              "type": "row"
             },
             {
-              "id": "bfc26b81-a322-400b-9adf-6f19c78f3501",
-              "type": "row",
-              "size": 80
+              "id": "row-2",
+              "size": 80,
+              "type": "row"
             },
             {
-              "id": "53973126-c518-42e5-94db-9ad427f89a4c",
-              "type": "row",
-              "size": 80
+              "id": "row-3",
+              "size": 80,
+              "type": "row"
             },
             {
-              "id": "46f2b1c2-00bb-4d1f-9136-40df791fc6e9",
-              "type": "row",
-              "size": 80
+              "id": "row-4",
+              "size": 80,
+              "type": "row"
             },
             {
-              "id": "f1e8360e-8efa-4b12-b6e2-237091851874",
-              "type": "row",
-              "size": 80
+              "id": "row-5",
+              "size": 80,
+              "type": "row"
             },
             {
-              "id": "2e32c047-1159-406d-8b98-a07fef598d6c",
-              "type": "row",
-              "size": 80
+              "id": "row-6",
+              "size": 80,
+              "type": "row"
             },
             {
-              "id": "b9a4b831-837e-49d8-b4a6-5726c0dc4bbc",
-              "type": "row",
-              "size": 80
+              "id": "row-7",
+              "size": 80,
+              "type": "row"
             }
           ],
-          "gap": 16,
+          "gap": 0,
           "padding": 16,
           "rowHeight": 80,
           "items": [
@@ -2805,7 +2805,9 @@
               ],
               "activeTabIndex": 1
             }
-          ]
+          ],
+          "columnGap": 0,
+          "rowGap": 0
         },
         {
           "id": "21801157-c466-404e-aaba-a41855d9cd3f",
@@ -3007,7 +3009,7 @@
           "items": []
         }
       ],
-      "activeTabId": "21801157-c466-404e-aaba-a41855d9cd3f"
+      "activeTabId": "e8ce3c51-4d4f-4ca6-90ec-3d0b1538cac2"
     }
   },
   "musicLibrary": {

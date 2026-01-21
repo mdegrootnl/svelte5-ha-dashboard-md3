@@ -3,6 +3,7 @@ import { haStore } from './ha.svelte';
 import { Poller } from '$lib/utils/poller';
 import { HAEntityStateSchema } from '$lib/domain/schemas';
 import { ok, err, type Result } from '$lib/utils/result';
+import { StorageProvider } from '$lib/utils/storageProvider';
 import { createLogger } from '$lib/utils/logger';
 
 const logger = createLogger('WeatherStore');
@@ -29,6 +30,9 @@ export class WeatherStore {
     loading = $state(false);
     lastUpdated = $state<Date | null>(null);
 
+    // Configurable entities
+    config = $state<{ weatherEntityId?: string; aqiEntityId?: string }>({});
+
     private poller: Poller;
 
     constructor() {
@@ -38,8 +42,19 @@ export class WeatherStore {
 
     init() {
         if (typeof window !== 'undefined') {
+            const savedConfig = StorageProvider.loadWeatherConfig();
+            if (savedConfig) {
+                this.config = savedConfig;
+            }
             this.poller.start();
         }
+    }
+
+    setConfig(config: { weatherEntityId?: string; aqiEntityId?: string }) {
+        this.config = { ...this.config, ...config };
+        StorageProvider.saveWeatherConfig(this.config);
+        // Trigger fetch with new config
+        this.fetch(true);
     }
 
     destroy() {
@@ -90,10 +105,15 @@ export class WeatherStore {
             };
 
             // Find best weather entity
-            // 1. weather.home
-            // 2. any weather.*
-            const entities = Object.keys(haStore.states).filter(id => id.startsWith('weather.'));
-            const entityId = entities.includes('weather.home') ? 'weather.home' : entities[0];
+            // 1. Configured entity
+            // 2. weather.home
+            // 3. Any weather.*
+            let entityId = this.config.weatherEntityId;
+
+            if (!entityId) {
+                const entities = Object.keys(haStore.states).filter(id => id.startsWith('weather.'));
+                entityId = entities.includes('weather.home') ? 'weather.home' : entities[0];
+            }
 
             if (!entityId) {
                 this.loading = false;
@@ -137,7 +157,7 @@ export class WeatherStore {
 
             // Try fetching Forecasts using service
             try {
-                console.log(`[Weather] Fetching forecasts for ${entityId}`);
+                logger.info(`[Weather] Fetching forecasts for ${entityId}`);
 
                 // Fetch Hourly
                 const hourlyResp: any = await haStore.callService('weather', 'get_forecasts', {
@@ -149,36 +169,67 @@ export class WeatherStore {
                     type: 'daily'
                 }, { entity_id: entityId }, true);
 
-                console.log(`[Weather] Service Raw keys:`, Object.keys(hourlyResp || {}));
+                // DEBUG LOGGING
+                console.group("[Weather Debug]");
+                console.log("Entity ID:", entityId);
+                console.log("Hourly Resp Raw:", hourlyResp);
+                console.log("Daily Resp Raw:", dailyResp);
+                console.groupEnd();
 
-                // Unpack 'response' wrapper if present (common in HA WebSocket results)
-                const hourlyPayload = hourlyResp.response ?? hourlyResp;
-                const dailyPayload = dailyResp.response ?? dailyResp;
+                // Helper to extract forecast array from response
+                const extractForecast = (resp: any, entityId: string): any[] => {
+                    if (!resp) return [];
+                    const payload = resp.response ?? resp;
+                    // Try exact ID
+                    if (payload[entityId]?.forecast) return payload[entityId].forecast;
+                    // Try first key
+                    const firstVal = Object.values(payload)[0] as any;
+                    if (firstVal?.forecast) return firstVal.forecast;
+                    // Try exact ID (some integrations might return array directly? unlikely but possible in custom implementations)
+                    if (Array.isArray(payload[entityId])) return payload[entityId];
+                    return [];
+                };
 
-                // Relaxed lookup: Try exact ID, then fallback to first value in the payload
-                const hourlyData = hourlyPayload?.[entityId] || Object.values(hourlyPayload || {})[0];
-                const dailyData = dailyPayload?.[entityId] || Object.values(dailyPayload || {})[0];
+                const hourlyData = extractForecast(hourlyResp, entityId);
+                const dailyData = extractForecast(dailyResp, entityId);
 
-                if (Array.isArray(hourlyData?.forecast)) {
-                    hourly = this.mapHAForecast(hourlyData.forecast, 'hourly');
+                console.log("[Weather Debug] Extracted Hourly:", hourlyData);
+                console.log("[Weather Debug] Extracted Daily:", dailyData);
+
+                if (Array.isArray(hourlyData) && hourlyData.length > 0) {
+                    hourly = this.mapHAForecast(hourlyData, 'hourly');
                 }
 
-                if (Array.isArray(dailyData?.forecast)) {
-                    daily = this.mapHAForecast(dailyData.forecast, 'daily');
-                }
-
-                if (daily.length === 0) {
-                    console.log('[Weather] Service forecast empty, checking attributes fallback');
+                if (Array.isArray(dailyData) && dailyData.length > 0) {
+                    daily = this.mapHAForecast(dailyData, 'daily');
                 }
 
             } catch (serviceErr) {
-                console.warn("[Weather] Service weather.get_forecasts failed:", serviceErr);
+                logger.warn("[Weather] Service weather.get_forecasts failed:", serviceErr);
+                console.error("[Weather Debug] Service Error:", serviceErr);
             }
 
-            // Always check attributes if we still have no daily forecast (either service failed or returned empty)
+            // Fallback: Check attributes if we still have no forecast data
+            // This handles legacy entities or if service call failed
             if (daily.length === 0 && Array.isArray(attributes.forecast)) {
-                logger.info('[Weather] Using attribute forecast fallback');
+                logger.info('[Weather] Using attribute forecast fallback for daily');
                 daily = this.mapHAForecast(attributes.forecast, 'daily');
+            }
+
+            // For hourly, attributes usually don't contain hourly data in legacy mode, 
+            // but some integrations might. If hourly is empty, we can try to see if attributes.forecast looks like hourly.
+            if (hourly.length === 0 && Array.isArray(attributes.forecast) && attributes.forecast.length > 0) {
+                // Heuristic: If the first two items are less than 24h apart, it might be hourly/mixed
+                const f1 = attributes.forecast[0];
+                const f2 = attributes.forecast[1];
+                if (f1 && f2) {
+                    const t1 = new Date(f1.datetime || f1.date || f1.time).getTime();
+                    const t2 = new Date(f2.datetime || f2.date || f2.time).getTime();
+                    if (Math.abs(t2 - t1) < 24 * 60 * 60 * 1000) {
+                        logger.info('[Weather] Using attribute forecast fallback for hourly');
+                        hourly = this.mapHAForecast(attributes.forecast, 'hourly');
+                    }
+                }
             }
 
             // --- Astronomy Data ---
@@ -210,19 +261,24 @@ export class WeatherStore {
             // --- AQI Data Discovery ---
             let air_quality = null;
 
-            // Look for AQI sensors in order of preference:
-            // 1. WAQI integration: sensor.waqi_*
-            // 2. Any sensor containing 'aqi' in the name
-            // 3. Air quality entities (air_quality.*)
-            const sensorKeys = Object.keys(haStore.states);
+            // Link to configured AQI or discover
+            let aqiEntityId = this.config.aqiEntityId;
 
-            let aqiEntityId = sensorKeys.find(id =>
-                id.startsWith('sensor.waqi_')
-            ) || sensorKeys.find(id =>
-                id.startsWith('sensor.') && id.toLowerCase().includes('aqi')
-            ) || sensorKeys.find(id =>
-                id.startsWith('air_quality.')
-            );
+            if (!aqiEntityId) {
+                // Look for AQI sensors in order of preference:
+                // 1. WAQI integration: sensor.waqi_*
+                // 2. Any sensor containing 'aqi' in the name
+                // 3. Air quality entities (air_quality.*)
+                const sensorKeys = Object.keys(haStore.states);
+
+                aqiEntityId = sensorKeys.find(id =>
+                    id.startsWith('sensor.waqi_')
+                ) || sensorKeys.find(id =>
+                    id.startsWith('sensor.') && id.toLowerCase().includes('aqi')
+                ) || sensorKeys.find(id =>
+                    id.startsWith('air_quality.')
+                );
+            }
 
             if (aqiEntityId) {
                 const aqiEntity = haStore.states[aqiEntityId];
