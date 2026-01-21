@@ -81,6 +81,9 @@ npm test
 
 # Type check
 npm run check
+
+# Docker
+docker compose up --build
 ```
 
 ## Project Structure

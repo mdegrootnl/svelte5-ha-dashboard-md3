@@ -1,0 +1,11 @@
+services:
+  dashboard:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+      - ./static:/app/static
+    restart: unless-stopped
+    environment:
+      - ORIGIN=http://localhost:3000
