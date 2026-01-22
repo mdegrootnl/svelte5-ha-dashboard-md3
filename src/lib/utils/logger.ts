@@ -14,8 +14,9 @@ class Logger {
     }
 
     info(message: string, ...args: unknown[]) {
-        // Temporarily allow info logs in production to debug display issues
-        console.log(...this.formatMessage(message, ...args));
+        if (dev) {
+            console.log(...this.formatMessage(message, ...args));
+        }
     }
 
     warn(message: string, ...args: unknown[]) {

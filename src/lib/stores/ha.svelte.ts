@@ -257,8 +257,16 @@ export class HAStore {
             const start = startTime.toISOString();
             const end = endTime.toISOString();
             const filter = validEntityIds.join(',');
+
+            // Use URLSearchParams to ensure proper encoding of all parameters
+            const params = new URLSearchParams({
+                timestamp: start,
+                end_time: end,
+                filter_entity_id: filter
+            });
+
             // Use local proxy to avoid CORS issues in production and Vite proxy collisions
-            const proxyUrl = `/ha-history?timestamp=${start}&end_time=${end}&filter_entity_id=${filter}`;
+            const proxyUrl = `/ha-history?${params.toString()}`;
             logger.debug("Request URL (Proxy):", proxyUrl);
 
             const response = await fetch(

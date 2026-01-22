@@ -29,11 +29,12 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
         // Normalize URL: remove trailing slash if present
         const normalizedHaUrl = haUrl.endsWith('/') ? haUrl.slice(0, -1) : haUrl;
 
-        // Encode the timestamp just in case, though usually browser handles it.
-        // HA expects the ISO string in the path.
+        // Properly encode all query parameters
         const encodedTimestamp = encodeURIComponent(timestamp);
+        const encodedEndTime = endTime ? encodeURIComponent(endTime) : '';
+        const encodedFilter = filter ? encodeURIComponent(filter) : '';
 
-        const targetUrl = `${normalizedHaUrl}/api/history/period/${encodedTimestamp}?end_time=${endTime}&filter_entity_id=${filter}`;
+        const targetUrl = `${normalizedHaUrl}/api/history/period/${encodedTimestamp}?end_time=${encodedEndTime}&filter_entity_id=${encodedFilter}`;
 
         // console.log('[History Proxy] Fetching:', targetUrl);
 
