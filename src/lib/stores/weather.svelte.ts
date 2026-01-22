@@ -85,8 +85,32 @@ export class WeatherStore {
     }
 
     async fetch(force = false): Promise<Result<void, Error>> {
-        if (!haStore.connection || !haStore.config) {
+        // Wait for connection and config if we are in the middle of connecting
+        if (haStore.connectionState === 'connecting') {
+            logger.info('Waiting for HA connection before fetching weather...');
+            let attempts = 0;
+            while (haStore.connectionState === 'connecting' && attempts < 10) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                attempts++;
+            }
+        }
+
+        if (!haStore.connection) {
             return err(new Error("No HA connection"));
+        }
+
+        // Wait up to 5s for config to arrive
+        if (!haStore.config) {
+            logger.info('Waiting for HA config...');
+            let attempts = 0;
+            while (!haStore.config && attempts < 10) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                attempts++;
+            }
+        }
+
+        if (!haStore.config) {
+            return err(new Error("HA configuration (location) not yet available"));
         }
 
         const isStale = !this.lastUpdated || (Date.now() - this.lastUpdated.getTime()) > (5 * 60 * 1000);
@@ -108,37 +132,50 @@ export class WeatherStore {
             }
 
             // Find best weather entity
-            // 1. Configured entity
-            // 2. weather.home
-            // 3. Any weather.*
             let entityId = this.config.weatherEntityId;
 
             if (!entityId) {
-                const entities = untrack(() => Object.keys(haStore.states).filter(id => id.startsWith('weather.')));
+                // If no entities yet, wait a moment for registry/states to populate
+                let entities = untrack(() => Object.keys(haStore.states).filter(id => id.startsWith('weather.')));
+                if (entities.length === 0) {
+                    logger.info('No weather entities found yet, waiting for discovery...');
+                    let attempts = 0;
+                    while (entities.length === 0 && attempts < 10) {
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        entities = untrack(() => Object.keys(haStore.states).filter(id => id.startsWith('weather.')));
+                        attempts++;
+                    }
+                }
                 entityId = entities.includes('weather.home') ? 'weather.home' : entities[0];
             }
 
             if (!entityId) {
                 this.loading = false;
+                logger.error('No weather entity found after discovery wait');
                 return err(new Error('No weather entity found'));
             }
 
             // Boundary Validation
-            const entityParse = HAEntityStateSchema.safeParse(untrack(() => haStore.states[entityId!]));
+            const rawEntity = untrack(() => haStore.states[entityId!]);
+            if (!rawEntity) {
+                this.loading = false;
+                return err(new Error(`Weather entity ${entityId} not found in states`));
+            }
+
+            const entityParse = HAEntityStateSchema.safeParse(rawEntity);
             if (!entityParse.success) {
                 this.loading = false;
+                logger.error(`Validation failed for ${entityId}:`, entityParse.error.message);
                 return err(new Error(`Invalid weather entity data: ${entityParse.error.message}`));
             }
             const entity = entityParse.data;
             const attributes = entity.attributes;
 
             // Map Current Conditions
-            // HA State is a string like 'partlycloudy'
             const wmoCode = this.mapHAStateToWMO(entity.state);
 
             // Use sun.sun state to determine is_day
             const sunState = untrack(() => haStore.states['sun.sun']?.state);
-            // Default to 1 (day) if unknown, but if sun is below_horizon, it is night (0).
             const isDay = sunState === 'below_horizon' ? 0 : 1;
 
             // Construct 'current' object matching Open-Meteo structure for compatibility

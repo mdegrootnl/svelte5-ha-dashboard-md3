@@ -23,6 +23,16 @@ export class CalendarStore {
     }
 
     async fetchUpcoming(limit = 5) {
+        // Wait for connection if we are in the middle of connecting
+        if (haStore.connectionState === 'connecting') {
+            logger.info('Waiting for HA connection before fetching calendar...');
+            let attempts = 0;
+            while (haStore.connectionState === 'connecting' && attempts < 10) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                attempts++;
+            }
+        }
+
         if (!haStore.connection || this.loading) return;
 
         // Aggressive 10s throttle
@@ -32,13 +42,29 @@ export class CalendarStore {
         this.loading = true;
         try {
             // Get all calendar entities and filter out unavailable ones
-            const calendarEntities = untrack(() =>
+            let calendarEntities = untrack(() =>
                 Object.entries(haStore.states)
                     .filter(([id, state]) => id.startsWith('calendar.') && state.state !== 'unavailable')
                     .map(([id]) => id)
             );
 
+            // If no calendars yet, wait a moment for registry/states to populate
             if (calendarEntities.length === 0) {
+                logger.info('No calendar entities found yet, waiting for discovery...');
+                let attempts = 0;
+                while (calendarEntities.length === 0 && attempts < 10) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    calendarEntities = untrack(() =>
+                        Object.entries(haStore.states)
+                            .filter(([id, state]) => id.startsWith('calendar.') && state.state !== 'unavailable')
+                            .map(([id]) => id)
+                    );
+                    attempts++;
+                }
+            }
+
+            if (calendarEntities.length === 0) {
+                logger.info('No calendar entities found after discovery wait');
                 this.events = [];
                 return;
             }

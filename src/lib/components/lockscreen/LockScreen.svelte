@@ -30,8 +30,9 @@
         timer = setInterval(updateTime, 1000);
         updateTime();
 
-        // Initial calendar fetch (attempt immediately in case already connected)
+        // Initial fetch (attempt immediately in case already connected)
         if (haStore.connectionState === "connected") {
+            weatherStore.fetch();
             calendarStore.fetchUpcoming(3);
         }
 
