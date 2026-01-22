@@ -109,7 +109,7 @@
 </script>
 
 <div
-    class={`flex flex-col w-full shadow-sm transition-all ${containerClass} rounded-[var(--radius-m3-md)] relative group h-full`}
+    class={`flex flex-col w-full shadow-sm transition-all ${containerClass} rounded-[var(--radius-m3-md)] relative group h-full @container`}
     bind:clientHeight
 >
     <!-- Immersive Background -->
@@ -140,11 +140,11 @@
                     />
                     <div class="flex flex-col min-w-0">
                         <span
-                            class="text-[10px] uppercase tracking-wider text-m3-on-surface-variant truncate"
+                            class="text-[clamp(10px,3cqmin,14px)] uppercase tracking-wider text-m3-on-surface-variant truncate"
                             >{entityName}</span
                         >
                         <span
-                            class="text-m3-body-medium text-m3-on-surface-variant font-medium truncate"
+                            class="text-[clamp(14px,4.5cqmin,24px)] text-m3-on-surface-variant font-medium truncate"
                             >Powered Off</span
                         >
                     </div>
@@ -247,34 +247,38 @@
         </div>
     {:else if effectiveVariant === "condensed"}
         <!-- Condensed Variant: Slim row -->
-        <div class="flex items-center gap-3 p-3 h-full overflow-hidden">
+        <div
+            class="flex items-center gap-[3cqmin] p-[3cqmin] h-full overflow-hidden"
+        >
             {#if artworkSrc}
                 <img
                     src={haStore.getProxiedUrl(artworkSrc)}
                     alt="Cover"
-                    class="h-12 w-12 rounded-[var(--radius-m3-sm)] object-cover shadow-sm shrink-0"
+                    class="size-[15cqmin] rounded-[var(--radius-m3-sm)] object-cover shadow-sm shrink-0"
                 />
             {:else}
                 <div
-                    class="h-12 w-12 rounded-[var(--radius-m3-sm)] bg-m3-surface-variant flex items-center justify-center shrink-0"
+                    class="size-[15cqmin] rounded-[var(--radius-m3-sm)] bg-m3-surface-variant flex items-center justify-center shrink-0"
                 >
                     <MusicNote
-                        class="w-6 h-6 text-m3-on-surface-variant opacity-50"
+                        class="size-[50%] text-m3-on-surface-variant opacity-50"
                     />
                 </div>
             {/if}
 
             <div class="flex-1 min-w-0">
                 <p
-                    class="text-[10px] uppercase tracking-tighter text-m3-on-surface-variant opacity-70 leading-none mb-1"
+                    class="text-[clamp(9px,3cqmin,12px)] uppercase tracking-tighter text-m3-on-surface-variant opacity-70 leading-none mb-1"
                 >
                     {entityName}
                 </p>
-                <h3 class="text-m3-title-small truncate font-bold leading-none">
+                <h3
+                    class="text-[clamp(12px,4.5cqmin,18px)] truncate font-bold leading-none"
+                >
                     {title}
                 </h3>
                 <p
-                    class="text-m3-body-small text-m3-on-surface-variant truncate leading-tight"
+                    class="text-[clamp(10px,3.5cqmin,14px)] text-m3-on-surface-variant truncate leading-tight"
                 >
                     {artist || "Idle"}
                 </p>
@@ -308,17 +312,17 @@
 
                 <div class="flex-1 min-w-0 pt-0.5">
                     <p
-                        class="text-[9px] uppercase tracking-widest text-m3-on-surface-variant mb-0.5 font-medium"
+                        class="text-[clamp(9px,3cqmin,12px)] uppercase tracking-widest text-m3-on-surface-variant mb-0.5 font-medium"
                     >
                         {entityName}
                     </p>
                     <h3
-                        class="text-m3-title-small truncate font-bold leading-tight"
+                        class="text-[clamp(14px,5cqmin,24px)] truncate font-bold leading-tight"
                     >
                         {title}
                     </h3>
                     <p
-                        class="text-m3-body-small text-m3-on-surface-variant truncate"
+                        class="text-[clamp(11px,4cqmin,16px)] text-m3-on-surface-variant truncate"
                     >
                         {artist || "Idle"}
                     </p>

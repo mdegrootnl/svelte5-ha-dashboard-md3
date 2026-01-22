@@ -1,33 +1,17 @@
 <script lang="ts">
     import { page } from "$app/stores";
-    import Home from "~icons/material-symbols/home";
-    import LayoutDashboard from "~icons/material-symbols/dashboard";
-    import MusicNote from "~icons/material-symbols/music-note";
-    import Settings from "~icons/material-symbols/settings";
-    import Palette from "~icons/material-symbols/palette";
-    import Widgets from "~icons/material-symbols/widgets";
+    import { themeStore } from "$lib/stores/theme.svelte";
+    import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import LightMode from "~icons/material-symbols/light-mode";
     import DarkMode from "~icons/material-symbols/dark-mode";
-    import PartlyCloudyDay from "~icons/material-symbols/partly-cloudy-day";
-    import { themeStore } from "$lib/stores/theme.svelte";
 
     let currentPath = $derived($page.url.pathname);
-
-    const links = [
-        { href: "/", label: "Home", icon: Home },
-        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-        { href: "/music", label: "Music", icon: MusicNote },
-        { href: "/weather", label: "Weather", icon: PartlyCloudyDay },
-        { href: "/library", label: "Library", icon: Widgets },
-        { href: "/theme", label: "Theme", icon: Palette },
-        { href: "/settings", label: "Settings", icon: Settings },
-    ];
 </script>
 
 <nav
     class="relative z-50 flex flex-col items-center py-8 w-20 bg-m3-surface border-r border-m3-outline-variant h-full gap-4"
 >
-    {#each links as link}
+    {#each themeStore.navigationItems as link (link.id)}
         {@const isActive =
             currentPath === link.href ||
             (link.href !== "/" && currentPath.startsWith(link.href))}
@@ -45,8 +29,9 @@
                     : 'group-hover:bg-m3-surface-container-highest'}
 			"
             >
-                <link.icon
-                    class="w-6 h-6 transition-colors {isActive
+                <DynamicIcon
+                    name={link.icon}
+                    class="transition-colors text-2xl {isActive
                         ? 'text-m3-on-secondary-container'
                         : 'text-m3-on-surface-variant'}"
                 />

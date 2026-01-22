@@ -6,8 +6,14 @@
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import { createEventDispatcher } from "svelte";
 
+    interface TabItem {
+        id: string;
+        name: string;
+        icon?: string;
+    }
+
     interface Props {
-        tabs: GridConfig[];
+        tabs: TabItem[];
         activeTabId: string;
         isEditing?: boolean;
     }

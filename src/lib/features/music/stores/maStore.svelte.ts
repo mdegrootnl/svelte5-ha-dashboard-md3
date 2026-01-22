@@ -309,7 +309,9 @@ export class MusicAssistantStore {
             fullData.config_entry_id = this.configEntryId;
         }
 
-        return await haStore.callService(this.activeDomain, service, fullData, options, skipResponse);
+        const result = await haStore.callService(this.activeDomain, service, fullData, options, skipResponse);
+        if (!result.ok) throw result.error;
+        return result.value;
     }
 
     // ====================================================
@@ -344,7 +346,8 @@ export class MusicAssistantStore {
                 await this.callMA('play_media', { media_id: mediaUri }, { entity_id: targetPlayer });
             } else {
                 // Simple resume playback via standard media_player service
-                await haStore.callService('media_player', 'media_play', undefined, { entity_id: targetPlayer });
+                const res = await haStore.callService('media_player', 'media_play', undefined, { entity_id: targetPlayer });
+                if (!res.ok) throw res.error;
             }
             logger.info('Play command sent successfully');
             return ok(undefined);
@@ -354,10 +357,11 @@ export class MusicAssistantStore {
             if (mediaUri) {
                 logger.info('Fallback: trying media_player.play_media');
                 try {
-                    await haStore.callService('media_player', 'play_media',
+                    const res = await haStore.callService('media_player', 'play_media',
                         { media_content_id: mediaUri, media_content_type: 'playlist' },
                         { entity_id: targetPlayer }
                     );
+                    if (!res.ok) throw res.error;
                     return ok(undefined);
                 } catch (fallbackErr) {
                     logger.error('Fallback also failed:', fallbackErr);

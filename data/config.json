@@ -1,7 +1,58 @@
 {
   "theme": {
-    "sourceColor": "#308bcf",
-    "isDark": true
+    "sourceColor": "#ff8000",
+    "isDark": true,
+    "navigationStyle": "standard",
+    "navigationItems": [
+      {
+        "id": "home",
+        "label": "Home",
+        "icon": "home",
+        "href": "/"
+      },
+      {
+        "id": "dashboard",
+        "label": "Dashboard",
+        "icon": "dashboard",
+        "href": "/dashboard"
+      },
+      {
+        "id": "music",
+        "label": "Music",
+        "icon": "music_note",
+        "href": "/music"
+      },
+      {
+        "id": "weather",
+        "label": "Weather",
+        "icon": "partly_cloudy_day",
+        "href": "/weather"
+      },
+      {
+        "id": "library",
+        "label": "Library",
+        "icon": "widgets",
+        "href": "/library"
+      },
+      {
+        "id": "theme",
+        "label": "Theme",
+        "icon": "palette",
+        "href": "/theme"
+      },
+      {
+        "id": "settings",
+        "label": "Settings",
+        "icon": "settings",
+        "href": "/settings"
+      },
+      {
+        "id": "4601bbbe-f905-4a05-bc54-b2c74f305495",
+        "label": "Calendar",
+        "icon": "calendar_today",
+        "href": "/calendar"
+      }
+    ]
   },
   "dashboards": {
     "dashboard_home": {
@@ -2535,6 +2586,11 @@
               "type": "row"
             },
             {
+              "id": "11f30eb6-d087-4c97-9e8d-7e5ba05a3656",
+              "type": "row",
+              "size": 80
+            },
+            {
               "id": "row-3",
               "size": 80,
               "type": "row"
@@ -2599,7 +2655,7 @@
                 "desktop": {
                   "colStart": 3,
                   "colSpan": 2,
-                  "rowStart": 2,
+                  "rowStart": 5,
                   "rowSpan": 1
                 },
                 "mobile": {
@@ -2648,32 +2704,7 @@
                 "mobile": {
                   "colStart": 1,
                   "colSpan": 4,
-                  "rowStart": 4,
-                  "rowSpan": 2
-                }
-              },
-              "secondaryEntityId": "",
-              "secondaryName": "",
-              "domainFilter": "",
-              "subtitle": "test",
-              "alignment": "end"
-            },
-            {
-              "id": "e1c211c8-3ce0-4df2-8505-d9891bf933e0",
-              "cardType": "tabs",
-              "entityId": "",
-              "name": "",
-              "layout": {
-                "desktop": {
-                  "colStart": 1,
-                  "colSpan": 5,
-                  "rowStart": 4,
-                  "rowSpan": 5
-                },
-                "mobile": {
-                  "colStart": 1,
-                  "colSpan": 4,
-                  "rowStart": 6,
+                  "rowStart": 5,
                   "rowSpan": 2
                 }
               },
@@ -2681,129 +2712,33 @@
               "secondaryName": "",
               "domainFilter": "",
               "subtitle": "",
-              "alignment": "start",
-              "tabs": [
-                {
-                  "id": "6c7ecf68-573e-4bf9-956b-c22cce998441",
-                  "name": "Test TAb",
-                  "icon": "home",
-                  "columns": {
-                    "desktop": 6,
-                    "mobile": 4
-                  },
-                  "rows": [
-                    {
-                      "id": "row-0",
-                      "size": 100,
-                      "type": "row"
-                    },
-                    {
-                      "id": "row-1",
-                      "size": 80,
-                      "type": "row"
-                    }
-                  ],
-                  "gap": 16,
-                  "padding": 16,
-                  "rowHeight": 80,
-                  "items": [
-                    {
-                      "id": "dc24226a-ee21-4418-b1a0-9026bf980385",
-                      "cardType": "thermostat",
-                      "entityId": "climate.airco_zolder_mqtt_hvac",
-                      "name": "",
-                      "layout": {
-                        "desktop": {
-                          "colStart": 1,
-                          "colSpan": 4,
-                          "rowStart": 1,
-                          "rowSpan": 1
-                        },
-                        "mobile": {
-                          "colStart": 1,
-                          "colSpan": 4,
-                          "rowStart": 1,
-                          "rowSpan": 1
-                        }
-                      },
-                      "secondaryEntityId": "",
-                      "secondaryName": "",
-                      "domainFilter": "climate",
-                      "subtitle": "",
-                      "alignment": "start"
-                    }
-                  ],
-                  "columnGap": 16,
-                  "rowGap": 16
+              "alignment": "end"
+            },
+            {
+              "id": "2911d35e-8a5a-4a1d-bc82-678f01f4f4f9",
+              "cardType": "thermostat",
+              "entityId": "climate.diyless_thermostat_1_central_heating",
+              "name": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 7,
+                  "colSpan": 6,
+                  "rowStart": 4,
+                  "rowSpan": 6
                 },
-                {
-                  "id": "63cbd046-fbdc-4432-86d6-83e7c6387d66",
-                  "name": "TWewak",
-                  "icon": "home",
-                  "columns": {
-                    "desktop": 12,
-                    "mobile": 4
-                  },
-                  "rows": "implicit",
-                  "gap": 16,
-                  "padding": 16,
-                  "rowHeight": 80,
-                  "items": [
-                    {
-                      "id": "bc7ed4f9-f6be-41eb-9212-330bbcde5ea2",
-                      "cardType": "thermostat",
-                      "entityId": "climate.airco_zolder_mqtt_hvac",
-                      "name": "",
-                      "layout": {
-                        "desktop": {
-                          "colStart": 1,
-                          "colSpan": 9,
-                          "rowStart": 1,
-                          "rowSpan": 2
-                        },
-                        "mobile": {
-                          "colStart": 1,
-                          "colSpan": 4,
-                          "rowStart": 1,
-                          "rowSpan": 2
-                        }
-                      },
-                      "secondaryEntityId": "sensor.backup_backup_manager_state",
-                      "secondaryName": "",
-                      "domainFilter": "climate",
-                      "subtitle": "",
-                      "alignment": "start"
-                    },
-                    {
-                      "id": "cb0113ed-0a0f-4e32-96e5-88cc90fad9eb",
-                      "cardType": "button",
-                      "entityId": "light.keukenkast_1",
-                      "name": "",
-                      "layout": {
-                        "desktop": {
-                          "colStart": 4,
-                          "colSpan": 6,
-                          "rowStart": 3,
-                          "rowSpan": 2
-                        },
-                        "mobile": {
-                          "colStart": 1,
-                          "colSpan": 2,
-                          "rowStart": 3,
-                          "rowSpan": 2
-                        }
-                      },
-                      "secondaryEntityId": "",
-                      "secondaryName": "",
-                      "domainFilter": "light",
-                      "subtitle": "",
-                      "alignment": "start",
-                      "activeTabIndex": 0
-                    }
-                  ]
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 7,
+                  "rowSpan": 3
                 }
-              ],
-              "activeTabIndex": 1
+              },
+              "secondaryEntityId": "sensor.outdoor_temperature",
+              "secondaryName": "",
+              "domainFilter": "climate",
+              "subtitle": "",
+              "alignment": "start",
+              "activeTabIndex": 0
             }
           ],
           "columnGap": 0,
@@ -3121,5 +3056,11 @@
     ],
     "lastSyncedAt": 0,
     "defaultPlayerId": "media_player.keuken"
+  },
+  "lockScreen": {
+    "enabled": true,
+    "timeout": 30,
+    "backgroundLandscape": "/api/uploads/1769090272283_john-lee-oMneOBYhJxY-unsplash.jpg",
+    "backgroundPortrait": "/api/uploads/1769090276308_sebastien-goldberg-CoE79_lhTJM-unsplash.jpg"
   }
 }

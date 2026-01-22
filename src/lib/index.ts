@@ -14,6 +14,7 @@ export { musicLibraryStore, MusicLibraryStore } from './features/music/stores/mu
 
 // MD3 Components
 export { default as Button } from './components/md3/Button.svelte';
+export { default as IconButton } from './components/md3/IconButton.svelte';
 export { default as Card } from './components/md3/Card.svelte';
 export { default as Checkbox } from './components/md3/Checkbox.svelte';
 export { default as Chip } from './components/md3/Chip.svelte';

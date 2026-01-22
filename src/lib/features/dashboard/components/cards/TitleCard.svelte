@@ -70,16 +70,16 @@
 </script>
 
 <div
-    class="relative flex flex-col {justifyClass} text-start w-full h-full p-1 gap-0.5 rounded-xl group {className} overflow-visible z-10"
+    class="relative flex flex-col {justifyClass} text-start w-full h-full p-1 gap-0.5 rounded-xl group {className} overflow-visible z-10 @container"
 >
     <h2
-        class="text-m3-headline-small text-m3-on-surface leading-tight whitespace-nowrap"
+        class="text-[clamp(1.5rem,8cqmin,3rem)] text-m3-on-surface leading-tight whitespace-nowrap"
     >
         {title}
     </h2>
     {#if subtitle}
         <p
-            class="text-m3-body-medium text-m3-on-surface-variant leading-tight whitespace-nowrap"
+            class="text-[clamp(0.8rem,5cqmin,1.5rem)] text-m3-on-surface-variant leading-tight whitespace-nowrap"
         >
             {subtitle}
         </p>

@@ -1,0 +1,87 @@
+<script lang="ts">
+    import { page } from "$app/stores";
+    import LightMode from "~icons/material-symbols/light-mode";
+    import DarkMode from "~icons/material-symbols/dark-mode";
+    import { themeStore } from "$lib/stores/theme.svelte";
+    import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
+
+    let currentPath = $derived($page.url.pathname);
+</script>
+
+<!-- 
+    Modern Floating Navigation Bar
+    Desktop: Vertical floating pill on the left
+    Mobile: Horizontal floating pill on the bottom
+-->
+<div
+    class="pointer-events-none fixed inset-0 z-50 flex flex-col items-center justify-end md:items-start md:justify-center p-6 pb-6 md:pl-6 md:pb-0"
+>
+    <nav
+        class="
+            pointer-events-auto
+            flex items-center gap-1 p-2
+            bg-m3-surface-container-high
+            rounded-full shadow-lg border border-m3-outline-variant
+            
+            /* Mobile: Horizontal */
+            flex-row w-auto max-w-full overflow-x-auto
+
+            /* Desktop: Vertical */
+            md:flex-col md:w-auto md:h-auto md:max-h-full md:overflow-y-auto
+        "
+    >
+        {#each themeStore.navigationItems as link (link.id)}
+            {@const isActive =
+                currentPath === link.href ||
+                (link.href !== "/" && currentPath.startsWith(link.href))}
+
+            <a
+                href={link.href}
+                class="
+                    group relative flex items-center justify-center
+                    w-12 h-12 rounded-full
+                    transition-colors duration-200
+                    no-underline
+                    shrink-0
+                    {isActive
+                    ? 'bg-m3-secondary-container text-m3-on-secondary-container'
+                    : 'text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}
+                "
+                aria-label={link.label}
+                aria-current={isActive ? "page" : undefined}
+                title={link.label}
+            >
+                <DynamicIcon name={link.icon} class="text-2xl" />
+
+                {#if isActive}
+                    <!-- Active Indicator Dot (optional, maybe cleaner without) -->
+                {/if}
+            </a>
+        {/each}
+
+        <!-- Divider -->
+        <div
+            class="w-px h-6 md:w-6 md:h-px bg-m3-outline-variant opacity-50 my-0 mx-1 md:my-1 md:mx-0 shrink-0"
+        ></div>
+
+        <!-- Dark Mode Toggle -->
+        <button
+            onclick={() => themeStore.toggleDark()}
+            class="
+                flex items-center justify-center
+                w-12 h-12 rounded-full
+                transition-colors duration-200
+                text-m3-on-surface-variant
+                hover:bg-m3-surface-container-highest hover:text-m3-primary
+                shrink-0
+            "
+            aria-label="Toggle Dark Mode"
+        >
+            {#if themeStore.isDark}
+                <LightMode class="w-6 h-6" />
+            {:else}
+                <DarkMode class="w-6 h-6" />
+            {/if}
+        </button>
+    </nav>
+</div>

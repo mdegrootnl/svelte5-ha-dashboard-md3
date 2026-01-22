@@ -3,6 +3,7 @@
 	import "../app.css";
 	import NavigationRail from "$lib/components/layout/NavigationRail.svelte";
 	import BottomNav from "$lib/components/layout/BottomNav.svelte";
+	import ModernNavBar from "$lib/components/layout/ModernNavBar.svelte";
 
 	import { themeStore } from "$lib/stores/theme.svelte";
 	import { dashboardStore } from "$lib/features/dashboard/stores/dashboard.svelte";
@@ -49,6 +50,17 @@
 		const _ = themeStore.theme;
 	});
 
+	// Lock Screen
+	import LockScreen from "$lib/components/lockscreen/LockScreen.svelte";
+	import { lockScreenStore } from "$lib/stores/lockscreen.svelte";
+	import { haStore } from "$lib/stores/ha.svelte"; // Ensure HA initializes
+
+	$effect(() => {
+		if (!browser) return;
+		lockScreenStore.init(data.config.lockScreen);
+		// Force HA init if lazy loaded elsewhere, though checking access triggers it if singleton
+		const _ = haStore.connection;
+	});
 	// NOTE: Real-time sync via SSE has been removed.
 	// Changes save to localStorage immediately and sync to server with 2s debounce.
 </script>
@@ -71,17 +83,29 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
+<LockScreen />
+
 <div class="flex flex-col md:flex-row h-screen bg-m3-surface overflow-hidden">
-	<div class="hidden md:block h-full">
-		<NavigationRail />
-	</div>
+	<!-- Standard Navigation Rail (Desktop Only) -->
+	{#if themeStore.navigationStyle === "standard"}
+		<div class="hidden md:block h-full">
+			<NavigationRail />
+		</div>
+	{/if}
+
+	<!-- Modern Navigation (Desktop & Mobile) handled inside the component -->
+	{#if themeStore.navigationStyle === "modern"}
+		<ModernNavBar />
+	{/if}
 
 	<main class="flex-1 overflow-auto bg-m3-surface pb-20 md:pb-0">
 		{@render children()}
 	</main>
 
-	<!-- Mobile Bottom Nav -->
-	<div class="md:hidden fixed bottom-0 left-0 right-0 z-50">
-		<BottomNav />
-	</div>
+	<!-- Standard Bottom Nav (Mobile Only) -->
+	{#if themeStore.navigationStyle === "standard"}
+		<div class="md:hidden fixed bottom-0 left-0 right-0 z-50">
+			<BottomNav />
+		</div>
+	{/if}
 </div>

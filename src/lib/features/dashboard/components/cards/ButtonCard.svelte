@@ -297,7 +297,7 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
     bind:this={cardElement}
-    class="{baseStyles} {backgroundStyles} {interactiveStyles} {className}"
+    class="{baseStyles} {backgroundStyles} {interactiveStyles} {className} @container"
     onclick={handleSwitchClick}
     onpointerdown={handlePointerDown}
     role="button"
@@ -318,26 +318,28 @@
 
     <!-- Content Layer -->
     <div
-        class="relative z-10 flex items-center w-full h-full px-4 gap-4 pointer-events-none"
+        class="relative z-10 flex items-center w-full h-full px-[4cqmin] gap-[4cqmin] pointer-events-none"
     >
         <!-- Icon Circle -->
         <div
-            class="flex items-center justify-center w-10 h-10 rounded-full {iconStyles} shrink-0 transition-colors duration-200"
+            class="flex items-center justify-center size-[18cqmin] rounded-full {iconStyles} shrink-0 transition-colors duration-200"
         >
             {#if effectiveIcon}
                 {@const IconComponent = effectiveIcon}
-                <IconComponent class="size-6" />
+                <IconComponent class="size-[60%]" />
             {/if}
         </div>
 
         <!-- Text Stack -->
         <div class="flex flex-col flex-1 justify-center min-w-0">
-            <span class="text-sm font-bold leading-tight truncate">
+            <span
+                class="text-[clamp(11px,5cqmin,18px)] font-bold leading-tight truncate"
+            >
                 {title}
             </span>
             <!-- Always render state span to maintain vertical alignment, just hide it if slider -->
             <span
-                class="text-xs opacity-70 leading-tight truncate transition-opacity"
+                class="text-[clamp(10px,4cqmin,14px)] opacity-70 leading-tight truncate transition-opacity"
             >
                 {#if variant === "slider" && isActive}
                     {displayState === "On" || !displayState.includes("%")

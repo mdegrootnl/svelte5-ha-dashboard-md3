@@ -44,7 +44,7 @@
 <div
     class="{baseStyles} {variantStyles[
         variant
-    ]} {interactiveStyles} {className}"
+    ]} {interactiveStyles} {className} @container"
     {onclick}
 >
     <!-- State Layer for interactions could be appended here -->

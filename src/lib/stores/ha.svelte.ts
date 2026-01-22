@@ -17,6 +17,7 @@ import { HAAuthService } from '$lib/domain/haAuthService';
 import { StorageProvider } from '$lib/utils/storageProvider';
 import { haRegistryStore } from './haRegistry.svelte';
 import { createLogger } from '$lib/utils/logger';
+import { ok, err, type Result } from '$lib/utils/result';
 
 const logger = createLogger('HAStore');
 
@@ -48,10 +49,14 @@ export class HAStore {
 
     async init() {
         try {
+            logger.info('[HAStore] Initializing...');
             const auth = await HAAuthService.initialize();
             if (auth) {
+                logger.info('[HAStore] Auth found, connecting...');
                 this.auth = auth;
                 await this.connect(auth);
+            } else {
+                logger.info('[HAStore] No auth found.');
             }
         } catch (err) {
             if (err !== ERR_HASS_HOST_REQUIRED) {
@@ -171,21 +176,29 @@ export class HAStore {
         return StorageProvider.loadLastUrl();
     }
 
-    async callService(domain: string, service: string, serviceData?: object, target?: object, returnResponse = false) {
-        if (!this.connection) return;
+    async callService(domain: string, service: string, serviceData?: object, target?: object, returnResponse = false): Promise<Result<any, Error>> {
+        if (!this.connection) return err(new Error("No connection"));
 
-        if (returnResponse) {
-            return this.connection.sendMessagePromise({
-                type: 'call_service',
-                domain,
-                service,
-                service_data: serviceData,
-                target,
-                return_response: true
-            });
+        try {
+            if (returnResponse) {
+                const response = await this.connection.sendMessagePromise({
+                    type: 'call_service',
+                    domain,
+                    service,
+                    service_data: serviceData,
+                    target,
+                    return_response: true
+                });
+                return ok(response);
+            }
+
+            await callService(this.connection, domain, service, serviceData, target);
+            return ok(undefined);
+        } catch (e) {
+            const error = e instanceof Error ? e : new Error(String(e));
+            logger.error(`callService failed (${domain}.${service}):`, error);
+            return err(error);
         }
-
-        return callService(this.connection, domain, service, serviceData, target);
     }
 
     /**
@@ -196,11 +209,12 @@ export class HAStore {
         entityIds: string[],
         startTime: Date,
         endTime: Date = new Date()
-    ): Promise<HistoryData[]> {
+    ): Promise<Result<HistoryData[], Error>> {
         logger.debug("getHistory called. Auth:", !!this.auth, "URL:", this.url);
         if (!this.auth || !this.url) {
-            logger.warn("Missing auth or url, returning empty history.");
-            return [];
+            const error = new Error("Missing auth or url");
+            logger.warn("getHistory failed:", error.message);
+            return err(error);
         }
 
         // Refresh token if expired (vital for OAuth sessions)
@@ -218,14 +232,14 @@ export class HAStore {
 
         // Validate entity IDs to prevent injection
         const validEntityIds = entityIds.filter(id => /^[a-z_]+\.[a-z0-9_]+$/.test(id));
-        if (validEntityIds.length === 0) return [];
+        if (validEntityIds.length === 0) return ok([]);
 
         const cacheKey = `${validEntityIds.sort().join(',')}:${startTime.toISOString()}`;
         const cached = this.historyCache.get(cacheKey);
         const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
         if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
-            return cached.data;
+            return ok(cached.data);
         }
 
         try {
@@ -260,10 +274,11 @@ export class HAStore {
             // Update cache
             this.historyCache.set(cacheKey, { data: historyData, timestamp: Date.now() });
 
-            return historyData;
-        } catch (err) {
-            logger.error('Failed to fetch history:', err);
-            return [];
+            return ok(historyData);
+        } catch (e: unknown) {
+            const error = e instanceof Error ? e : new Error(String(e));
+            logger.error('Failed to fetch history:', error);
+            return err(error);
         }
     }
 
@@ -273,30 +288,8 @@ export class HAStore {
      * This is required in production to bypass CSP and CORS.
      */
     getProxiedUrl(path: string | null): string | null {
-        if (!path) return null;
-        if (!this.auth || !this.url) return path;
-
-        // Debug logging for MA images
-        if (path.includes('music_assistant') || path.includes('mass')) {
-            logger.debug('Proxying MA URL:', { input: path });
-        }
-
-        // If it's an absolute URL, check if it's our HA URL
-        if (path.startsWith('http')) {
-            // If it's not our HA URL, return as is (CSP now allows it)
-            if (!this.url || !path.startsWith(this.url)) {
-                // logger.debug('Returning absolute URL as is:', path);
-                return path;
-            }
-
-            // It IS our HA URL but absolute, we should still proxy it to add the token
-            // Strip the base URL to make it relative for the proxy
-            path = path.replace(this.url, '');
-        }
-
-        const proxied = `/api/ha-proxy?path=${encodeURIComponent(path)}&token=${encodeURIComponent(this.auth.accessToken)}&url=${encodeURIComponent(this.url)}`;
-        if (path.includes('music_assistant')) logger.debug('Proxied result:', proxied);
-        return proxied;
+        // Delegate to HAAuthService which is pure
+        return HAAuthService.getProxiedUrl(path, this.url, this.auth?.accessToken);
     }
 
     /**

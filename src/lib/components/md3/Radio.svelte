@@ -47,19 +47,21 @@
     <div
         class="
         w-5 h-5
-        border-2 border-m3-on-surface-variant
+        border-2
         rounded-full
-        peer-checked:border-m3-primary
         flex items-center justify-center
-        transition-colors duration-200
+        transition-all duration-200
+        {checked
+            ? 'border-m3-primary bg-m3-primary'
+            : 'border-m3-on-surface-variant bg-transparent group-hover:bg-m3-on-surface/5'}
     "
     >
         <!-- Inner Circle -->
         <div
             class="
-            w-2.5 h-2.5
+            w-2 h-2
             rounded-full
-            bg-m3-primary
+            bg-m3-on-primary
             scale-0 peer-checked:scale-100
             transition-transform duration-200
         "

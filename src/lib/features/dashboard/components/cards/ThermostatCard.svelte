@@ -39,6 +39,24 @@
         class: className = "",
     }: Props = $props();
 
+    // -- Constants --
+    const CONSTANTS = {
+        LAYOUT: {
+            COMPACT_HEIGHT: 130,
+            EXPANDED_HEIGHT: 220,
+        },
+        DEFAULTS: {
+            MIN_TEMP: 5,
+            MAX_TEMP: 35,
+            TEMP_STEP: 0.5,
+        },
+        HISTORY: {
+            THROTTLE_MS: 60_000,
+            CACHE_ROUNDING_MS: 5 * 60_000,
+            WINDOW_MS: 24 * 60 * 60 * 1000,
+        },
+    } as const;
+
     // -- Entity State --
     let entity = $derived(haStore.getEntity(entityId));
     let secondaryEntity = $derived(
@@ -70,13 +88,16 @@
     let hvacModes = $derived(climateAttrs.hvac_modes || ["off", "heat"]);
 
     let minTemp = $derived(
-        parseFloat(climateAttrs.min_temp?.toString() || "") || 5,
+        parseFloat(climateAttrs.min_temp?.toString() || "") ||
+            CONSTANTS.DEFAULTS.MIN_TEMP,
     );
     let maxTemp = $derived(
-        parseFloat(climateAttrs.max_temp?.toString() || "") || 35,
+        parseFloat(climateAttrs.max_temp?.toString() || "") ||
+            CONSTANTS.DEFAULTS.MAX_TEMP,
     );
     let tempStep = $derived(
-        parseFloat(climateAttrs.target_temp_step?.toString() || "") || 0.5,
+        parseFloat(climateAttrs.target_temp_step?.toString() || "") ||
+            CONSTANTS.DEFAULTS.TEMP_STEP,
     );
 
     let outsideTemp = $derived(
@@ -122,7 +143,7 @@
         // Prevent spamming calls (only for same entities)
         const now = Date.now();
         if (
-            now - lastFetchTime < 60000 &&
+            now - lastFetchTime < CONSTANTS.HISTORY.THROTTLE_MS &&
             entityId === lastFetchedEntityId &&
             secondaryEntityId === lastFetchedSecondaryId
         )
@@ -132,8 +153,10 @@
         lastFetchedSecondaryId = secondaryEntityId || "";
 
         // Round to nearest 5 minutes for better cache hitting in HAStore
-        const roundedNow = Math.floor(now / (5 * 60000)) * (5 * 60000);
-        const startTime = new Date(roundedNow - 24 * 60 * 60 * 1000);
+        const roundedNow =
+            Math.floor(now / CONSTANTS.HISTORY.CACHE_ROUNDING_MS) *
+            CONSTANTS.HISTORY.CACHE_ROUNDING_MS;
+        const startTime = new Date(roundedNow - CONSTANTS.HISTORY.WINDOW_MS);
 
         const entityIds = secondaryEntityId
             ? [entityId, secondaryEntityId]
@@ -143,11 +166,23 @@
             "[Thermostat Debug] Triggering history fetch for:",
             entityIds,
         );
-        const historyData = await haStore.getHistory(entityIds, startTime);
-        console.log("[Thermostat Debug] Received history data:", historyData);
+        const result = await haStore.getHistory(entityIds, startTime);
 
-        if (historyData[0]) insideHistory = historyData[0];
-        if (historyData[1]) outsideHistory = historyData[1];
+        if (result.ok) {
+            const historyData = result.value;
+            console.log(
+                "[Thermostat Debug] Received history data:",
+                historyData,
+            );
+
+            if (historyData[0]) insideHistory = historyData[0];
+            if (historyData[1]) outsideHistory = historyData[1];
+        } else {
+            console.error(
+                "[Thermostat Debug] History fetch failed:",
+                result.error,
+            );
+        }
     }
 
     // -- Dynamic HVAC Icon Component --
@@ -226,14 +261,14 @@
     // -- Responsive Layout --
     let clientHeight = $state(0);
     // 1 row (<130px): Compact Horizontal
-    let isCompact = $derived(clientHeight < 130);
+    let isCompact = $derived(clientHeight < CONSTANTS.LAYOUT.COMPACT_HEIGHT);
     // 3 rows (>=220px): Full with Graph. 2 rows: Vertical but no graph.
-    let isExpanded = $derived(clientHeight >= 220);
+    let isExpanded = $derived(clientHeight >= CONSTANTS.LAYOUT.EXPANDED_HEIGHT);
 </script>
 
 <!-- Card Container -->
 <div
-    class="relative flex flex-col w-full h-full rounded-[var(--radius-m3-md)] bg-m3-surface-container overflow-hidden shadow-sm group {className}"
+    class="relative flex flex-col w-full h-full rounded-[var(--radius-m3-md)] bg-m3-surface-container overflow-hidden shadow-sm group {className} @container"
     bind:clientHeight
 >
     <!-- Background Graph (Visible when NOT expanded) -->
@@ -263,12 +298,12 @@
                 </button>
                 <div class="flex flex-col min-w-0">
                     <span
-                        class="text-m3-title-medium text-m3-on-surface font-bold leading-none"
+                        class="text-[clamp(1rem,8cqmin,2rem)] text-m3-on-surface font-bold leading-none"
                     >
                         {formatTemperature(currentTemp)}
                     </span>
                     <span
-                        class="text-m3-body-small text-m3-on-surface-variant truncate leading-tight"
+                        class="text-[clamp(0.7rem,3.5cqmin,1rem)] text-m3-on-surface-variant truncate leading-tight"
                     >
                         {displayName}
                     </span>
@@ -313,12 +348,12 @@
                     </div>
                     <div class="flex flex-col">
                         <span
-                            class="text-m3-title-medium text-m3-on-surface font-medium"
+                            class="text-[clamp(1.2rem,6cqmin,3rem)] text-m3-on-surface font-medium"
                         >
                             {formatTemperature(currentTemp)}
                         </span>
                         <span
-                            class="text-m3-label-small text-m3-on-surface-variant"
+                            class="text-[clamp(0.8rem,3cqmin,1.2rem)] text-m3-on-surface-variant"
                         >
                             {displayName}
                         </span>

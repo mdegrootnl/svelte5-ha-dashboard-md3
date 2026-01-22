@@ -15,9 +15,7 @@
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import { getDomain } from "$lib/utils/entity";
     import type { ThermostatCardConfig, CardConfig } from "$lib/types";
-
-    // Computed proxy for cleaner access, though direct store usage is fine
-    let isOpen = $derived(cardEditorStore.isOpen);
+    import { Dialog } from "bits-ui";
 
     // Check if this is a thermostat card config
     let isThermostatCard = $derived(
@@ -101,138 +99,166 @@
     }
 </script>
 
-{#if isOpen}
-    <!-- Backdrop -->
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <div
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-m3-scrim/50 backdrop-blur-sm"
-        transition:fade={{ duration: 200 }}
-        onclick={handleCancel}
-        role="presentation"
-    >
-        <!-- Dialog Surface - Updated rounding to rounded-m3-lg (16px) to match card layouts -->
-        <div
-            class="relative w-full max-w-sm bg-m3-surface-container-high rounded-m3-lg shadow-xl overflow-visible flex flex-col"
-            transition:scale={{ start: 0.9, duration: 200 }}
-            onclick={(e) => e.stopPropagation()}
-            role="dialog"
-            tabindex="-1"
-        >
-            <!-- Header with Icon -->
-            <div class="px-6 pt-6 pb-4 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <!-- Entity Icon -->
-                    <div
-                        class="flex items-center justify-center w-10 h-10 rounded-full bg-m3-primary-container text-m3-on-primary-container"
-                    >
-                        <CurrentIcon class="size-5" />
-                    </div>
-                    <h2 class="text-m3-headline-small text-m3-on-surface">
-                        {isThermostatCard
-                            ? "Edit Thermostat"
-                            : isTitleCard
-                              ? "Edit Title Card"
-                              : isTabCard
-                                ? "Edit Tab Card"
-                                : "Edit Card"}
-                    </h2>
-                </div>
-                <button
-                    class="text-m3-on-surface-variant hover:text-m3-on-surface rounded-full p-2 hover:bg-m3-on-surface/10 transition-colors"
-                    onclick={handleCancel}
+<Dialog.Root
+    bind:open={cardEditorStore.isOpen}
+    onOpenChange={(open) => {
+        if (!open) handleCancel();
+    }}
+>
+    <Dialog.Portal>
+        <Dialog.Overlay>
+            {#snippet child({ props })}
+                <div
+                    {...props}
+                    class="fixed inset-0 z-50 bg-m3-scrim/50 backdrop-blur-sm"
+                    transition:fade={{ duration: 200 }}
+                ></div>
+            {/snippet}
+        </Dialog.Overlay>
+        <Dialog.Content>
+            {#snippet child({ props })}
+                <div
+                    {...props}
+                    class="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 outline-none"
+                    transition:scale={{ start: 0.9, duration: 200 }}
                 >
-                    <IconClose class="size-6" />
-                </button>
-            </div>
-
-            <!-- Content -->
-            <div class="px-6 flex flex-col gap-4">
-                <!-- Entity ID with autocomplete (Hidden for Title Card and Tab Card) -->
-                {#if !isTitleCard && !isTabCard}
-                    <EntityPicker
-                        label="Entity ID"
-                        placeholder={isThermostatCard
-                            ? "climate.living_room"
-                            : "light.living_room"}
-                        bind:value={tempConfig.entityId}
-                        domainFilter={isThermostatCard ? "climate" : undefined}
-                        class="w-full"
-                    />
-                {/if}
-
-                <TextField
-                    variant="outlined"
-                    label={isTitleCard ? "Title" : "Custom Name"}
-                    placeholder={isThermostatCard
-                        ? "Binnen"
-                        : "Living Room Light"}
-                    bind:value={tempConfig.name}
-                    class="w-full"
-                />
-
-                {#if isTitleCard}
-                    <TextField
-                        variant="outlined"
-                        label="Subtitle"
-                        placeholder="Optional subtitle"
-                        bind:value={tempConfig.subtitle}
-                        class="w-full"
-                    />
-                {/if}
-
-                <!-- Thermostat-specific fields -->
-                {#if isThermostatCard}
+                    <!-- Dialog Surface - Updated rounding to rounded-m3-lg (16px) to match card layouts -->
                     <div
-                        class="border-t border-m3-outline-variant/30 pt-4 mt-2"
+                        class="bg-m3-surface-container-high rounded-m3-lg shadow-xl overflow-visible flex flex-col w-full"
                     >
-                        <p
-                            class="text-m3-label-medium text-m3-on-surface-variant mb-3"
+                        <!-- Header with Icon -->
+                        <div
+                            class="px-6 pt-6 pb-4 flex items-center justify-between"
                         >
-                            Secondary Sensor (Optional)
-                        </p>
-                        <!-- Secondary entity with autocomplete (filtered to sensors) -->
-                        <EntityPicker
-                            label="Outside Sensor Entity"
-                            placeholder="sensor.outdoor_temperature"
-                            bind:value={tempConfig.secondaryEntityId}
-                            domainFilter="sensor"
-                            class="w-full"
-                        />
-                        <div class="mt-3">
+                            <div class="flex items-center gap-3">
+                                <!-- Entity Icon -->
+                                <div
+                                    class="flex items-center justify-center w-10 h-10 rounded-full bg-m3-primary-container text-m3-on-primary-container"
+                                >
+                                    <CurrentIcon class="size-5" />
+                                </div>
+                                <Dialog.Title
+                                    class="text-m3-headline-small text-m3-on-surface"
+                                >
+                                    {isThermostatCard
+                                        ? "Edit Thermostat"
+                                        : isTitleCard
+                                          ? "Edit Title Card"
+                                          : isTabCard
+                                            ? "Edit Tab Card"
+                                            : "Edit Card"}
+                                </Dialog.Title>
+                            </div>
+                            <Dialog.Close
+                                aria-label="Close"
+                                class="text-m3-on-surface-variant hover:text-m3-on-surface rounded-full p-2 hover:bg-m3-on-surface/10 transition-colors"
+                            >
+                                <IconClose class="size-6" />
+                            </Dialog.Close>
+                        </div>
+
+                        <!-- Content -->
+                        <div class="px-6 flex flex-col gap-4">
+                            <!-- Entity ID with autocomplete (Hidden for Title Card and Tab Card) -->
+                            {#if !isTitleCard && !isTabCard}
+                                <EntityPicker
+                                    label="Entity ID"
+                                    placeholder={isThermostatCard
+                                        ? "climate.living_room"
+                                        : "light.living_room"}
+                                    bind:value={tempConfig.entityId}
+                                    domainFilter={isThermostatCard
+                                        ? "climate"
+                                        : undefined}
+                                    class="w-full"
+                                />
+                            {/if}
+
                             <TextField
                                 variant="outlined"
-                                label="Outside Label"
-                                placeholder="Buiten"
-                                bind:value={tempConfig.secondaryName}
+                                label={isTitleCard ? "Title" : "Custom Name"}
+                                placeholder={isThermostatCard
+                                    ? "Binnen"
+                                    : "Living Room Light"}
+                                bind:value={tempConfig.name}
                                 class="w-full"
                             />
+
+                            {#if isTitleCard}
+                                <TextField
+                                    variant="outlined"
+                                    label="Subtitle"
+                                    placeholder="Optional subtitle"
+                                    bind:value={tempConfig.subtitle}
+                                    class="w-full"
+                                />
+                            {/if}
+
+                            <!-- Thermostat-specific fields -->
+                            {#if isThermostatCard}
+                                <div
+                                    class="border-t border-m3-outline-variant/30 pt-4 mt-2"
+                                >
+                                    <p
+                                        class="text-m3-label-medium text-m3-on-surface-variant mb-3"
+                                    >
+                                        Secondary Sensor (Optional)
+                                    </p>
+                                    <!-- Secondary entity with autocomplete (filtered to sensors) -->
+                                    <EntityPicker
+                                        label="Outside Sensor Entity"
+                                        placeholder="sensor.outdoor_temperature"
+                                        bind:value={
+                                            tempConfig.secondaryEntityId
+                                        }
+                                        domainFilter="sensor"
+                                        class="w-full"
+                                    />
+                                    <div class="mt-3">
+                                        <TextField
+                                            variant="outlined"
+                                            label="Outside Label"
+                                            placeholder="Buiten"
+                                            bind:value={
+                                                tempConfig.secondaryName
+                                            }
+                                            class="w-full"
+                                        />
+                                    </div>
+                                </div>
+                            {/if}
+                        </div>
+
+                        <!-- Actions -->
+                        <div
+                            class="px-6 pb-6 flex justify-end gap-2 items-center"
+                        >
+                            <Button variant="text" onclick={handleCancel}
+                                >Cancel</Button
+                            >
+
+                            {#if cardEditorStore.config?.onDelete}
+                                <Button
+                                    variant="text"
+                                    class="!text-m3-error hover:!bg-m3-error/10"
+                                    onclick={() => {
+                                        if (cardEditorStore.config.onDelete) {
+                                            cardEditorStore.config.onDelete();
+                                            cardEditorStore.close();
+                                        }
+                                    }}
+                                >
+                                    Delete
+                                </Button>
+                            {/if}
+
+                            <Button variant="filled" onclick={handleSave}
+                                >Save</Button
+                            >
                         </div>
                     </div>
-                {/if}
-            </div>
-
-            <!-- Actions -->
-            <div class="px-6 pb-6 flex justify-end gap-2 items-center">
-                <Button variant="text" onclick={handleCancel}>Cancel</Button>
-
-                {#if cardEditorStore.config.onDelete}
-                    <Button
-                        variant="text"
-                        class="!text-m3-error hover:!bg-m3-error/10"
-                        onclick={() => {
-                            if (cardEditorStore.config.onDelete) {
-                                cardEditorStore.config.onDelete();
-                                cardEditorStore.close();
-                            }
-                        }}
-                    >
-                        Delete
-                    </Button>
-                {/if}
-
-                <Button variant="filled" onclick={handleSave}>Save</Button>
-            </div>
-        </div>
-    </div>
-{/if}
+                </div>
+            {/snippet}
+        </Dialog.Content>
+    </Dialog.Portal>
+</Dialog.Root>

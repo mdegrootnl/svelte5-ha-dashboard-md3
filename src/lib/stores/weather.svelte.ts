@@ -160,21 +160,22 @@ export class WeatherStore {
                 logger.info(`[Weather] Fetching forecasts for ${entityId}`);
 
                 // Fetch Hourly
-                const hourlyResp: any = await haStore.callService('weather', 'get_forecasts', {
+                const hourlyResult = await haStore.callService('weather', 'get_forecasts', {
                     type: 'hourly'
                 }, { entity_id: entityId }, true);
 
                 // Fetch Daily
-                const dailyResp: any = await haStore.callService('weather', 'get_forecasts', {
+                const dailyResult = await haStore.callService('weather', 'get_forecasts', {
                     type: 'daily'
                 }, { entity_id: entityId }, true);
 
-                // DEBUG LOGGING
-                console.group("[Weather Debug]");
-                console.log("Entity ID:", entityId);
-                console.log("Hourly Resp Raw:", hourlyResp);
-                console.log("Daily Resp Raw:", dailyResp);
-                console.groupEnd();
+                const hourlyResp = hourlyResult.ok ? hourlyResult.value : null;
+                const dailyResp = dailyResult.ok ? dailyResult.value : null;
+
+                if (!hourlyResult.ok) logger.warn("Hourly forecast failed:", hourlyResult.error);
+                if (!dailyResult.ok) logger.warn("Daily forecast failed:", dailyResult.error);
+
+
 
                 // Helper to extract forecast array from response
                 const extractForecast = (resp: any, entityId: string): any[] => {
@@ -193,8 +194,7 @@ export class WeatherStore {
                 const hourlyData = extractForecast(hourlyResp, entityId);
                 const dailyData = extractForecast(dailyResp, entityId);
 
-                console.log("[Weather Debug] Extracted Hourly:", hourlyData);
-                console.log("[Weather Debug] Extracted Daily:", dailyData);
+
 
                 if (Array.isArray(hourlyData) && hourlyData.length > 0) {
                     hourly = this.mapHAForecast(hourlyData, 'hourly');
@@ -206,7 +206,7 @@ export class WeatherStore {
 
             } catch (serviceErr) {
                 logger.warn("[Weather] Service weather.get_forecasts failed:", serviceErr);
-                console.error("[Weather Debug] Service Error:", serviceErr);
+                logger.warn("[Weather] Service weather.get_forecasts failed:", serviceErr);
             }
 
             // Fallback: Check attributes if we still have no forecast data
@@ -420,7 +420,7 @@ export class WeatherStore {
         // ... same logic as before ...
         let base = 'cloudy';
         if (code === 0) base = 'clear';
-        if (code === 2) base = 'partly_cloudy';
+        if (code === 2) base = 'partly_cloudy'; // SVG filename has underscore
         if (code === 3) base = 'cloudy';
         if (code === 45) base = 'haze_fog';
         if (code === 61) base = 'rain_showers';
@@ -429,9 +429,13 @@ export class WeatherStore {
         if (code === 71) base = 'flurries';
         if (code === 95) base = 'thunderstorms';
 
-        if (['clear', 'partly_cloudy', 'rain_showers', 'thunderstorms'].includes(base)) {
+        // Handling day/night variants for common types
+        if (['clear', 'partly_cloudy', 'rain_showers', 'thunderstorms', 'scattered_snow_showers'].includes(base)) {
+            // For clear, the file is clear_day.svg or clear_night.svg
+            // For partly_cloudy, it is partly_cloudy_day.svg
             base = `${base}_${isDayTime ? 'day' : 'night'}`;
         }
+
         const themeFolder = isDarkTheme ? 'dark' : 'light';
         return `/weather/icons/${themeFolder}/${base}.svg`;
     }

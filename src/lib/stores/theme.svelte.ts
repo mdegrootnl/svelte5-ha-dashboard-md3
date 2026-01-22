@@ -7,7 +7,7 @@ import {
     type Theme
 } from '@material/material-color-utilities';
 import { browser } from '$app/environment';
-import type { ThemeConfig } from '$lib/types/config';
+import { type ThemeConfig, type NavigationItem, DEFAULT_CONFIG } from '$lib/types/config';
 import { createLogger } from '$lib/utils/logger';
 
 const logger = createLogger('ThemeStore');
@@ -16,9 +16,14 @@ const SYNC_DEBOUNCE_MS = 2000;
 
 export class ThemeStore {
     // Source color for the theme (default: M3 Blue)
+    // Source color for the theme (default: M3 Blue)
     sourceColor = $state('#6750A4');
     // Dark mode toggle
     isDark = $state(false);
+    // Navigation style preference
+    navigationStyle = $state<'standard' | 'modern'>('standard');
+    // Navigation items
+    navigationItems = $state<NavigationItem[]>(DEFAULT_CONFIG.theme.navigationItems);
 
     // Debounce timer for server sync
     private syncTimer: ReturnType<typeof setTimeout> | null = null;
@@ -51,6 +56,15 @@ export class ThemeStore {
 
         this.sourceColor = config.sourceColor;
         this.isDark = config.isDark;
+        // Default to standard if missing (migration safety)
+        this.navigationStyle = config.navigationStyle ?? 'standard';
+
+        // Load items or fall back to filtered defaults (in case of deep merge issues)
+        if (config.navigationItems && Array.isArray(config.navigationItems) && config.navigationItems.length > 0) {
+            this.navigationItems = config.navigationItems;
+        } else {
+            this.navigationItems = DEFAULT_CONFIG.theme.navigationItems;
+        }
 
         // Don't save to localStorage here - only save on user-initiated changes
     }
@@ -78,7 +92,9 @@ export class ThemeStore {
 
         const config: ThemeConfig = {
             sourceColor: this.sourceColor,
-            isDark: this.isDark
+            isDark: this.isDark,
+            navigationStyle: this.navigationStyle,
+            navigationItems: this.navigationItems
         };
 
         try {
@@ -114,7 +130,9 @@ export class ThemeStore {
         const config = {
             theme: {
                 sourceColor: this.sourceColor,
-                isDark: this.isDark
+                isDark: this.isDark,
+                navigationStyle: this.navigationStyle,
+                navigationItems: this.navigationItems
             }
         };
 
@@ -142,7 +160,9 @@ export class ThemeStore {
                 const config = {
                     theme: {
                         sourceColor: this.sourceColor,
-                        isDark: this.isDark
+                        isDark: this.isDark,
+                        navigationStyle: this.navigationStyle,
+                        navigationItems: this.navigationItems
                     }
                 };
                 navigator.sendBeacon('/api/settings', JSON.stringify(config));
@@ -165,6 +185,18 @@ export class ThemeStore {
 
     setSourceColor(color: string) {
         this.sourceColor = color;
+        this.saveToLocalStorage();
+        this.scheduleSyncToServer();
+    }
+
+    setNavigationStyle(style: 'standard' | 'modern') {
+        this.navigationStyle = style;
+        this.saveToLocalStorage();
+        this.scheduleSyncToServer();
+    }
+
+    setNavigationItems(items: NavigationItem[]) {
+        this.navigationItems = items;
         this.saveToLocalStorage();
         this.scheduleSyncToServer();
     }

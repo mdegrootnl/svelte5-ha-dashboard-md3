@@ -8,7 +8,7 @@ describe('ButtonCard Component', () => {
         vi.clearAllMocks();
         // Default empty entity
         vi.spyOn(haStore, 'getEntity').mockReturnValue(undefined as any);
-        vi.spyOn(haStore, 'callService').mockResolvedValue(undefined);
+        vi.spyOn(haStore, 'callService').mockResolvedValue({ ok: true, value: undefined });
         vi.spyOn(cardEditorStore, 'open').mockImplementation(() => { });
     });
 

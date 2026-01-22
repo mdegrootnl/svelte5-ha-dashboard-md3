@@ -40,14 +40,11 @@ export class JsonStorageService {
                 ...data,
                 theme: { ...DEFAULT_CONFIG.theme, ...data.theme },
                 dashboards: { ...DEFAULT_CONFIG.dashboards, ...data.dashboards },
-                musicLibrary: { ...DEFAULT_CONFIG.musicLibrary, ...data.musicLibrary }
+                musicLibrary: { ...DEFAULT_CONFIG.musicLibrary, ...data.musicLibrary },
+                lockScreen: { ...DEFAULT_CONFIG.lockScreen, ...data.lockScreen }
             };
         } catch (error) {
-            // If file doesn't exist or is invalid, return default
-            // Only log real errors, not ENOENT
-            if ((error as any).code !== 'ENOENT') {
-                console.error('[JsonStorageService] Failed to load config:', error);
-            }
+            // ...
             return DEFAULT_CONFIG;
         }
     }
@@ -68,13 +65,18 @@ export class JsonStorageService {
             const current = await this.load();
             const newConfig: AppConfig = {
                 ...current,
-                theme: { ...current.theme, ...(partial.theme || {}) },
+                theme: { ...current.theme, ...(partial.theme as any || {}) },
                 dashboards: { ...current.dashboards, ...(partial.dashboards as any || {}) },
                 musicLibrary: {
                     ...current.musicLibrary!,
                     ...(partial.musicLibrary || {})
+                },
+                lockScreen: {
+                    ...current.lockScreen!,
+                    ...(partial.lockScreen || {})
                 }
             };
+            console.log('[JsonStorageService] Saving new config with lockScreen:', newConfig.lockScreen);
             await this.save(newConfig);
         }).catch(err => {
             console.error('[JsonStorageService] Save failed:', err);
