@@ -29,16 +29,14 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
         // Normalize URL: remove trailing slash if present
         const normalizedHaUrl = haUrl.endsWith('/') ? haUrl.slice(0, -1) : haUrl;
 
-        // Properly encode all query parameters
-        const encodedTimestamp = encodeURIComponent(timestamp);
-        const encodedEndTime = endTime ? encodeURIComponent(endTime) : '';
-        const encodedFilter = filter ? encodeURIComponent(filter) : '';
+        // Construct target URL using URL object for robust encoding
+        const targetUrl = new URL(`${normalizedHaUrl}/api/history/period/${timestamp}`);
+        if (endTime) targetUrl.searchParams.set('end_time', endTime);
+        if (filter) targetUrl.searchParams.set('filter_entity_id', filter);
 
-        const targetUrl = `${normalizedHaUrl}/api/history/period/${encodedTimestamp}?end_time=${encodedEndTime}&filter_entity_id=${encodedFilter}`;
+        // console.log('[History Proxy] Fetching:', targetUrl.toString());
 
-        // console.log('[History Proxy] Fetching:', targetUrl);
-
-        const res = await fetch(targetUrl, {
+        const res = await fetch(targetUrl.toString(), {
             headers: {
                 'Authorization': auth,
                 'Content-Type': 'application/json'

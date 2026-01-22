@@ -77,7 +77,7 @@
         return "bg-red-500";
     });
 
-    let percent = $derived(Math.min(100, (val / 200) * 100));
+    let percent = $derived(isNaN(val) ? 0 : Math.min(100, (val / 200) * 100));
 
     // Configuration dialog
     function openConfig(e: Event) {
