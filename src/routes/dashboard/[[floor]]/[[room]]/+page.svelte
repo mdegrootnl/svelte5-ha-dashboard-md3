@@ -382,9 +382,7 @@
 />
 
 <svelte:head>
-    <title
-        >{floor ? `${floor} - Home Dashboard` : "Home Dashboard"} - Home Assistant</title
-    >
+    <title>Home Dashboard - Home Assistant</title>
 </svelte:head>
 
 <PageShell
