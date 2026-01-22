@@ -98,11 +98,14 @@ export class WeatherStore {
         this.loading = true;
         try {
             // Update location from HA
-            this.location = {
-                lat: haStore.config.latitude,
-                lon: haStore.config.longitude,
-                name: 'Home'
-            };
+            const haConfig = untrack(() => haStore.config);
+            if (haConfig) {
+                this.location = {
+                    lat: haConfig.latitude,
+                    lon: haConfig.longitude,
+                    name: 'Home'
+                };
+            }
 
             // Find best weather entity
             // 1. Configured entity
@@ -111,7 +114,7 @@ export class WeatherStore {
             let entityId = this.config.weatherEntityId;
 
             if (!entityId) {
-                const entities = Object.keys(haStore.states).filter(id => id.startsWith('weather.'));
+                const entities = untrack(() => Object.keys(haStore.states).filter(id => id.startsWith('weather.')));
                 entityId = entities.includes('weather.home') ? 'weather.home' : entities[0];
             }
 
@@ -121,7 +124,7 @@ export class WeatherStore {
             }
 
             // Boundary Validation
-            const entityParse = HAEntityStateSchema.safeParse(haStore.states[entityId]);
+            const entityParse = HAEntityStateSchema.safeParse(untrack(() => haStore.states[entityId!]));
             if (!entityParse.success) {
                 this.loading = false;
                 return err(new Error(`Invalid weather entity data: ${entityParse.error.message}`));
@@ -134,7 +137,7 @@ export class WeatherStore {
             const wmoCode = this.mapHAStateToWMO(entity.state);
 
             // Use sun.sun state to determine is_day
-            const sunState = haStore.states['sun.sun']?.state;
+            const sunState = untrack(() => haStore.states['sun.sun']?.state);
             // Default to 1 (day) if unknown, but if sun is below_horizon, it is night (0).
             const isDay = sunState === 'below_horizon' ? 0 : 1;
 
@@ -269,7 +272,7 @@ export class WeatherStore {
                 // 1. WAQI integration: sensor.waqi_*
                 // 2. Any sensor containing 'aqi' in the name
                 // 3. Air quality entities (air_quality.*)
-                const sensorKeys = Object.keys(haStore.states);
+                const sensorKeys = untrack(() => Object.keys(haStore.states));
 
                 aqiEntityId = sensorKeys.find(id =>
                     id.startsWith('sensor.waqi_')
@@ -281,7 +284,7 @@ export class WeatherStore {
             }
 
             if (aqiEntityId) {
-                const aqiEntity = haStore.states[aqiEntityId];
+                const aqiEntity = untrack(() => haStore.states[aqiEntityId!]);
                 let val: number;
 
                 // WAQI and most AQI sensors store the value in state

@@ -23,6 +23,7 @@ export { default as Radio } from './components/md3/Radio.svelte';
 export { default as Switch } from './components/md3/Switch.svelte';
 export { default as TextField } from './components/md3/TextField.svelte';
 export { default as EntityPicker } from './components/md3/EntityPicker.svelte';
+export { default as DynamicIcon } from './components/common/DynamicIcon.svelte';
 
 // Card Components
 export { default as ButtonCard } from './features/dashboard/components/cards/ButtonCard.svelte';

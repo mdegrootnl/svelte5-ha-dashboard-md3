@@ -2690,31 +2690,6 @@
               }
             },
             {
-              "id": "ca1df12a-d66c-4cd3-aa9f-237ee7958223",
-              "cardType": "title",
-              "entityId": "",
-              "name": "Test",
-              "layout": {
-                "desktop": {
-                  "colStart": 1,
-                  "colSpan": 3,
-                  "rowStart": 1,
-                  "rowSpan": 1
-                },
-                "mobile": {
-                  "colStart": 1,
-                  "colSpan": 4,
-                  "rowStart": 5,
-                  "rowSpan": 2
-                }
-              },
-              "secondaryEntityId": "",
-              "secondaryName": "",
-              "domainFilter": "",
-              "subtitle": "",
-              "alignment": "end"
-            },
-            {
               "id": "2911d35e-8a5a-4a1d-bc82-678f01f4f4f9",
               "cardType": "thermostat",
               "entityId": "climate.diyless_thermostat_1_central_heating",

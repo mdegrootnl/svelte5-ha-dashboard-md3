@@ -80,6 +80,7 @@
 		href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
 		rel="stylesheet"
 	/>
+	<title>Home Dashboard</title>
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
@@ -98,7 +99,10 @@
 		<ModernNavBar />
 	{/if}
 
-	<main class="flex-1 overflow-auto bg-m3-surface pb-20 md:pb-0">
+	<main
+		class="flex-1 overflow-hidden bg-m3-surface transition-all duration-300
+        {themeStore.navigationStyle === 'modern' ? 'md:pl-28' : ''}"
+	>
 		{@render children()}
 	</main>
 

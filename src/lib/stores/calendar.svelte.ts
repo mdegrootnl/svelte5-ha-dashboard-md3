@@ -1,3 +1,4 @@
+import { untrack } from 'svelte';
 import { haStore } from './ha.svelte';
 import { createLogger } from '$lib/utils/logger';
 
@@ -15,18 +16,27 @@ export interface CalendarEvent {
 export class CalendarStore {
     events = $state<CalendarEvent[]>([]);
     loading = $state(false);
+    private lastFetch = 0;
 
     constructor() {
         // Optional: Auto-fetch on init or rely on consumers calling fetch
     }
 
     async fetchUpcoming(limit = 5) {
-        if (!haStore.connection) return;
+        if (!haStore.connection || this.loading) return;
+
+        // Aggressive 10s throttle
+        if (Date.now() - this.lastFetch < 10000) return;
+        this.lastFetch = Date.now();
 
         this.loading = true;
         try {
-            // Get all calendar entities
-            const calendarEntities = Object.keys(haStore.states).filter(id => id.startsWith('calendar.'));
+            // Get all calendar entities and filter out unavailable ones
+            const calendarEntities = untrack(() =>
+                Object.entries(haStore.states)
+                    .filter(([id, state]) => id.startsWith('calendar.') && state.state !== 'unavailable')
+                    .map(([id]) => id)
+            );
 
             if (calendarEntities.length === 0) {
                 this.events = [];
@@ -42,12 +52,13 @@ export class CalendarStore {
                 // Fetch events for each calendar
                 // We use if/else instead of try/catch because callService returns a Result
                 const result = await haStore.callService('calendar', 'get_events', {
-                    start_date_time: now.toISOString(),
-                    end_date_time: end.toISOString()
-                }, { entity_id: entityId }, true);
+                    start_date_time: now.toISOString().split('.')[0] + 'Z',
+                    end_date_time: end.toISOString().split('.')[0] + 'Z',
+                    entity_id: entityId // Moved to service_data for better compatibility
+                }, {}, true); // Empty target
 
                 if (!result.ok) {
-                    logger.warn(`Failed to fetch events for ${entityId}`, result.error);
+                    // Fail silently to avoid console spamming
                     return [];
                 }
 

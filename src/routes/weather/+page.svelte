@@ -22,7 +22,7 @@
         <IconButton icon={IconSettings} onclick={() => (settingsOpen = true)} />
     {/snippet}
     <div
-        class="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-4 md:gap-6 max-w-[2200px] mx-auto p-4 md:p-6 pb-24 md:pb-6 overflow-hidden"
+        class="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-4 md:gap-6 max-w-[2200px] mx-auto p-4 md:p-6 overflow-hidden"
     >
         <!-- Hero Section -->
         <div class="col-span-1 md:col-span-6 lg:col-span-8 order-1 min-w-0">

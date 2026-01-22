@@ -22,6 +22,7 @@
         type RoomDashboardConfig, // Import new type
         type TabCardConfig,
         TabCard,
+        DynamicIcon,
     } from "$lib";
     import { fade } from "svelte/transition";
     import TabBar from "$lib/components/layout/TabBar.svelte"; // Import TabBar
@@ -382,17 +383,22 @@
 
 <svelte:head>
     <title
-        >{floor ? `${floor} - Dashboard` : "Dashboard"} - Home Assistant</title
+        >{floor ? `${floor} - Home Dashboard` : "Home Dashboard"} - Home Assistant</title
     >
 </svelte:head>
 
 <PageShell
-    title={room ? room : floor ? floor : "Dashboard"}
+    title={room ? room : floor ? floor : "Home Dashboard"}
     description={haStore.connected
         ? `Connected · ${connectedEntities} entities`
         : "Configure connection in Settings"}
     maxWidth="6xl"
 >
+    {#snippet icon()}
+        <div class="text-m3-primary">
+            <DynamicIcon name="home" class="text-4xl" />
+        </div>
+    {/snippet}
     {#if dashboardEditorStore.focusedGridId}
         <!-- Backdrop for Focus Mode -->
         <div

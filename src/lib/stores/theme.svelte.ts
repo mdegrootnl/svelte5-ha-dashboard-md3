@@ -275,6 +275,36 @@ export class ThemeStore {
             set('surface-container-high', neutral.tone(92));
             set('surface-container-highest', neutral.tone(90));
         }
+
+        // --- Browser Level UI Enhancements ---
+        // Update Favicon with theme-colored house icon
+        this.updateFavicon(hexFromArgb(scheme.primary));
+    }
+
+    /**
+     * Generates a theme-colored House SVG and sets it as the document favicon
+     */
+    private updateFavicon(color: string) {
+        if (!browser) return;
+
+        // Simple House Path (Material style)
+        // M12 3L4 9V21H9V15H15V21H20V9L12 3Z
+        const svg = `
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}">
+                <path d="M12 3L4 9V21H9V15H15V21H20V9L12 3Z"/>
+            </svg>
+        `.trim();
+
+        const encoded = btoa(svg);
+        const dataUrl = `data:image/svg+xml;base64,${encoded}`;
+
+        let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+        if (!link) {
+            link = document.createElement('link');
+            link.rel = 'icon';
+            document.head.appendChild(link);
+        }
+        link.href = dataUrl;
     }
 }
 

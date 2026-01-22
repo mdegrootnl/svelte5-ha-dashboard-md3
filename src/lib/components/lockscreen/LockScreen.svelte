@@ -5,6 +5,7 @@
     import { weatherStore } from "$lib/stores/weather.svelte";
     import { calendarStore } from "$lib/stores/calendar.svelte";
     import { haStore } from "$lib/stores/ha.svelte";
+    import { untrack } from "svelte";
 
     let now = $state(new Date());
     let timer: ReturnType<typeof setInterval>;
@@ -16,9 +17,12 @@
 
     // Reactive fetch when HA connects
     $effect(() => {
-        if (haStore.connectionState === "connected") {
-            weatherStore.fetch();
-            calendarStore.fetchUpcoming(3);
+        const isConnected = haStore.connectionState === "connected";
+        if (isConnected) {
+            untrack(() => {
+                weatherStore.fetch();
+                calendarStore.fetchUpcoming(3);
+            });
         }
     });
 

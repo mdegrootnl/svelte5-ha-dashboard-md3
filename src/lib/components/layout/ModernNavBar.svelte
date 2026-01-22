@@ -20,7 +20,7 @@
         class="
             pointer-events-auto
             flex items-center gap-1 p-2
-            bg-m3-surface-container-high
+            bg-m3-surface-container-high/80 backdrop-blur-md
             rounded-full shadow-lg border border-m3-outline-variant
             
             /* Mobile: Horizontal */

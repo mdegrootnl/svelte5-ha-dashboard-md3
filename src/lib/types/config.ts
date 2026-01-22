@@ -42,7 +42,7 @@ export const DEFAULT_CONFIG: AppConfig = {
         navigationStyle: 'standard',
         navigationItems: [
             { id: 'home', label: 'Home', icon: 'home', href: '/' },
-            { id: 'dashboard', label: 'Dashboard', icon: 'dashboard', href: '/dashboard' },
+            { id: 'dashboard', label: 'Home Dashboard', icon: 'home', href: '/dashboard' },
             { id: 'music', label: 'Music', icon: 'music_note', href: '/music' },
             { id: 'weather', label: 'Weather', icon: 'partly_cloudy_day', href: '/weather' },
             { id: 'library', label: 'Library', icon: 'widgets', href: '/library' },

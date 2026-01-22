@@ -12,6 +12,7 @@
         toCalendarDate,
         now,
     } from "@internationalized/date";
+    import { untrack } from "svelte";
     import { haStore } from "$lib/stores/ha.svelte";
     import PageShell from "$lib/components/layout/PageShell.svelte";
     import ChevronLeft from "~icons/material-symbols/chevron-left";
@@ -26,6 +27,7 @@
     let selectedDate = $state(today(timeZone)); // Selection for sidebar
     let events = $state<any[]>([]);
     let loading = $state(false);
+    let lastFetch = 0;
 
     // --- Derived ---
     let currentMonthStart = $derived(startOfMonth(focusedDate));
@@ -111,7 +113,11 @@
 
     // --- Data Fetching ---
     async function fetchEvents() {
-        if (!haStore.connected) return;
+        if (loading || !haStore.connected) return;
+
+        // Aggressive 10s throttle
+        if (Date.now() - lastFetch < 10000) return;
+        lastFetch = Date.now();
 
         // Fetch a broad range: Start of viewed month -> End of viewed month + extra for agenda
         const start = startOfWeek(startOfMonth(focusedDate), "en-US");
@@ -119,8 +125,14 @@
 
         loading = true;
         try {
-            const calendarEntities = Object.keys(haStore.states).filter((id) =>
-                id.startsWith("calendar."),
+            const calendarEntities = untrack(() =>
+                Object.entries(haStore.states)
+                    .filter(
+                        ([id, state]) =>
+                            id.startsWith("calendar.") &&
+                            state.state !== "unavailable",
+                    )
+                    .map(([id]) => id),
             );
 
             if (calendarEntities.length === 0) {
@@ -128,23 +140,26 @@
                 return;
             }
 
-            const response = await haStore.callService(
+            const result = await haStore.callService(
                 "calendar",
                 "get_events",
                 {
-                    start_date_time: start.toString() + "T00:00:00",
-                    end_date_time: end.toString() + "T23:59:59",
-                },
-                {
+                    start_date_time:
+                        start.toDate(timeZone).toISOString().split(".")[0] +
+                        "Z",
+                    end_date_time:
+                        end.toDate(timeZone).toISOString().split(".")[0] + "Z",
                     entity_id: calendarEntities,
                 },
+                {},
                 true,
             );
 
-            if (response) {
+            if (result.ok) {
+                const response = result.value;
                 // The service call returns { context: {...}, response: { "calendar.id": ... } }
                 // We need to access the inner .response if it exists, otherwise use response directly
-                const calendarData = (response as any).response || response;
+                const calendarData = response.response || response;
 
                 const allEvents: any[] = [];
                 Object.entries(calendarData).forEach(
@@ -280,8 +295,17 @@
     }
 
     $effect(() => {
-        if (haStore.connected) {
-            fetchEvents();
+        // Explicitly track these dependencies
+        const isConnected = haStore.connected;
+        const currentFocusedMonth = focusedDate.month;
+        const currentFocusedYear = focusedDate.year;
+
+        if (isConnected) {
+            // We untrack the actual fetch because it internally reads haStore.states.
+            // This prevents an infinite loop where entity updates trigger a re-fetch.
+            untrack(() => {
+                fetchEvents();
+            });
         }
     });
 </script>

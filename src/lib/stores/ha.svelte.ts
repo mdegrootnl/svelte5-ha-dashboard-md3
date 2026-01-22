@@ -195,7 +195,17 @@ export class HAStore {
             await callService(this.connection, domain, service, serviceData, target);
             return ok(undefined);
         } catch (e) {
-            const error = e instanceof Error ? e : new Error(String(e));
+            let message = 'Unknown error';
+            if (e instanceof Error) {
+                message = e.message;
+            } else if (typeof e === 'object' && e !== null) {
+                // Handle WebSocket error objects which often have a 'message' or 'code' property
+                message = (e as any).message || (e as any).code || JSON.stringify(e);
+            } else {
+                message = String(e);
+            }
+
+            const error = new Error(message);
             logger.error(`callService failed (${domain}.${service}):`, error);
             return err(error);
         }
