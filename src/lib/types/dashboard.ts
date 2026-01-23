@@ -14,7 +14,7 @@ export interface GridTrack {
 /**
  * Card types that can be rendered in the grid
  */
-export type DashboardCardType = "button" | "media" | "thermostat" | "title" | "tabs";
+export type DashboardCardType = "button" | "media" | "thermostat" | "title" | "tabs" | "graph";
 
 /**
  * Layout definition for a specific breakpoint
@@ -61,6 +61,10 @@ export interface DashboardItem {
     /** Tab Card Properties */
     activeTabIndex?: number;
     tabs?: GridConfig[]; // Recursive definition: a tab just holds another GridConfig
+
+    /** Graph Card Properties */
+    hours_to_show?: number;
+    aggregate_func?: "avg" | "min" | "max" | "last";
 }
 
 /**
@@ -185,10 +189,11 @@ export function createDefaultItemLayout(
 ): ResponsiveLayout {
     // Size based on card type
     const desktopSpan = cardType === "button" ? 2 : (cardType === "thermostat" || cardType === "title") ? 4 : 6;
-    const mobileSpan = cardType === "button" ? 2 : 4;
+    const mobileSpan = (cardType === "button" || cardType === "graph") ? 2 : 4;
 
     // Row span based on card size
-    const rowSpan = cardSize === 'condensed' ? 1 : cardSize === 'standard' ? 2 : 3;
+    // Graph cards default to 2x spans if not specified
+    const rowSpan = cardType === "graph" ? 2 : (cardSize === 'condensed' ? 1 : cardSize === 'standard' ? 2 : 3);
 
     return {
         desktop: {

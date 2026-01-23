@@ -12,6 +12,7 @@
     import IconPlayCircle from "~icons/material-symbols/play-circle";
     import IconList from "~icons/material-symbols/list";
     import IconViewModule from "~icons/material-symbols/view-module";
+    import IconShowChart from "~icons/material-symbols/show-chart";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import { getDomain } from "$lib/utils/entity";
     import type { ThermostatCardConfig, CardConfig } from "$lib/types";
@@ -24,21 +25,26 @@
 
     let isTitleCard = $derived(cardEditorStore.config?.type === "title");
     let isTabCard = $derived(cardEditorStore.config?.type === "tabs");
+    let isGraphCard = $derived(cardEditorStore.config?.type === "graph");
 
     // Flexible binding for local edits (includes thermostat-specific fields)
     let tempConfig = $state<{
         entityId: string;
         name: string;
-        type?: "button" | "thermostat" | "media" | "title" | "tabs";
+        type?: "button" | "thermostat" | "media" | "title" | "tabs" | "graph";
         secondaryEntityId: string;
         secondaryName: string;
         subtitle: string;
+        hours_to_show: number;
+        aggregate_func: "avg" | "min" | "max" | "last";
     }>({
         entityId: "",
         name: "",
         secondaryEntityId: "",
         secondaryName: "",
         subtitle: "",
+        hours_to_show: 24,
+        aggregate_func: "avg",
     });
 
     // Sync when opening
@@ -52,6 +58,8 @@
                 secondaryEntityId: (config as any).secondaryEntityId || "",
                 secondaryName: (config as any).secondaryName || "",
                 subtitle: (config as any).subtitle || "",
+                hours_to_show: (config as any).hours_to_show ?? 24,
+                aggregate_func: (config as any).aggregate_func ?? "avg",
             };
         }
     });
@@ -65,6 +73,7 @@
     function getIconComponent(domain: string) {
         if (isTitleCard) return IconList;
         if (isTabCard) return IconViewModule;
+        if (isGraphCard) return IconShowChart;
 
         switch (domain) {
             case "light":
@@ -146,7 +155,9 @@
                                           ? "Edit Title Card"
                                           : isTabCard
                                             ? "Edit Tab Card"
-                                            : "Edit Card"}
+                                            : isGraphCard
+                                              ? "Edit Graph Card"
+                                              : "Edit Card"}
                                 </Dialog.Title>
                             </div>
                             <Dialog.Close
@@ -224,6 +235,51 @@
                                             }
                                             class="w-full"
                                         />
+                                    </div>
+                                </div>
+                            {/if}
+
+                            <!-- Graph-specific fields -->
+                            {#if isGraphCard}
+                                <div
+                                    class="border-t border-m3-outline-variant/30 pt-4 mt-2 flex flex-col gap-4"
+                                >
+                                    <TextField
+                                        variant="outlined"
+                                        label="Hours to Show"
+                                        type="number"
+                                        placeholder="24"
+                                        value={tempConfig.hours_to_show.toString()}
+                                        oninput={(e) =>
+                                            (tempConfig.hours_to_show =
+                                                parseInt(
+                                                    (
+                                                        e.target as HTMLInputElement
+                                                    ).value,
+                                                ) || 24)}
+                                        class="w-full"
+                                    />
+                                    <div class="flex flex-col gap-1">
+                                        <label
+                                            class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                                            for="agg-func"
+                                        >
+                                            Aggregation Function
+                                        </label>
+                                        <select
+                                            id="agg-func"
+                                            bind:value={
+                                                tempConfig.aggregate_func
+                                            }
+                                            class="w-full h-14 px-4 rounded-m3-sm bg-transparent border border-m3-outline text-m3-on-surface focus:border-m3-primary outline-none transition-colors"
+                                        >
+                                            <option value="avg">Average</option>
+                                            <option value="min">Minimum</option>
+                                            <option value="max">Maximum</option>
+                                            <option value="last"
+                                                >Last Value</option
+                                            >
+                                        </select>
                                     </div>
                                 </div>
                             {/if}

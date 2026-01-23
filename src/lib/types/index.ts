@@ -48,7 +48,7 @@ export interface BaseCardConfig {
     entityId: string;
     name: string;
     icon?: string;
-    type?: 'button' | 'thermostat' | 'media' | 'title' | 'tabs';
+    type?: 'button' | 'thermostat' | 'media' | 'title' | 'tabs' | 'graph';
     onSave?: (config: CardConfig) => void;
     onDelete?: () => void;
     /** Optional domain filter for entity picker (e.g. "light", "switch") */
@@ -81,7 +81,31 @@ export interface TabEditorConfig extends BaseCardConfig {
     type: 'tabs';
 }
 
-export type CardConfig = ButtonCardConfig | ThermostatCardConfig | MediaCardConfig | TitleCardConfig | TabEditorConfig;
+export interface GraphCardEntity {
+    entity_id: string;
+    name?: string;
+    color?: string;
+}
+
+export interface GraphCardConfig extends BaseCardConfig {
+    type: 'graph';
+    entities?: GraphCardEntity[];
+    hours_to_show?: number;
+    points_per_hour?: number;
+    aggregate_func?: 'avg' | 'min' | 'max' | 'last';
+    group_by?: 'date' | 'hour';
+    line_color?: string | string[];
+    show?: {
+        graph?: boolean;
+        icon?: boolean;
+        name?: boolean;
+        state?: boolean;
+        fill?: boolean;
+    };
+    color_thresholds?: { value: number; color: string }[];
+}
+
+export type CardConfig = ButtonCardConfig | ThermostatCardConfig | MediaCardConfig | TitleCardConfig | TabEditorConfig | GraphCardConfig;
 
 export type CardVariant = 'switch' | 'slider';
 export type ButtonVariant = 'filled' | 'tonal' | 'outlined' | 'text' | 'elevated';

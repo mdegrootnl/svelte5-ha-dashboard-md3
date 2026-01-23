@@ -59,13 +59,15 @@
             domain: "media_player",
         },
         {
-            type: "sensor",
-            name: "Sensor",
-            description: "Display sensor data",
-            icon: IconSensors,
+            type: "graph",
+            name: "Graph",
+            description: "History graph with auto-aggregation",
+            icon: IconShowChart,
             domain: "sensor",
         },
     ];
+
+    import IconShowChart from "~icons/material-symbols/show-chart";
 
     function handleSelect(cardType: any) {
         // Create initial config for the selected type
@@ -79,7 +81,8 @@
                 cardType.type === "thermostat" ||
                 cardType.type === "media" ||
                 cardType.type === "title" ||
-                cardType.type === "tabs"
+                cardType.type === "tabs" ||
+                cardType.type === "graph"
                     ? cardType.type
                     : "button",
         };

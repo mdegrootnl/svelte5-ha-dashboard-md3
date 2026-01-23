@@ -7,6 +7,7 @@
     import ThermostatCard from "$lib/features/dashboard/components/cards/ThermostatCard.svelte";
     import MediaCard from "$lib/features/dashboard/components/cards/MediaCard.svelte";
     import TitleCard from "$lib/features/dashboard/components/cards/TitleCard.svelte";
+    import GraphCard from "$lib/features/dashboard/components/cards/GraphCard.svelte";
     import IconLightbulb from "~icons/material-symbols/lightbulb";
     import IconThermostat from "~icons/material-symbols/thermostat";
     import IconDevices from "~icons/material-symbols/devices";
@@ -16,6 +17,7 @@
     import IconDelete from "~icons/material-symbols/delete";
     import IconHdrAuto from "~icons/material-symbols/hdr-auto";
     import IconViewModule from "~icons/material-symbols/view-module";
+    import IconShowChart from "~icons/material-symbols/show-chart";
     import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import { getDomain } from "$lib/utils/entity";
@@ -36,13 +38,15 @@
     let tempConfig = $state<{
         entityId: string;
         name: string;
-        type?: "button" | "thermostat" | "media" | "title" | "tabs";
+        type?: "button" | "thermostat" | "media" | "title" | "tabs" | "graph";
         secondaryEntityId: string;
         secondaryName: string;
         domainFilter?: string;
         cardSize: CardSize;
         subtitle: string;
         alignment: "start" | "center" | "end";
+        hours_to_show: number;
+        aggregate_func: "avg" | "min" | "max" | "last";
     }>({
         entityId: "",
         name: "",
@@ -52,6 +56,8 @@
         cardSize: "standard",
         subtitle: "",
         alignment: "start",
+        hours_to_show: 24,
+        aggregate_func: "avg",
     });
 
     // Get current entity domain for icon display
@@ -68,6 +74,7 @@
     );
     let isTitleCard = $derived(cardEditorStore.config?.type === "title");
     let isTabCard = $derived(cardEditorStore.config?.type === "tabs");
+    let isGraphCard = $derived(cardEditorStore.config?.type === "graph");
 
     // Sync when opening
     $effect(() => {
@@ -83,6 +90,8 @@
                 cardSize: config.cardSize || "standard",
                 subtitle: (config as any).subtitle || "",
                 alignment: (config as any).alignment || "start",
+                hours_to_show: (config as any).hours_to_show ?? 24,
+                aggregate_func: (config as any).aggregate_func ?? "avg",
             };
         }
     });
@@ -91,6 +100,7 @@
     function getIconComponent(domain: string) {
         if (isTitleCard) return IconHdrAuto;
         if (isTabCard) return IconViewModule;
+        if (isGraphCard) return IconShowChart;
 
         switch (domain) {
             case "light":
@@ -136,7 +146,9 @@
           ? "Edit Title"
           : isTabCard
             ? "Edit Tab Card"
-            : "Edit Card"}
+            : isGraphCard
+              ? "Edit Graph Card"
+              : "Edit Card"}
     subtitle={tempConfig.name || "Configure card settings"}
     icon={CurrentIcon}
     {showBack}
@@ -276,6 +288,14 @@
                                 ></div>
                             </div>
                         </div>
+                    {:else if isGraphCard}
+                        <GraphCard
+                            type="graph"
+                            entityId={tempConfig.entityId}
+                            name={tempConfig.name}
+                            hours_to_show={tempConfig.hours_to_show}
+                            aggregate_func={tempConfig.aggregate_func}
+                        />
                     {:else}
                         <ButtonCard
                             title={tempConfig.name || "Card Preview"}
@@ -346,6 +366,45 @@
                             placeholder="Buiten"
                             bind:value={tempConfig.secondaryName}
                         />
+                    </div>
+                </div>
+            {/if}
+
+            <!-- Graph-specific fields -->
+            {#if isGraphCard}
+                <div
+                    class="border-t border-m3-outline-variant/30 pt-4 mt-2 flex flex-col gap-4"
+                >
+                    <TextField
+                        variant="outlined"
+                        label="Hours to Show"
+                        type="number"
+                        placeholder="24"
+                        value={tempConfig.hours_to_show.toString()}
+                        oninput={(e: Event) =>
+                            (tempConfig.hours_to_show =
+                                parseInt(
+                                    (e.target as HTMLInputElement).value,
+                                ) || 24)}
+                        class="w-full"
+                    />
+                    <div class="flex flex-col gap-1">
+                        <label
+                            class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                            for="agg-func"
+                        >
+                            Aggregation Function
+                        </label>
+                        <select
+                            id="agg-func"
+                            bind:value={tempConfig.aggregate_func}
+                            class="w-full h-14 px-4 rounded-m3-sm bg-transparent border border-m3-outline text-m3-on-surface focus:border-m3-primary outline-none transition-colors"
+                        >
+                            <option value="avg">Average</option>
+                            <option value="min">Minimum</option>
+                            <option value="max">Maximum</option>
+                            <option value="last">Last Value</option>
+                        </select>
                     </div>
                 </div>
             {/if}

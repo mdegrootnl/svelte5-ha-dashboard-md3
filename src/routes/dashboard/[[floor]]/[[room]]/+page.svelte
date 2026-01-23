@@ -22,6 +22,7 @@
         type RoomDashboardConfig, // Import new type
         type TabCardConfig,
         TabCard,
+        GraphCard,
         DynamicIcon,
     } from "$lib";
     import { fade } from "svelte/transition";
@@ -609,6 +610,22 @@
                                 />
                             {:else if item.cardType === "tabs"}
                                 <TabCard config={item as TabCardConfig} />
+                            {:else if item.cardType === "graph"}
+                                <GraphCard
+                                    id={item.id}
+                                    bind:entityId={item.entityId}
+                                    bind:name={item.name}
+                                    bind:hours_to_show={
+                                        (item as any).hours_to_show
+                                    }
+                                    bind:aggregate_func={
+                                        (item as any).aggregate_func
+                                    }
+                                    ondelete={() =>
+                                        dashboardEditorStore.deleteItem(
+                                            item.id,
+                                        )}
+                                />
                             {/if}
                             {#snippet controls()}
                                 {#if item.cardType === "tabs"}

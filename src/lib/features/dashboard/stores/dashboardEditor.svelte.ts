@@ -161,6 +161,7 @@ export class DashboardEditorStore {
         if (itemConfig.type === "media") cardType = "media";
         if (itemConfig.type === "title") cardType = "title";
         if (itemConfig.type === "tabs") cardType = "tabs";
+        if (itemConfig.type === "graph") cardType = "graph";
 
         // Create base layout
         const layout = createDefaultItemLayout(1, cardType, itemConfig.cardSize || 'standard');
@@ -210,7 +211,9 @@ export class DashboardEditorStore {
             subtitle: itemConfig.subtitle || "",
             alignment: itemConfig.alignment || "start",
             tabs: itemConfig.tabs,
-            activeTabIndex: 0
+            activeTabIndex: 0,
+            hours_to_show: itemConfig.hours_to_show,
+            aggregate_func: itemConfig.aggregate_func
         };
 
         config.items.push(newItem);
@@ -975,6 +978,7 @@ export class DashboardEditorStore {
         if (itemConfig.type === "media") cardType = "media";
         if (itemConfig.type === "title") cardType = "title";
         if (itemConfig.type === "tabs") cardType = "tabs";
+        if (itemConfig.type === "graph") cardType = "graph";
 
         // Find next available row
         let maxRow = 1;
@@ -1008,7 +1012,9 @@ export class DashboardEditorStore {
             secondaryName: itemConfig.secondaryName || "",
             domainFilter: itemConfig.domainFilter || "",
             subtitle: itemConfig.subtitle || "",
-            alignment: itemConfig.alignment as "start" | "center" | "end" || "start"
+            alignment: itemConfig.alignment as "start" | "center" | "end" || "start",
+            hours_to_show: itemConfig.hours_to_show,
+            aggregate_func: itemConfig.aggregate_func
         };
 
         config.items.push(newItem);

@@ -25,11 +25,41 @@ export const DashboardItemSchema = z.object({
     id: z.string(),
     name: z.string().default(""),
     entityId: z.string(),
-    cardType: z.enum(["button", "media", "thermostat"]),
+    cardType: z.enum(["button", "media", "thermostat", "graph"]),
     layout: ResponsiveLayoutSchema,
     secondaryEntityId: z.string().default(""),
     secondaryName: z.string().default(""),
     domainFilter: z.string().default(""),
+});
+
+export const GraphCardConfigSchema = z.object({
+    entities: z.array(z.object({
+        entity_id: z.string(),
+        name: z.string().optional(),
+        color: z.string().optional(),
+    })).optional(),
+    hours_to_show: z.number().default(24),
+    points_per_hour: z.number().default(0.5),
+    aggregate_func: z.enum(['avg', 'min', 'max', 'last']).default('avg'),
+    group_by: z.enum(['date', 'hour']).optional(),
+    line_color: z.union([z.string(), z.array(z.string())]).optional(),
+    show: z.object({
+        graph: z.boolean().default(true),
+        icon: z.boolean().default(true),
+        name: z.boolean().default(true),
+        state: z.boolean().default(true),
+        fill: z.boolean().default(true),
+    }).default({
+        graph: true,
+        icon: true,
+        name: true,
+        state: true,
+        fill: true,
+    }),
+    color_thresholds: z.array(z.object({
+        value: z.number(),
+        color: z.string(),
+    })).optional(),
 });
 
 /**

@@ -22,7 +22,8 @@ const DOMAIN_TO_CARD_TYPE: Record<string, DashboardCardType> = {
     'script': 'button',
     'scene': 'button',
     'climate': 'thermostat',
-    'media_player': 'media'
+    'media_player': 'media',
+    'sensor': 'graph'
 };
 
 /**
@@ -42,7 +43,8 @@ const CARD_TYPE_SPANS: Record<DashboardCardType, { desktop: number; mobile: numb
     'thermostat': { desktop: 4, mobile: 4 },
     'media': { desktop: 6, mobile: 4 },
     'title': { desktop: 4, mobile: 4 },
-    'tabs': { desktop: 6, mobile: 4 }
+    'tabs': { desktop: 6, mobile: 4 },
+    'graph': { desktop: 4, mobile: 4 }
 };
 
 /**

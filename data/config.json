@@ -2714,6 +2714,34 @@
               "subtitle": "",
               "alignment": "start",
               "activeTabIndex": 0
+            },
+            {
+              "id": "144bf88a-6dc6-4f50-9d73-f9a4d66ac08b",
+              "cardType": "graph",
+              "entityId": "sensor.outdoor_humidity",
+              "name": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 5,
+                  "rowStart": 6,
+                  "rowSpan": 4
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 10,
+                  "rowSpan": 2
+                }
+              },
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "sensor",
+              "subtitle": "",
+              "alignment": "start",
+              "activeTabIndex": 0,
+              "hours_to_show": 8,
+              "aggregate_func": "avg"
             }
           ],
           "columnGap": 0,

@@ -1,6 +1,7 @@
 // Types
 export * from './types';
 export * from './utils';
+export { HistoryService } from './domain/historyService';
 
 // Stores
 export { haStore, HAStore } from './stores/ha.svelte';
@@ -30,6 +31,7 @@ export { default as ButtonCard } from './features/dashboard/components/cards/But
 export { default as MediaCard } from './features/dashboard/components/cards/MediaCard.svelte';
 export { default as ThermostatCard } from './features/dashboard/components/cards/ThermostatCard.svelte';
 export { default as TitleCard } from './features/dashboard/components/cards/TitleCard.svelte';
+export { default as GraphCard } from './features/dashboard/components/cards/GraphCard.svelte';
 export { default as TabCard } from './features/dashboard/components/cards/TabCard.svelte';
 
 // Layout Components
