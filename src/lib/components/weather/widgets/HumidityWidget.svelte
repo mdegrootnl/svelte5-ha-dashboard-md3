@@ -24,7 +24,9 @@
     });
 
     // Fill percentage (0-100)
-    let fillPercent = $derived(Math.max(0, Math.min(100, humidity)));
+    let fillPercent = $derived(
+        isNaN(humidity) ? 0 : Math.max(0, Math.min(100, humidity)),
+    );
 </script>
 
 <WeatherTile title="Humidity" icon="humidity_percentage">

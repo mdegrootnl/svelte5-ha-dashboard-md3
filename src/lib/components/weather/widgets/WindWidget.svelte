@@ -29,7 +29,9 @@
     // I'll proceed creating the widget assuming the data key `wind_direction_10m` exists, and then patch the store.
 
     let direction = $derived(
-        weatherStore.data?.current?.wind_direction_10m ?? 0,
+        isNaN(weatherStore.data?.current?.wind_direction_10m ?? 0)
+            ? 0
+            : (weatherStore.data?.current?.wind_direction_10m ?? 0),
     );
 
     function getDirectionText(deg: number) {
