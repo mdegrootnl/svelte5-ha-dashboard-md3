@@ -1,4 +1,4 @@
-import { error } from '@sveltejs/kit';
+import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url, request, fetch }) => {
@@ -26,8 +26,11 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
             return new Response(JSON.stringify({ error: 'Missing timestamp' }), { status: 400 });
         }
 
+        // Use INTERNAL_HASS_URL if set (Docker DNS fix), otherwise fallback to client header
+        const baseUrl = env.INTERNAL_HASS_URL || haUrl;
+
         // Normalize URL: remove trailing slash if present
-        const normalizedHaUrl = haUrl.endsWith('/') ? haUrl.slice(0, -1) : haUrl;
+        const normalizedHaUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
 
         // Construct target URL using URL object for robust encoding
         const targetUrl = new URL(`${normalizedHaUrl}/api/history/period/${timestamp}`);
