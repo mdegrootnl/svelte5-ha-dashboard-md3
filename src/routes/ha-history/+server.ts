@@ -27,7 +27,8 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
         }
 
         // Use INTERNAL_HASS_URL if set (Docker DNS fix), otherwise fallback to client header
-        const internalUrl = env.INTERNAL_HASS_URL;
+        // Check both SvelteKit env and raw process.env to be sure
+        const internalUrl = env.INTERNAL_HASS_URL || process.env.INTERNAL_HASS_URL;
         const baseUrl = internalUrl || haUrl;
 
         console.log(`[History Proxy] Internal URL Env: '${internalUrl}'`);

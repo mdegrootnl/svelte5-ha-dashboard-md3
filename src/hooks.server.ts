@@ -1,5 +1,13 @@
 import type { Handle } from '@sveltejs/kit';
 import { dev } from '$app/environment';
+import dns from 'node:dns';
+
+// Force usage of IPv4 for DNS resolution
+// This fixes issues with .local domains in Docker/Node 17+ where it tries IPv6 first and fails
+// ignoring the IPv4 response that standard tools like ping might find.
+if (dns.setDefaultResultOrder) {
+    dns.setDefaultResultOrder('ipv4first');
+}
 
 export const handle: Handle = async ({ event, resolve }) => {
     // Debug logging for API requests
