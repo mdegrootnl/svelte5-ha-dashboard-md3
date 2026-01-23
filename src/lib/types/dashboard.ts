@@ -1,5 +1,5 @@
-// Dashboard Grid System Types
 // Figma-inspired coordinate-based layout system
+import { generateUUID } from '../utils/uuid';
 
 /**
  * Represents a single track (row or column) in the grid
@@ -164,7 +164,7 @@ export type Breakpoint = "desktop" | "mobile";
  */
 export function createDefaultGridConfig(name: string = "Dashboard", icon: string = "home"): GridConfig {
     return {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         name,
         icon,
         columns: {

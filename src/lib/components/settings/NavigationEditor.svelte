@@ -4,6 +4,7 @@
     import IconPicker from "$lib/components/common/IconPicker.svelte";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import type { NavigationItem } from "$lib/types/config";
+    import { generateUUID } from "$lib/utils/uuid";
 
     import Add from "~icons/material-symbols/add";
     import Delete from "~icons/material-symbols/delete";
@@ -18,7 +19,7 @@
 
     function handleAdd() {
         const newItem: NavigationItem = {
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             label: "New Item",
             icon: "circle",
             href: "/",

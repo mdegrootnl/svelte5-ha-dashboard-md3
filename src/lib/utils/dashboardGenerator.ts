@@ -10,6 +10,7 @@ import type {
     HAArea
 } from '$lib/types/dashboard';
 import { createDefaultGridConfig } from '$lib/types/dashboard';
+import { generateUUID } from './uuid';
 
 /**
  * Entity domain to card type mapping
@@ -120,7 +121,7 @@ export function packItemsIntoGrid(
         const mobilePos = getNextPosition(mobileOccupancy, spans.mobile, mobileColumns);
 
         result.push({
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             entityId: item.entityId,
             cardType: item.cardType,
             name: "",

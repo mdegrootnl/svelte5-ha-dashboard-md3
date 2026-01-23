@@ -2740,7 +2740,7 @@
               "subtitle": "",
               "alignment": "start",
               "activeTabIndex": 0,
-              "hours_to_show": 8,
+              "hours_to_show": 24,
               "aggregate_func": "avg"
             }
           ],

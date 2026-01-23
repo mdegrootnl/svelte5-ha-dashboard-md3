@@ -9,6 +9,7 @@ import type {
 } from '$lib/types/dashboard';
 import { createDefaultItemLayout } from '$lib/types/dashboard';
 import { dashboardStore } from './dashboard.svelte';
+import { generateUUID } from '$lib/utils/uuid';
 
 /**
  * Dashboard Editor Store - Controls interactive editing of dashboard layouts
@@ -200,7 +201,7 @@ export class DashboardEditorStore {
         }
 
         const newItem: DashboardItem = {
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             cardType,
             entityId: itemConfig.entityId || "",
             name: itemConfig.name || "",
@@ -777,7 +778,7 @@ export class DashboardEditorStore {
 
             // Create explicit tracks
             config.rows = Array.from({ length: maxRow }, () => ({
-                id: crypto.randomUUID(),
+                id: generateUUID(),
                 type: "row",
                 size: defaultHeight
             }));
@@ -790,7 +791,7 @@ export class DashboardEditorStore {
             const newTracksCount = rowIndex - currentTracks.length;
 
             const newTracks = Array.from({ length: newTracksCount }, () => ({
-                id: crypto.randomUUID(),
+                id: generateUUID(),
                 type: "row",
                 size: defaultHeight
             }));
@@ -835,7 +836,7 @@ export class DashboardEditorStore {
             maxRow = Math.max(maxRow, minRows);
 
             config.rows = Array.from({ length: maxRow }, () => ({
-                id: crypto.randomUUID(),
+                id: generateUUID(),
                 type: "row",
                 size: defaultHeight
             }));
@@ -843,7 +844,7 @@ export class DashboardEditorStore {
 
         // Insert new track
         const newTrack = {
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             type: "row" as const,
             size: height ?? defaultHeight
         };
@@ -856,7 +857,7 @@ export class DashboardEditorStore {
         if (rowIndex > currentTracks.length + 1) {
             const fillCount = rowIndex - 1 - currentTracks.length;
             const fillers = Array.from({ length: fillCount }, () => ({
-                id: crypto.randomUUID(),
+                id: generateUUID(),
                 type: "row",
                 size: defaultHeight
             }));
@@ -918,7 +919,7 @@ export class DashboardEditorStore {
             maxRow = Math.max(maxRow, minRows);
 
             config.rows = Array.from({ length: maxRow }, () => ({
-                id: crypto.randomUUID(),
+                id: generateUUID(),
                 type: "row",
                 size: defaultHeight
             }));
