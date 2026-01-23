@@ -1,5 +1,8 @@
-import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
+import dns from 'node:dns';
+import { promisify } from 'util';
+
+const lookup = promisify(dns.lookup);
 
 export const GET: RequestHandler = async ({ url, request, fetch }) => {
     try {
@@ -26,29 +29,39 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
             return new Response(JSON.stringify({ error: 'Missing timestamp' }), { status: 400 });
         }
 
-        // Use INTERNAL_HASS_URL if set (Docker DNS fix), otherwise fallback to client header
-        // Check both SvelteKit env and raw process.env to be sure
-        const internalUrl = env.INTERNAL_HASS_URL || process.env.INTERNAL_HASS_URL;
-        const baseUrl = internalUrl || haUrl;
-
-        console.log(`[History Proxy] Internal URL Env: '${internalUrl}'`);
-        console.log(`[History Proxy] Client Header URL: '${haUrl}'`);
-        console.log(`[History Proxy] Using Base URL: '${baseUrl}'`);
-
         // Normalize URL: remove trailing slash if present
-        const normalizedHaUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+        const normalizedHaUrl = haUrl.endsWith('/') ? haUrl.slice(0, -1) : haUrl;
 
-        // Construct target URL using URL object for robust encoding
-        const targetUrl = new URL(`${normalizedHaUrl}/api/history/period/${timestamp}`);
+        // Parse the provided HA URL to extract hostname
+        const parsedHaUrl = new URL(normalizedHaUrl);
+        const originalHost = parsedHaUrl.hostname;
+
+        // Manually resolve hostname to IPv4 to bypass Docker .local issues
+        let resolvedHost = originalHost;
+        try {
+            // Only try to resolve if it's not already an IP
+            if (!/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(originalHost)) {
+                const { address } = await lookup(originalHost, { family: 4 });
+                resolvedHost = address;
+                console.log(`[History Proxy] Resolved ${originalHost} -> ${resolvedHost}`);
+            }
+        } catch (dnsErr) {
+            console.warn(`[History Proxy] DNS lookup failed for ${originalHost}, using original.`, dnsErr);
+        }
+
+        // Construct target URL using the RESOLVED IP but keeping the port/protocol
+        // We must preserve the original Host header so the server accepts it (if vhost)
+        const targetUrl = new URL(`${parsedHaUrl.protocol}//${resolvedHost}:${parsedHaUrl.port || (parsedHaUrl.protocol === 'https:' ? '443' : '80')}/api/history/period/${timestamp}`);
+
         if (endTime) targetUrl.searchParams.set('end_time', endTime);
         if (filter) targetUrl.searchParams.set('filter_entity_id', filter);
-
-        // console.log('[History Proxy] Fetching:', targetUrl.toString());
 
         const res = await fetch(targetUrl.toString(), {
             headers: {
                 'Authorization': auth,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                // Important: Pass the original Host header in case the server checks it
+                'Host': originalHost
             }
         });
 
