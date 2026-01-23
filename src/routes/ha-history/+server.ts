@@ -70,10 +70,22 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
 
     } catch (err: any) {
         console.error('[History Proxy] Internal Error:', err);
+        if (err.cause) console.error('[History Proxy] Error Cause:', err.cause);
+
+        // Serialize cause if it exists (it's often an Error object)
+        let causeInfo = undefined;
+        if (err.cause) {
+            causeInfo = err.cause instanceof Error ? err.cause.message : String(err.cause);
+            // Check for common connection errors to give a hint
+            if (String(err.cause).includes('ECONNREFUSED')) {
+                causeInfo += ' (Connection Refused - Check IP/Port visibility)';
+            }
+        }
 
         return new Response(JSON.stringify({
             error: 'Internal Proxy Error',
             message: err.message,
+            cause: causeInfo,
             stack: err.stack
         }), {
             status: 500,
