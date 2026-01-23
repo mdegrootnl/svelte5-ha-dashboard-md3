@@ -27,7 +27,12 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
         }
 
         // Use INTERNAL_HASS_URL if set (Docker DNS fix), otherwise fallback to client header
-        const baseUrl = env.INTERNAL_HASS_URL || haUrl;
+        const internalUrl = env.INTERNAL_HASS_URL;
+        const baseUrl = internalUrl || haUrl;
+
+        console.log(`[History Proxy] Internal URL Env: '${internalUrl}'`);
+        console.log(`[History Proxy] Client Header URL: '${haUrl}'`);
+        console.log(`[History Proxy] Using Base URL: '${baseUrl}'`);
 
         // Normalize URL: remove trailing slash if present
         const normalizedHaUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
