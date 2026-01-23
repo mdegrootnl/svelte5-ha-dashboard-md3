@@ -281,8 +281,18 @@ export class HAStore {
             );
 
             if (!response.ok) {
-                logger.error("Response not OK:", response.status, response.statusText);
-                throw new Error(`History fetch failed: ${response.status}`);
+                let errorDetails = response.statusText;
+                try {
+                    const errJson = await response.json();
+                    errorDetails = errJson.message || errJson.details || JSON.stringify(errJson);
+                } catch (e) {
+                    try {
+                        errorDetails = await response.text();
+                    } catch (e2) { /* ignore */ }
+                }
+
+                logger.error("Response not OK:", response.status, errorDetails);
+                throw new Error(`History fetch failed: ${response.status} - ${errorDetails}`);
             }
 
             const rawData = await response.json();

@@ -2,30 +2,30 @@ import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url, request, fetch }) => {
-    // Extract query parameters
-    const searchParams = url.searchParams.toString();
-
-    // Get headers
-    const haUrl = request.headers.get('x-ha-url');
-    const auth = request.headers.get('Authorization');
-
-    if (!haUrl) {
-        throw error(400, 'Missing x-ha-url header');
-    }
-
-    if (!auth) {
-        throw error(401, 'Missing Authorization header');
-    }
-
-    const timestamp = url.searchParams.get('timestamp');
-    const endTime = url.searchParams.get('end_time');
-    const filter = url.searchParams.get('filter_entity_id');
-
-    if (!timestamp) {
-        throw error(400, 'Missing timestamp');
-    }
-
     try {
+        // Extract query parameters
+        const searchParams = url.searchParams.toString();
+
+        // Get headers
+        const haUrl = request.headers.get('x-ha-url');
+        const auth = request.headers.get('Authorization');
+
+        if (!haUrl) {
+            return new Response(JSON.stringify({ error: 'Missing x-ha-url header' }), { status: 400 });
+        }
+
+        if (!auth) {
+            return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401 });
+        }
+
+        const timestamp = url.searchParams.get('timestamp');
+        const endTime = url.searchParams.get('end_time');
+        const filter = url.searchParams.get('filter_entity_id');
+
+        if (!timestamp) {
+            return new Response(JSON.stringify({ error: 'Missing timestamp' }), { status: 400 });
+        }
+
         // Normalize URL: remove trailing slash if present
         const normalizedHaUrl = haUrl.endsWith('/') ? haUrl.slice(0, -1) : haUrl;
 
@@ -44,9 +44,23 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
         });
 
         if (!res.ok) {
-            // console.error(`[History Proxy] Upstream Error: ${res.status} ${res.statusText}`);
-            // Return 502 Bad Gateway to distinguish "Proxy not found" (404) from "HA error"
-            return new Response(JSON.stringify({ error: 'Upstream Error' }), { status: res.status });
+            // Try to get error details from upstream
+            let details = res.statusText;
+            try {
+                const errBody = await res.text();
+                details = errBody || res.statusText;
+            } catch (e) { /* ignore */ }
+
+            console.error(`[History Proxy] Upstream Error: ${res.status} ${details}`);
+
+            return new Response(JSON.stringify({
+                error: 'Upstream Error',
+                status: res.status,
+                details
+            }), {
+                status: res.status,
+                headers: { 'Content-Type': 'application/json' }
+            });
         }
 
         const data = await res.json();
@@ -55,10 +69,15 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
         });
 
     } catch (err: any) {
-        // console.error('[History Proxy] Error:', err);
-        // If it's already an HttpError (like our 502), rethrow it
-        if (err.status) throw err;
+        console.error('[History Proxy] Internal Error:', err);
 
-        throw error(500, `Internal Proxy Error: ${err.message}`);
+        return new Response(JSON.stringify({
+            error: 'Internal Proxy Error',
+            message: err.message,
+            stack: err.stack
+        }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 };
