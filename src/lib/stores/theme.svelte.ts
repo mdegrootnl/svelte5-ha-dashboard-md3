@@ -4,6 +4,7 @@ import {
     themeFromSourceColor,
     Blend,
     sourceColorFromImage,
+    Hct,
     type Theme
 } from '@material/material-color-utilities';
 import { browser } from '$app/environment';
@@ -274,6 +275,18 @@ export class ThemeStore {
             set('surface-container', neutral.tone(94));
             set('surface-container-high', neutral.tone(92));
             set('surface-container-highest', neutral.tone(90));
+        }
+
+        // --- Derived Graph Colors (HCT Rotation) ---
+        const sourceHct = Hct.fromInt(argbFromHex(this.sourceColor));
+        const graphTone = this.isDark ? 80 : 40;
+        const graphChroma = Math.max(sourceHct.chroma, 48); // Ensure good visibility
+
+        for (let i = 0; i < 6; i++) {
+            // Rotate hue by 60 degrees for each of the 6 colors
+            const rotatedHue = (sourceHct.hue + (i * 60)) % 360;
+            const graphColor = Hct.from(rotatedHue, graphChroma, graphTone);
+            root.style.setProperty(`--color-m3-graph-${i + 1}`, hexFromArgb(graphColor.toInt()));
         }
 
         // --- Browser Level UI Enhancements ---

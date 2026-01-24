@@ -216,6 +216,23 @@
                 ></div>
             </div>
         </section>
+
+        <!-- Graph Variant Palette Visualization -->
+        <section class="flex flex-col gap-2">
+            <span class="text-m3-label-large text-m3-on-surface"
+                >Graph Variants (HCT)</span
+            >
+            <div class="grid grid-cols-6 gap-1.5 h-12">
+                {#each Array(6) as _, i}
+                    {@const varName = `m3-graph-${i + 1}`}
+                    <div
+                        class="h-full rounded-sm border border-m3-outline-variant/20"
+                        style:background-color="var(--color-{varName})"
+                        use:tooltip={varName}
+                    ></div>
+                {/each}
+            </div>
+        </section>
     </aside>
 
     <PageShell

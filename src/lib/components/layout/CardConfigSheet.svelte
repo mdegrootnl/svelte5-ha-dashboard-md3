@@ -18,10 +18,16 @@
     import IconHdrAuto from "~icons/material-symbols/hdr-auto";
     import IconViewModule from "~icons/material-symbols/view-module";
     import IconShowChart from "~icons/material-symbols/show-chart";
+    import IconAdd from "~icons/material-symbols/add";
+    import IconButton from "$lib/components/md3/IconButton.svelte";
     import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import { getDomain } from "$lib/utils/entity";
-    import type { ThermostatCardConfig, CardSize } from "$lib/types";
+    import type {
+        ThermostatCardConfig,
+        CardSize,
+        GraphCardEntity,
+    } from "$lib/types";
 
     function handleDelete() {
         if (cardEditorStore.config.id) {
@@ -47,6 +53,7 @@
         alignment: "start" | "center" | "end";
         hours_to_show: number;
         aggregate_func: "avg" | "min" | "max" | "last";
+        graphEntities: GraphCardEntity[];
     }>({
         entityId: "",
         name: "",
@@ -58,6 +65,7 @@
         alignment: "start",
         hours_to_show: 24,
         aggregate_func: "avg",
+        graphEntities: [],
     });
 
     // Get current entity domain for icon display
@@ -92,6 +100,9 @@
                 alignment: (config as any).alignment || "start",
                 hours_to_show: (config as any).hours_to_show ?? 24,
                 aggregate_func: (config as any).aggregate_func ?? "avg",
+                graphEntities: JSON.parse(
+                    JSON.stringify((config as any).graphEntities || []),
+                ),
             };
         }
     });
@@ -295,6 +306,7 @@
                             name={tempConfig.name}
                             hours_to_show={tempConfig.hours_to_show}
                             aggregate_func={tempConfig.aggregate_func}
+                            graphEntities={tempConfig.graphEntities}
                         />
                     {:else}
                         <ButtonCard
@@ -405,6 +417,99 @@
                             <option value="max">Maximum</option>
                             <option value="last">Last Value</option>
                         </select>
+                    </div>
+
+                    <div
+                        class="border-t border-m3-outline-variant/30 pt-4 flex flex-col gap-4"
+                    >
+                        <div class="flex items-center justify-between px-2">
+                            <span class="text-m3-title-small text-m3-on-surface"
+                                >Additional Sensors</span
+                            >
+                            <IconButton
+                                icon={IconAdd}
+                                onclick={() => {
+                                    tempConfig.graphEntities = [
+                                        ...tempConfig.graphEntities,
+                                        { entity_id: "", name: "", color: "" },
+                                    ];
+                                }}
+                            />
+                        </div>
+
+                        {#each tempConfig.graphEntities as entity, idx}
+                            <div
+                                class="p-3 rounded-m3-sm bg-m3-surface-container flex flex-col gap-3 relative border border-m3-outline-variant/30"
+                            >
+                                <button
+                                    class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-m3-error text-m3-on-error flex items-center justify-center shadow-sm z-10"
+                                    onclick={() => {
+                                        tempConfig.graphEntities =
+                                            tempConfig.graphEntities.filter(
+                                                (_, i) => i !== idx,
+                                            );
+                                    }}
+                                >
+                                    <IconDelete class="size-4" />
+                                </button>
+
+                                <EntityPicker
+                                    label="Sensor Entity"
+                                    bind:value={entity.entity_id}
+                                    domainFilter="sensor"
+                                />
+
+                                <div class="flex gap-2">
+                                    <div class="flex-1">
+                                        <TextField
+                                            variant="outlined"
+                                            label="Label"
+                                            bind:value={entity.name}
+                                        />
+                                    </div>
+                                    <div
+                                        class="flex flex-col gap-1 shrink-0 px-1"
+                                    >
+                                        <span
+                                            class="text-[10px] text-m3-on-surface-variant uppercase tracking-wider font-bold opacity-70"
+                                            >Color</span
+                                        >
+                                        <div
+                                            class="grid grid-cols-4 gap-1 p-1 rounded-lg bg-m3-surface-container-high border border-m3-outline-variant/20"
+                                        >
+                                            {#each Array(6) as _, i}
+                                                {@const colorVar = `var(--color-m3-graph-${i + 1})`}
+                                                <button
+                                                    class="size-5 rounded-full border-2 transition-transform hover:scale-110 active:scale-95"
+                                                    style:background-color={colorVar}
+                                                    style:border-color={entity.color ===
+                                                    colorVar
+                                                        ? "white"
+                                                        : "transparent"}
+                                                    onclick={() =>
+                                                        (entity.color =
+                                                            colorVar)}
+                                                    title={`Color ${i + 1}`}
+                                                ></button>
+                                            {/each}
+                                            <button
+                                                class="size-5 rounded-full border-2 border-m3-outline-variant bg-transparent flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
+                                                style:border-color={!entity.color
+                                                    ? "white"
+                                                    : "transparent"}
+                                                onclick={() =>
+                                                    (entity.color = "")}
+                                                title="Auto/Theme"
+                                            >
+                                                <div
+                                                    class="size-1 bg-m3-on-surface-variant rounded-full"
+                                                ></div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {/each}
                     </div>
                 </div>
             {/if}

@@ -1,6 +1,6 @@
 {
   "theme": {
-    "sourceColor": "#ff8000",
+    "sourceColor": "#8080ff",
     "isDark": true,
     "navigationStyle": "standard",
     "navigationItems": [
@@ -2948,6 +2948,68 @@
         }
       ],
       "activeTabId": "e8ce3c51-4d4f-4ca6-90ec-3d0b1538cac2"
+    },
+    "dashboard_begane_grond_gang": {
+      "id": "dashboard_begane_grond_gang",
+      "tabs": [
+        {
+          "id": "adad5328-a53e-45a6-8049-2cd1ca9cb444",
+          "name": "Lights",
+          "icon": "home",
+          "columns": {
+            "desktop": 12,
+            "mobile": 4
+          },
+          "rows": "implicit",
+          "gap": 16,
+          "padding": 16,
+          "rowHeight": 80,
+          "items": []
+        },
+        {
+          "id": "e0bff58c-5d1a-464a-8f33-194409311814",
+          "name": "Climate",
+          "icon": "home",
+          "columns": {
+            "desktop": 12,
+            "mobile": 4
+          },
+          "rows": "implicit",
+          "gap": 16,
+          "padding": 16,
+          "rowHeight": 80,
+          "items": []
+        },
+        {
+          "id": "d68aa27c-ac47-4710-bf71-31cc39848d7f",
+          "name": "Media",
+          "icon": "home",
+          "columns": {
+            "desktop": 12,
+            "mobile": 4
+          },
+          "rows": "implicit",
+          "gap": 16,
+          "padding": 16,
+          "rowHeight": 80,
+          "items": []
+        },
+        {
+          "id": "ed7de727-5b1b-40b9-85d8-0cb12e208626",
+          "name": "Other",
+          "icon": "home",
+          "columns": {
+            "desktop": 12,
+            "mobile": 4
+          },
+          "rows": "implicit",
+          "gap": 16,
+          "padding": 16,
+          "rowHeight": 80,
+          "items": []
+        }
+      ],
+      "activeTabId": "adad5328-a53e-45a6-8049-2cd1ca9cb444"
     }
   },
   "musicLibrary": {
@@ -3055,6 +3117,16 @@
           }
         ],
         "image_url": "https://i.scdn.co/image/ab67616d0000b273164feb363334f93b6458d2a9"
+      },
+      {
+        "media_type": "playlist",
+        "uri": "spotify--jASndrZU://playlist/37i9dQZF1EIVRs5k0hyvGv",
+        "name": "Chris Deluxe Mix",
+        "version": "",
+        "image": "https://pickasso.spotifycdn.com/image/ab67c0de0000deef/dt/v1/img/artistmix/3neuwmD1AV79T0xCzCcYkB/en-GB",
+        "favorite": false,
+        "explicit": null,
+        "image_url": "https://pickasso.spotifycdn.com/image/ab67c0de0000deef/dt/v1/img/artistmix/3neuwmD1AV79T0xCzCcYkB/en-GB"
       }
     ],
     "lastSyncedAt": 0,

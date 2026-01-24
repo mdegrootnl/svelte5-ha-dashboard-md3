@@ -1,5 +1,6 @@
 // Figma-inspired coordinate-based layout system
 import { generateUUID } from '../utils/uuid';
+import type { GraphCardEntity } from './index';
 
 /**
  * Represents a single track (row or column) in the grid
@@ -65,6 +66,7 @@ export interface DashboardItem {
     /** Graph Card Properties */
     hours_to_show?: number;
     aggregate_func?: "avg" | "min" | "max" | "last";
+    graphEntities?: GraphCardEntity[];
 }
 
 /**

@@ -88,8 +88,8 @@ export interface GraphCardEntity {
 }
 
 export interface GraphCardConfig extends BaseCardConfig {
-    type: 'graph';
-    entities?: GraphCardEntity[];
+    type?: 'graph';
+    graphEntities?: GraphCardEntity[];
     hours_to_show?: number;
     points_per_hour?: number;
     aggregate_func?: 'avg' | 'min' | 'max' | 'last';

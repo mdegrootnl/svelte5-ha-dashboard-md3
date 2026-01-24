@@ -4,9 +4,9 @@
         cardEditorStore,
         getEntityName,
         getDomain,
-        type GraphCardConfig,
         type HistoryDataPoint,
         HistoryService,
+        type GraphCardEntity,
     } from "$lib";
     import IconEdit from "~icons/material-symbols/edit";
     import IconShowChart from "~icons/material-symbols/show-chart";
@@ -19,7 +19,23 @@
     import IconPlayCircle from "~icons/material-symbols/play-circle";
     import IconDevices from "~icons/material-symbols/devices";
 
-    interface Props extends GraphCardConfig {
+    interface Props {
+        id?: string;
+        type?: "graph";
+        entityId: string;
+        name: string;
+        hours_to_show?: number;
+        points_per_hour?: number;
+        aggregate_func?: "avg" | "min" | "max" | "last";
+        show?: {
+            graph?: boolean;
+            icon?: boolean;
+            name?: boolean;
+            state?: boolean;
+            fill?: boolean;
+        };
+        line_color?: string | string[];
+        graphEntities?: GraphCardEntity[];
         ondelete?: () => void;
         class?: string;
     }
@@ -34,6 +50,7 @@
         aggregate_func = $bindable("avg"),
         show = { graph: true, icon: true, name: true, state: true, fill: true },
         line_color,
+        graphEntities = $bindable([]),
         ondelete,
         class: className = "",
     }: Props = $props();
@@ -71,13 +88,27 @@
         }
     });
 
-    let historyData = $state<HistoryDataPoint[]>([]);
+    let historyData = $state<
+        Array<{ entityId: string; points: HistoryDataPoint[]; color?: string }>
+    >([]);
     let isLoading = $state(false);
     let error = $state<string | null>(null);
 
-    // Fetch history data
+    // Fetch history data for all entities
     $effect(() => {
-        if (!entityId || !haStore.connected || !haStore.auth) return;
+        const entitiesToFetch = [
+            ...(entityId
+                ? [{ entity_id: entityId, name, color: line_color as string }]
+                : []),
+            ...graphEntities.map((ge) => ({
+                entity_id: ge.entity_id,
+                name: ge.name,
+                color: ge.color,
+            })),
+        ];
+
+        if (entitiesToFetch.length === 0 || !haStore.connected || !haStore.auth)
+            return;
 
         async function fetchHistory() {
             isLoading = true;
@@ -88,19 +119,29 @@
                 end.getTime() - hours_to_show * 60 * 60 * 1000,
             );
 
-            const result = await haStore.getHistory([entityId], start, end);
+            const entityIds = entitiesToFetch.map((e) => e.entity_id);
+            const result = await haStore.getHistory(entityIds, start, end);
 
             if (result.ok) {
-                const points = result.value[0]?.points || [];
                 const targetCount = Math.max(
                     10,
                     Math.floor(hours_to_show * points_per_hour),
                 );
-                historyData = HistoryService.aggregateHistory(
-                    points,
-                    aggregate_func,
-                    targetCount,
-                );
+
+                historyData = result.value.map((res, idx) => {
+                    const config = entitiesToFetch[idx];
+                    return {
+                        entityId: config.entity_id,
+                        points: HistoryService.aggregateHistory(
+                            res.points || [],
+                            aggregate_func,
+                            targetCount,
+                        ),
+                        color:
+                            config.color ||
+                            `var(--color-m3-graph-${(idx % 6) + 1})`,
+                    };
+                });
             } else {
                 error = result.error.message;
             }
@@ -113,16 +154,17 @@
     function openConfig(e: Event) {
         e.stopPropagation();
         cardEditorStore.open({
-            id,
             entityId,
             name,
             type: "graph",
+            graphEntities,
             onSave: (newConfig) => {
                 if (newConfig.type === "graph") {
                     entityId = newConfig.entityId;
                     name = newConfig.name;
                     hours_to_show = newConfig.hours_to_show ?? 24;
                     aggregate_func = newConfig.aggregate_func ?? "avg";
+                    graphEntities = newConfig.graphEntities || [];
                 }
             },
             onDelete: ondelete,
@@ -182,12 +224,12 @@
 
         {#if show.graph !== false}
             <MiniChart
-                data={historyData}
+                series={historyData.map((s) => ({
+                    data: s.points,
+                    color: s.color,
+                    isFilled: show.fill !== false,
+                }))}
                 height={80}
-                color={line_color && typeof line_color === "string"
-                    ? line_color
-                    : undefined}
-                isFilled={show.fill !== false}
             />
         {/if}
     </div>

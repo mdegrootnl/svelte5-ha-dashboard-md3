@@ -85,6 +85,14 @@
     --color-m3-outline: oklch(0.50 0.02 240);
     --color-m3-outline-variant: oklch(0.80 0.01 240);
     --color-m3-scrim: oklch(0 0 0);
+
+    /* --- Graph Variants (Dynamic) --- */
+    --color-m3-graph-1: #4285F4;
+    --color-m3-graph-2: #34A853;
+    --color-m3-graph-3: #FBBC05;
+    --color-m3-graph-4: #EA4335;
+    --color-m3-graph-5: #9C27B0;
+    --color-m3-graph-6: #00BCD4;
 }
 
 /* Fallback for system dark mode to prevent flash before JS hydration */
