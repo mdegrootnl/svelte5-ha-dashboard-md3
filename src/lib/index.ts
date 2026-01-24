@@ -33,6 +33,7 @@ export { default as ThermostatCard } from './features/dashboard/components/cards
 export { default as TitleCard } from './features/dashboard/components/cards/TitleCard.svelte';
 export { default as GraphCard } from './features/dashboard/components/cards/GraphCard.svelte';
 export { default as TabCard } from './features/dashboard/components/cards/TabCard.svelte';
+export { default as NavigationCard } from './features/dashboard/components/cards/NavigationCard.svelte';
 
 // Layout Components
 export { default as NavigationRail } from './components/layout/NavigationRail.svelte';

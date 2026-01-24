@@ -14,6 +14,7 @@
         selected?: boolean; // For toggle behavior
         class?: string;
         disabled?: boolean;
+        title?: string;
     }
 
     let {
@@ -23,6 +24,7 @@
         selected = false,
         class: className = "",
         disabled = false,
+        title,
     }: Props = $props();
 
     const baseStyles =
@@ -43,6 +45,7 @@
     class="{baseStyles} {variantStyles[variant]} {className}"
     onclick={!disabled ? onclick : undefined}
     {disabled}
+    {title}
 >
     {#if Icon}
         <Icon class="size-6" />

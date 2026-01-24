@@ -32,9 +32,13 @@ export class DashboardEditorStore {
     resizeDirection = $state<'right' | 'bottom' | 'corner' | null>(null);
 
     // Grid info for calculations
+    private gridElement: HTMLElement | null = null;
     private gridRect: DOMRect | null = null;
     private cellWidth = 0;
-    private cellHeight = 80; // Default row height
+    private cellHeight = 80;
+    private gridPadding = 16;
+    private gridColumnGap = 16;
+    private gridRowGap = 16;
 
     /**
      * Toggle edit mode
@@ -163,6 +167,7 @@ export class DashboardEditorStore {
         if (itemConfig.type === "title") cardType = "title";
         if (itemConfig.type === "tabs") cardType = "tabs";
         if (itemConfig.type === "graph") cardType = "graph";
+        if (itemConfig.type === "navigation") cardType = "navigation";
 
         // Create base layout
         const layout = createDefaultItemLayout(1, cardType, itemConfig.cardSize || 'standard');
@@ -214,7 +219,13 @@ export class DashboardEditorStore {
             tabs: itemConfig.tabs,
             activeTabIndex: 0,
             hours_to_show: itemConfig.hours_to_show,
-            aggregate_func: itemConfig.aggregate_func
+            aggregate_func: itemConfig.aggregate_func,
+            // Navigation properties
+            path: itemConfig.path || "",
+            iconType: itemConfig.iconType || "icon",
+            imageUrl: itemConfig.imageUrl || "",
+            icon: itemConfig.icon || "",
+            shortcuts: itemConfig.shortcuts || []
         };
 
         config.items.push(newItem);
@@ -230,9 +241,35 @@ export class DashboardEditorStore {
     /**
      * Update grid dimensions for position calculations
      */
-    updateGridDimensions(rect: DOMRect, columnCount: number, gap: number) {
+    updateGridDimensions(
+        rect: DOMRect,
+        columnCount: number,
+        colGap: number,
+        rowGap: number,
+        rowHeight: number,
+        padding: number,
+        element?: HTMLElement
+    ) {
         this.gridRect = rect;
-        this.cellWidth = (rect.width - (gap * (columnCount - 1))) / columnCount;
+        if (element) this.gridElement = element;
+
+        // Calculate scale factor by comparing physical width to CSS width
+        // This is critical if the dashboard is scaled (e.g. via transform: scale)
+        let scale = 1;
+        if (element && element.offsetWidth > 0) {
+            scale = rect.width / element.offsetWidth;
+        }
+
+        // Apply scale to all CSS-based inputs to get physical viewport units
+        this.gridPadding = padding * scale;
+        this.gridColumnGap = colGap * scale;
+        this.gridRowGap = rowGap * scale;
+        this.cellHeight = rowHeight * scale;
+
+        // Calculate cell width in physical viewport units
+        // contentWidth is total physical width minus double physical padding
+        const contentWidth = rect.width - (this.gridPadding * 2);
+        this.cellWidth = (contentWidth - (this.gridColumnGap * (columnCount - 1))) / columnCount;
     }
 
     // Grid focus state for nested editing
@@ -364,7 +401,11 @@ export class DashboardEditorStore {
      * Update drag position (calculates target grid cell)
      */
     updateDragPosition(clientX: number, clientY: number, breakpoint: Breakpoint) {
-        if (!this.isDragging || !this.gridRect || !this.dragItemId) return;
+        if (!this.isDragging || !this.dragItemId) return;
+
+        // Use fresh rect to account for scroll
+        const rect = this.gridElement ? this.gridElement.getBoundingClientRect() : this.gridRect;
+        if (!rect) return;
 
         const context = this.getActiveGrid();
         if (!context) return;
@@ -377,17 +418,19 @@ export class DashboardEditorStore {
         const columnCount = breakpoint === 'desktop' ? config.columns.desktop : config.columns.mobile;
 
         // Calculate relative position in grid
-        const relX = clientX - this.gridRect.left;
-        const relY = clientY - this.gridRect.top;
+        const relX = clientX - rect.left;
+        const relY = clientY - rect.top;
 
-        // Calculate target column (1-indexed)
+        // Snapping logic: Snap when mouse crosses the midpoint of a gap
+        // Using Math.floor((rel - padding + gap/2) / (cell + gap)) + 1
         const targetCol = Math.max(1, Math.min(
             columnCount - layout.colSpan + 1,
-            Math.floor(relX / (this.cellWidth + config.gap)) + 1
+            Math.floor((relX - this.gridPadding + (this.gridColumnGap / 2)) / (this.cellWidth + this.gridColumnGap)) + 1
         ));
 
-        // Calculate target row (1-indexed)
-        const targetRow = Math.max(1, Math.floor(relY / (this.cellHeight + config.gap)) + 1);
+        const targetRow = Math.max(1,
+            Math.floor((relY - this.gridPadding + (this.gridRowGap / 2)) / (this.cellHeight + this.gridRowGap)) + 1
+        );
 
         this.dragGhostPosition = { col: targetCol, row: targetRow };
     }
@@ -456,7 +499,11 @@ export class DashboardEditorStore {
      * Update resize preview
      */
     updateResize(clientX: number, clientY: number, breakpoint: Breakpoint) {
-        if (!this.isResizing || !this.gridRect || !this.resizeItemId) return;
+        if (!this.isResizing || !this.resizeItemId) return;
+
+        // Use fresh rect to account for scroll
+        const rect = this.gridElement ? this.gridElement.getBoundingClientRect() : this.gridRect;
+        if (!rect) return;
 
         const context = this.getActiveGrid();
         if (!context) return;
@@ -469,12 +516,13 @@ export class DashboardEditorStore {
         const columnCount = breakpoint === 'desktop' ? config.columns.desktop : config.columns.mobile;
 
         // Calculate relative position
-        const relX = clientX - this.gridRect.left;
-        const relY = clientY - this.gridRect.top;
+        const relX = clientX - rect.left;
+        const relY = clientY - rect.top;
 
         // Calculate new spans based on direction
+        // Snapping logic: Snap when mouse crosses the midpoint of a gap
         if (this.resizeDirection === 'right' || this.resizeDirection === 'corner') {
-            const endCol = Math.floor(relX / (this.cellWidth + config.gap)) + 1;
+            const endCol = Math.floor((relX - this.gridPadding + (this.gridColumnGap / 2)) / (this.cellWidth + this.gridColumnGap)) + 1;
             const newColSpan = Math.max(1, Math.min(
                 columnCount - layout.colStart + 1,
                 endCol - layout.colStart + 1
@@ -488,7 +536,7 @@ export class DashboardEditorStore {
         }
 
         if (this.resizeDirection === 'bottom' || this.resizeDirection === 'corner') {
-            const endRow = Math.floor(relY / (this.cellHeight + config.gap)) + 1;
+            const endRow = Math.floor((relY - this.gridPadding + (this.gridRowGap / 2)) / (this.cellHeight + this.gridRowGap)) + 1;
             let newRowSpan = Math.max(1, endRow - layout.rowStart + 1);
 
 
@@ -980,6 +1028,7 @@ export class DashboardEditorStore {
         if (itemConfig.type === "title") cardType = "title";
         if (itemConfig.type === "tabs") cardType = "tabs";
         if (itemConfig.type === "graph") cardType = "graph";
+        if (itemConfig.type === "navigation") cardType = "navigation";
 
         // Find next available row
         let maxRow = 1;
@@ -1003,7 +1052,7 @@ export class DashboardEditorStore {
 
         // DashboardItem type should now have 'name'
         const newItem: DashboardItem = {
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             cardType,
             entityId: itemConfig.entityId || "",
             name: itemConfig.name || "",
@@ -1015,7 +1064,13 @@ export class DashboardEditorStore {
             subtitle: itemConfig.subtitle || "",
             alignment: itemConfig.alignment as "start" | "center" | "end" || "start",
             hours_to_show: itemConfig.hours_to_show,
-            aggregate_func: itemConfig.aggregate_func
+            aggregate_func: itemConfig.aggregate_func,
+            // Navigation properties
+            path: itemConfig.path || "",
+            iconType: itemConfig.iconType || "icon",
+            imageUrl: itemConfig.imageUrl || "",
+            icon: itemConfig.icon || "",
+            shortcuts: itemConfig.shortcuts || []
         };
 
         config.items.push(newItem);

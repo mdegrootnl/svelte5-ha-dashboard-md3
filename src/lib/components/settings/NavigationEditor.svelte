@@ -70,9 +70,9 @@
         }
     }
 
-    function handleIconSelect(event: CustomEvent<string>) {
+    function handleIconSelect(icon: string) {
         if (editingItem) {
-            editingItem.icon = event.detail;
+            editingItem.icon = icon;
         }
         isIconPickerOpen = false;
     }
@@ -201,8 +201,8 @@
 
     {#if isIconPickerOpen}
         <IconPicker
-            on:select={handleIconSelect}
-            on:close={() => (isIconPickerOpen = false)}
+            onselect={handleIconSelect}
+            onclose={() => (isIconPickerOpen = false)}
         />
     {/if}
 </div>

@@ -16,16 +16,18 @@
     import IconSensors from "~icons/material-symbols/sensors";
     import IconPlayCircle from "~icons/material-symbols/play-circle";
     import IconDevices from "~icons/material-symbols/devices";
+    import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
 
     interface Props {
         id?: string;
         title?: string;
         state?: string;
-        icon?: any; // Expecting a Material Symbol component
         isActive?: boolean;
         variant?: CardVariant;
         value?: number; // 0-100 for slider
+        icon?: string | any; // Material Symbol component or name string
         color?: string; // Optional color override
+        backgroundColor?: string; // Optional background override
         onclick?: () => void;
         class?: string;
 
@@ -44,7 +46,8 @@
         isActive = $bindable(false),
         variant = $bindable("switch"),
         value = $bindable(0),
-        color,
+        color = $bindable(),
+        backgroundColor = $bindable(),
         onclick,
         class: className = "",
         entityId = $bindable(""),
@@ -132,36 +135,47 @@
     const baseStyles =
         "relative flex w-full h-full min-h-20 rounded-m3-md overflow-hidden transition-all duration-200 select-none group";
 
-    // Dynamic background styles
-    let backgroundStyles = $derived.by(() => {
-        if (variant === "switch") {
-            // Switch: Surface Container High (inactive) vs Primary/Color (active)
-            if (isActive) {
-                return "bg-m3-primary-container text-m3-on-primary-container shadow-inner";
-            } else {
-                return "bg-m3-surface-container-highest text-m3-on-surface";
-            }
+    // Dynamic background and text colors
+    let cardStyle = $derived.by(() => {
+        let styles = "";
+
+        // Background
+        if (backgroundColor) {
+            styles += `background-color: ${backgroundColor}; `;
+        } else if (isActive && variant === "switch") {
+            const activeColor = color || "var(--color-m3-primary)";
+            styles += `background-color: color-mix(in srgb, ${activeColor} 15%, transparent); `;
+            styles += `box-shadow: inset 0 0 0 1px color-mix(in srgb, ${activeColor} 20%, transparent); `;
         } else {
-            // Slider: Always Surface Container High background, Progress bar handled separately
-            return "bg-m3-surface-container-highest text-m3-on-surface";
+            styles +=
+                "background-color: var(--color-m3-surface-container-highest); ";
         }
+
+        // Foreground (active state enhancement)
+        if (isActive && variant === "switch") {
+            const fgColor = color || "var(--color-m3-primary)";
+            styles += `color: ${fgColor}; `;
+        } else {
+            styles += "color: var(--color-m3-on-surface); ";
+        }
+
+        return styles;
     });
 
     let interactiveStyles = $derived(
         onclick || variant === "switch"
-            ? "cursor-pointer active:brightness-95 md:hover:brightness-95"
+            ? "cursor-pointer active:scale-[0.98] transition-transform"
             : "",
     );
 
-    // Icon container styles
-    let iconStyles = $derived.by(() => {
-        if (isActive && variant === "switch") {
-            return "bg-m3-on-primary/20 text-m3-on-primary";
-        }
-        if (isActive && variant === "slider") {
-            return "bg-m3-primary/20 text-m3-primary";
-        }
-        return "bg-m3-on-surface/10 text-m3-on-surface-variant";
+    // Icon container styles - using color-mix for themed background
+    let iconContainerStyle = $derived.by(() => {
+        const baseColor = isActive
+            ? color || "var(--color-m3-primary)"
+            : "var(--color-m3-on-surface-variant)";
+
+        const opacity = isActive ? "20%" : "10%";
+        return `background-color: color-mix(in srgb, ${baseColor} ${opacity}, transparent); color: ${baseColor};`;
     });
 
     // -- Config Dialog --
@@ -173,11 +187,15 @@
             entityId: entityId || "",
             name: name || "",
             domainFilter: domainFilter || "",
+            color: color,
+            backgroundColor: backgroundColor,
+            icon: typeof iconProp === "string" ? iconProp : "",
             onSave: (newConfig) => {
                 entityId = newConfig.entityId;
                 name = newConfig.name;
-                // Icon string handling...
-                // Icon string handling...
+                color = newConfig.color;
+                backgroundColor = newConfig.backgroundColor;
+                iconProp = newConfig.icon || "";
             },
             onDelete: ondelete,
         });
@@ -297,20 +315,21 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
     bind:this={cardElement}
-    class="{baseStyles} {backgroundStyles} {interactiveStyles} {className} @container"
+    class="{baseStyles} {interactiveStyles} {className} @container"
     onclick={handleSwitchClick}
     onpointerdown={handlePointerDown}
     role="button"
     tabindex="0"
-    style="touch-action: none;"
+    style="touch-action: none; {cardStyle}"
 >
     <!-- Slider Progress Background (Visual) -->
     {#if variant === "slider"}
-        <!-- Active Track: Primary Color -->
+        <!-- Active Track -->
         <div
             class="absolute inset-y-0 left-0 transition-all duration-75"
-            style="width: {value}%; background-color: var(--color-m3-primary-container); opacity: {isActive
-                ? '1'
+            style="width: {value}%; background-color: {color ||
+                'var(--color-m3-primary-container)'}; opacity: {isActive
+                ? '0.4'
                 : '0'};"
         ></div>
         <!-- Inactive/Background Track is handled by container bg-surface-container-highest -->
@@ -322,11 +341,16 @@
     >
         <!-- Icon Circle -->
         <div
-            class="flex items-center justify-center size-[18cqmin] rounded-full {iconStyles} shrink-0 transition-colors duration-200"
+            class="flex items-center justify-center size-[18cqmin] rounded-full shrink-0 transition-colors duration-200"
+            style={iconContainerStyle}
         >
             {#if effectiveIcon}
-                {@const IconComponent = effectiveIcon}
-                <IconComponent class="size-[60%]" />
+                {#if typeof effectiveIcon === "string"}
+                    <DynamicIcon name={effectiveIcon} class="size-[60%]" />
+                {:else}
+                    {@const IconComponent = effectiveIcon}
+                    <IconComponent class="size-[60%]" />
+                {/if}
             {/if}
         </div>
 

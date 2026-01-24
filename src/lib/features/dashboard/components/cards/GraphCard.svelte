@@ -11,6 +11,7 @@
     import IconEdit from "~icons/material-symbols/edit";
     import IconShowChart from "~icons/material-symbols/show-chart";
     import MiniChart from "$lib/components/viz/MiniChart.svelte";
+    import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import { onMount } from "svelte";
     import IconLightbulb from "~icons/material-symbols/lightbulb";
     import IconThermostat from "~icons/material-symbols/thermostat";
@@ -38,6 +39,9 @@
         graphEntities?: GraphCardEntity[];
         ondelete?: () => void;
         class?: string;
+        color?: string;
+        backgroundColor?: string;
+        icon?: string | any;
     }
 
     let {
@@ -53,6 +57,9 @@
         graphEntities = $bindable([]),
         ondelete,
         class: className = "",
+        color = $bindable(),
+        backgroundColor = $bindable(),
+        icon: iconProp = $bindable(),
     }: Props = $props();
 
     let entity = $derived(entityId ? haStore.getEntity(entityId) : null);
@@ -88,6 +95,13 @@
         }
     });
 
+    let timeRange = $derived.by(() => {
+        const end = new Date();
+        const hours = hours_to_show || 24;
+        const start = new Date(end.getTime() - hours * 60 * 60 * 1000);
+        return { start, end };
+    });
+
     let historyData = $state<
         Array<{ entityId: string; points: HistoryDataPoint[]; color?: string }>
     >([]);
@@ -98,7 +112,13 @@
     $effect(() => {
         const entitiesToFetch = [
             ...(entityId
-                ? [{ entity_id: entityId, name, color: line_color as string }]
+                ? [
+                      {
+                          entity_id: entityId,
+                          name,
+                          color: color || (line_color as string),
+                      },
+                  ]
                 : []),
             ...graphEntities.map((ge) => ({
                 entity_id: ge.entity_id,
@@ -114,10 +134,8 @@
             isLoading = true;
             error = null;
 
-            const end = new Date();
-            const start = new Date(
-                end.getTime() - hours_to_show * 60 * 60 * 1000,
-            );
+            const end = timeRange.end;
+            const start = timeRange.start;
 
             const entityIds = entitiesToFetch.map((e) => e.entity_id);
             const result = await haStore.getHistory(entityIds, start, end);
@@ -158,6 +176,9 @@
             name,
             type: "graph",
             graphEntities,
+            color,
+            backgroundColor,
+            icon: typeof iconProp === "string" ? iconProp : "",
             onSave: (newConfig) => {
                 if (newConfig.type === "graph") {
                     entityId = newConfig.entityId;
@@ -165,6 +186,9 @@
                     hours_to_show = newConfig.hours_to_show ?? 24;
                     aggregate_func = newConfig.aggregate_func ?? "avg";
                     graphEntities = newConfig.graphEntities || [];
+                    color = newConfig.color;
+                    backgroundColor = newConfig.backgroundColor;
+                    iconProp = newConfig.icon || "";
                 }
             },
             onDelete: ondelete,
@@ -172,67 +196,109 @@
     }
 
     const baseStyles =
-        "relative flex flex-col w-full h-full min-h-32 rounded-m3-md bg-m3-surface-container-highest text-m3-on-surface overflow-hidden transition-all duration-200 group p-4 gap-2";
+        "relative flex flex-col w-full h-full rounded-[var(--radius-m3-md)] bg-m3-surface-container-highest text-m3-on-surface overflow-hidden transition-all duration-200 group";
+    // -- Responsive Layout --
+    let clientHeight = $state(0);
+    const LAYOUT = {
+        COMPACT_HEIGHT: 130,
+        EXPANDED_HEIGHT: 150, // Standard 2-row cards should be expanded
+    };
+    // Default to expanded for initial render/unknown size
+    let isExpanded = $derived(
+        clientHeight === 0 || clientHeight >= LAYOUT.EXPANDED_HEIGHT,
+    );
 </script>
 
-<div class="{baseStyles} {className} @container">
-    <!-- Header -->
-    <div class="flex items-start justify-between z-10">
-        <div class="flex items-center gap-3">
-            {#if show.icon !== false}
-                <div
-                    class="flex items-center justify-center size-10 rounded-full bg-m3-primary/10 text-m3-primary shrink-0"
-                >
-                    <Icon class="size-6" />
-                </div>
-            {/if}
-            <div class="flex flex-col min-w-0">
-                {#if show.name !== false}
-                    <span class="text-sm font-medium truncate opacity-70"
-                        >{title}</span
-                    >
-                {/if}
-                {#if show.state !== false}
-                    <span class="text-2xl font-bold leading-tight truncate">
-                        {displayState}
-                        <span class="text-sm font-normal opacity-70"
-                            >{unitOfMeasurement}</span
-                        >
-                    </span>
-                {/if}
-            </div>
-        </div>
-    </div>
-
-    <!-- Chart -->
-    <div class="flex-1 min-h-0 mt-2 relative">
-        {#if isLoading && historyData.length === 0}
-            <div
-                class="absolute inset-0 flex items-center justify-center opacity-50"
-            >
-                <span class="text-xs">Loading history...</span>
-            </div>
-        {/if}
-
-        {#if error}
-            <div
-                class="absolute inset-0 flex items-center justify-center text-m3-error text-xs p-2 text-center"
-            >
-                {error}
-            </div>
-        {/if}
-
-        {#if show.graph !== false}
+<div
+    class="{baseStyles} {className} @container"
+    bind:clientHeight
+    style={backgroundColor ? `background-color: ${backgroundColor};` : ""}
+>
+    <!-- Background Graph (Visible when NOT expanded) -->
+    {#if !isExpanded && show.graph !== false}
+        <div
+            class="absolute inset-0 z-0 opacity-10 pointer-events-none w-full h-full"
+        >
             <MiniChart
                 series={historyData.map((s) => ({
                     data: s.points,
                     color: s.color,
                     isFilled: show.fill !== false,
                 }))}
-                height={80}
+                startTime={timeRange.start}
+                endTime={timeRange.end}
             />
-        {/if}
+        </div>
+    {/if}
+
+    <div class="p-4 flex flex-col gap-2 relative z-10">
+        <!-- Header -->
+        <div class="flex items-start justify-between z-10">
+            <div class="flex items-center gap-3">
+                {#if show.icon !== false}
+                    <div
+                        class="flex items-center justify-center size-10 rounded-full shrink-0"
+                        style:background-color={color
+                            ? `color-mix(in srgb, ${color} 10%, transparent)`
+                            : "var(--color-m3-primary-container)"}
+                        style:color={color || "var(--color-m3-primary)"}
+                    >
+                        {#if iconProp}
+                            <DynamicIcon name={iconProp} class="size-6" />
+                        {:else}
+                            <Icon class="size-6" />
+                        {/if}
+                    </div>
+                {/if}
+                <div class="flex flex-col min-w-0">
+                    {#if show.name !== false}
+                        <span class="text-sm font-medium truncate opacity-70"
+                            >{title}</span
+                        >
+                    {/if}
+                    {#if show.state !== false}
+                        <span class="text-2xl font-bold leading-tight truncate">
+                            {displayState}
+                            <span class="text-sm font-normal opacity-70"
+                                >{unitOfMeasurement}</span
+                            >
+                        </span>
+                    {/if}
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- Foreground Chart (Visible when expanded) -->
+    {#if isExpanded && show.graph !== false}
+        <div class="flex-1 min-h-0 relative z-10">
+            {#if isLoading && historyData.length === 0}
+                <div
+                    class="absolute inset-0 flex items-center justify-center opacity-50"
+                >
+                    <span class="text-xs">Loading history...</span>
+                </div>
+            {/if}
+
+            {#if error}
+                <div
+                    class="absolute inset-0 flex items-center justify-center text-m3-error text-xs p-2 text-center"
+                >
+                    {error}
+                </div>
+            {/if}
+
+            <MiniChart
+                series={historyData.map((s) => ({
+                    data: s.points,
+                    color: s.color,
+                    isFilled: show.fill !== false,
+                }))}
+                startTime={timeRange.start}
+                endTime={timeRange.end}
+            />
+        </div>
+    {/if}
 
     <!-- Edit FAB -->
     <button

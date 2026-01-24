@@ -8,6 +8,7 @@
     import IconToggleOn from "~icons/material-symbols/toggle-on";
     import IconSensors from "~icons/material-symbols/sensors";
     import IconPlayCircle from "~icons/material-symbols/play-circle";
+    import IconLink from "~icons/material-symbols/link";
 
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import type { CardConfig } from "$lib/types";
@@ -65,6 +66,13 @@
             icon: IconShowChart,
             domain: "sensor",
         },
+        {
+            type: "navigation",
+            name: "Navigation",
+            description: "Link to another page",
+            icon: IconLink,
+            domain: "",
+        },
     ];
 
     import IconShowChart from "~icons/material-symbols/show-chart";
@@ -82,7 +90,8 @@
                 cardType.type === "media" ||
                 cardType.type === "title" ||
                 cardType.type === "tabs" ||
-                cardType.type === "graph"
+                cardType.type === "graph" ||
+                cardType.type === "navigation"
                     ? cardType.type
                     : "button",
         };

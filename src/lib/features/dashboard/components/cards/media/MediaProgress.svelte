@@ -2,7 +2,7 @@
     import { haStore } from "$lib/stores/ha.svelte";
     import { onMount, onDestroy } from "svelte";
 
-    let { entityId, theme = "light" } = $props();
+    let { entityId, theme = "light", color = "" } = $props();
     let entity = $derived(haStore.getEntity(entityId));
 
     let duration = $derived(entity?.attributes?.media_duration || 0);
@@ -54,7 +54,16 @@
     let trackBg = $derived(
         theme === "dark" ? "bg-white/20" : "bg-m3-surface-variant",
     );
-    let progressBg = $derived(theme === "dark" ? "bg-white" : "bg-m3-primary");
+    let progressBg = $derived.by(() => {
+        if (theme === "dark") return "bg-white";
+        if (color) return ""; // Handled inline
+        return "bg-m3-primary";
+    });
+
+    let progressStyle = $derived.by(() => {
+        if (theme !== "dark" && color) return `background-color: ${color};`;
+        return "";
+    });
     let textColor = $derived(
         theme === "dark"
             ? "text-white/60"
@@ -67,7 +76,7 @@
         <div class={`w-full h-1 ${trackBg} rounded-full overflow-hidden`}>
             <div
                 class={`h-full ${progressBg} transition-all duration-300 ease-linear`}
-                style={`width: ${(currentPosition / duration) * 100}%`}
+                style={`width: ${(currentPosition / duration) * 100}%; ${progressStyle}`}
             ></div>
         </div>
         <div

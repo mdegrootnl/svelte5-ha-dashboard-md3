@@ -8,6 +8,7 @@
     import MediaCard from "$lib/features/dashboard/components/cards/MediaCard.svelte";
     import TitleCard from "$lib/features/dashboard/components/cards/TitleCard.svelte";
     import GraphCard from "$lib/features/dashboard/components/cards/GraphCard.svelte";
+    import NavigationCard from "$lib/features/dashboard/components/cards/NavigationCard.svelte";
     import IconLightbulb from "~icons/material-symbols/lightbulb";
     import IconThermostat from "~icons/material-symbols/thermostat";
     import IconDevices from "~icons/material-symbols/devices";
@@ -18,15 +19,22 @@
     import IconHdrAuto from "~icons/material-symbols/hdr-auto";
     import IconViewModule from "~icons/material-symbols/view-module";
     import IconShowChart from "~icons/material-symbols/show-chart";
+    import IconLink from "~icons/material-symbols/link";
     import IconAdd from "~icons/material-symbols/add";
+    import IconBrush from "~icons/material-symbols/brush";
     import IconButton from "$lib/components/md3/IconButton.svelte";
+    import IconPicker from "$lib/components/common/IconPicker.svelte";
+    import ImagePicker from "$lib/components/settings/ImagePicker.svelte";
+    import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
-    import { getDomain } from "$lib/utils/entity";
+    import { getDomain, getEntityName } from "$lib/utils/entity";
+    import { generateUUID } from "$lib/utils/uuid";
     import type {
         ThermostatCardConfig,
         CardSize,
         GraphCardEntity,
+        NavigationCardShortcut,
     } from "$lib/types";
 
     function handleDelete() {
@@ -39,12 +47,20 @@
     // Computed proxy for cleaner access
     let open = $derived(cardEditorStore.mode === "config");
     let showBack = $derived(cardEditorStore.showBack);
+    let isIconPickerOpen = $state(false);
 
     // Flexible binding for local edits
     let tempConfig = $state<{
         entityId: string;
         name: string;
-        type?: "button" | "thermostat" | "media" | "title" | "tabs" | "graph";
+        type?:
+            | "button"
+            | "thermostat"
+            | "media"
+            | "title"
+            | "tabs"
+            | "graph"
+            | "navigation";
         secondaryEntityId: string;
         secondaryName: string;
         domainFilter?: string;
@@ -54,6 +70,14 @@
         hours_to_show: number;
         aggregate_func: "avg" | "min" | "max" | "last";
         graphEntities: GraphCardEntity[];
+        color: string;
+        backgroundColor: string;
+        // Navigation Props
+        path: string;
+        iconType: "icon" | "image";
+        imageUrl: string;
+        icon: string;
+        shortcuts: NavigationCardShortcut[];
     }>({
         entityId: "",
         name: "",
@@ -66,6 +90,13 @@
         hours_to_show: 24,
         aggregate_func: "avg",
         graphEntities: [],
+        color: "",
+        backgroundColor: "",
+        path: "",
+        iconType: "icon",
+        imageUrl: "",
+        icon: "",
+        shortcuts: [],
     });
 
     // Get current entity domain for icon display
@@ -83,6 +114,9 @@
     let isTitleCard = $derived(cardEditorStore.config?.type === "title");
     let isTabCard = $derived(cardEditorStore.config?.type === "tabs");
     let isGraphCard = $derived(cardEditorStore.config?.type === "graph");
+    let isNavigationCard = $derived(
+        cardEditorStore.config?.type === "navigation",
+    );
 
     // Sync when opening
     $effect(() => {
@@ -103,6 +137,15 @@
                 graphEntities: JSON.parse(
                     JSON.stringify((config as any).graphEntities || []),
                 ),
+                color: config.color || "",
+                backgroundColor: config.backgroundColor || "",
+                path: (config as any).path || "",
+                iconType: (config as any).iconType || "icon",
+                imageUrl: (config as any).imageUrl || "",
+                icon: (config as any).icon || "",
+                shortcuts: JSON.parse(
+                    JSON.stringify((config as any).shortcuts || []),
+                ),
             };
         }
     });
@@ -112,6 +155,7 @@
         if (isTitleCard) return IconHdrAuto;
         if (isTabCard) return IconViewModule;
         if (isGraphCard) return IconShowChart;
+        if (isNavigationCard) return IconLink;
 
         switch (domain) {
             case "light":
@@ -131,6 +175,31 @@
     }
 
     let CurrentIcon = $derived(getIconComponent(currentDomain));
+
+    let DefaultIconName = $derived.by(() => {
+        if (isThermostatCard) return "thermostat";
+        if (isMediaCard) return "play_circle";
+        if (isGraphCard) return "show_chart";
+        if (isNavigationCard) return "explore";
+        if (isTitleCard) return "title";
+        if (isTabCard) return "view_module";
+
+        switch (currentDomain) {
+            case "light":
+                return "lightbulb";
+            case "climate":
+                return "thermostat";
+            case "switch":
+                return "toggle_on";
+            case "sensor":
+            case "binary_sensor":
+                return "sensors";
+            case "media_player":
+                return "play_circle";
+            default:
+                return "category";
+        }
+    });
 
     function handleSave() {
         const finalConfig = {
@@ -167,8 +236,8 @@
     onback={handleBack}
 >
     <div class="flex flex-col gap-4 pb-64">
-        <!-- Card Size Selector (Hidden for Title and Tab Card) -->
-        {#if !isTitleCard && !isTabCard}
+        <!-- Card Size Selector (Hidden for Title, Tab, and Navigation Card) -->
+        {#if !isTitleCard && !isTabCard && !isNavigationCard}
             <div class="flex flex-col gap-2">
                 <span class="text-m3-label-medium text-m3-on-surface-variant"
                     >Card Size</span
@@ -237,7 +306,9 @@
                         : 'rounded-m3-md overflow-hidden shadow-md'}"
                     style="height: {tempConfig.cardSize === 'condensed'
                         ? '80px'
-                        : tempConfig.cardSize === 'standard' || isTitleCard
+                        : tempConfig.cardSize === 'standard' ||
+                            isTitleCard ||
+                            isNavigationCard
                           ? '170px'
                           : '280px'};"
                 >
@@ -248,18 +319,36 @@
                             secondaryEntityId={tempConfig.secondaryEntityId}
                             secondaryName={tempConfig.secondaryName}
                             domainFilter={tempConfig.domainFilter || ""}
+                            color={tempConfig.color}
+                            backgroundColor={tempConfig.backgroundColor}
+                            icon={tempConfig.icon}
+                        />
+                    {:else if isNavigationCard}
+                        <NavigationCard
+                            name={tempConfig.name}
+                            path={tempConfig.path}
+                            icon={tempConfig.icon}
+                            iconType={tempConfig.iconType}
+                            imageUrl={tempConfig.imageUrl}
+                            color={tempConfig.color}
+                            backgroundColor={tempConfig.backgroundColor}
                         />
                     {:else if isMediaCard}
                         <MediaCard
                             entityId={tempConfig.entityId}
                             name={tempConfig.name}
                             domainFilter={tempConfig.domainFilter || ""}
+                            color={tempConfig.color}
+                            backgroundColor={tempConfig.backgroundColor}
+                            icon={tempConfig.icon}
                         />
                     {:else if isTitleCard}
                         <TitleCard
                             name={tempConfig.name}
                             subtitle={tempConfig.subtitle}
                             alignment={tempConfig.alignment}
+                            color={tempConfig.color}
+                            backgroundColor={tempConfig.backgroundColor}
                         />
                     {:else if isTabCard}
                         <!-- Tab Card Preview -->
@@ -307,6 +396,21 @@
                             hours_to_show={tempConfig.hours_to_show}
                             aggregate_func={tempConfig.aggregate_func}
                             graphEntities={tempConfig.graphEntities}
+                            color={tempConfig.color}
+                            backgroundColor={tempConfig.backgroundColor}
+                            icon={tempConfig.icon}
+                        />
+                    {:else if isNavigationCard}
+                        <NavigationCard
+                            id="preview"
+                            name={tempConfig.name}
+                            path={tempConfig.path}
+                            icon={tempConfig.icon}
+                            iconType={tempConfig.iconType}
+                            imageUrl={tempConfig.imageUrl}
+                            shortcuts={tempConfig.shortcuts}
+                            color={tempConfig.color}
+                            backgroundColor={tempConfig.backgroundColor}
                         />
                     {:else}
                         <ButtonCard
@@ -314,14 +418,97 @@
                             entityId={tempConfig.entityId}
                             name={tempConfig.name}
                             domainFilter={tempConfig.domainFilter || ""}
-                            icon={CurrentIcon}
+                            icon={tempConfig.icon || CurrentIcon}
+                            color={tempConfig.color}
+                            backgroundColor={tempConfig.backgroundColor}
                         />
                     {/if}
                 </div>
             </div>
 
-            <!-- Entity ID with autocomplete (Hidden for Title and Tab Card) -->
-            {#if !isTitleCard && !isTabCard}
+            <!-- Style Customization Section -->
+            <div class="flex flex-col gap-3 px-1">
+                <!-- Foreground Color Picker -->
+                <div class="flex flex-col gap-1.5">
+                    <span
+                        class="text-[10px] text-m3-on-surface-variant uppercase tracking-wider font-bold opacity-70"
+                        >Foreground & Icon</span
+                    >
+                    <div
+                        class="grid grid-cols-7 gap-1.5 p-1.5 rounded-xl bg-m3-surface-container-high border border-m3-outline-variant/20"
+                    >
+                        {#each ["var(--color-m3-primary)", "var(--color-m3-secondary)", "var(--color-m3-tertiary)", "var(--color-m3-error)", "var(--color-m3-graph-1)", "var(--color-m3-graph-2)", "var(--color-m3-graph-3)", "var(--color-m3-graph-4)", "var(--color-m3-graph-5)", "var(--color-m3-graph-6)"] as colorVar}
+                            <button
+                                class="size-6 rounded-full border-2 transition-all hover:scale-110 active:scale-95 shadow-sm"
+                                style:background-color={colorVar}
+                                style:border-color={tempConfig.color ===
+                                colorVar
+                                    ? "white"
+                                    : "transparent"}
+                                onclick={() => (tempConfig.color = colorVar)}
+                                title={colorVar
+                                    .replace("var(--color-m3-", "")
+                                    .replace(")", "")}
+                                aria-label={colorVar}
+                            ></button>
+                        {/each}
+                        <button
+                            class="size-6 rounded-full border-2 border-m3-outline-variant bg-transparent flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                            style:border-color={!tempConfig.color
+                                ? "white"
+                                : "transparent"}
+                            onclick={() => (tempConfig.color = "")}
+                            title="Default Color"
+                        >
+                            <div
+                                class="size-1 bg-m3-on-surface-variant rounded-full"
+                            ></div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Background Color Picker -->
+                <div class="flex flex-col gap-1.5">
+                    <span
+                        class="text-[10px] text-m3-on-surface-variant uppercase tracking-wider font-bold opacity-70"
+                        >Card Background</span
+                    >
+                    <div
+                        class="grid grid-cols-5 gap-1.5 p-1.5 rounded-xl bg-m3-surface-container-high border border-m3-outline-variant/20"
+                    >
+                        {#each ["var(--color-m3-surface-container-low)", "var(--color-m3-surface-container)", "var(--color-m3-surface-container-high)", "var(--color-m3-surface-container-highest)", "var(--color-m3-primary-container)", "var(--color-m3-secondary-container)", "var(--color-m3-tertiary-container)", "var(--color-m3-error-container)"] as colorVar}
+                            <button
+                                class="size-full aspect-square rounded-lg border-2 transition-all hover:scale-105 active:scale-95 shadow-sm"
+                                style:background-color={colorVar}
+                                style:border-color={tempConfig.backgroundColor ===
+                                colorVar
+                                    ? "white"
+                                    : "transparent"}
+                                onclick={() =>
+                                    (tempConfig.backgroundColor = colorVar)}
+                                title={colorVar
+                                    .replace("var(--color-m3-", "")
+                                    .replace(")", "")}
+                                aria-label={colorVar}
+                            ></button>
+                        {/each}
+                        <button
+                            class="size-full aspect-square rounded-lg border-2 border-m3-outline-variant bg-transparent flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+                            style:border-color={!tempConfig.backgroundColor
+                                ? "white"
+                                : "transparent"}
+                            onclick={() => (tempConfig.backgroundColor = "")}
+                            title="Theme Default"
+                        >
+                            <div
+                                class="size-1 bg-m3-on-surface-variant rounded-full"
+                            ></div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- Entity ID with autocomplete (Hidden for Title, Tab, and Navigation Card) -->
+            {#if !isTitleCard && !isTabCard && !isNavigationCard}
                 <EntityPicker
                     label="Entity ID"
                     placeholder={isThermostatCard
@@ -333,14 +520,280 @@
                 />
             {/if}
 
+            <!-- Icon Picker for non-image cards -->
+            {#if !isTabCard && !isTitleCard && (!isNavigationCard || tempConfig.iconType === "icon")}
+                <div class="flex flex-col gap-2">
+                    <span
+                        class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                        >Icon Override</span
+                    >
+                    <button
+                        class="flex items-center gap-3 w-full h-14 px-4 rounded-m3-sm border border-m3-outline bg-transparent hover:bg-m3-on-surface/5 transition-colors text-left group"
+                        onclick={() =>
+                            cardEditorStore.openIconPicker(
+                                (icon) => (tempConfig.icon = icon),
+                            )}
+                    >
+                        <div
+                            class="size-8 rounded-full bg-m3-secondary-container text-m3-on-secondary-container flex items-center justify-center transition-colors group-hover:bg-m3-primary-container group-hover:text-m3-on-primary-container"
+                        >
+                            <DynamicIcon
+                                name={tempConfig.icon || DefaultIconName}
+                                class="size-5"
+                            />
+                        </div>
+                        <div class="flex-1 flex flex-col min-w-0">
+                            <span
+                                class="text-m3-body-medium text-m3-on-surface truncate"
+                            >
+                                {tempConfig.icon
+                                    ? `Custom: ${tempConfig.icon}`
+                                    : `Default: ${DefaultIconName}`}
+                            </span>
+                            <span
+                                class="text-m3-body-small text-m3-on-surface-variant opacity-70"
+                            >
+                                Click to change
+                            </span>
+                        </div>
+                        <IconBrush class="size-5 text-m3-on-surface-variant" />
+                    </button>
+                </div>
+            {/if}
+
+            {#if isNavigationCard}
+                <div
+                    class="flex flex-col gap-4 border-t border-m3-outline-variant/30 pt-4 mt-2"
+                >
+                    <EntityPicker
+                        label="Main Entity (Optional)"
+                        placeholder="switch.all_lights"
+                        bind:value={tempConfig.entityId}
+                        class="w-full"
+                    />
+
+                    <TextField
+                        variant="outlined"
+                        label="Route Path"
+                        placeholder="/dashboard/living-room"
+                        bind:value={tempConfig.path}
+                        class="w-full"
+                    />
+
+                    <div class="flex flex-col gap-2">
+                        <span
+                            class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                            >Card Style</span
+                        >
+                        <div
+                            class="flex rounded-full bg-m3-surface-container-highest p-1 gap-1"
+                        >
+                            {#each ["icon", "image"] as type}
+                                <button
+                                    class="flex-1 py-1 px-3 rounded-full text-m3-label-medium transition-all duration-200
+                                       {tempConfig.iconType === type
+                                        ? 'bg-m3-secondary-container text-m3-on-secondary-container shadow-sm'
+                                        : 'text-m3-on-surface-variant hover:bg-m3-on-surface/5'}"
+                                    onclick={() =>
+                                        (tempConfig.iconType = type as
+                                            | "icon"
+                                            | "image")}
+                                >
+                                    {type.charAt(0).toUpperCase() +
+                                        type.slice(1)}
+                                </button>
+                            {/each}
+                        </div>
+                    </div>
+
+                    {#if tempConfig.iconType === "image"}
+                        <ImagePicker
+                            label="Card Image"
+                            orientation="landscape"
+                            bind:value={tempConfig.imageUrl}
+                            onchange={() => {}}
+                        />
+                    {/if}
+
+                    <!-- Shortcuts Section -->
+                    <div
+                        class="flex flex-col gap-3 border-t border-m3-outline-variant/30 pt-4 mt-2"
+                    >
+                        <div class="flex items-center justify-between">
+                            <span
+                                class="text-m3-label-medium text-m3-on-surface-variant"
+                                >Entity Shortcuts</span
+                            >
+                            <Button
+                                variant="tonal"
+                                onclick={() => {
+                                    if (!tempConfig.shortcuts)
+                                        tempConfig.shortcuts = [];
+                                    tempConfig.shortcuts = [
+                                        ...tempConfig.shortcuts,
+                                        {
+                                            id: Math.random()
+                                                .toString(36)
+                                                .substring(2, 11),
+                                            entityId: "",
+                                            icon: "",
+                                        },
+                                    ];
+                                }}
+                                icon={IconAdd}
+                            >
+                                Add
+                            </Button>
+                        </div>
+                        {#if tempConfig.shortcuts.length > 0}
+                            <div class="flex flex-col gap-2">
+                                {#each tempConfig.shortcuts as shortcut, idx (shortcut.id)}
+                                    <div
+                                        class="flex flex-col gap-3 p-4 bg-m3-surface-container rounded-m3-md border border-m3-outline-variant/20 relative group"
+                                    >
+                                        <div
+                                            class="flex items-start justify-between gap-4"
+                                        >
+                                            <div class="flex-1">
+                                                <EntityPicker
+                                                    label="Shortcut Entity"
+                                                    placeholder="light.living_room"
+                                                    bind:value={
+                                                        shortcut.entityId
+                                                    }
+                                                />
+                                            </div>
+                                            <IconButton
+                                                onclick={() => {
+                                                    tempConfig.shortcuts =
+                                                        tempConfig.shortcuts.filter(
+                                                            (_, i) => i !== idx,
+                                                        );
+                                                }}
+                                                title="Remove"
+                                                icon={IconDelete}
+                                                class="text-m3-error"
+                                            />
+                                        </div>
+
+                                        <div class="flex items-center gap-4">
+                                            <!-- Icon Selection -->
+                                            <div
+                                                class="flex flex-col gap-1.5 flex-1"
+                                            >
+                                                <span
+                                                    class="text-[10px] text-m3-on-surface-variant uppercase tracking-wider font-bold opacity-70 ml-2"
+                                                    >Icon</span
+                                                >
+                                                <button
+                                                    class="flex items-center gap-3 h-10 px-3 rounded-m3-sm border border-m3-outline bg-transparent hover:bg-m3-on-surface/5 transition-colors text-left"
+                                                    onclick={() =>
+                                                        cardEditorStore.openIconPicker(
+                                                            (icon) =>
+                                                                (shortcut.icon =
+                                                                    icon),
+                                                        )}
+                                                >
+                                                    <div
+                                                        class="size-6 rounded-full bg-m3-secondary-container text-m3-on-secondary-container flex items-center justify-center"
+                                                    >
+                                                        <DynamicIcon
+                                                            name={shortcut.icon ||
+                                                                "category"}
+                                                            class="size-4"
+                                                        />
+                                                    </div>
+                                                    <span
+                                                        class="text-m3-body-small text-m3-on-surface truncate"
+                                                    >
+                                                        {shortcut.icon ||
+                                                            "Default"}
+                                                    </span>
+                                                    <IconBrush
+                                                        class="ml-auto size-4 text-m3-on-surface-variant opacity-50"
+                                                    />
+                                                </button>
+                                            </div>
+
+                                            <!-- Color Selection -->
+                                            <div
+                                                class="flex flex-col gap-1.5 flex-[1.5]"
+                                            >
+                                                <span
+                                                    class="text-[10px] text-m3-on-surface-variant uppercase tracking-wider font-bold opacity-70 ml-2"
+                                                    >Color</span
+                                                >
+                                                <div
+                                                    class="flex flex-wrap gap-1.5 p-1 bg-m3-surface-container-high rounded-lg border border-m3-outline-variant/20"
+                                                >
+                                                    {#each ["var(--color-m3-primary)", "var(--color-m3-secondary)", "var(--color-m3-tertiary)", "var(--color-m3-error)", "var(--color-m3-graph-1)", "var(--color-m3-graph-2)"] as colorVar}
+                                                        <button
+                                                            class="size-6 rounded-full border-2 transition-all hover:scale-110 active:scale-95 shadow-sm"
+                                                            style:background-color={colorVar}
+                                                            style:border-color={shortcut.color ===
+                                                            colorVar
+                                                                ? "white"
+                                                                : "transparent"}
+                                                            onclick={() =>
+                                                                (shortcut.color =
+                                                                    colorVar)}
+                                                            title={colorVar
+                                                                .replace(
+                                                                    "var(--color-m3-",
+                                                                    "",
+                                                                )
+                                                                .replace(
+                                                                    ")",
+                                                                    "",
+                                                                )}
+                                                        ></button>
+                                                    {/each}
+                                                    <button
+                                                        class="size-6 rounded-full border-1 border-m3-outline-variant bg-transparent flex items-center justify-center transition-all hover:scale-110"
+                                                        style:border-color={!shortcut.color
+                                                            ? "white"
+                                                            : "var(--color-m3-outline-variant)"}
+                                                        onclick={() =>
+                                                            (shortcut.color =
+                                                                "")}
+                                                        title="Standard"
+                                                    >
+                                                        <div
+                                                            class="size-1 bg-m3-on-surface-variant rounded-full"
+                                                        ></div>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {/each}
+                            </div>
+                        {:else}
+                            <p
+                                class="text-m3-body-small text-m3-on-surface-variant opacity-60"
+                            >
+                                Add entity shortcuts to control devices from the
+                                navigation card.
+                            </p>
+                        {/if}
+                    </div>
+                </div>
+            {/if}
+
             <TextField
                 variant="outlined"
-                label={isTitleCard ? "Title" : "Custom Name"}
+                label={isNavigationCard
+                    ? "Label"
+                    : isTitleCard
+                      ? "Title"
+                      : "Custom Name"}
                 placeholder={isThermostatCard
                     ? "Binnen"
                     : isTitleCard
                       ? "Living Room"
-                      : "Living Room Light"}
+                      : isNavigationCard
+                        ? "Kitchen"
+                        : "Living Room Light"}
                 bind:value={tempConfig.name}
                 class="w-full"
             />
@@ -535,3 +988,13 @@
         <Button variant="filled" onclick={handleSave}>Save</Button>
     {/snippet}
 </SideSheet>
+
+{#if isIconPickerOpen}
+    <IconPicker
+        onselect={(icon) => {
+            tempConfig.icon = icon;
+            isIconPickerOpen = false;
+        }}
+        onclose={() => (isIconPickerOpen = false)}
+    />
+{/if}

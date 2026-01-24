@@ -1,5 +1,7 @@
 // Entity Types
 export * from './icons';
+import type { NavigationCardShortcut } from './dashboard';
+export type { NavigationCardShortcut };
 export interface HAEntityAttributes {
     friendly_name?: string;
     brightness?: number;
@@ -48,13 +50,17 @@ export interface BaseCardConfig {
     entityId: string;
     name: string;
     icon?: string;
-    type?: 'button' | 'thermostat' | 'media' | 'title' | 'tabs' | 'graph';
+    type?: 'button' | 'thermostat' | 'media' | 'title' | 'tabs' | 'graph' | 'navigation';
     onSave?: (config: CardConfig) => void;
     onDelete?: () => void;
     /** Optional domain filter for entity picker (e.g. "light", "switch") */
     domainFilter?: string;
     /** Card size variant for grid layout */
     cardSize?: CardSize;
+    /** Primary color for the card's graph and icon (CSS variable) */
+    color?: string;
+    /** Background color for the card (CSS variable) */
+    backgroundColor?: string;
 }
 
 export interface ButtonCardConfig extends BaseCardConfig {
@@ -105,7 +111,19 @@ export interface GraphCardConfig extends BaseCardConfig {
     color_thresholds?: { value: number; color: string }[];
 }
 
-export type CardConfig = ButtonCardConfig | ThermostatCardConfig | MediaCardConfig | TitleCardConfig | TabEditorConfig | GraphCardConfig;
+export interface NavigationCardConfig extends BaseCardConfig {
+    type: 'navigation';
+    path: string;
+    iconType: 'icon' | 'image';
+    imageUrl?: string;
+    shortcuts?: NavigationCardShortcut[];
+    show?: {
+        name?: boolean;
+        icon?: boolean;
+    };
+}
+
+export type CardConfig = ButtonCardConfig | ThermostatCardConfig | MediaCardConfig | TitleCardConfig | TabEditorConfig | GraphCardConfig | NavigationCardConfig;
 
 export type CardVariant = 'switch' | 'slider';
 export type ButtonVariant = 'filled' | 'tonal' | 'outlined' | 'text' | 'elevated';

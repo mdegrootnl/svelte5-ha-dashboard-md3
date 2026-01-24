@@ -15,7 +15,7 @@ export interface GridTrack {
 /**
  * Card types that can be rendered in the grid
  */
-export type DashboardCardType = "button" | "media" | "thermostat" | "title" | "tabs" | "graph";
+export type DashboardCardType = "button" | "media" | "thermostat" | "title" | "tabs" | "graph" | "navigation";
 
 /**
  * Layout definition for a specific breakpoint
@@ -45,6 +45,8 @@ export interface DashboardItem {
     name: string;
     /** Home Assistant entity ID */
     entityId: string;
+    /** Optional icon override */
+    icon?: string;
     /** Type of card to render */
     cardType: DashboardCardType;
     /** Responsive position and span configuration */
@@ -58,6 +60,10 @@ export interface DashboardItem {
     /** Subtitle for title card */
     subtitle?: string;
     alignment?: "start" | "center" | "end";
+    /** Primary color for the card's graph and icon (CSS variable) */
+    color?: string;
+    /** Background color for the card (CSS variable) */
+    backgroundColor?: string;
 
     /** Tab Card Properties */
     activeTabIndex?: number;
@@ -67,6 +73,23 @@ export interface DashboardItem {
     hours_to_show?: number;
     aggregate_func?: "avg" | "min" | "max" | "last";
     graphEntities?: GraphCardEntity[];
+
+    /** Navigation Card Properties */
+    path?: string;
+    iconType?: 'icon' | 'image';
+    imageUrl?: string;
+    /** Shortcut entities displayed as buttons on the right side */
+    shortcuts?: NavigationCardShortcut[];
+}
+
+/**
+ * Shortcut entity for navigation cards
+ */
+export interface NavigationCardShortcut {
+    id: string;
+    entityId: string;
+    icon?: string; // Optional icon override
+    color?: string; // Optional color override
 }
 
 /**
@@ -190,8 +213,8 @@ export function createDefaultItemLayout(
     cardSize: 'condensed' | 'standard' | 'poster' = 'standard'
 ): ResponsiveLayout {
     // Size based on card type
-    const desktopSpan = cardType === "button" ? 2 : (cardType === "thermostat" || cardType === "title") ? 4 : 6;
-    const mobileSpan = (cardType === "button" || cardType === "graph") ? 2 : 4;
+    const desktopSpan = (cardType === "button" || cardType === "navigation") ? 2 : (cardType === "thermostat" || cardType === "title") ? 4 : 6;
+    const mobileSpan = (cardType === "button" || cardType === "graph" || cardType === "navigation") ? 2 : 4;
 
     // Row span based on card size
     // Graph cards default to 2x spans if not specified

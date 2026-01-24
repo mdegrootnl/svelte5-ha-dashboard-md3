@@ -1,5 +1,9 @@
 <script lang="ts">
-    import { createEventDispatcher } from "svelte";
+    interface Props {
+        onselect: (icon: string) => void;
+        onclose: () => void;
+    }
+    let { onselect, onclose }: Props = $props();
     import IconClose from "~icons/material-symbols/close";
     import IconSearch from "~icons/material-symbols/search";
     import { portal } from "$lib/actions/portal";
@@ -204,23 +208,17 @@
         query.length > 0 && !COMMON_ICONS.includes(query.toLowerCase()),
     );
 
-    type IconPickerEvents = {
-        select: string;
-        close: void;
-    };
-    const dispatch = createEventDispatcher<IconPickerEvents>();
-
     function handleSelect(icon: string) {
-        dispatch("select", icon);
+        onselect(icon);
     }
 </script>
 
 <div
     class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
-    onclick={() => dispatch("close")}
+    onclick={() => onclose()}
     role="button"
     tabindex="-1"
-    onkeydown={(e) => e.key === "Escape" && dispatch("close")}
+    onkeydown={(e) => e.key === "Escape" && onclose()}
     use:portal
 >
     <div
@@ -233,7 +231,7 @@
         <div class="flex items-center justify-between">
             <h3 class="text-m3-title-medium text-m3-on-surface">Select Icon</h3>
             <button
-                onclick={() => dispatch("close")}
+                onclick={() => onclose()}
                 class="text-m3-on-surface-variant hover:text-m3-on-surface"
             >
                 <IconClose class="size-6" />

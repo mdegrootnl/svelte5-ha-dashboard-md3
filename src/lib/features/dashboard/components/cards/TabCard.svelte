@@ -9,6 +9,8 @@
     import MediaCard from "./MediaCard.svelte";
     import ThermostatCard from "./ThermostatCard.svelte";
     import TitleCard from "./TitleCard.svelte";
+    import GraphCard from "./GraphCard.svelte";
+    import NavigationCard from "./NavigationCard.svelte";
     import TabCard from "./TabCard.svelte";
 
     import GridContainer from "$lib/components/layout/GridContainer.svelte";
@@ -33,7 +35,7 @@
         config: TabCardConfig;
     }
 
-    let { config }: Props = $props();
+    let { config = $bindable() }: Props = $props();
 
     // Local state for active tab (with fallback)
     let activeIndex = $derived(config.activeTabIndex ?? 0);
@@ -261,6 +263,9 @@
                                     bind:name={item.name}
                                     bind:entityId={item.entityId}
                                     bind:domainFilter={item.domainFilter}
+                                    bind:color={item.color}
+                                    bind:backgroundColor={item.backgroundColor}
+                                    bind:icon={item.icon}
                                     ondelete={() =>
                                         dashboardEditorStore.deleteItem(
                                             item.id,
@@ -272,6 +277,9 @@
                                     bind:entityId={item.entityId}
                                     bind:name={item.name}
                                     bind:domainFilter={item.domainFilter}
+                                    bind:color={item.color}
+                                    bind:backgroundColor={item.backgroundColor}
+                                    bind:icon={item.icon}
                                     ondelete={() =>
                                         dashboardEditorStore.deleteItem(
                                             item.id,
@@ -283,6 +291,8 @@
                                     bind:name={item.name}
                                     bind:subtitle={item.subtitle}
                                     bind:alignment={item.alignment}
+                                    bind:color={item.color}
+                                    bind:backgroundColor={item.backgroundColor}
                                     ondelete={() =>
                                         dashboardEditorStore.deleteItem(
                                             item.id,
@@ -298,6 +308,39 @@
                                     }
                                     bind:secondaryName={item.secondaryName}
                                     bind:domainFilter={item.domainFilter}
+                                    bind:color={item.color}
+                                    bind:backgroundColor={item.backgroundColor}
+                                    bind:icon={item.icon}
+                                    ondelete={() =>
+                                        dashboardEditorStore.deleteItem(
+                                            item.id,
+                                        )}
+                                />
+                            {:else if item.cardType === "graph"}
+                                <GraphCard
+                                    id={item.id}
+                                    bind:entityId={item.entityId}
+                                    bind:name={item.name}
+                                    bind:color={item.color}
+                                    bind:backgroundColor={item.backgroundColor}
+                                    bind:icon={item.icon}
+                                    ondelete={() =>
+                                        dashboardEditorStore.deleteItem(
+                                            item.id,
+                                        )}
+                                />
+                            {:else if item.cardType === "navigation"}
+                                <NavigationCard
+                                    id={item.id}
+                                    bind:name={item.name}
+                                    bind:path={item.path}
+                                    bind:icon={item.icon}
+                                    bind:iconType={item.iconType}
+                                    bind:imageUrl={item.imageUrl}
+                                    bind:color={item.color}
+                                    bind:backgroundColor={item.backgroundColor}
+                                    bind:shortcuts={item.shortcuts}
+                                    bind:entityId={item.entityId}
                                     ondelete={() =>
                                         dashboardEditorStore.deleteItem(
                                             item.id,

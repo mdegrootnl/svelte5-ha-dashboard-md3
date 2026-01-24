@@ -13,6 +13,7 @@
     import IconList from "~icons/material-symbols/list";
     import IconViewModule from "~icons/material-symbols/view-module";
     import IconShowChart from "~icons/material-symbols/show-chart";
+    import IconLink from "~icons/material-symbols/link";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import { getDomain } from "$lib/utils/entity";
     import type { ThermostatCardConfig, CardConfig } from "$lib/types";
@@ -26,12 +27,22 @@
     let isTitleCard = $derived(cardEditorStore.config?.type === "title");
     let isTabCard = $derived(cardEditorStore.config?.type === "tabs");
     let isGraphCard = $derived(cardEditorStore.config?.type === "graph");
+    let isNavigationCard = $derived(
+        cardEditorStore.config?.type === "navigation",
+    );
 
     // Flexible binding for local edits (includes thermostat-specific fields)
     let tempConfig = $state<{
         entityId: string;
         name: string;
-        type?: "button" | "thermostat" | "media" | "title" | "tabs" | "graph";
+        type?:
+            | "button"
+            | "thermostat"
+            | "media"
+            | "title"
+            | "tabs"
+            | "graph"
+            | "navigation";
         secondaryEntityId: string;
         secondaryName: string;
         subtitle: string;
@@ -74,6 +85,7 @@
         if (isTitleCard) return IconList;
         if (isTabCard) return IconViewModule;
         if (isGraphCard) return IconShowChart;
+        if (isNavigationCard) return IconLink;
 
         switch (domain) {
             case "light":
@@ -100,7 +112,7 @@
             ...cardEditorStore.config,
             ...tempConfig,
         };
-        cardEditorStore.save(finalConfig);
+        cardEditorStore.save(finalConfig as CardConfig);
     }
 
     function handleCancel() {
@@ -157,7 +169,9 @@
                                             ? "Edit Tab Card"
                                             : isGraphCard
                                               ? "Edit Graph Card"
-                                              : "Edit Card"}
+                                              : isNavigationCard
+                                                ? "Edit Navigation Card"
+                                                : "Edit Card"}
                                 </Dialog.Title>
                             </div>
                             <Dialog.Close

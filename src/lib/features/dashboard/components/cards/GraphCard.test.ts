@@ -11,6 +11,7 @@ vi.mock('$lib/stores/ha.svelte', () => ({
         auth: { accessToken: 'fake-token' },
         url: 'http://localhost:8123',
         callService: vi.fn(),
+        getHistory: vi.fn().mockResolvedValue({ ok: true, value: [] }),
     }
 }));
 

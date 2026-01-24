@@ -1,6 +1,6 @@
 {
   "theme": {
-    "sourceColor": "#8080ff",
+    "sourceColor": "#6750A4",
     "isDark": true,
     "navigationStyle": "standard",
     "navigationItems": [
@@ -12,8 +12,8 @@
       },
       {
         "id": "dashboard",
-        "label": "Dashboard",
-        "icon": "dashboard",
+        "label": "Home Dashboard",
+        "icon": "home",
         "href": "/dashboard"
       },
       {
@@ -41,16 +41,16 @@
         "href": "/theme"
       },
       {
+        "id": "calendar",
+        "label": "Calendar",
+        "icon": "calendar_month",
+        "href": "/calendar"
+      },
+      {
         "id": "settings",
         "label": "Settings",
         "icon": "settings",
         "href": "/settings"
-      },
-      {
-        "id": "4601bbbe-f905-4a05-bc54-b2c74f305495",
-        "label": "Calendar",
-        "icon": "calendar_today",
-        "href": "/calendar"
       }
     ]
   },
@@ -2562,194 +2562,8 @@
       "id": "dashboard_begane_grond_woonkamer",
       "tabs": [
         {
-          "id": "e8ce3c51-4d4f-4ca6-90ec-3d0b1538cac2",
+          "id": "c631a17b-dc67-466d-9dd1-9b0ee6680cfb",
           "name": "Lights",
-          "icon": "home",
-          "columns": {
-            "desktop": 12,
-            "mobile": 4
-          },
-          "rows": [
-            {
-              "id": "row-0",
-              "size": 40,
-              "type": "row"
-            },
-            {
-              "id": "row-1",
-              "size": 80,
-              "type": "row"
-            },
-            {
-              "id": "row-2",
-              "size": 80,
-              "type": "row"
-            },
-            {
-              "id": "11f30eb6-d087-4c97-9e8d-7e5ba05a3656",
-              "type": "row",
-              "size": 80
-            },
-            {
-              "id": "row-3",
-              "size": 80,
-              "type": "row"
-            },
-            {
-              "id": "row-4",
-              "size": 80,
-              "type": "row"
-            },
-            {
-              "id": "row-5",
-              "size": 80,
-              "type": "row"
-            },
-            {
-              "id": "row-6",
-              "size": 80,
-              "type": "row"
-            },
-            {
-              "id": "row-7",
-              "size": 80,
-              "type": "row"
-            }
-          ],
-          "gap": 0,
-          "padding": 16,
-          "rowHeight": 80,
-          "items": [
-            {
-              "id": "74a3a73e-7535-4e8c-9f49-7cb9ad05404c",
-              "entityId": "light.kamerkast",
-              "cardType": "button",
-              "name": "",
-              "secondaryEntityId": "",
-              "secondaryName": "",
-              "domainFilter": "",
-              "layout": {
-                "desktop": {
-                  "colStart": 1,
-                  "colSpan": 2,
-                  "rowStart": 2,
-                  "rowSpan": 1
-                },
-                "mobile": {
-                  "colStart": 1,
-                  "colSpan": 2,
-                  "rowStart": 2,
-                  "rowSpan": 1
-                }
-              }
-            },
-            {
-              "id": "b16c92ce-1c1d-48e4-bc5c-1f2a0e33c533",
-              "entityId": "light.schemerlampen_woonkamer",
-              "cardType": "button",
-              "name": "",
-              "secondaryEntityId": "",
-              "secondaryName": "",
-              "domainFilter": "",
-              "layout": {
-                "desktop": {
-                  "colStart": 3,
-                  "colSpan": 2,
-                  "rowStart": 5,
-                  "rowSpan": 1
-                },
-                "mobile": {
-                  "colStart": 3,
-                  "colSpan": 2,
-                  "rowStart": 2,
-                  "rowSpan": 1
-                }
-              }
-            },
-            {
-              "id": "623b5a46-76b0-4706-bb77-748af5947a13",
-              "entityId": "light.strips_woonkamer",
-              "cardType": "button",
-              "name": "",
-              "secondaryEntityId": "",
-              "secondaryName": "",
-              "domainFilter": "",
-              "layout": {
-                "desktop": {
-                  "colStart": 5,
-                  "colSpan": 2,
-                  "rowStart": 2,
-                  "rowSpan": 1
-                },
-                "mobile": {
-                  "colStart": 1,
-                  "colSpan": 2,
-                  "rowStart": 3,
-                  "rowSpan": 1
-                }
-              }
-            },
-            {
-              "id": "2911d35e-8a5a-4a1d-bc82-678f01f4f4f9",
-              "cardType": "thermostat",
-              "entityId": "climate.diyless_thermostat_1_central_heating",
-              "name": "",
-              "layout": {
-                "desktop": {
-                  "colStart": 7,
-                  "colSpan": 6,
-                  "rowStart": 4,
-                  "rowSpan": 6
-                },
-                "mobile": {
-                  "colStart": 1,
-                  "colSpan": 4,
-                  "rowStart": 7,
-                  "rowSpan": 3
-                }
-              },
-              "secondaryEntityId": "sensor.outdoor_temperature",
-              "secondaryName": "",
-              "domainFilter": "climate",
-              "subtitle": "",
-              "alignment": "start",
-              "activeTabIndex": 0
-            },
-            {
-              "id": "144bf88a-6dc6-4f50-9d73-f9a4d66ac08b",
-              "cardType": "graph",
-              "entityId": "sensor.outdoor_humidity",
-              "name": "",
-              "layout": {
-                "desktop": {
-                  "colStart": 1,
-                  "colSpan": 5,
-                  "rowStart": 6,
-                  "rowSpan": 4
-                },
-                "mobile": {
-                  "colStart": 1,
-                  "colSpan": 2,
-                  "rowStart": 10,
-                  "rowSpan": 2
-                }
-              },
-              "secondaryEntityId": "",
-              "secondaryName": "",
-              "domainFilter": "sensor",
-              "subtitle": "",
-              "alignment": "start",
-              "activeTabIndex": 0,
-              "hours_to_show": 24,
-              "aggregate_func": "avg"
-            }
-          ],
-          "columnGap": 0,
-          "rowGap": 0
-        },
-        {
-          "id": "21801157-c466-404e-aaba-a41855d9cd3f",
-          "name": "Climate",
           "icon": "home",
           "columns": {
             "desktop": 12,
@@ -2761,21 +2575,90 @@
           "rowHeight": 80,
           "items": [
             {
-              "id": "89674003-c153-4ccf-9548-94ffee259044",
-              "cardType": "tabs",
-              "entityId": "",
-              "name": "Whatdoesitdo",
+              "id": "d85a2463-c1e9-4afa-a266-6e16b11cc042",
+              "entityId": "light.kamerkast",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
               "layout": {
                 "desktop": {
-                  "colStart": 2,
-                  "colSpan": 11,
+                  "colStart": 1,
+                  "colSpan": 2,
                   "rowStart": 1,
-                  "rowSpan": 6
+                  "rowSpan": 1
                 },
                 "mobile": {
                   "colStart": 1,
-                  "colSpan": 4,
+                  "colSpan": 2,
                   "rowStart": 1,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "a12e435e-60f9-4819-bb5c-c76bd56662ef",
+              "entityId": "light.schemerlampen_woonkamer",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "9e832890-206e-4c51-82d3-63c65e6c2a55",
+              "entityId": "light.strips_woonkamer",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 5,
+                  "colSpan": 2,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 2,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "6aa4ff59-853b-4e59-8177-d4601c09314d",
+              "cardType": "navigation",
+              "entityId": "",
+              "name": "Keuken",
+              "layout": {
+                "desktop": {
+                  "colStart": 8,
+                  "colSpan": 2,
+                  "rowStart": 2,
+                  "rowSpan": 2
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 3,
                   "rowSpan": 2
                 }
               },
@@ -2784,142 +2667,54 @@
               "domainFilter": "",
               "subtitle": "",
               "alignment": "start",
-              "tabs": [
+              "activeTabIndex": 0,
+              "hours_to_show": 24,
+              "aggregate_func": "avg",
+              "path": "/dashboard/begane_grond/keuken",
+              "iconType": "image",
+              "imageUrl": "/api/uploads/1769253506514_pexels-pixabay-50594.jpg",
+              "icon": "kitchen",
+              "color": "var(--color-m3-graph-1)",
+              "backgroundColor": "var(--color-m3-tertiary-container)",
+              "shortcuts": [
                 {
-                  "id": "b8d228f0-2f41-427b-a407-0f30a18105d2",
-                  "name": "Eerste tab",
-                  "icon": "home",
-                  "columns": {
-                    "desktop": 8,
-                    "mobile": 4
-                  },
-                  "rows": [
-                    {
-                      "id": "row-0",
-                      "size": 80,
-                      "type": "row"
-                    },
-                    {
-                      "id": "row-1",
-                      "size": 80,
-                      "type": "row"
-                    },
-                    {
-                      "id": "row-2",
-                      "size": 80,
-                      "type": "row"
-                    },
-                    {
-                      "id": "row-3",
-                      "size": 80,
-                      "type": "row"
-                    },
-                    {
-                      "id": "row-4",
-                      "size": 80,
-                      "type": "row"
-                    }
-                  ],
-                  "gap": 5,
-                  "padding": 0,
-                  "rowHeight": 80,
-                  "items": [
-                    {
-                      "id": "08375af1-17e0-4801-adf6-33b4004d2ccd",
-                      "cardType": "tabs",
-                      "entityId": "",
-                      "name": "test",
-                      "layout": {
-                        "desktop": {
-                          "colStart": 1,
-                          "colSpan": 3,
-                          "rowStart": 1,
-                          "rowSpan": 3
-                        },
-                        "mobile": {
-                          "colStart": 1,
-                          "colSpan": 4,
-                          "rowStart": 1,
-                          "rowSpan": 2
-                        }
-                      },
-                      "secondaryEntityId": "",
-                      "secondaryName": "",
-                      "domainFilter": "",
-                      "subtitle": "",
-                      "alignment": "start",
-                      "tabs": [
-                        {
-                          "id": "04dbe8e8-0e07-47ef-8df8-658daa02e077",
-                          "name": "Tab 1",
-                          "icon": "home",
-                          "columns": {
-                            "desktop": 4,
-                            "mobile": 4
-                          },
-                          "rows": "implicit",
-                          "gap": 3,
-                          "padding": 0,
-                          "rowHeight": 60,
-                          "items": [
-                            {
-                              "id": "32e36c7d-1f3d-49cd-bef9-b83aa815fcbc",
-                              "cardType": "button",
-                              "entityId": "light.keukenplafond",
-                              "name": "",
-                              "layout": {
-                                "desktop": {
-                                  "colStart": 1,
-                                  "colSpan": 3,
-                                  "rowStart": 1,
-                                  "rowSpan": 2
-                                },
-                                "mobile": {
-                                  "colStart": 1,
-                                  "colSpan": 2,
-                                  "rowStart": 1,
-                                  "rowSpan": 2
-                                }
-                              },
-                              "secondaryEntityId": "",
-                              "secondaryName": "",
-                              "domainFilter": "light",
-                              "subtitle": "",
-                              "alignment": "start",
-                              "activeTabIndex": 0
-                            }
-                          ],
-                          "columnGap": 3,
-                          "rowGap": 3
-                        }
-                      ],
-                      "activeTabIndex": 0
-                    }
-                  ],
-                  "columnGap": 5,
-                  "rowGap": 5
+                  "id": "o16qeap1j",
+                  "entityId": "light.keukenkast",
+                  "icon": "coffee_maker",
+                  "color": "var(--color-m3-primary)"
                 },
                 {
-                  "id": "ca82c455-4f18-45fc-9fd3-c73144a515e1",
-                  "name": "Tweede tab",
-                  "icon": "home",
-                  "columns": {
-                    "desktop": 12,
-                    "mobile": 4
-                  },
-                  "rows": "implicit",
-                  "gap": 16,
-                  "padding": 16,
-                  "rowHeight": 80,
-                  "items": []
+                  "id": "0br2mucl1",
+                  "entityId": "light.eettafel_lampen",
+                  "icon": "tablet",
+                  "color": "var(--color-m3-secondary)"
+                },
+                {
+                  "id": "qh19qrds6",
+                  "entityId": "light.keukenplafond",
+                  "icon": "light",
+                  "color": "var(--color-m3-tertiary)"
                 }
-              ],
-              "activeTabIndex": 0
+              ]
             }
           ]
         },
         {
-          "id": "68eb1c80-7653-4548-a433-e43e04becabf",
+          "id": "7a58bef1-16b7-41f2-8cd6-98d69dc6886a",
+          "name": "Climate",
+          "icon": "home",
+          "columns": {
+            "desktop": 12,
+            "mobile": 4
+          },
+          "rows": "implicit",
+          "gap": 16,
+          "padding": 16,
+          "rowHeight": 80,
+          "items": []
+        },
+        {
+          "id": "8a15b8a0-b396-44ea-887b-92dec1975fb9",
           "name": "Media",
           "icon": "home",
           "columns": {
@@ -2933,7 +2728,7 @@
           "items": []
         },
         {
-          "id": "23b2b49f-e695-4c30-84b7-12fed938717a",
+          "id": "3cede18a-704a-40e2-bb55-af12c4a97a94",
           "name": "Other",
           "icon": "home",
           "columns": {
@@ -2947,7 +2742,7 @@
           "items": []
         }
       ],
-      "activeTabId": "e8ce3c51-4d4f-4ca6-90ec-3d0b1538cac2"
+      "activeTabId": "c631a17b-dc67-466d-9dd1-9b0ee6680cfb"
     },
     "dashboard_begane_grond_gang": {
       "id": "dashboard_begane_grond_gang",
@@ -3010,6 +2805,138 @@
         }
       ],
       "activeTabId": "adad5328-a53e-45a6-8049-2cd1ca9cb444"
+    },
+    "dashboard_begane_grond_keuken": {
+      "id": "dashboard_begane_grond_keuken",
+      "tabs": [
+        {
+          "id": "cf5cf23f-eeaa-4798-b77a-1b33663e6210",
+          "name": "Lights",
+          "icon": "home",
+          "columns": {
+            "desktop": 12,
+            "mobile": 4
+          },
+          "rows": "implicit",
+          "gap": 16,
+          "padding": 16,
+          "rowHeight": 80,
+          "items": [
+            {
+              "id": "d5016756-fecd-4619-a32e-6d7e868cef92",
+              "entityId": "light.keukenkast",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "688fd2e0-8133-4d34-8f0f-6ccee067739a",
+              "entityId": "light.keukenplafond",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 3,
+                  "colSpan": 2,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                }
+              }
+            },
+            {
+              "id": "9a43c9e9-2d62-4f15-838d-d961c24062c3",
+              "entityId": "light.keuken",
+              "cardType": "button",
+              "name": "",
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 5,
+                  "colSpan": 2,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 2,
+                  "rowSpan": 1
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "6d8f59d9-fb16-4400-a14c-ddc179df2b22",
+          "name": "Climate",
+          "icon": "home",
+          "columns": {
+            "desktop": 12,
+            "mobile": 4
+          },
+          "rows": "implicit",
+          "gap": 16,
+          "padding": 16,
+          "rowHeight": 80,
+          "items": []
+        },
+        {
+          "id": "4faf9707-465e-4b58-87ef-c826c75b8ec1",
+          "name": "Media",
+          "icon": "home",
+          "columns": {
+            "desktop": 12,
+            "mobile": 4
+          },
+          "rows": "implicit",
+          "gap": 16,
+          "padding": 16,
+          "rowHeight": 80,
+          "items": []
+        },
+        {
+          "id": "b60c92be-0065-4f78-a5f9-0adfc9b3523b",
+          "name": "Other",
+          "icon": "home",
+          "columns": {
+            "desktop": 12,
+            "mobile": 4
+          },
+          "rows": "implicit",
+          "gap": 16,
+          "padding": 16,
+          "rowHeight": 80,
+          "items": []
+        }
+      ],
+      "activeTabId": "cf5cf23f-eeaa-4798-b77a-1b33663e6210"
     }
   },
   "musicLibrary": {

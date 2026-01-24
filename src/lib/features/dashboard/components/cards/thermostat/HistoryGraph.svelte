@@ -13,6 +13,8 @@
         outsideData: HistoryDataPoint[];
         width?: number;
         height?: number;
+        insideColor?: string;
+        outsideColor?: string;
     }
 
     let {
@@ -20,7 +22,14 @@
         outsideData = [],
         width = 400,
         height = 120,
+        insideColor = "var(--color-m3-secondary)",
+        outsideColor = "var(--color-m3-primary)",
     }: Props = $props();
+
+    // Unique IDs for gradients
+    const id = Math.random().toString(36).slice(2, 9);
+    const insideGradId = `insideGrad-${id}`;
+    const outsideGradId = `outsideGrad-${id}`;
 
     // Combine data for scale calculation
     let allData = $derived(
@@ -29,12 +38,12 @@
 
     // Time domain: last 24 hours
     let timeExtent = $derived.by((): [Date, Date] => {
-        if (allData.length === 0) {
-            const now = new Date();
-            return [new Date(now.getTime() - 24 * 60 * 60 * 1000), now];
-        }
-        const times = allData.map((d) => d.timestamp.getTime());
-        return [new Date(Math.min(...times)), new Date(Math.max(...times))];
+        const now = new Date();
+        const startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+        // If we have data, we might want to end at the latest data point or 'now'
+        // For a dashboard, 'now' is usually better to show the "present"
+        return [startTime, now];
     });
 
     // Extend data to full time range (add synthetic edge points)
@@ -145,31 +154,15 @@
 >
     <defs>
         <!-- Inside (Secondary/Heat) gradient -->
-        <linearGradient id="insideGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop
-                offset="0%"
-                stop-color="var(--color-m3-secondary)"
-                stop-opacity="0.4"
-            />
-            <stop
-                offset="100%"
-                stop-color="var(--color-m3-secondary)"
-                stop-opacity="0"
-            />
+        <linearGradient id={insideGradId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color={insideColor} stop-opacity="0.4" />
+            <stop offset="100%" stop-color={insideColor} stop-opacity="0" />
         </linearGradient>
 
         <!-- Outside (Primary/Cold) gradient -->
-        <linearGradient id="outsideGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop
-                offset="0%"
-                stop-color="var(--color-m3-primary)"
-                stop-opacity="0.3"
-            />
-            <stop
-                offset="100%"
-                stop-color="var(--color-m3-primary)"
-                stop-opacity="0"
-            />
+        <linearGradient id={outsideGradId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color={outsideColor} stop-opacity="0.3" />
+            <stop offset="100%" stop-color={outsideColor} stop-opacity="0" />
         </linearGradient>
     </defs>
 
@@ -186,13 +179,13 @@
     {:else}
         <!-- Outside series (rendered first, behind) -->
         {#if outsideArea}
-            <path d={outsideArea} fill="url(#outsideGradient)" />
+            <path d={outsideArea} fill="url(#{outsideGradId})" />
         {/if}
         {#if outsideLine}
             <path
                 d={outsideLine}
                 fill="none"
-                stroke="var(--color-m3-primary)"
+                stroke={outsideColor}
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -201,13 +194,13 @@
 
         <!-- Inside series (rendered on top) -->
         {#if insideArea}
-            <path d={insideArea} fill="url(#insideGradient)" />
+            <path d={insideArea} fill="url(#{insideGradId})" />
         {/if}
         {#if insideLine}
             <path
                 d={insideLine}
                 fill="none"
-                stroke="var(--color-m3-secondary)"
+                stroke={insideColor}
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"

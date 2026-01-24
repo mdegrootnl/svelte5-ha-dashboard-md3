@@ -17,6 +17,8 @@
         color?: string;
         isFilled?: boolean;
         strokeWidth?: number;
+        startTime?: Date;
+        endTime?: Date;
     }
 
     let {
@@ -26,13 +28,45 @@
         color = "var(--color-m3-primary)",
         isFilled = true,
         strokeWidth = 2,
+        startTime,
+        endTime,
     }: Props = $props();
+
+    function extendToEdges(
+        dataPts: Array<{ timestamp: Date; value: number | null }>,
+    ): Array<{ timestamp: Date; value: number | null }> {
+        if (!startTime || !endTime || dataPts.length === 0) return dataPts;
+
+        const result = [...dataPts];
+        const first = result[0];
+        const last = result[result.length - 1];
+
+        // Ensure we have something at the exact start
+        if (first.timestamp.getTime() > startTime.getTime()) {
+            result.unshift({
+                timestamp: startTime,
+                value: first.value,
+            });
+        }
+
+        // Ensure we have something at the exact end
+        if (last.timestamp.getTime() < endTime.getTime()) {
+            result.push({
+                timestamp: endTime,
+                value: last.value,
+            });
+        }
+
+        return result;
+    }
 
     // Normalize series: if `data` is provided instead of `series`, use it as a single series
     let activeSeries = $derived.by(() => {
-        if (series.length > 0) return series;
-        if (data.length > 0) {
-            return [
+        let raw: ChartSeries[] = [];
+        if (series.length > 0) {
+            raw = series;
+        } else if (data.length > 0) {
+            raw = [
                 {
                     data,
                     color,
@@ -41,11 +75,16 @@
                 },
             ];
         }
-        return [];
+
+        return raw.map((s) => ({
+            ...s,
+            data: extendToEdges(s.data),
+        }));
     });
 
     let container = $state<HTMLElement>();
     let width = $state(0);
+    let trackedHeight = $state(0);
 
     // Gradient ID to ensure uniqueness if multiple charts exist
     const gradientId = `grad-${Math.random().toString(36).slice(2, 9)}`;
@@ -55,6 +94,7 @@
         const observer = new ResizeObserver((entries) => {
             for (let entry of entries) {
                 width = entry.contentRect.width;
+                trackedHeight = entry.contentRect.height;
             }
         });
         observer.observe(container);
@@ -62,6 +102,13 @@
     });
 
     const x = $derived.by(() => {
+        if (startTime && endTime) {
+            return d3Scale
+                .scaleTime()
+                .domain([startTime, endTime])
+                .range([0, width]);
+        }
+
         const allPoints = activeSeries.flatMap((s) => s.data);
         if (allPoints.length === 0)
             return d3Scale.scaleTime().range([0, width]);
@@ -88,17 +135,21 @@
         const minVal = allValues.length > 0 ? Math.min(...allValues) : 0;
         const maxVal = allValues.length > 0 ? Math.max(...allValues) : 100;
 
+        // Use trackedHeight if available, fallback to height prop
+        const currentHeight = trackedHeight || height;
+
         // Add small padding to y domain so line doesn't hit edges
         const padding = (maxVal - minVal) * 0.1 || 1;
 
         return d3Scale
             .scaleLinear()
             .domain([minVal - padding, maxVal + padding])
-            .range([height, 0]);
+            .range([currentHeight, 0]);
     });
 
     const paths = $derived(
         activeSeries.map((s, idx) => {
+            const currentHeight = trackedHeight || height;
             const line = d3Shape
                 .line<{ timestamp: Date; value: number | null }>()
                 .x((d) => x(d.timestamp))
@@ -109,7 +160,7 @@
             const area = d3Shape
                 .area<{ timestamp: Date; value: number | null }>()
                 .x((d) => x(d.timestamp))
-                .y0(height)
+                .y0(currentHeight)
                 .y1((d) => y(d.value ?? 0))
                 .defined((d) => d.value !== null)
                 .curve(d3Shape.curveMonotoneX);
@@ -127,14 +178,10 @@
     );
 </script>
 
-<div bind:this={container} class="chart-container" style:height="{height}px">
+<div bind:this={container} class="chart-container">
     {#if width > 0 && activeSeries.length > 0}
-        <svg
-            {width}
-            {height}
-            viewBox="0 0 {width} {height}"
-            preserveAspectRatio="none"
-        >
+        {@const currentHeight = trackedHeight || height || 100}
+        <svg viewBox="0 0 {width} {currentHeight}" preserveAspectRatio="none">
             <defs>
                 {#each paths as p}
                     <linearGradient
@@ -179,6 +226,8 @@
 <style>
     .chart-container {
         width: 100%;
+        height: 100%;
+        min-height: inherit;
         overflow: hidden;
         display: flex;
         align-items: flex-end;
@@ -186,5 +235,7 @@
 
     svg {
         display: block;
+        width: 100%;
+        height: 100%;
     }
 </style>

@@ -3,6 +3,8 @@ import type { CardConfig } from '$lib/types';
 export class CardEditorStore {
     mode = $state<"none" | "library" | "config">("none");
     config = $state<CardConfig>({ entityId: "", name: "", onSave: () => { } });
+    isIconPickerOpen = $state(false);
+    private iconSelectionCallback: ((icon: string) => void) | null = null;
 
     // Navigation history to support "Back"
     private history: Array<"none" | "library" | "config"> = [];
@@ -46,6 +48,17 @@ export class CardEditorStore {
     close() {
         this.mode = "none";
         this.history = [];
+    }
+
+    openIconPicker(onSelect: (icon: string) => void) {
+        this.iconSelectionCallback = onSelect;
+        this.isIconPickerOpen = true;
+    }
+
+    handleIconSelect(icon: string) {
+        this.iconSelectionCallback?.(icon);
+        this.isIconPickerOpen = false;
+        this.iconSelectionCallback = null;
     }
 
     save(newConfig: CardConfig) {

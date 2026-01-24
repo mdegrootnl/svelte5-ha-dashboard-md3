@@ -101,7 +101,7 @@ describe('DashboardEditorStore', () => {
         // Arrange
         // Mock updateGridDimensions to set gridRect
         const rect = { width: 1000, height: 800, left: 0, top: 0, right: 1000, bottom: 800 } as DOMRect;
-        dashboardEditorStore.updateGridDimensions(rect, 12, 16);
+        dashboardEditorStore.updateGridDimensions(rect, 12, 16, 16, 80, 16, undefined);
 
         // Act
         dashboardEditorStore.enterEditMode();

@@ -14,6 +14,8 @@
         domainFilter?: string;
         alignment?: "start" | "center" | "end";
         ondelete?: () => void;
+        color?: string;
+        backgroundColor?: string;
     }
 
     let {
@@ -26,6 +28,8 @@
         domainFilter = $bindable(""),
         alignment = $bindable("start"),
         ondelete,
+        color = $bindable(),
+        backgroundColor = $bindable(),
     }: Props = $props();
 
     // Use name as title if provided and title is empty
@@ -53,6 +57,8 @@
                     title = newConfig.name || ""; // Mapping name -> title
                     subtitle = newConfig.subtitle || "";
                     alignment = newConfig.alignment || "start";
+                    color = newConfig.color;
+                    backgroundColor = newConfig.backgroundColor;
                 }
             },
             onDelete: ondelete,
@@ -71,15 +77,18 @@
 
 <div
     class="relative flex flex-col {justifyClass} text-start w-full h-full p-1 gap-0.5 rounded-xl group {className} overflow-visible z-10 @container"
+    style:background-color={backgroundColor || ""}
 >
     <h2
-        class="text-[clamp(1.5rem,8cqmin,3rem)] text-m3-on-surface leading-tight whitespace-nowrap"
+        class="text-[clamp(1.5rem,8cqmin,3rem)] leading-tight whitespace-nowrap"
+        style:color={color || "var(--color-m3-on-surface)"}
     >
         {title}
     </h2>
     {#if subtitle}
         <p
-            class="text-[clamp(0.8rem,5cqmin,1.5rem)] text-m3-on-surface-variant leading-tight whitespace-nowrap"
+            class="text-[clamp(0.8rem,5cqmin,1.5rem)] leading-tight whitespace-nowrap opacity-70"
+            style:color={color || "var(--color-m3-on-surface-variant)"}
         >
             {subtitle}
         </p>

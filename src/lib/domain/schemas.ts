@@ -29,7 +29,13 @@ export const DashboardItemSchema = z.object({
     layout: ResponsiveLayoutSchema,
     secondaryEntityId: z.string().default(""),
     secondaryName: z.string().default(""),
-    domainFilter: z.string().default(""),
+    color: z.string().optional(),
+    backgroundColor: z.string().optional(),
+
+    // Navigation Props
+    path: z.string().optional(),
+    iconType: z.enum(["icon", "image"]).optional(),
+    imageUrl: z.string().optional(),
 });
 
 export const GraphCardConfigSchema = z.object({

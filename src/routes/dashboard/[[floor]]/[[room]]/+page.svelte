@@ -23,6 +23,7 @@
         type TabCardConfig,
         TabCard,
         GraphCard,
+        NavigationCard,
         DynamicIcon,
     } from "$lib";
     import { fade } from "svelte/transition";
@@ -56,10 +57,6 @@
 
     // Grid config dialog visibility
     let isGridConfigOpen = $state(false);
-
-    // Icon Picker state
-    let isIconPickerOpen = $state(false);
-    let tabToEditIconId = $state<string | null>(null);
 
     // Rename Dialog state
     let isRenameDialogOpen = $state(false);
@@ -105,35 +102,6 @@
             roomConfig.tabs[0] ||
             null
         );
-    });
-
-    // Update grid dimensions when container resizes using ResizeObserver
-    $effect(() => {
-        const config = activeTab; // Use active tab config
-        const container = gridContainerEl;
-        if (!browser || !container || !config) return;
-
-        const updateDimensions = () => {
-            const rect = container.getBoundingClientRect();
-            const columnCount =
-                dashboardStore.breakpoint === "desktop"
-                    ? config.columns.desktop
-                    : config.columns.mobile;
-            dashboardEditorStore.updateGridDimensions(
-                rect,
-                columnCount,
-                config.gap,
-            );
-        };
-
-        // Initial update
-        updateDimensions();
-
-        // Watch for resizes
-        const observer = new ResizeObserver(updateDimensions);
-        observer.observe(container);
-
-        return () => observer.disconnect();
     });
 
     // Generate dashboard when HA connects and store is ready
@@ -342,16 +310,10 @@
     }
 
     function onTabEditIcon(e: CustomEvent<string>) {
-        tabToEditIconId = e.detail;
-        isIconPickerOpen = true;
-    }
-
-    function onIconSelected(e: CustomEvent<string>) {
-        if (tabToEditIconId) {
-            dashboardStore.setTabIcon(tabToEditIconId, e.detail);
-        }
-        isIconPickerOpen = false;
-        tabToEditIconId = null;
+        const tabId = e.detail;
+        cardEditorStore.openIconPicker((icon) => {
+            dashboardStore.setTabIcon(tabId, icon);
+        });
     }
 
     function onTabRenameRequest(e: CustomEvent<{ id: string; name: string }>) {
@@ -547,7 +509,7 @@
                     config={activeTab}
                     breakpoint={dashboardStore.breakpoint}
                 >
-                    {#each activeTab.items as item (item.id)}
+                    {#each activeTab.items as item, i (item.id)}
                         <GridItem
                             itemId={item.id}
                             desktopLayout={item.layout.desktop}
@@ -609,7 +571,11 @@
                                         )}
                                 />
                             {:else if item.cardType === "tabs"}
-                                <TabCard config={item as TabCardConfig} />
+                                <TabCard
+                                    bind:config={
+                                        activeTab.items[i] as TabCardConfig
+                                    }
+                                />
                             {:else if item.cardType === "graph"}
                                 <GraphCard
                                     id={item.id}
@@ -621,6 +587,23 @@
                                     bind:aggregate_func={
                                         (item as any).aggregate_func
                                     }
+                                    ondelete={() =>
+                                        dashboardEditorStore.deleteItem(
+                                            item.id,
+                                        )}
+                                />
+                            {:else if item.cardType === "navigation"}
+                                <NavigationCard
+                                    id={item.id}
+                                    bind:name={item.name}
+                                    bind:path={item.path}
+                                    bind:icon={item.icon}
+                                    bind:iconType={item.iconType}
+                                    bind:imageUrl={item.imageUrl}
+                                    bind:color={item.color}
+                                    bind:backgroundColor={item.backgroundColor}
+                                    bind:shortcuts={item.shortcuts}
+                                    bind:entityId={item.entityId}
                                     ondelete={() =>
                                         dashboardEditorStore.deleteItem(
                                             item.id,
@@ -700,10 +683,10 @@
 <CardLibrarySheet />
 <CardConfigSheet />
 
-{#if isIconPickerOpen}
+{#if cardEditorStore.isIconPickerOpen}
     <IconPicker
-        on:select={onIconSelected}
-        on:close={() => (isIconPickerOpen = false)}
+        onselect={(icon) => cardEditorStore.handleIconSelect(icon)}
+        onclose={() => (cardEditorStore.isIconPickerOpen = false)}
     />
 {/if}
 

@@ -45,7 +45,8 @@ const CARD_TYPE_SPANS: Record<DashboardCardType, { desktop: number; mobile: numb
     'media': { desktop: 6, mobile: 4 },
     'title': { desktop: 4, mobile: 4 },
     'tabs': { desktop: 6, mobile: 4 },
-    'graph': { desktop: 4, mobile: 4 }
+    'graph': { desktop: 4, mobile: 4 },
+    'navigation': { desktop: 2, mobile: 2 }
 };
 
 /**

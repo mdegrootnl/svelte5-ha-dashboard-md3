@@ -341,6 +341,29 @@ sequenceDiagram
     Store-->>UI: Render GridContainer
 ```
 
+```
+
+---
+
+## Adding New Card Types
+
+To maintain type safety and correct board behavior, adding a new card type requires updates in three locations:
+
+### 1. Type Definition (`src/lib/types/dashboard.ts`)
+- Update `DashboardCardType` union.
+- Update `DashboardItem` with any card-specific properties (use optional types).
+- Update `createDefaultItemLayout` with appropriate default `desktopSpan` and `mobileSpan`.
+
+### 2. Editor Mapping (`src/lib/features/dashboard/stores/dashboardEditor.svelte.ts`)
+- Update `createItemFromSelection` and `addItem`:
+  - Add the type mapping (e.g., `if (itemConfig.type === "new_type") cardType = "new_type";`).
+  - Ensure all card-specific properties are passed when creating the `newItem` object.
+  - **Failure to map the type will result in the card defaulting to a "button" card.**
+
+### 3. Rendering Logic
+- **Grid Rendering**: Update `GridItem.svelte` to switch on the new type and render the corresponding component.
+- **Config Rendering**: Update `CardConfigSheet.svelte` to show appropriate fields for the new card type and update the preview logic.
+
 ---
 
 ## Perfect Project Standards

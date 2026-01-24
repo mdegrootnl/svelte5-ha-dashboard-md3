@@ -12,7 +12,7 @@ vi.mock('$lib', async () => {
         haStore: {
             getEntity: vi.fn(),
             callService: vi.fn(),
-            getHistory: vi.fn().mockResolvedValue([]),
+            getHistory: vi.fn().mockResolvedValue({ ok: true, value: [] }),
         },
         cardEditorStore: {
             open: vi.fn(),

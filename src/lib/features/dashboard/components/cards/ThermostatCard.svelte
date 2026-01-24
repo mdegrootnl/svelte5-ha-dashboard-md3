@@ -5,6 +5,7 @@
         formatTemperature,
         getEntityName,
     } from "$lib";
+    import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import type {
         ClimateEntityAttributes,
         HistoryData,
@@ -26,6 +27,9 @@
         domainFilter: string;
         ondelete?: () => void;
         class?: string;
+        color?: string;
+        backgroundColor?: string;
+        icon?: string | any;
     }
 
     let {
@@ -37,6 +41,9 @@
         domainFilter = $bindable(""),
         ondelete,
         class: className = "",
+        color = $bindable(),
+        backgroundColor = $bindable(),
+        icon: iconProp = $bindable(),
     }: Props = $props();
 
     // -- Constants --
@@ -186,6 +193,7 @@
     }
 
     // -- Dynamic HVAC Icon Component --
+    let iconOverride = $derived(typeof iconProp === "string" ? iconProp : "");
     let HvacIconComponent = $derived(
         hvacAction === "heating"
             ? IconFire
@@ -252,6 +260,8 @@
                 secondaryEntityId = newConfig.secondaryEntityId || "";
 
                 secondaryName = newConfig.secondaryName || "";
+                color = newConfig.color;
+                backgroundColor = newConfig.backgroundColor;
             },
             onDelete: ondelete,
         };
@@ -261,15 +271,21 @@
     // -- Responsive Layout --
     let clientHeight = $state(0);
     // 1 row (<130px): Compact Horizontal
-    let isCompact = $derived(clientHeight < CONSTANTS.LAYOUT.COMPACT_HEIGHT);
+    let isCompact = $derived(
+        clientHeight > 0 && clientHeight < CONSTANTS.LAYOUT.COMPACT_HEIGHT,
+    );
     // 3 rows (>=220px): Full with Graph. 2 rows: Vertical but no graph.
-    let isExpanded = $derived(clientHeight >= CONSTANTS.LAYOUT.EXPANDED_HEIGHT);
+    // Default to expanded (isExpanded = true) when height is unknown (0) for tests/initial render
+    let isExpanded = $derived(
+        clientHeight === 0 || clientHeight >= CONSTANTS.LAYOUT.EXPANDED_HEIGHT,
+    );
 </script>
 
 <!-- Card Container -->
 <div
     class="relative flex flex-col w-full h-full rounded-[var(--radius-m3-md)] bg-m3-surface-container overflow-hidden shadow-sm group {className} @container"
     bind:clientHeight
+    style:background-color={backgroundColor || ""}
 >
     <!-- Background Graph (Visible when NOT expanded) -->
     {#if !isExpanded}
@@ -277,6 +293,7 @@
             <HistoryGraph
                 insideData={insideHistory?.points || []}
                 outsideData={outsideHistory?.points || []}
+                insideColor={color}
             />
         </div>
     {/if}
@@ -289,12 +306,23 @@
             <!-- Status & Info -->
             <div class="flex items-center gap-3 min-w-0">
                 <button
-                    class="w-10 h-10 flex items-center justify-center rounded-full transition-colors shrink-0 {isActive
-                        ? 'bg-m3-primary-container text-m3-on-primary-container'
-                        : 'bg-m3-surface-container-high text-m3-on-surface-variant'}"
+                    class="w-10 h-10 flex items-center justify-center rounded-full transition-colors shrink-0"
+                    style:background-color={isActive
+                        ? color
+                            ? `color-mix(in srgb, ${color} 10%, transparent)`
+                            : "var(--color-m3-primary-container)"
+                        : "var(--color-m3-surface-container-high)"}
+                    style:color={isActive
+                        ? color || "var(--color-m3-on-primary-container)"
+                        : "var(--color-m3-on-surface-variant)"}
                     onclick={cycleMode}
+                    aria-label="Toggle heating mode"
                 >
-                    <HvacIconComponent class="size-5" />
+                    {#if iconOverride}
+                        <DynamicIcon name={iconOverride} class="size-5" />
+                    {:else}
+                        <HvacIconComponent class="size-5" />
+                    {/if}
                 </button>
                 <div class="flex flex-col min-w-0">
                     <span
@@ -319,6 +347,7 @@
                     <button
                         class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-m3-on-surface/10 text-m3-on-surface-variant"
                         onclick={decrementTemp}
+                        aria-label="Decrease temperature"
                     >
                         −
                     </button>
@@ -330,6 +359,7 @@
                     <button
                         class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-m3-on-surface/10 text-m3-on-surface-variant"
                         onclick={incrementTemp}
+                        aria-label="Increase temperature"
                     >
                         +
                     </button>
@@ -343,7 +373,13 @@
             <div class="flex justify-between items-start px-5 pt-5 pb-3">
                 <!-- Inside Temperature -->
                 <div class="flex items-center gap-3">
-                    <div class="text-m3-secondary">
+                    <div
+                        class="flex items-center justify-center size-10 rounded-full shrink-0"
+                        style:background-color={color
+                            ? `color-mix(in srgb, ${color} 10%, transparent)`
+                            : "var(--color-m3-secondary-container)"}
+                        style:color={color || "var(--color-m3-secondary)"}
+                    >
                         <HvacIconComponent class="size-6" />
                     </div>
                     <div class="flex flex-col">
@@ -384,10 +420,11 @@
 
             <!-- History Graph (Only in Expanded Mode) -->
             {#if isExpanded}
-                <div class="w-full flex-1 min-h-[120px]">
+                <div class="w-full flex-1 min-h-[120px] relative">
                     <HistoryGraph
                         insideData={insideHistory?.points || []}
                         outsideData={outsideHistory?.points || []}
+                        insideColor={color}
                     />
                 </div>
             {/if}
@@ -425,13 +462,23 @@
                 <div class="flex items-center gap-2">
                     <!-- HVAC Mode Button -->
                     <button
-                        class="w-12 h-12 flex items-center justify-center rounded-full transition-colors {isActive
-                            ? 'bg-m3-primary-container text-m3-on-primary-container'
-                            : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-on-surface/10'}"
+                        class="w-12 h-12 flex items-center justify-center rounded-full transition-colors"
+                        style:background-color={isActive
+                            ? color
+                                ? `color-mix(in srgb, ${color} 10%, transparent)`
+                                : "var(--color-m3-primary-container)"
+                            : "var(--color-m3-surface-container-high)"}
+                        style:color={isActive
+                            ? color || "var(--color-m3-on-primary-container)"
+                            : "var(--color-m3-on-surface-variant)"}
                         onclick={cycleMode}
                         aria-label="Toggle heating mode"
                     >
-                        <IconFire class="size-6" />
+                        {#if iconOverride}
+                            <DynamicIcon name={iconOverride} class="size-6" />
+                        {:else}
+                            <IconFire class="size-6" />
+                        {/if}
                     </button>
 
                     <!-- Power Button -->

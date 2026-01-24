@@ -79,7 +79,11 @@
                     dashboardEditorStore.updateGridDimensions(
                         entry.target.getBoundingClientRect(),
                         colCount,
-                        config.gap,
+                        config.columnGap ?? config.gap,
+                        config.rowGap ?? config.gap,
+                        config.rowHeight || 80,
+                        config.padding ?? 16,
+                        gridElement,
                     );
                 }
             }

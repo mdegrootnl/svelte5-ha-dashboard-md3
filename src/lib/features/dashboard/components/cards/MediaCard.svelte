@@ -7,6 +7,7 @@
     import MediaControls from "./media/MediaControls.svelte";
     import MediaVolume from "./media/MediaVolume.svelte";
     import MediaProgress from "./media/MediaProgress.svelte";
+    import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
 
     // Props
     interface Props {
@@ -18,6 +19,9 @@
         variant?: "standard" | "condensed" | "poster";
         background?: "surface" | "immersive";
         class?: string;
+        color?: string;
+        backgroundColor?: string;
+        icon?: string | any;
     }
 
     let {
@@ -29,6 +33,9 @@
         variant = "standard",
         background: backgroundProp = "surface",
         class: className = "",
+        color = $bindable(),
+        backgroundColor = $bindable(),
+        icon: iconProp = $bindable(),
     }: Props = $props();
 
     // Derived State
@@ -97,11 +104,13 @@
             id,
             entityId: entityId || "",
             name: name || "",
-            domainFilter: domainFilter || "media_player",
+            icon: typeof iconProp === "string" ? iconProp : "",
             onSave: (newConfig) => {
                 entityId = newConfig.entityId;
-                entityId = newConfig.entityId;
                 name = newConfig.name;
+                color = newConfig.color;
+                backgroundColor = newConfig.backgroundColor;
+                iconProp = newConfig.icon || "";
             },
             onDelete: ondelete,
         });
@@ -111,6 +120,10 @@
 <div
     class={`flex flex-col w-full shadow-sm transition-all ${containerClass} rounded-[var(--radius-m3-md)] relative group h-full @container`}
     bind:clientHeight
+    style={backgroundColor &&
+    (isOff || effectiveBackground !== "immersive" || !artworkSrc)
+        ? `background-color: ${backgroundColor};`
+        : ""}
 >
     <!-- Immersive Background -->
     {#if effectiveBackground === "immersive" && artworkSrc && !isOff}
@@ -135,9 +148,14 @@
                 class="flex items-center justify-between w-full h-full px-4 z-10 relative"
             >
                 <div class="flex items-center gap-3 min-w-0">
-                    <PowerOff
-                        class="w-8 h-8 text-m3-on-surface-variant opacity-50 shrink-0"
-                    />
+                    <div
+                        class="size-8 flex items-center justify-center shrink-0"
+                    >
+                        <DynamicIcon
+                            name={iconProp || "power_off"}
+                            class="size-full text-m3-on-surface-variant opacity-50"
+                        />
+                    </div>
                     <div class="flex flex-col min-w-0">
                         <span
                             class="text-[clamp(10px,3cqmin,14px)] uppercase tracking-wider text-m3-on-surface-variant truncate"
@@ -150,7 +168,9 @@
                     </div>
                 </div>
                 <button
-                    class="bg-m3-primary text-m3-on-primary px-4 py-1.5 rounded-full hover:shadow-md transition-all text-sm font-medium shrink-0 ml-2"
+                    class="px-4 py-1.5 rounded-full hover:shadow-md transition-all text-sm font-medium shrink-0 ml-2"
+                    style:background-color={color || "var(--color-m3-primary)"}
+                    style:color={color ? "white" : "var(--color-m3-on-primary)"}
                     onclick={turnOn}
                 >
                     Turn On
@@ -161,9 +181,12 @@
             <div
                 class="flex flex-col items-center justify-center h-full gap-4 z-10 relative p-4"
             >
-                <PowerOff
-                    class="w-12 h-12 text-m3-on-surface-variant opacity-50"
-                />
+                <div class="size-12 flex items-center justify-center">
+                    <DynamicIcon
+                        name={iconProp || "power_off"}
+                        class="size-full text-m3-on-surface-variant opacity-50"
+                    />
+                </div>
                 <div class="text-center">
                     <p
                         class="text-m3-label-small text-m3-on-surface-variant uppercase tracking-wider mb-1"
@@ -177,7 +200,9 @@
                     </p>
                 </div>
                 <button
-                    class="bg-m3-primary text-m3-on-primary px-6 py-2 rounded-full hover:shadow-lg transition-all font-medium"
+                    class="px-6 py-2 rounded-full hover:shadow-lg transition-all font-medium"
+                    style:background-color={color || "var(--color-m3-primary)"}
+                    style:color={color ? "white" : "var(--color-m3-on-primary)"}
                     onclick={turnOn}
                 >
                     Turn On
@@ -208,7 +233,8 @@
                     <div
                         class="h-full max-h-[160px] aspect-square rounded-[var(--radius-m3-md)] bg-m3-on-surface/5 flex items-center justify-center border border-m3-on-surface/5"
                     >
-                        <MusicNote
+                        <DynamicIcon
+                            name={iconProp || "music_note"}
                             class="w-12 h-12 text-m3-on-surface-variant opacity-30"
                         />
                     </div>
@@ -233,15 +259,15 @@
                 </div>
 
                 <div class="mb-2">
-                    <MediaProgress {entityId} theme={currentTheme} />
+                    <MediaProgress {entityId} theme={currentTheme} {color} />
                 </div>
 
                 <div class="mb-2">
-                    <MediaControls {entityId} theme={currentTheme} />
+                    <MediaControls {entityId} theme={currentTheme} {color} />
                 </div>
 
                 <div>
-                    <MediaVolume {entityId} theme={currentTheme} />
+                    <MediaVolume {entityId} theme={currentTheme} {color} />
                 </div>
             </div>
         </div>
@@ -285,7 +311,7 @@
             </div>
 
             <div class="shrink-0">
-                <MediaControls {entityId} compact={true} />
+                <MediaControls {entityId} compact={true} {color} />
             </div>
         </div>
     {:else}
@@ -304,7 +330,8 @@
                     <div
                         class="h-14 w-14 rounded-[var(--radius-m3-md)] bg-m3-surface-container-highest flex items-center justify-center shrink-0 border border-m3-outline-variant/10"
                     >
-                        <MusicNote
+                        <DynamicIcon
+                            name={iconProp || "music_note"}
                             class="w-7 h-7 text-m3-on-surface-variant opacity-40"
                         />
                     </div>
@@ -331,10 +358,10 @@
 
             <div class="flex flex-col gap-1 mt-auto">
                 {#if clientHeight >= 200}
-                    <MediaProgress {entityId} />
+                    <MediaProgress {entityId} {color} />
                 {/if}
-                <MediaControls {entityId} />
-                <MediaVolume {entityId} />
+                <MediaControls {entityId} {color} />
+                <MediaVolume {entityId} {color} />
             </div>
         </div>
     {/if}
