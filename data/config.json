@@ -5,12 +5,6 @@
     "navigationStyle": "standard",
     "navigationItems": [
       {
-        "id": "home",
-        "label": "Home",
-        "icon": "home",
-        "href": "/"
-      },
-      {
         "id": "dashboard",
         "label": "Home Dashboard",
         "icon": "home",
@@ -2642,60 +2636,6 @@
                   "rowSpan": 1
                 }
               }
-            },
-            {
-              "id": "6aa4ff59-853b-4e59-8177-d4601c09314d",
-              "cardType": "navigation",
-              "entityId": "",
-              "name": "Keuken",
-              "layout": {
-                "desktop": {
-                  "colStart": 8,
-                  "colSpan": 2,
-                  "rowStart": 2,
-                  "rowSpan": 2
-                },
-                "mobile": {
-                  "colStart": 1,
-                  "colSpan": 2,
-                  "rowStart": 3,
-                  "rowSpan": 2
-                }
-              },
-              "secondaryEntityId": "",
-              "secondaryName": "",
-              "domainFilter": "",
-              "subtitle": "",
-              "alignment": "start",
-              "activeTabIndex": 0,
-              "hours_to_show": 24,
-              "aggregate_func": "avg",
-              "path": "/dashboard/begane_grond/keuken",
-              "iconType": "image",
-              "imageUrl": "/api/uploads/1769253506514_pexels-pixabay-50594.jpg",
-              "icon": "kitchen",
-              "color": "var(--color-m3-graph-1)",
-              "backgroundColor": "var(--color-m3-tertiary-container)",
-              "shortcuts": [
-                {
-                  "id": "o16qeap1j",
-                  "entityId": "light.keukenkast",
-                  "icon": "coffee_maker",
-                  "color": "var(--color-m3-primary)"
-                },
-                {
-                  "id": "0br2mucl1",
-                  "entityId": "light.eettafel_lampen",
-                  "icon": "tablet",
-                  "color": "var(--color-m3-secondary)"
-                },
-                {
-                  "id": "qh19qrds6",
-                  "entityId": "light.keukenplafond",
-                  "icon": "light",
-                  "color": "var(--color-m3-tertiary)"
-                }
-              ]
             }
           ]
         },
@@ -2740,9 +2680,84 @@
           "padding": 16,
           "rowHeight": 80,
           "items": []
+        },
+        {
+          "id": "a2d9c753-99e2-442e-8d55-bc25c4c22bfd",
+          "name": "New Tab",
+          "icon": "home",
+          "columns": {
+            "desktop": 12,
+            "mobile": 4
+          },
+          "rows": "implicit",
+          "gap": 16,
+          "padding": 16,
+          "rowHeight": 80,
+          "items": [
+            {
+              "id": "080d62d5-69f9-4997-afcd-9c758acaf650",
+              "cardType": "navigation",
+              "entityId": "",
+              "name": "Keuken",
+              "layout": {
+                "desktop": {
+                  "colStart": 7,
+                  "colSpan": 2,
+                  "rowStart": 1,
+                  "rowSpan": 2
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 2,
+                  "rowStart": 1,
+                  "rowSpan": 2
+                }
+              },
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "subtitle": "",
+              "alignment": "start",
+              "activeTabIndex": 0,
+              "hours_to_show": 24,
+              "aggregate_func": "avg",
+              "path": "/dashboard/begane_grond/keuken",
+              "iconType": "image",
+              "imageUrl": "/api/uploads/1769271190736_pexels-pixabay-50594.jpg",
+              "icon": "kitchen",
+              "shortcuts": [
+                {
+                  "id": "pjwls7ae7",
+                  "entityId": "light.keukenkast",
+                  "icon": "coffee_maker",
+                  "color": "var(--color-m3-primary)"
+                },
+                {
+                  "id": "7deo8w8bn",
+                  "entityId": "light.keukenplafond",
+                  "icon": "light",
+                  "color": "var(--color-m3-secondary)"
+                },
+                {
+                  "id": "7b7pt2jty",
+                  "entityId": "light.eettafel_lampen",
+                  "icon": "tablet",
+                  "color": "var(--color-m3-tertiary)"
+                },
+                {
+                  "id": "j04dauxn2",
+                  "entityId": "light.strips_woonkamer",
+                  "icon": "wb_twilight",
+                  "color": "var(--color-m3-graph-2)"
+                }
+              ],
+              "color": "",
+              "backgroundColor": ""
+            }
+          ]
         }
       ],
-      "activeTabId": "c631a17b-dc67-466d-9dd1-9b0ee6680cfb"
+      "activeTabId": "a2d9c753-99e2-442e-8d55-bc25c4c22bfd"
     },
     "dashboard_begane_grond_gang": {
       "id": "dashboard_begane_grond_gang",

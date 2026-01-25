@@ -160,11 +160,7 @@
 <PageShell title="Settings" description="Configure application integrations.">
     <!-- Tab Bar -->
     <div class="mb-6">
-        <TabBar
-            {tabs}
-            {activeTabId}
-            on:select={(e) => (activeTabId = e.detail)}
-        />
+        <TabBar {tabs} {activeTabId} onselect={(id) => (activeTabId = id)} />
     </div>
 
     <!-- Navigation Tab -->

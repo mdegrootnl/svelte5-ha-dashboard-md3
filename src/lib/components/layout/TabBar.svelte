@@ -1,10 +1,8 @@
 <script lang="ts">
-    import type { GridConfig } from "$lib/types/dashboard";
     import IconAdd from "~icons/material-symbols/add";
     import IconClose from "~icons/material-symbols/close";
     import IconEdit from "~icons/material-symbols/edit";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
-    import { createEventDispatcher } from "svelte";
 
     interface TabItem {
         id: string;
@@ -16,35 +14,42 @@
         tabs: TabItem[];
         activeTabId: string;
         isEditing?: boolean;
+        onselect?: (id: string) => void;
+        onadd?: () => void;
+        ondelete?: (id: string) => void;
+        onrename?: (data: { id: string; name: string }) => void;
+        onrenamerequest?: (data: { id: string; name: string }) => void;
+        onediticon?: (id: string) => void;
     }
 
-    let { tabs, activeTabId, isEditing = false }: Props = $props();
-
-    const dispatch = createEventDispatcher<{
-        select: string;
-        add: void;
-        delete: string;
-        rename: { id: string; name: string };
-        "rename-request": { id: string; name: string };
-        "edit-icon": string;
-    }>();
+    let {
+        tabs,
+        activeTabId,
+        isEditing = false,
+        onselect,
+        onadd,
+        ondelete,
+        onrename,
+        onrenamerequest,
+        onediticon,
+    }: Props = $props();
 
     function handleSelect(id: string) {
-        dispatch("select", id);
+        onselect?.(id);
     }
 
     function handleAdd() {
-        dispatch("add");
+        onadd?.();
     }
 
     function handleDelete(id: string, e: MouseEvent) {
         e.stopPropagation();
-        dispatch("delete", id);
+        ondelete?.(id);
     }
 
     function handleEditIcon(id: string, e: MouseEvent) {
         e.stopPropagation();
-        dispatch("edit-icon", id);
+        onediticon?.(id);
     }
 </script>
 
@@ -74,7 +79,7 @@
                         tabindex="0"
                         onclick={(e) => {
                             e.stopPropagation();
-                            dispatch("rename-request", {
+                            onrenamerequest?.({
                                 id: tab.id,
                                 name: tab.name,
                             });
@@ -82,7 +87,7 @@
                         onkeydown={(e) => {
                             if (e.key === "Enter") {
                                 e.stopPropagation();
-                                dispatch("rename-request", {
+                                onrenamerequest?.({
                                     id: tab.id,
                                     name: tab.name,
                                 });

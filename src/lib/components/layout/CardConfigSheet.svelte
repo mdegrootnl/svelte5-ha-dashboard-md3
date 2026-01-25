@@ -25,6 +25,7 @@
     import IconButton from "$lib/components/md3/IconButton.svelte";
     import IconPicker from "$lib/components/common/IconPicker.svelte";
     import ImagePicker from "$lib/components/settings/ImagePicker.svelte";
+    import RoutePicker from "$lib/components/md3/RoutePicker.svelte";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
@@ -572,8 +573,7 @@
                         class="w-full"
                     />
 
-                    <TextField
-                        variant="outlined"
+                    <RoutePicker
                         label="Route Path"
                         placeholder="/dashboard/living-room"
                         bind:value={tempConfig.path}

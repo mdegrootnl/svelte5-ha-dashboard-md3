@@ -1,6 +1,6 @@
 # Architecture Overview
 
-**Last Updated**: January 11, 2026
+**Last Updated**: January 25, 2026
 
 A Material Design 3 dashboard for Home Assistant built with **Svelte 5** and **SvelteKit**.
 
@@ -35,17 +35,32 @@ src/
 │   ├── index.ts         # Public exports barrel
 │   ├── components/
 │   │   ├── md3/         # Material Design 3 primitives
-│   │   ├── cards/       # Entity cards (Button, Media)
-│   │   └── layout/      # Page shells, error boundaries
-│   ├── stores/          # Svelte 5 rune-based stores
+│   │   ├── common/      # Shared utilities (DynamicIcon, IconPicker)
+│   │   ├── layout/      # Page shells, grid system, error boundaries
+│   │   ├── settings/    # Settings page components
+│   │   ├── viz/         # Data visualization (MiniChart)
+│   │   ├── weather/     # Weather display components
+│   │   └── lockscreen/  # Lockscreen components
+│   ├── features/
+│   │   ├── dashboard/   # Dashboard feature (cards, stores)
+│   │   │   ├── components/cards/  # Entity cards
+│   │   │   └── stores/  # Dashboard-specific stores
+│   │   ├── music/       # Music Assistant integration
+│   │   │   ├── components/  # Music browser, player
+│   │   │   └── stores/  # Music-specific stores
+│   │   └── calendar/    # Calendar feature
+│   ├── stores/          # Global Svelte 5 rune-based stores
 │   ├── types/           # TypeScript interfaces
 │   ├── domain/          # Pure domain logic & services
+│   ├── server/          # Server-side utilities
+│   ├── actions/         # Svelte actions
 │   └── utils/           # Helper functions
 ├── routes/
 │   ├── +layout.svelte   # Root layout with NavigationRail
 │   ├── dashboard/       # Main control dashboard
 │   ├── library/         # Component showcase
 │   ├── settings/        # HA connection config
+│   ├── weather/         # Weather dashboard
 │   └── theme/           # Theme customization
 └── tests/               # Test setup & utilities
 ```
@@ -96,19 +111,24 @@ Reusable Material Design 3 components with full theming support:
 - **Chip** — filter and action chips
 - **FAB** — floating action button
 
-### Entity Cards (`src/lib/components/cards/`)
+### Entity Cards (`src/lib/features/dashboard/components/cards/`)
 
 Home Assistant entity control cards:
 
 - **ButtonCard** — switch/slider variants for lights, fans, switches
 - **MediaCard** — standard, poster, condensed variants for media players
 - **ThermostatCard** — climate control with history graph, supports secondary outdoor sensor
+- **TitleCard** — section headers with optional subtitle and alignment
+- **TabCard** — nested grid container with tabbed navigation
+- **GraphCard** — entity history visualization with configurable aggregation
+- **NavigationCard** — navigation links with optional entity shortcuts
 
-### Music Components (`src/lib/components/music/`)
+### Music Components (`src/lib/features/music/components/`)
 
 - **MusicBrowser** — Full-screen media browser with search and drill-down support.
-- **MusicPlayer** — Expanded player view with queue and controls.
+- **MusicNowPlaying** — Expanded player view with queue and controls.
 - **MusicMiniPlayer** — Persistent bottom bar player.
+- **MusicPlayerSelector** — Player selection dropdown.
 - **MusicSearch** — Global music search functionality.
 
 

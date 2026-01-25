@@ -293,32 +293,31 @@
     }
 
     // Tab Handlers
-    function onTabSelect(e: CustomEvent<string>) {
-        dashboardStore.setActiveTab(e.detail);
+    function onTabSelect(id: string) {
+        dashboardStore.setActiveTab(id);
     }
 
     function onTabAdd() {
         dashboardStore.addTab("New Tab");
     }
 
-    function onTabDelete(e: CustomEvent<string>) {
-        dashboardStore.deleteTab(e.detail);
+    function onTabDelete(id: string) {
+        dashboardStore.deleteTab(id);
     }
 
-    function onTabRename(e: CustomEvent<{ id: string; name: string }>) {
-        dashboardStore.renameTab(e.detail.id, e.detail.name);
+    function onTabRename(data: { id: string; name: string }) {
+        dashboardStore.renameTab(data.id, data.name);
     }
 
-    function onTabEditIcon(e: CustomEvent<string>) {
-        const tabId = e.detail;
+    function onTabEditIcon(id: string) {
         cardEditorStore.openIconPicker((icon) => {
-            dashboardStore.setTabIcon(tabId, icon);
+            dashboardStore.setTabIcon(id, icon);
         });
     }
 
-    function onTabRenameRequest(e: CustomEvent<{ id: string; name: string }>) {
-        tabToRenameId = e.detail.id;
-        tabToRenameName = e.detail.name;
+    function onTabRenameRequest(data: { id: string; name: string }) {
+        tabToRenameId = data.id;
+        tabToRenameName = data.name;
         isRenameDialogOpen = true;
     }
 
@@ -470,12 +469,12 @@
                 tabs={roomConfig.tabs}
                 activeTabId={roomConfig.activeTabId}
                 {isEditing}
-                on:select={onTabSelect}
-                on:add={onTabAdd}
-                on:delete={onTabDelete}
-                on:rename={onTabRename}
-                on:rename-request={onTabRenameRequest}
-                on:edit-icon={onTabEditIcon}
+                onselect={onTabSelect}
+                onadd={onTabAdd}
+                ondelete={onTabDelete}
+                onrename={onTabRename}
+                onrenamerequest={onTabRenameRequest}
+                onediticon={onTabEditIcon}
             />
 
             <!-- Edit mode indicator -->

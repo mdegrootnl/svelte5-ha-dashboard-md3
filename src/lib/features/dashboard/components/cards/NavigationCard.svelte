@@ -61,19 +61,41 @@
         });
     });
 
+    // Style for a shortcut icon
+    function getShortcutStyle(isActive: boolean, customColor?: string) {
+        // Background is now unified (20% opacity)
+        const bgColor = isActive
+            ? customColor || color || "var(--color-m3-primary)"
+            : color || "var(--color-m3-on-surface-variant)";
+
+        // Icon color changes based on state
+        const iconColor = isActive
+            ? customColor || color || "var(--color-m3-primary)"
+            : "var(--color-m3-on-surface-variant)";
+
+        return `background-color: color-mix(in srgb, ${bgColor} 20%, transparent); color: ${iconColor};`;
+    }
+
     // Icon container styles
     let iconContainerStyle = $derived.by(() => {
-        const baseColor = anyShortcutActive
-            ? color || "var(--color-m3-primary)"
-            : color || "var(--color-m3-on-surface-variant)";
-        const opacity = anyShortcutActive ? "25%" : "15%";
-        return `background-color: color-mix(in srgb, ${baseColor} ${opacity}, transparent); color: ${baseColor};`;
+        return getShortcutStyle(anyShortcutActive);
     });
 
     // Get entity state for a shortcut
     function getShortcutState(entityId: string): boolean {
         const entity = haStore.getEntity(entityId);
-        return entity?.state === "on";
+        if (!entity) return false;
+
+        const state = entity.state;
+        return (
+            state === "on" ||
+            state === "open" ||
+            state === "playing" ||
+            state === "home" ||
+            state === "above_horizon" ||
+            state === "active" ||
+            state === "locked"
+        );
     }
 
     // Get icon for shortcut (custom or domain-based)
@@ -176,7 +198,7 @@
             class="absolute inset-0 w-full h-full object-cover z-0"
         />
         <!-- Dark overlay for visibility -->
-        <div class="absolute inset-0 bg-black/40 z-10"></div>
+        <div class="absolute inset-0 bg-black/20 z-10"></div>
         <!-- Content overlay -->
         <div
             class="relative z-20 flex w-full h-full p-[4cqmin] pointer-events-none"
@@ -184,19 +206,24 @@
             <!-- Left side: Label + Icon -->
             <div class="flex flex-col flex-1 justify-between min-w-0">
                 <span
-                    class="text-[9cqmin] font-bold leading-tight text-white drop-shadow-lg"
+                    class="text-[9cqmin] font-bold leading-tight text-white drop-shadow-lg mt-[1cqmin]"
                 >
                     {name || "Navigate"}
                 </span>
                 <!-- Center icon (toggles all) -->
                 <button
-                    class="flex items-center justify-center size-[35cqmin] rounded-full bg-white/20 backdrop-blur-sm cursor-pointer active:scale-95 transition-transform pointer-events-auto"
+                    class="flex items-center justify-center size-[48cqmin] aspect-square flex-shrink-0 rounded-full cursor-pointer active:scale-95 transition-all duration-200 pointer-events-auto bg-white/10 backdrop-blur-[2px]"
                     onclick={toggleAllShortcuts}
                     title="Toggle all"
                 >
                     <DynamicIcon
                         name={icon || "link"}
-                        class="size-[55%] text-white drop-shadow-lg"
+                        class="drop-shadow-lg {anyShortcutActive
+                            ? ''
+                            : 'text-white/40'}"
+                        style={(anyShortcutActive
+                            ? `color: ${color || "var(--color-m3-primary)"}; `
+                            : "") + "font-size: 36cqmin;"}
                     />
                 </button>
             </div>
@@ -209,20 +236,17 @@
                     {#each shortcuts as shortcut (shortcut.id)}
                         {@const isActive = getShortcutState(shortcut.entityId)}
                         <button
-                            class="flex items-center justify-center size-[12cqmin] rounded-full transition-all duration-200 cursor-pointer active:scale-90
-                                   {isActive
-                                ? 'bg-white text-m3-primary'
-                                : 'bg-white/20 text-white'}"
-                            style={isActive && shortcut.color
-                                ? `color: ${shortcut.color} !important;`
-                                : ""}
+                            class="flex items-center justify-center size-[22cqmin] aspect-square flex-shrink-0 rounded-full transition-all duration-200 cursor-pointer active:scale-90 bg-white/10 backdrop-blur-[2px]"
                             onclick={(e) =>
                                 toggleShortcut(shortcut.entityId, e)}
                             title={shortcut.entityId}
                         >
                             <DynamicIcon
                                 name={getShortcutIcon(shortcut)}
-                                class="size-[55%]"
+                                class={isActive ? "" : "text-white/40"}
+                                style={(isActive
+                                    ? `color: ${shortcut.color || color || "var(--color-m3-primary)"}; `
+                                    : "") + "font-size: 12cqmin;"}
                             />
                         </button>
                     {/each}
@@ -269,13 +293,8 @@
                     {#each shortcuts as shortcut (shortcut.id)}
                         {@const isActive = getShortcutState(shortcut.entityId)}
                         <button
-                            class="flex items-center justify-center size-[8cqmin] rounded-full transition-all duration-200 cursor-pointer active:scale-90
-                                       {isActive
-                                ? 'bg-m3-primary text-m3-on-primary'
-                                : 'bg-m3-surface-container-highest text-m3-on-surface'}"
-                            style={isActive && shortcut.color
-                                ? `background-color: ${shortcut.color} !important; color: white !important;`
-                                : ""}
+                            class="flex items-center justify-center size-[16cqmin] rounded-full transition-all duration-200 cursor-pointer active:scale-90 overflow-hidden"
+                            style={getShortcutStyle(isActive, shortcut.color)}
                             onclick={(e) =>
                                 toggleShortcut(shortcut.entityId, e)}
                             title={shortcut.entityId}

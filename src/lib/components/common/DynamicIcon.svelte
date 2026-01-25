@@ -8,13 +8,20 @@
      * @see https://fonts.google.com/icons for the full icon set
      */
 
-    let { name, class: className = "" }: { name: string; class?: string } =
-        $props();
+    let {
+        name,
+        class: className = "",
+        style: customStyle = "",
+    }: {
+        name: string;
+        class?: string;
+        style?: string;
+    } = $props();
 </script>
 
 <span
     class="material-symbols-outlined {className}"
-    style="font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;"
+    style="font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; {customStyle}"
     >{name}</span
 >
 
