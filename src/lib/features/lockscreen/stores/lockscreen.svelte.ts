@@ -165,7 +165,10 @@ export class LockScreenStore {
         try {
             await fetch('/api/settings', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-dashboard-api': 'true'
+                },
                 body: JSON.stringify(config)
             });
             logger.info('Lockscreen config synced to server');

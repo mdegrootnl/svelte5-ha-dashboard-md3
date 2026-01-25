@@ -140,7 +140,10 @@ export class ThemeStore {
         try {
             await fetch('/api/settings', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-dashboard-api': 'true'
+                },
                 body: JSON.stringify(config)
             });
             logger.info('Theme synced to server');
@@ -156,8 +159,8 @@ export class ThemeStore {
         if (this.syncTimer) {
             clearTimeout(this.syncTimer);
             this.syncTimer = null;
-            // Use sendBeacon for reliable unload sync
-            if (browser && navigator.sendBeacon) {
+            // Use fetch with keepalive for reliable unload sync
+            if (browser) {
                 const config = {
                     theme: {
                         sourceColor: this.sourceColor,
@@ -166,7 +169,15 @@ export class ThemeStore {
                         navigationItems: this.navigationItems
                     }
                 };
-                navigator.sendBeacon('/api/settings', JSON.stringify(config));
+                fetch('/api/settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-dashboard-api': 'true'
+                    },
+                    body: JSON.stringify(config),
+                    keepalive: true
+                });
             }
         }
     }

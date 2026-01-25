@@ -142,7 +142,10 @@ export class DashboardStore {
         try {
             await fetch('/api/settings', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-dashboard-api': 'true'
+                },
                 body: JSON.stringify(config)
             });
             logger.info('Dashboards synced to server');
@@ -159,12 +162,21 @@ export class DashboardStore {
             clearTimeout(this.syncTimer);
             this.syncTimer = null;
             // Use sendBeacon for reliable unload sync
-            if (browser && navigator.sendBeacon) {
+            // Use fetch with keepalive for reliable unload sync
+            if (browser) {
                 const config = {
                     dashboards: this.savedConfigs,
                     pages: this.pages
                 };
-                navigator.sendBeacon('/api/settings', JSON.stringify(config));
+                fetch('/api/settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-dashboard-api': 'true'
+                    },
+                    body: JSON.stringify(config),
+                    keepalive: true
+                });
             }
         }
     }

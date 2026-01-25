@@ -2,9 +2,17 @@ import type { Handle } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 
 export const handle: Handle = async ({ event, resolve }) => {
-    // Debug logging for API requests
-    if (event.url.pathname.startsWith('/api')) {
-        console.log(`[Server Hook] Request: ${event.request.method} ${event.url.pathname}`);
+    // Custom CSRF protection: require a security header for all mutation requests (POST, PUT, DELETE, PATCH)
+    // This is more flexible than SvelteKit's built-in origin check for local networks
+    if (event.url.pathname.startsWith('/api') && !['GET', 'HEAD', 'OPTIONS'].includes(event.request.method)) {
+        console.log(`[Server Hook] Validating CSRF for: ${event.request.method} ${event.url.pathname}`);
+        if (event.request.headers.get('x-dashboard-api') !== 'true') {
+            console.warn(`[Server Hook] Blocked mutation request missing security header: ${event.request.method} ${event.url.pathname}`);
+            return new Response(JSON.stringify({ error: 'Missing required security header' }), {
+                status: 403,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
     }
 
     const response = await resolve(event);

@@ -30,6 +30,7 @@
                     headers: {
                         "x-filename": encodeURIComponent(file.name),
                         "content-type": file.type,
+                        "x-dashboard-api": "true",
                     },
                 });
 

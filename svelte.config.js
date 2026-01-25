@@ -15,6 +15,9 @@ const config = {
 		adapter: adapter({
 			bodySizeLimit: 10 * 1024 * 1024 // 10MB
 		}),
+		csrf: {
+			checkOrigin: false
+		},
 		alias: {
 			"$components": "src/lib/components",
 			"$stores": "src/lib/stores",
