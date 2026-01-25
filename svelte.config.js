@@ -12,10 +12,9 @@ const config = {
 	},
 
 	kit: {
-		adapter: adapter(),
-		csrf: {
-			checkOrigin: false,
-		},
+		adapter: adapter({
+			bodySizeLimit: 10 * 1024 * 1024 // 10MB
+		}),
 		alias: {
 			"$components": "src/lib/components",
 			"$stores": "src/lib/stores",

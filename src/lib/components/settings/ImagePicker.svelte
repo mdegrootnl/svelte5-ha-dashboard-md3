@@ -23,13 +23,14 @@
             uploading = true;
             errorMessage = "";
 
-            const formData = new FormData();
-            formData.append("file", file);
-
             try {
                 const res = await fetch("/api/upload", {
                     method: "POST",
-                    body: formData,
+                    body: file,
+                    headers: {
+                        "x-filename": encodeURIComponent(file.name),
+                        "content-type": file.type,
+                    },
                 });
 
                 if (res.ok) {

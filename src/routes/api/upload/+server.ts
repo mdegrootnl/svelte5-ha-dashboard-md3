@@ -6,21 +6,36 @@ import type { RequestHandler } from './$types';
 export const POST: RequestHandler = async ({ request }) => {
     console.log('[API/Upload] Received upload request');
     try {
-        const formData = await request.formData();
-        const file = formData.get('file') as File;
+        const contentType = request.headers.get('content-type');
+        const filenameHeader = request.headers.get('x-filename');
 
-        if (!file) {
-            console.warn('[API/Upload] No file found in form data');
-            return json({ error: 'No file uploaded' }, { status: 400 });
+        let buffer: Buffer;
+        let originalName: string;
+        let mimeType: string = contentType || 'application/octet-stream';
+
+        if (contentType?.includes('multipart/form-data')) {
+            console.log('[API/Upload] Processing as multipart/form-data');
+            const formData = await request.formData();
+            const file = formData.get('file') as File;
+
+            if (!file) {
+                console.warn('[API/Upload] No file found in form data');
+                return json({ error: 'No file uploaded' }, { status: 400 });
+            }
+            buffer = Buffer.from(await file.arrayBuffer());
+            originalName = file.name;
+            mimeType = file.type;
+        } else {
+            console.log('[API/Upload] Processing as binary data');
+            buffer = Buffer.from(await request.arrayBuffer());
+            originalName = filenameHeader ? decodeURIComponent(filenameHeader) : 'upload.bin';
         }
 
-        console.log(`[API/Upload] Processing file: ${file.name} (${file.size} bytes, type: ${file.type})`);
-
-        const buffer = Buffer.from(await file.arrayBuffer());
+        console.log(`[API/Upload] Processing file: ${originalName} (${buffer.length} bytes, type: ${mimeType})`);
 
         // Robust sanitization
-        const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
-        const safeName = file.name
+        const ext = originalName.split('.').pop()?.toLowerCase() || 'bin';
+        const safeName = originalName
             .split('.')[0]
             .replace(/[^a-zA-Z0-9]/g, '_')
             .substring(0, 50);
