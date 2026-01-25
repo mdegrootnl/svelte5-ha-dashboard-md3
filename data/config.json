@@ -1,6 +1,6 @@
 {
   "theme": {
-    "sourceColor": "#6750A4",
+    "sourceColor": "#004040",
     "isDark": true,
     "navigationStyle": "standard",
     "navigationItems": [
@@ -58,7 +58,7 @@
           "id": "98862039-b162-42e7-8c0d-3029ee9b83a0",
           "cardType": "navigation",
           "entityId": "",
-          "name": "",
+          "name": "Keuken",
           "layout": {
             "desktop": {
               "colStart": 1,
@@ -121,6 +121,47 @@
           "imageUrl": "",
           "icon": "",
           "shortcuts": []
+        },
+        {
+          "id": "ad7418dd-caf3-4725-b3f7-67e6a6b5f45c",
+          "cardType": "navigation",
+          "entityId": "",
+          "name": "Woonkamer",
+          "layout": {
+            "desktop": {
+              "colStart": 3,
+              "colSpan": 2,
+              "rowStart": 2,
+              "rowSpan": 2
+            },
+            "mobile": {
+              "colStart": 1,
+              "colSpan": 2,
+              "rowStart": 5,
+              "rowSpan": 2
+            }
+          },
+          "secondaryEntityId": "",
+          "secondaryName": "",
+          "domainFilter": "",
+          "subtitle": "",
+          "alignment": "start",
+          "activeTabIndex": 0,
+          "hours_to_show": 24,
+          "aggregate_func": "avg",
+          "path": "/dashboard/woonkamer",
+          "iconType": "image",
+          "imageUrl": "/api/uploads/1769350671170_pexels-pixabay-50594.jpg",
+          "icon": "",
+          "shortcuts": [
+            {
+              "id": "c5qhroe2w",
+              "entityId": "light.kamerkast",
+              "icon": "yard"
+            }
+          ],
+          "color": "",
+          "backgroundColor": ""
         }
       ],
       "columns": {
@@ -732,50 +773,271 @@
       "name": "Main",
       "icon": "home",
       "columns": {
-        "desktop": 12,
+        "desktop": 6,
         "mobile": 4
       },
-      "rows": "implicit",
+      "rows": [
+        {
+          "id": "row-0",
+          "size": 50,
+          "type": "row"
+        },
+        {
+          "id": "row-1",
+          "size": 80,
+          "type": "row"
+        },
+        {
+          "id": "row-2",
+          "size": 80,
+          "type": "row"
+        },
+        {
+          "id": "row-3",
+          "size": 80,
+          "type": "row"
+        },
+        {
+          "id": "row-4",
+          "size": 80,
+          "type": "row"
+        }
+      ],
       "gap": 16,
       "padding": 16,
       "rowHeight": 80,
-      "items": [
+      "items": [],
+      "tabs": [
         {
-          "id": "54bc95e9-8728-4b77-beec-7c2c900f31cd",
-          "cardType": "button",
-          "entityId": "light.keukenkast",
-          "name": "",
-          "layout": {
-            "desktop": {
-              "colStart": 1,
-              "colSpan": 7,
-              "rowStart": 1,
-              "rowSpan": 3
-            },
-            "mobile": {
-              "colStart": 1,
-              "colSpan": 2,
-              "rowStart": 1,
-              "rowSpan": 2
-            }
+          "id": "5f5aecfc-39f8-4102-a442-78a673192beb",
+          "name": "Verlichting",
+          "icon": "lightbulb",
+          "columns": {
+            "desktop": 6,
+            "mobile": 4
           },
-          "secondaryEntityId": "",
-          "secondaryName": "",
-          "domainFilter": "light",
-          "subtitle": "",
-          "alignment": "start",
-          "activeTabIndex": 0,
-          "hours_to_show": 24,
-          "aggregate_func": "avg",
-          "path": "",
-          "iconType": "icon",
-          "imageUrl": "",
-          "icon": "",
-          "shortcuts": []
+          "rows": "implicit",
+          "gap": 16,
+          "padding": 16,
+          "rowHeight": 80,
+          "items": [
+            {
+              "id": "1180902e-1419-4e8d-97b0-7454cb0c2eee",
+              "cardType": "thermostat",
+              "entityId": "climate.diyless_thermostat_1_central_heating",
+              "name": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 2,
+                  "rowSpan": 4
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 1,
+                  "rowSpan": 3
+                }
+              },
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "climate",
+              "subtitle": "",
+              "alignment": "start",
+              "activeTabIndex": 0,
+              "hours_to_show": 24,
+              "aggregate_func": "avg",
+              "path": "",
+              "iconType": "icon",
+              "imageUrl": "",
+              "icon": "",
+              "shortcuts": []
+            },
+            {
+              "id": "467a4bd8-4e04-446e-b9e6-6b1cab516625",
+              "cardType": "title",
+              "entityId": "",
+              "name": "Verwarming",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 3,
+                  "rowStart": 1,
+                  "rowSpan": 1
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 4,
+                  "rowSpan": 2
+                }
+              },
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "subtitle": "",
+              "alignment": "start",
+              "activeTabIndex": 0,
+              "hours_to_show": 24,
+              "aggregate_func": "avg",
+              "path": "",
+              "iconType": "icon",
+              "imageUrl": "",
+              "icon": "",
+              "shortcuts": []
+            },
+            {
+              "id": "0f0c523d-8dac-42a9-94be-8022966d549a",
+              "cardType": "media",
+              "entityId": "media_player.keuken",
+              "name": "",
+              "layout": {
+                "desktop": {
+                  "colStart": 5,
+                  "colSpan": 4,
+                  "rowStart": 2,
+                  "rowSpan": 4
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 6,
+                  "rowSpan": 2
+                }
+              },
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "media_player",
+              "subtitle": "",
+              "alignment": "start",
+              "activeTabIndex": 0,
+              "hours_to_show": 24,
+              "aggregate_func": "avg",
+              "path": "",
+              "iconType": "icon",
+              "imageUrl": "",
+              "icon": "",
+              "shortcuts": []
+            }
+          ]
+        },
+        {
+          "id": "9e85f246-6880-4b13-a609-8f663cc55ffa",
+          "name": "Media",
+          "icon": "music_note",
+          "columns": {
+            "desktop": 12,
+            "mobile": 4
+          },
+          "rows": "implicit",
+          "gap": 16,
+          "padding": 16,
+          "rowHeight": 80,
+          "items": [
+            {
+              "id": "27a36b52-be0a-478e-a99d-830a487a7a8c",
+              "cardType": "tabs",
+              "entityId": "",
+              "name": "Test",
+              "layout": {
+                "desktop": {
+                  "colStart": 1,
+                  "colSpan": 7,
+                  "rowStart": 1,
+                  "rowSpan": 5
+                },
+                "mobile": {
+                  "colStart": 1,
+                  "colSpan": 4,
+                  "rowStart": 1,
+                  "rowSpan": 2
+                }
+              },
+              "secondaryEntityId": "",
+              "secondaryName": "",
+              "domainFilter": "",
+              "subtitle": "",
+              "alignment": "start",
+              "tabs": [
+                {
+                  "id": "cc778f56-5efe-45b0-a65a-f710de15119d",
+                  "name": "Tab 1",
+                  "icon": "home",
+                  "columns": {
+                    "desktop": 12,
+                    "mobile": 4
+                  },
+                  "rows": "implicit",
+                  "gap": 16,
+                  "padding": 16,
+                  "rowHeight": 80,
+                  "items": []
+                },
+                {
+                  "id": "552c40ca-1073-4f18-b31c-a7508ee7e466",
+                  "name": "Tab 2",
+                  "icon": "home",
+                  "columns": {
+                    "desktop": 12,
+                    "mobile": 4
+                  },
+                  "rows": "implicit",
+                  "gap": 16,
+                  "padding": 16,
+                  "rowHeight": 80,
+                  "items": [
+                    {
+                      "id": "03bcd72e-1ba6-48d9-baed-0d6b468581eb",
+                      "cardType": "button",
+                      "entityId": "light.keukenplafond",
+                      "name": "",
+                      "layout": {
+                        "desktop": {
+                          "colStart": 1,
+                          "colSpan": 7,
+                          "rowStart": 1,
+                          "rowSpan": 3
+                        },
+                        "mobile": {
+                          "colStart": 1,
+                          "colSpan": 2,
+                          "rowStart": 1,
+                          "rowSpan": 2
+                        }
+                      },
+                      "secondaryEntityId": "",
+                      "secondaryName": "",
+                      "domainFilter": "light",
+                      "subtitle": "",
+                      "alignment": "start",
+                      "activeTabIndex": 0,
+                      "hours_to_show": 24,
+                      "aggregate_func": "avg",
+                      "path": "",
+                      "iconType": "icon",
+                      "imageUrl": "",
+                      "icon": "",
+                      "shortcuts": []
+                    }
+                  ]
+                }
+              ],
+              "activeTabIndex": 1,
+              "hours_to_show": 24,
+              "aggregate_func": "avg",
+              "path": "",
+              "iconType": "icon",
+              "imageUrl": "",
+              "icon": "",
+              "shortcuts": []
+            }
+          ]
         }
       ],
-      "tabs": [],
-      "activeTabId": ""
+      "activeTabId": "5f5aecfc-39f8-4102-a442-78a673192beb",
+      "columnGap": 16,
+      "rowGap": 16
     }
   },
   "pages": [
@@ -784,6 +1046,12 @@
       "name": "Keuken",
       "path": "keuken",
       "icon": "kitchen"
+    },
+    {
+      "id": "d444bc55-5661-4afc-8c01-71cd550fbff4",
+      "name": "Woonkamer",
+      "path": "woonkamer",
+      "icon": "chair"
     }
   ],
   "musicLibrary": {

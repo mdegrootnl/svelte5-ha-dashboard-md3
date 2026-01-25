@@ -13,10 +13,15 @@
 
     let fileInput: HTMLInputElement;
 
+    let uploading = $state(false);
+    let errorMessage = $state("");
+
     async function handleFile(e: Event) {
         const target = e.target as HTMLInputElement;
         if (target.files && target.files[0]) {
             const file = target.files[0];
+            uploading = true;
+            errorMessage = "";
 
             const formData = new FormData();
             formData.append("file", file);
@@ -32,10 +37,19 @@
                     value = data.url;
                     onchange?.();
                 } else {
-                    console.error("Upload failed");
+                    const errorData = await res.json().catch(() => ({}));
+                    errorMessage =
+                        errorData.error ||
+                        `Upload failed with status ${res.status}`;
+                    console.error("Upload failed:", errorMessage);
                 }
             } catch (err) {
+                errorMessage = "Network error or server unavailable";
                 console.error("Upload error", err);
+            } finally {
+                uploading = false;
+                // Reset input to allow re-uploading the same file
+                target.value = "";
             }
         }
     }
@@ -76,13 +90,23 @@
             {:else}
                 <Image class="w-8 h-8 text-m3-on-surface-variant opacity-50" />
             {/if}
+
+            {#if uploading}
+                <div
+                    class="absolute inset-0 bg-black/40 flex items-center justify-center"
+                >
+                    <div
+                        class="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"
+                    ></div>
+                </div>
+            {/if}
         </div>
 
         <!-- Controls -->
         <div class="flex-1 flex flex-col gap-3">
             <TextField label="Image URL" placeholder="https://..." bind:value />
 
-            <div class="flex gap-2">
+            <div class="flex flex-col gap-2">
                 <input
                     type="file"
                     accept="image/*"
@@ -91,9 +115,22 @@
                     onchange={handleFile}
                 />
 
-                <Button variant="tonal" onclick={triggerUpload} icon={Upload}>
-                    Upload Image
-                </Button>
+                <div class="flex gap-2">
+                    <Button
+                        variant="tonal"
+                        onclick={triggerUpload}
+                        icon={Upload}
+                        disabled={uploading}
+                    >
+                        {uploading ? "Uploading..." : "Upload Image"}
+                    </Button>
+                </div>
+
+                {#if errorMessage}
+                    <p class="text-m3-error text-m3-body-small px-1">
+                        {errorMessage}
+                    </p>
+                {/if}
             </div>
             <p class="text-m3-body-small text-m3-on-surface-variant">
                 Upload a local file (saved to local functionality) or paste a
