@@ -21,11 +21,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 
         if (securityHeader !== 'true' && securityQuery !== 'true') {
             const headerNames = [...event.request.headers.keys()].join(', ');
-            console.warn(`[Server Hook] CSRF Blocked: ${event.request.method} ${event.url.pathname}. Missing 'x-dashboard-api' header or 'csrf=true' query param.`);
+            const fullUrl = event.url.toString();
+
+            console.warn(`[Server Hook] CSRF Blocked! 
+                Method: ${event.request.method}
+                Full URL: ${fullUrl}
+                Path: ${event.url.pathname}
+                Query 'csrf': ${securityQuery}
+                Header 'x-dashboard-api': ${securityHeader}
+                Found headers: ${headerNames}`);
 
             return new Response(JSON.stringify({
                 error: 'Missing required security validation',
-                details: 'Provide x-dashboard-api: true header or ?csrf=true query parameter'
+                details: `Provide x-dashboard-api: true header or ?csrf=true query parameter. Requested URL: ${fullUrl}`
             }), {
                 status: 403,
                 headers: { 'Content-Type': 'application/json' }
