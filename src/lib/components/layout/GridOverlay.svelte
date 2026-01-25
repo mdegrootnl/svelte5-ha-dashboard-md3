@@ -24,9 +24,13 @@
 
     // Calculate column count based on breakpoint
     let columnCount = $derived(
-        breakpoint === "desktop"
-            ? config.columns.desktop
-            : config.columns.mobile,
+        !config.columns
+            ? breakpoint === "desktop"
+                ? 12
+                : 4
+            : breakpoint === "desktop"
+              ? config.columns.desktop
+              : config.columns.mobile,
     );
 
     // Calculate actual column width in pixels
@@ -57,7 +61,7 @@
     // Expand to fit ghost item if dragging
     let rowCount = $derived(() => {
         let count = 6;
-        if (config.rows !== "implicit") {
+        if (config.rows && config.rows !== "implicit") {
             count = config.rows.length;
         } else {
             // For implicit, ensure we cover at least the existing items
@@ -117,6 +121,8 @@
     // Calculate occupied cells maps
     let occupiedCells = $derived.by(() => {
         const occupied = new Set<string>();
+        if (!config.items) return occupied;
+
         for (const item of config.items) {
             const layout =
                 breakpoint === "desktop"

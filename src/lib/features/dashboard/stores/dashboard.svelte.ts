@@ -17,11 +17,33 @@ const SYNC_DEBOUNCE_MS = 2000;
  * Dashboard Store - Manages grid configurations and HA hierarchy
  */
 export class DashboardStore {
+    /**
+     * Derive configuration ID from path
+     */
+    static deriveConfigId(floor?: string, room?: string): string {
+        if (!floor) return "dashboard_home";
+        if (!room) return `dashboard_floor_${floor}`;
+        return `dashboard_${floor}_${room}`;
+    }
+
+    /**
+     * Derive configuration ID from a full path string
+     */
+    static deriveConfigIdFromPath(path: string): string {
+        if (!path || path === "" || path === "/") return "dashboard_home";
+        const parts = path.split("/").filter(p => p !== "");
+        if (parts.length === 1) return `dashboard_floor_${parts[0]}`;
+        return `dashboard_${parts[0]}_${parts[1]}`;
+    }
+
     // Current active configuration
     config = $state<RoomDashboardConfig | null>(null);
 
     // All saved configurations (keyed by id)
     savedConfigs = $state<Record<string, RoomDashboardConfig>>({});
+
+    // Custom dashboard pages/routes
+    pages = $state<DashboardPage[]>([]);
 
     // Loading state
     loading = $state(false);
@@ -45,13 +67,17 @@ export class DashboardStore {
      * Initialize from server config (called on page load)
      * Server is the source of truth - always use it.
      */
-    init(configs: Record<string, RoomDashboardConfig>) {
+    init(configs: Record<string, RoomDashboardConfig>, pages: DashboardPage[] = []) {
         // Skip if already initialized with same data
-        if (this.initialized && JSON.stringify(this.savedConfigs) === JSON.stringify(configs)) {
+        const configsChanged = JSON.stringify(this.savedConfigs) !== JSON.stringify(configs);
+        const pagesChanged = JSON.stringify(this.pages) !== JSON.stringify(pages);
+
+        if (this.initialized && !configsChanged && !pagesChanged) {
             return;
         }
 
         this.savedConfigs = configs;
+        this.pages = pages;
         this.initialized = true;
 
         // Don't save to localStorage here - only save on user-initiated changes
@@ -109,7 +135,8 @@ export class DashboardStore {
         if (!browser) return;
 
         const config = {
-            dashboards: this.savedConfigs
+            dashboards: this.savedConfigs,
+            pages: this.pages
         };
 
         try {
@@ -134,7 +161,8 @@ export class DashboardStore {
             // Use sendBeacon for reliable unload sync
             if (browser && navigator.sendBeacon) {
                 const config = {
-                    dashboards: this.savedConfigs
+                    dashboards: this.savedConfigs,
+                    pages: this.pages
                 };
                 navigator.sendBeacon('/api/settings', JSON.stringify(config));
             }
@@ -165,6 +193,19 @@ export class DashboardStore {
         let config = this.savedConfigs[id];
 
         if (config) {
+            // Migration: Ensure all RoomDashboardConfig properties exist
+            if (!config.tabs) {
+                config.tabs = [];
+                config.activeTabId = "";
+            }
+            if (!config.rows) {
+                config.rows = "implicit";
+                config.columns = config.columns || { desktop: 12, mobile: 4 };
+                config.gap = config.gap ?? 16;
+                config.padding = config.padding ?? 16;
+                config.rowHeight = config.rowHeight ?? 80;
+                config.items = config.items || [];
+            }
             this.config = config;
         }
         return config || null;
@@ -194,6 +235,19 @@ export class DashboardStore {
         if (!this.config) return;
 
         const newTab = createDefaultGridConfig(name);
+
+        // If this is the first tab, migrate current root grid items into it
+        if (this.config.tabs.length === 0) {
+            newTab.items = [...this.config.items];
+            this.config.items = [];
+
+            // Sync grid settings if they were customized on the root
+            newTab.columns = { ...this.config.columns };
+            newTab.gap = this.config.gap;
+            newTab.padding = this.config.padding;
+            newTab.rowHeight = this.config.rowHeight;
+        }
+
         this.config.tabs.push(newTab);
         this.config.activeTabId = newTab.id;
         this.persistChanges();
@@ -205,15 +259,15 @@ export class DashboardStore {
         const index = this.config.tabs.findIndex(t => t.id === tabId);
         if (index === -1) return;
 
+        const tabToDelete = this.config.tabs[index];
         this.config.tabs = this.config.tabs.filter(t => t.id !== tabId);
 
-        if (this.config.activeTabId === tabId) {
-            if (this.config.tabs.length > 0) {
-                const newIndex = Math.max(0, index - 1);
-                this.config.activeTabId = this.config.tabs[newIndex].id;
-            } else {
-                this.config.activeTabId = "";
-            }
+        // If we just deleted the last tab, reset active tab ID
+        if (this.config.tabs.length === 0) {
+            this.config.activeTabId = "";
+        } else if (this.config.activeTabId === tabId) {
+            const newIndex = Math.max(0, index - 1);
+            this.config.activeTabId = this.config.tabs[newIndex].id;
         }
 
         this.persistChanges();
@@ -252,6 +306,49 @@ export class DashboardStore {
         const areaIds = haRegistryStore.floorAreas[floorId] || [];
         return haRegistryStore.areas.filter(a => areaIds.includes(a.area_id));
     }
+
+    // --- Page Management ---
+
+    addPage(name: string, path: string, icon: string = "dashboard") {
+        const newPage: DashboardPage = {
+            id: generateUUID(),
+            name,
+            path,
+            icon
+        };
+        this.pages.push(newPage);
+
+        // Initialize configuration for the new page
+        const configId = DashboardStore.deriveConfigIdFromPath(path);
+        if (!this.savedConfigs[configId]) {
+            const gridConfig = createDefaultGridConfig("Main");
+            const newConfig: RoomDashboardConfig = {
+                ...gridConfig,
+                id: configId,
+                tabs: [gridConfig],
+                activeTabId: gridConfig.id
+            };
+            this.savedConfigs[configId] = newConfig;
+        }
+
+        this.persistChanges();
+        return newPage;
+    }
+
+    updatePage(id: string, updates: Partial<DashboardPage>) {
+        const index = this.pages.findIndex(p => p.id === id);
+        if (index !== -1) {
+            this.pages[index] = { ...this.pages[index], ...updates };
+            this.persistChanges();
+        }
+    }
+
+    deletePage(id: string) {
+        this.pages = this.pages.filter(p => p.id !== id);
+        this.persistChanges();
+    }
 }
+import { generateUUID } from '$lib/utils/uuid';
+import type { DashboardPage } from '$lib/types/dashboard';
 
 export const dashboardStore = new DashboardStore(haStore);

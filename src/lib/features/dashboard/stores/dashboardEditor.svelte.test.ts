@@ -24,6 +24,7 @@ describe('DashboardEditorStore', () => {
         gridConfig.items = [];
 
         mockRootConfig = {
+            ...createDefaultGridConfig('Root'),
             id: 'root-1',
             tabs: [gridConfig],
             activeTabId: gridConfig.id

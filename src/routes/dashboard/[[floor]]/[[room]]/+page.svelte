@@ -14,17 +14,17 @@
         GridOverlay,
         GridConfigDialog,
         dashboardStore,
+        DashboardStore,
         dashboardEditorStore,
-        generateDashboardFromHA,
-        generateDashboardForArea,
-        generateDashboardForFloor,
         type GridConfig,
-        type RoomDashboardConfig, // Import new type
+        type RoomDashboardConfig,
         type TabCardConfig,
         TabCard,
         GraphCard,
         NavigationCard,
         DynamicIcon,
+        Button,
+        createDefaultGridConfig,
     } from "$lib";
     import { fade } from "svelte/transition";
     import TabBar from "$lib/components/layout/TabBar.svelte"; // Import TabBar
@@ -38,9 +38,9 @@
     import IconDelete from "~icons/material-symbols/delete";
     import IconGridView from "~icons/material-symbols/grid-view";
     import IconAdd from "~icons/material-symbols/add";
-    import NavigationHub from "$lib/components/layout/NavigationHub.svelte";
     import CardLibrarySheet from "$lib/components/layout/CardLibrarySheet.svelte";
     import CardConfigSheet from "$lib/components/layout/CardConfigSheet.svelte";
+    import IconTab from "~icons/material-symbols/tab-outline";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
 
     let { data } = $props();
@@ -94,78 +94,47 @@
         }
     });
 
-    // Derived Active Tab
+    // Derived Active Tab - fallback to roomConfig itself if no tabs
     let activeTab = $derived.by(() => {
         if (!roomConfig) return null;
-        return (
-            roomConfig.tabs.find((t) => t.id === roomConfig?.activeTabId) ||
-            roomConfig.tabs[0] ||
-            null
+
+        // If no tabs array or empty, this is a standalone grid
+        if (!roomConfig.tabs || roomConfig.tabs.length === 0) {
+            return roomConfig;
+        }
+
+        // Try to find active tab, fallback to first tab, fallback to root config
+        const found = roomConfig.tabs.find(
+            (t) => t.id === roomConfig?.activeTabId,
         );
+        return found || roomConfig.tabs[0] || roomConfig;
     });
 
-    // Generate dashboard when HA connects and store is ready
+    // Load or create empty dashboard config
     $effect(() => {
-        // Wait until both HA is connected AND dashboard store has server data
         if (!dashboardStore.initialized) return;
-        if (!haStore.connected || Object.keys(haStore.states).length === 0)
-            return;
 
-        // Try to load existing config
-        const configId = room
-            ? `dashboard_${floor}_${room}`
-            : floor
-              ? `dashboard_floor_${floor}`
-              : "dashboard_home";
+        const configId = DashboardStore.deriveConfigId(
+            floor || undefined,
+            room || undefined,
+        );
 
         const existing = dashboardStore.loadConfig(configId);
 
         if (existing) {
             roomConfig = existing;
         } else {
-            // Auto-generate from HA entities ONLY if no saved config exists
-            let generated: RoomDashboardConfig;
-
-            if (room) {
-                const areaEntities = haRegistryStore.entityRegistry
-                    .filter((e) => e.area_id === room)
-                    .map((e) => e.entity_id);
-
-                generated = generateDashboardForArea(
-                    room,
-                    areaEntities,
-                    haStore.states,
-                );
-            } else if (floor) {
-                // Get areas for floor
-                const areas = dashboardStore.getAreasForFloor(floor);
-
-                // Pre-fetch entities for these areas (Store helper?)
-                // For now, simpler to leverage haStore.entityRegistry
-                // We need a mapping of area_id -> entities
-                const areaEntitiesMap: Record<string, string[]> = {};
-                areas.forEach((a) => {
-                    areaEntitiesMap[a.area_id] = haRegistryStore.entityRegistry
-                        .filter((e) => e.area_id === a.area_id)
-                        .map((e) => e.entity_id);
-                });
-
-                generated = generateDashboardForFloor(
-                    `Floor: ${floor}`,
-                    areas,
-                    areaEntitiesMap,
-                    haStore.states,
-                );
-            } else {
-                generated = generateDashboardFromHA(
-                    haStore.states,
-                    "Home Dashboard",
-                );
-            }
-
-            generated.id = configId;
-            dashboardStore.setConfig(generated);
-            roomConfig = generated;
+            // Room/Floor dashboards still need auto-creation if they don't exist
+            // Custom pages are handled in DashboardStore.addPage
+            const config = createDefaultGridConfig("Main");
+            const newConfig: RoomDashboardConfig = {
+                ...config,
+                id: configId,
+                tabs: [config],
+                activeTabId: config.id,
+            };
+            dashboardStore.setConfig(newConfig);
+            roomConfig = newConfig;
         }
     });
 
@@ -176,50 +145,8 @@
 
     // Regenerate dashboard
     function regenerateDashboard() {
-        if (!haStore.connected) return;
-
-        const configId = room
-            ? `dashboard_${floor}_${room}`
-            : floor
-              ? `dashboard_floor_${floor}`
-              : "dashboard_home";
-
-        let generated: RoomDashboardConfig;
-
-        if (room) {
-            const areaEntities = haRegistryStore.entityRegistry
-                .filter((e) => e.area_id === room)
-                .map((e) => e.entity_id);
-
-            generated = generateDashboardForArea(
-                room,
-                areaEntities,
-                haStore.states,
-            );
-        } else if (floor) {
-            const areas = dashboardStore.getAreasForFloor(floor);
-            const areaEntitiesMap: Record<string, string[]> = {};
-            areas.forEach((a) => {
-                areaEntitiesMap[a.area_id] = haRegistryStore.entityRegistry
-                    .filter((e) => e.area_id === a.area_id)
-                    .map((e) => e.entity_id);
-            });
-
-            generated = generateDashboardForFloor(
-                `Floor: ${floor}`,
-                areas,
-                areaEntitiesMap,
-                haStore.states,
-            );
-        } else {
-            generated = generateDashboardFromHA(
-                haStore.states,
-                floor ? `Floor: ${floor}` : "Home Dashboard",
-            );
-        }
-        generated.id = configId;
-        dashboardStore.setConfig(generated);
-        roomConfig = generated;
+        // Regeneration is removed as per user request
+        console.log("Regeneration is disabled.");
     }
 
     // Open card library
@@ -411,6 +338,19 @@
                     <span class="hidden md:inline">Grid</span>
                 </button>
 
+                {#if isEditing}
+                    <button
+                        onclick={onTabAdd}
+                        class="inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full bg-m3-tertiary-container text-m3-on-tertiary-container text-m3-label-large font-medium hover:brightness-95 transition-colors"
+                        title="Add new tab"
+                    >
+                        <IconTab class="size-5" />
+                        <span class="hidden md:inline">Add Tabs</span>
+                    </button>
+
+                    <div class="w-px h-6 bg-m3-outline-variant mx-1"></div>
+                {/if}
+
                 <button
                     onclick={toggleEditMode}
                     class="inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full bg-m3-primary text-m3-on-primary text-m3-label-large font-medium hover:brightness-95 transition-colors"
@@ -420,14 +360,6 @@
                     <span class="hidden md:inline">Done</span>
                 </button>
             {:else}
-                <button
-                    onclick={regenerateDashboard}
-                    class="inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full bg-m3-surface-container-high text-m3-on-surface text-m3-label-large font-medium hover:bg-m3-surface-container-highest transition-colors"
-                    title="Regenerate dashboard from entities"
-                >
-                    <IconRefresh class="size-5" />
-                </button>
-
                 <button
                     onclick={toggleEditMode}
                     class="inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full bg-m3-secondary-container text-m3-on-secondary-container text-m3-label-large font-medium hover:brightness-95 transition-colors"
@@ -447,35 +379,22 @@
         {/if}
     {/snippet}
 
-    {#if !floor && !room && haStore.connected}
-        <div class="max-w-7xl mx-auto w-full p-4 md:p-8 pb-20">
-            <div class="mb-8">
-                <h2 class="text-m3-display-small text-m3-on-surface mb-2">
-                    Welcome Home
-                </h2>
-                <p class="text-m3-body-large text-m3-on-surface-variant">
-                    Select a room to view its dashboard.
-                </p>
-            </div>
-            <NavigationHub
-                floors={haRegistryStore.floors}
-                areas={haRegistryStore.areas}
-            />
-        </div>
-    {:else if roomConfig && activeTab}
+    {#if roomConfig && activeTab}
         <section class="relative flex flex-col gap-4">
             <!-- Tab Bar -->
-            <TabBar
-                tabs={roomConfig.tabs}
-                activeTabId={roomConfig.activeTabId}
-                {isEditing}
-                onselect={onTabSelect}
-                onadd={onTabAdd}
-                ondelete={onTabDelete}
-                onrename={onTabRename}
-                onrenamerequest={onTabRenameRequest}
-                onediticon={onTabEditIcon}
-            />
+            {#if roomConfig.tabs.length > 0}
+                <TabBar
+                    tabs={roomConfig.tabs}
+                    activeTabId={roomConfig.activeTabId}
+                    {isEditing}
+                    onselect={onTabSelect}
+                    onadd={onTabAdd}
+                    ondelete={onTabDelete}
+                    onrename={onTabRename}
+                    onrenamerequest={onTabRenameRequest}
+                    onediticon={onTabEditIcon}
+                />
+            {/if}
 
             <!-- Edit mode indicator -->
             {#if isEditing}
@@ -642,17 +561,9 @@
             <div
                 class="bg-m3-surface-container-high rounded-m3-lg p-8 text-center"
             >
-                <p class="text-m3-body-large text-m3-on-surface-variant mb-4">
-                    No entities found to display. Connect to Home Assistant and
-                    add some devices.
+                <p class="text-m3-body-large text-m3-on-surface-variant">
+                    Initialising your dashboard...
                 </p>
-                <button
-                    onclick={regenerateDashboard}
-                    class="inline-flex items-center justify-center h-10 px-6 gap-2 rounded-full bg-m3-primary text-m3-on-primary text-m3-label-large font-medium hover:bg-m3-primary/92 transition-colors"
-                >
-                    <IconRefresh class="size-5" />
-                    Try Regenerating
-                </button>
             </div>
         </section>
     {:else}

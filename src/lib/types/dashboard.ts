@@ -143,12 +143,23 @@ export interface GridConfig {
 /**
  * Configuration for a Room containing multiple tabs
  */
-export interface RoomDashboardConfig {
-    id: string;
+export interface RoomDashboardConfig extends GridConfig {
     /** Array of tabs, each is a GridConfig */
     tabs: GridConfig[];
     /** ID of the currently active tab */
     activeTabId: string;
+}
+
+/**
+ * Custom dashboard page definition
+ */
+export interface DashboardPage {
+    id: string;
+    name: string;
+    /** The URL path under /dashboard/ (e.g. "living-room" or "first-floor/kitchen") */
+    path: string;
+    /** Material Symbol icon name */
+    icon?: string;
 }
 
 

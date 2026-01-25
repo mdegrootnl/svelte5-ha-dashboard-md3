@@ -22,7 +22,7 @@
 		initialized = true;
 
 		themeStore.init(data.config.theme);
-		dashboardStore.init(data.config.dashboards);
+		dashboardStore.init(data.config.dashboards, data.config.pages);
 		if (data.config.musicLibrary) {
 			musicLibraryStore.init(data.config.musicLibrary);
 		}
@@ -51,8 +51,8 @@
 	});
 
 	// Lock Screen
-	import LockScreen from "$lib/components/lockscreen/LockScreen.svelte";
-	import { lockScreenStore } from "$lib/stores/lockscreen.svelte";
+	import LockScreen from "$lib/features/lockscreen/components/LockScreen.svelte";
+	import { lockScreenStore } from "$lib/features/lockscreen/stores/lockscreen.svelte";
 	import { haStore } from "$lib/stores/ha.svelte"; // Ensure HA initializes
 
 	$effect(() => {

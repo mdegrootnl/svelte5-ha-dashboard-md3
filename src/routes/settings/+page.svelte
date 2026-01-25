@@ -25,7 +25,9 @@
     import LockClock from "~icons/material-symbols/lock-clock";
     import ImagePicker from "$lib/components/settings/ImagePicker.svelte";
     import { Switch } from "$lib";
-    import { lockScreenStore } from "$lib/stores/lockscreen.svelte";
+    import { lockScreenStore } from "$lib/features/lockscreen/stores/lockscreen.svelte";
+    import DashboardSettings from "$lib/components/settings/DashboardSettings.svelte";
+    import DashboardIcon from "~icons/material-symbols/dashboard";
 
     let host = $state("http://homeassistant.local");
     let port = $state("8123");
@@ -152,6 +154,7 @@
     const tabs = [
         { id: "connections", name: "Connections", icon: "link" },
         { id: "navigation", name: "Navigation", icon: "menu" },
+        { id: "dashboards", name: "Dashboards", icon: "dashboard" },
         { id: "lockscreen", name: "Lockscreen", icon: "lock_clock" },
     ];
     let activeTabId = $state("connections");
@@ -242,6 +245,37 @@
                     <!-- Navigation Items Editor -->
                     <div class="pt-4 border-t border-m3-outline-variant">
                         <NavigationEditor />
+                    </div>
+                </div>
+            </Card>
+        </section>
+    {/if}
+
+    <!-- Dashboards Tab -->
+    {#if activeTabId === "dashboards"}
+        <section class="mb-6">
+            <Card variant="outlined" class="w-full">
+                <div class="p-6 flex flex-col gap-6">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-10 h-10 rounded-lg bg-m3-primary/10 flex items-center justify-center"
+                        >
+                            <DashboardIcon class="w-6 h-6 text-m3-primary" />
+                        </div>
+                        <div class="flex-1">
+                            <h2 class="text-m3-title-large text-m3-on-surface">
+                                Dashboards
+                            </h2>
+                            <p
+                                class="text-m3-body-medium text-m3-on-surface-variant"
+                            >
+                                Manage dashboard pages and custom routes.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-m3-outline-variant">
+                        <DashboardSettings />
                     </div>
                 </div>
             </Card>

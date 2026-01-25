@@ -1,9 +1,9 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
     import { fly, fade } from "svelte/transition";
-    import { lockScreenStore } from "$lib/stores/lockscreen.svelte";
+    import { lockScreenStore } from "$lib/features/lockscreen/stores/lockscreen.svelte";
     import { weatherStore } from "$lib/stores/weather.svelte";
-    import { calendarStore } from "$lib/stores/calendar.svelte";
+    import { calendarStore } from "$lib/features/calendar/stores/calendar.svelte";
     import { haStore } from "$lib/stores/ha.svelte";
     import { untrack } from "svelte";
 

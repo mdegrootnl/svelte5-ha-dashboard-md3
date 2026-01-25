@@ -40,6 +40,7 @@ export class JsonStorageService {
                 ...data,
                 theme: { ...DEFAULT_CONFIG.theme, ...data.theme },
                 dashboards: { ...DEFAULT_CONFIG.dashboards, ...data.dashboards },
+                pages: data.pages || DEFAULT_CONFIG.pages,
                 musicLibrary: { ...DEFAULT_CONFIG.musicLibrary, ...data.musicLibrary },
                 lockScreen: { ...DEFAULT_CONFIG.lockScreen, ...data.lockScreen }
             };
@@ -67,6 +68,7 @@ export class JsonStorageService {
                 ...current,
                 theme: { ...current.theme, ...(partial.theme as any || {}) },
                 dashboards: { ...current.dashboards, ...(partial.dashboards as any || {}) },
+                pages: (partial.pages as any) || current.pages,
                 musicLibrary: {
                     ...current.musicLibrary!,
                     ...(partial.musicLibrary || {})

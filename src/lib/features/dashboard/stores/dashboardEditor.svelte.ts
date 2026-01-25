@@ -10,6 +10,8 @@ import type {
 import { createDefaultItemLayout } from '$lib/types/dashboard';
 import { dashboardStore } from './dashboard.svelte';
 import { generateUUID } from '$lib/utils/uuid';
+import { layoutsOverlap, getItemLayout, resolveLayoutCollisions, packItemsIntoGrid, getMaxRow, ensureExplicitRows, createNewItem } from '../utils/gridUtils';
+import { findGridById, gridContainsGridId, isGridDescendantOfItem } from '../utils/gridNavigation';
 
 /**
  * Dashboard Editor Store - Controls interactive editing of dashboard layouts
@@ -169,6 +171,10 @@ export class DashboardEditorStore {
         if (itemConfig.type === "graph") cardType = "graph";
         if (itemConfig.type === "navigation") cardType = "navigation";
 
+        // Place at the calculated max row for the respective breakpoint
+        const desktopRow = getMaxRow(config.items, 'desktop');
+        const mobileRow = getMaxRow(config.items, 'mobile');
+
         // Create base layout
         const layout = createDefaultItemLayout(1, cardType, itemConfig.cardSize || 'standard');
 
@@ -180,14 +186,7 @@ export class DashboardEditorStore {
                 rowStart: dims.row,
                 rowSpan: dims.rowSpan
             };
-
-            // For mobile, find the next available row to avoid overlap
-            let maxRowMobile = 1;
-            for (const item of config.items) {
-                const mLayout = item.layout.mobile;
-                maxRowMobile = Math.max(maxRowMobile, mLayout.rowStart + mLayout.rowSpan);
-            }
-            layout.mobile.rowStart = maxRowMobile;
+            layout.mobile.rowStart = mobileRow;
         } else {
             layout.mobile = {
                 colStart: dims.col,
@@ -195,14 +194,7 @@ export class DashboardEditorStore {
                 rowStart: dims.row,
                 rowSpan: dims.rowSpan
             };
-
-            // For desktop, find the next available row
-            let maxRowDesktop = 1;
-            for (const item of config.items) {
-                const dLayout = item.layout.desktop;
-                maxRowDesktop = Math.max(maxRowDesktop, dLayout.rowStart + dLayout.rowSpan);
-            }
-            layout.desktop.rowStart = maxRowDesktop;
+            layout.desktop.rowStart = desktopRow;
         }
 
         const newItem: DashboardItem = {
@@ -300,6 +292,11 @@ export class DashboardEditorStore {
         const root = dashboardStore.config;
         if (!root) return null;
 
+        // If no tabs, the root config itself acts as the active grid
+        if (root.tabs.length === 0) {
+            return { root, tab: root };
+        }
+
         const activeRootTab = root.tabs.find(t => t.id === root.activeTabId);
         if (!activeRootTab) return null;
 
@@ -331,60 +328,14 @@ export class DashboardEditorStore {
         const activeRootTab = root.tabs.find(t => t.id === root.activeTabId);
         if (!activeRootTab) return false;
 
-        return this.isGridDescendantOfItem(activeRootTab, itemId, this.focusedGridId);
-    }
-
-    private isGridDescendantOfItem(contextGrid: GridConfig, targetItemId: string, searchedGridId: string): boolean {
-        for (const item of contextGrid.items) {
-            // Case 1: We found the target item. Check if the grid is inside it.
-            if (item.id === targetItemId) {
-                if (item.cardType !== 'tabs' || !item.tabs) return false;
-
-                for (const tab of item.tabs) {
-                    if (tab.id === searchedGridId) return true;
-                    if (this.gridContainsGrid(tab, searchedGridId)) return true;
-                }
-                return false;
-            }
-
-            // Case 2: This is not the item, but it might contain the item. Recurse.
-            if (item.cardType === 'tabs' && item.tabs) {
-                for (const tab of item.tabs) {
-                    if (this.isGridDescendantOfItem(tab, targetItemId, searchedGridId)) return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private gridContainsGrid(parentGrid: GridConfig, searchedGridId: string): boolean {
-        for (const item of parentGrid.items) {
-            if (item.cardType === 'tabs' && item.tabs) {
-                for (const tab of item.tabs) {
-                    if (tab.id === searchedGridId) return true;
-                    if (this.gridContainsGrid(tab, searchedGridId)) return true;
-                }
-            }
-        }
-        return false;
+        return isGridDescendantOfItem(activeRootTab, itemId, this.focusedGridId);
     }
 
     /**
-     * Recursively find a grid config by ID
+     * Helper to find a grid by ID (delegates to utility)
      */
     private findGridRecursive(currentGrid: GridConfig, targetId: string): GridConfig | null {
-        if (currentGrid.id === targetId) return currentGrid;
-
-        for (const item of currentGrid.items) {
-            if (item.cardType === 'tabs' && item.tabs) {
-                // Check each tab in the tab card
-                for (const tab of item.tabs) {
-                    const found = this.findGridRecursive(tab, targetId);
-                    if (found) return found;
-                }
-            }
-        }
-        return null;
+        return findGridById(currentGrid, targetId);
     }
 
     /**
@@ -597,49 +548,7 @@ export class DashboardEditorStore {
         if (!context) return;
         const { tab: config } = context;
 
-        const movedItem = config.items.find(i => i.id === movedItemId);
-        if (!movedItem) return;
-
-        const movedLayout = breakpoint === 'desktop'
-            ? movedItem.layout.desktop
-            : movedItem.layout.mobile;
-
-        // Find all items that overlap with the moved/resized item
-        const overlappingItems = config.items.filter(item => {
-            if (item.id === movedItemId) return false;
-
-            const layout = breakpoint === 'desktop'
-                ? item.layout.desktop
-                : item.layout.mobile;
-
-            return this.itemsOverlap(movedLayout, layout);
-        });
-
-        if (overlappingItems.length === 0) return;
-
-        // Calculate where the moved item ends (in rows)
-        const movedRowEnd = movedLayout.rowStart + movedLayout.rowSpan;
-
-        // Push each overlapping item down
-        for (const item of overlappingItems) {
-            const layout = breakpoint === 'desktop'
-                ? item.layout.desktop
-                : item.layout.mobile;
-
-            // Only push down if the item starts before or at where the moved item ends
-            if (layout.rowStart < movedRowEnd) {
-                if (breakpoint === 'desktop') {
-                    item.layout.desktop.rowStart = movedRowEnd;
-                } else {
-                    item.layout.mobile.rowStart = movedRowEnd;
-                }
-            }
-        }
-
-        // Recursively resolve collisions for items that were pushed down
-        for (const item of overlappingItems) {
-            this.resolveCollisions(item.id, breakpoint);
-        }
+        resolveLayoutCollisions(config.items, movedItemId, breakpoint);
     }
 
     /**
@@ -703,59 +612,7 @@ export class DashboardEditorStore {
         const { root, tab: config } = context;
 
         const columnCount = breakpoint === 'desktop' ? config.columns.desktop : config.columns.mobile;
-
-        // Sort items by current position
-        const items = [...config.items].sort((a, b) => {
-            const layoutA = breakpoint === 'desktop' ? a.layout.desktop : a.layout.mobile;
-            const layoutB = breakpoint === 'desktop' ? b.layout.desktop : b.layout.mobile;
-            return (layoutA.rowStart * 100 + layoutA.colStart) - (layoutB.rowStart * 100 + layoutB.colStart);
-        });
-
-        // Track grid occupancy
-        const occupancy: boolean[][] = [];
-
-        function getNextPosition(colSpan: number): { col: number; row: number } {
-            let row = 0;
-
-            while (true) {
-                if (!occupancy[row]) {
-                    occupancy[row] = new Array(columnCount).fill(false);
-                }
-
-                for (let col = 0; col <= columnCount - colSpan; col++) {
-                    let fits = true;
-                    for (let c = col; c < col + colSpan; c++) {
-                        if (occupancy[row][c]) {
-                            fits = false;
-                            break;
-                        }
-                    }
-
-                    if (fits) {
-                        for (let c = col; c < col + colSpan; c++) {
-                            occupancy[row][c] = true;
-                        }
-                        return { col: col + 1, row: row + 1 };
-                    }
-                }
-
-                row++;
-            }
-        }
-
-        // Reposition each item
-        for (const item of items) {
-            const layout = breakpoint === 'desktop' ? item.layout.desktop : item.layout.mobile;
-            const pos = getNextPosition(layout.colSpan);
-
-            if (breakpoint === 'desktop') {
-                item.layout.desktop.colStart = pos.col;
-                item.layout.desktop.rowStart = pos.row;
-            } else {
-                item.layout.mobile.colStart = pos.col;
-                item.layout.mobile.rowStart = pos.row;
-            }
-        }
+        packItemsIntoGrid(config.items, columnCount, breakpoint);
 
         dashboardStore.setConfig(root);
     }
@@ -802,50 +659,7 @@ export class DashboardEditorStore {
         if (!context) return;
         const { root, tab: config } = context;
 
-        // If currently implicit, convert to explicit tracks
-        if (config.rows === "implicit") {
-            const defaultHeight = config.rowHeight ?? 80;
-
-            // Find the maximum row index used by any item to ensure we don't shrink the grid
-            let maxRow = 0;
-            for (const item of config.items) {
-                const desktopEnd = item.layout.desktop.rowStart + item.layout.desktop.rowSpan;
-                const mobileEnd = item.layout.mobile.rowStart + item.layout.mobile.rowSpan;
-                maxRow = Math.max(maxRow, desktopEnd, mobileEnd);
-            }
-
-            // Calculate how many rows fit in the current canvas to prevent visual collapse
-            // Default to at least 12 rows (approx 1 screen height at 80px)
-            let minRows = 12;
-            if (this.gridRect && defaultHeight > 0) {
-                minRows = Math.ceil(this.gridRect.height / defaultHeight);
-            }
-
-            // Ensure we cover items, the edited row, and fill the canvas
-            maxRow = Math.max(maxRow, rowIndex, minRows);
-
-            // Create explicit tracks
-            config.rows = Array.from({ length: maxRow }, () => ({
-                id: generateUUID(),
-                type: "row",
-                size: defaultHeight
-            }));
-        }
-
-        // Ensure the array is long enough if we're editing a row beyond the current explicit definition
-        if ((config.rows as any[]).length < rowIndex) {
-            const currentTracks = config.rows as any[];
-            const defaultHeight = config.rowHeight ?? 80;
-            const newTracksCount = rowIndex - currentTracks.length;
-
-            const newTracks = Array.from({ length: newTracksCount }, () => ({
-                id: generateUUID(),
-                type: "row",
-                size: defaultHeight
-            }));
-
-            config.rows = [...currentTracks, ...newTracks];
-        }
+        ensureExplicitRows(config, rowIndex, this.gridRect?.height);
 
         // Update the specific track
         const track = (config.rows as any[])[rowIndex - 1];
@@ -866,29 +680,7 @@ export class DashboardEditorStore {
         const { root, tab: config } = context;
         const defaultHeight = config.rowHeight ?? 80;
 
-        // Ensure explicit rows
-        if (config.rows === "implicit") {
-            // Use same conversion logic as setRowHeight but we don't need to expand for a specific index yet
-            let maxRow = 0;
-            for (const item of config.items) {
-                const desktopEnd = item.layout.desktop.rowStart + item.layout.desktop.rowSpan;
-                const mobileEnd = item.layout.mobile.rowStart + item.layout.mobile.rowSpan;
-                maxRow = Math.max(maxRow, desktopEnd, mobileEnd);
-            }
-
-            let minRows = 12;
-            if (this.gridRect && defaultHeight > 0) {
-                minRows = Math.ceil(this.gridRect.height / defaultHeight);
-            }
-            // Ensure we cover items and canvas
-            maxRow = Math.max(maxRow, minRows);
-
-            config.rows = Array.from({ length: maxRow }, () => ({
-                id: generateUUID(),
-                type: "row",
-                size: defaultHeight
-            }));
-        }
+        ensureExplicitRows(config, null, this.gridRect?.height);
 
         // Insert new track
         const newTrack = {
@@ -898,10 +690,8 @@ export class DashboardEditorStore {
         };
 
         const currentTracks = config.rows as any[];
-        // rowIndex is 1-based. To insert AT rowIndex:
-        // If rowIndex is 1, insert at 0.
-        // If rowIndex is N, insert at N-1.
-        // Special case: if rowIndex > length, fill gaps.
+
+        // Fill gaps if necessary
         if (rowIndex > currentTracks.length + 1) {
             const fillCount = rowIndex - 1 - currentTracks.length;
             const fillers = Array.from({ length: fillCount }, () => ({
@@ -912,22 +702,15 @@ export class DashboardEditorStore {
             currentTracks.push(...fillers);
         }
 
-        // Splice insertion
-        // If we want to add row 1, we splice at index 0.
         const insertIndex = Math.max(0, rowIndex - 1);
         currentTracks.splice(insertIndex, 0, newTrack);
 
         // Shift items
-        // If inserted at row 2 (index 1), row 2 becomes row 3.
-        // Items starting at row >= 2 need to move +1.
-        // Items starting before 2 but ending after 2 need span +1.
         for (const item of config.items) {
-            // Helper for updating a layout
             const shiftLayout = (layout: any) => {
                 if (layout.rowStart >= rowIndex) {
                     layout.rowStart += 1;
                 } else if (layout.rowStart < rowIndex && (layout.rowStart + layout.rowSpan) > rowIndex) {
-                    // Spans across the insertion point
                     layout.rowSpan += 1;
                 }
             };
@@ -947,54 +730,22 @@ export class DashboardEditorStore {
         const context = this.getActiveGrid();
         if (!context) return;
         const { root, tab: config } = context;
-        const defaultHeight = config.rowHeight ?? 80;
 
-        // Ensure explicit rows
-        if (config.rows === "implicit") {
-            // Use same conversion logic as setRowHeight
-            let maxRow = 0;
-            for (const item of config.items) {
-                const desktopEnd = item.layout.desktop.rowStart + item.layout.desktop.rowSpan;
-                const mobileEnd = item.layout.mobile.rowStart + item.layout.mobile.rowSpan;
-                maxRow = Math.max(maxRow, desktopEnd, mobileEnd);
-            }
-
-            let minRows = 12;
-            if (this.gridRect && defaultHeight > 0) {
-                minRows = Math.ceil(this.gridRect.height / defaultHeight);
-            }
-            // Ensure we cover items and canvas
-            maxRow = Math.max(maxRow, minRows);
-
-            config.rows = Array.from({ length: maxRow }, () => ({
-                id: generateUUID(),
-                type: "row",
-                size: defaultHeight
-            }));
-        }
+        ensureExplicitRows(config, null, this.gridRect?.height);
 
         const currentTracks = config.rows as any[];
-
-        // Remove track
-        // rowIndex is 1-based.
-        if (rowIndex > currentTracks.length) return; // Can't remove non-existent
+        if (rowIndex > currentTracks.length) return;
 
         currentTracks.splice(rowIndex - 1, 1);
 
         // Shift items
         for (const item of config.items) {
-            // Helper for updating a layout
             const shiftLayout = (layout: any) => {
                 if (layout.rowStart > rowIndex) {
-                    // Started after deleted row, move up
                     layout.rowStart -= 1;
                 } else if (layout.rowStart < rowIndex && (layout.rowStart + layout.rowSpan) > rowIndex) {
-                    // Spanning across the deleted row
                     layout.rowSpan -= 1;
                 }
-                // If rowStart == rowIndex, it now effectively starts at the same visual position 
-                // (which becomes the old rowIndex + 1 track, now shifted to rowIndex).
-                // So no change needed for rowStart.
             };
 
             shiftLayout(item.layout.desktop);
@@ -1021,7 +772,6 @@ export class DashboardEditorStore {
         if (!context) return;
         const { root, tab: config } = context;
 
-        // Map generic type to card cards
         let cardType: DashboardCardType = "button";
         if (itemConfig.type === "thermostat") cardType = "thermostat";
         if (itemConfig.type === "media") cardType = "media";
@@ -1030,48 +780,8 @@ export class DashboardEditorStore {
         if (itemConfig.type === "graph") cardType = "graph";
         if (itemConfig.type === "navigation") cardType = "navigation";
 
-        // Find next available row
-        let maxRow = 1;
-        for (const item of config.items) {
-            const layout = item.layout.desktop;
-            maxRow = Math.max(maxRow, layout.rowStart + layout.rowSpan);
-        }
-        // Correction: above loop was using item.layout.desktop correctly in original code but I see 'maxRow = Math.max(maxRow, layout.rowStart + layout.rowSpan);' 
-        // I will stick to original logic but ensure I copy it correctly.
-        // Re-reading original logic:
-        // for (const item of config.items) {
-        //    const layout = item.layout.desktop;
-        //    maxRow = Math.max(maxRow, layout.rowStart + layout.rowSpan);
-        // }
-
-        // Create default layout at the new row with appropriate size
-        const layout = createDefaultItemLayout(1, cardType, itemConfig.cardSize || 'standard');
-        // Place at the bottom
-        layout.desktop.rowStart = maxRow;
-        layout.mobile.rowStart = maxRow;
-
-        // DashboardItem type should now have 'name'
-        const newItem: DashboardItem = {
-            id: generateUUID(),
-            cardType,
-            entityId: itemConfig.entityId || "",
-            name: itemConfig.name || "",
-            layout,
-            // Optional thermostat-specific fields (default to empty string)
-            secondaryEntityId: itemConfig.secondaryEntityId || "",
-            secondaryName: itemConfig.secondaryName || "",
-            domainFilter: itemConfig.domainFilter || "",
-            subtitle: itemConfig.subtitle || "",
-            alignment: itemConfig.alignment as "start" | "center" | "end" || "start",
-            hours_to_show: itemConfig.hours_to_show,
-            aggregate_func: itemConfig.aggregate_func,
-            // Navigation properties
-            path: itemConfig.path || "",
-            iconType: itemConfig.iconType || "icon",
-            imageUrl: itemConfig.imageUrl || "",
-            icon: itemConfig.icon || "",
-            shortcuts: itemConfig.shortcuts || []
-        };
+        const maxRow = getMaxRow(config.items, 'desktop');
+        const newItem = createNewItem(cardType, itemConfig, maxRow);
 
         config.items.push(newItem);
         dashboardStore.setConfig(root);

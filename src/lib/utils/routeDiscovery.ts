@@ -1,9 +1,10 @@
 import { haRegistryStore } from '../stores/haRegistry.svelte';
+import { dashboardStore } from '../features/dashboard/stores/dashboard.svelte';
 
 export interface RouteOption {
     path: string;
     label: string;
-    category: 'System' | 'Floor' | 'Room';
+    category: 'System' | 'Floor' | 'Room' | 'Custom';
 }
 
 /**
@@ -24,6 +25,15 @@ export function discoverRoutes(): RouteOption[] {
         { path: '/settings', label: 'Settings', category: 'System' },
         { path: '/theme', label: 'Theme Config', category: 'System' },
     ];
+
+    // Add Custom Pages first to prioritize them
+    for (const page of dashboardStore.pages) {
+        routes.push({
+            path: `/dashboard/${page.path}`,
+            label: page.name,
+            category: 'Custom'
+        });
+    }
 
     // Add Floors
     for (const floor of haRegistryStore.floors) {

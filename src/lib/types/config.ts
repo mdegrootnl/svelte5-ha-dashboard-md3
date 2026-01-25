@@ -1,4 +1,4 @@
-import type { RoomDashboardConfig } from './dashboard';
+import type { RoomDashboardConfig, DashboardPage } from './dashboard';
 import type { MAMediaItem } from './musicAssistant';
 
 export interface NavigationItem {
@@ -31,6 +31,7 @@ export interface LockScreenConfig {
 export interface AppConfig {
     theme: ThemeConfig;
     dashboards: Record<string, RoomDashboardConfig>;
+    pages: DashboardPage[];
     musicLibrary?: MusicLibraryConfig;
     lockScreen?: LockScreenConfig;
 }
@@ -52,6 +53,7 @@ export const DEFAULT_CONFIG: AppConfig = {
         ]
     },
     dashboards: {},
+    pages: [],
     musicLibrary: {
         favorites: [],
         lastSyncedAt: 0,

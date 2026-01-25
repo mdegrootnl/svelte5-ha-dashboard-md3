@@ -1,5 +1,5 @@
 import { untrack } from 'svelte';
-import { haStore } from './ha.svelte';
+import { haStore } from '$lib/stores/ha.svelte';
 import { createLogger } from '$lib/utils/logger';
 
 const logger = createLogger('CalendarStore');
@@ -44,7 +44,7 @@ export class CalendarStore {
             // Get all calendar entities and filter out unavailable ones
             let calendarEntities = untrack(() =>
                 Object.entries(haStore.states)
-                    .filter(([id, state]) => id.startsWith('calendar.') && state.state !== 'unavailable')
+                    .filter(([id, state]: [string, any]) => id.startsWith('calendar.') && state.state !== 'unavailable')
                     .map(([id]) => id)
             );
 
@@ -56,7 +56,7 @@ export class CalendarStore {
                     await new Promise(resolve => setTimeout(resolve, 500));
                     calendarEntities = untrack(() =>
                         Object.entries(haStore.states)
-                            .filter(([id, state]) => id.startsWith('calendar.') && state.state !== 'unavailable')
+                            .filter(([id, state]: [string, any]) => id.startsWith('calendar.') && state.state !== 'unavailable')
                             .map(([id]) => id)
                     );
                     attempts++;
@@ -133,7 +133,7 @@ export class CalendarStore {
                     location: e.location,
                     allDay
                 };
-            }).sort((a, b) => a.start.getTime() - b.start.getTime())
+            }).sort((a: CalendarEvent, b: CalendarEvent) => a.start.getTime() - b.start.getTime())
                 .slice(0, limit);
 
         } catch (e) {

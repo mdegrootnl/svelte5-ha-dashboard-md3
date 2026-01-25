@@ -39,18 +39,22 @@ src/
 │   │   ├── layout/      # Page shells, grid system, error boundaries
 │   │   ├── settings/    # Settings page components
 │   │   ├── viz/         # Data visualization (MiniChart)
-│   │   ├── weather/     # Weather display components
-│   │   └── lockscreen/  # Lockscreen components
+│   │   └── weather/     # Weather display components
 │   ├── features/
 │   │   ├── dashboard/   # Dashboard feature (cards, stores)
 │   │   │   ├── components/cards/  # Entity cards
-│   │   │   └── stores/  # Dashboard-specific stores
+│   │   │   ├── stores/  # Dashboard-specific stores
+│   │   │   └── utils/   # Layout utilities (gridUtils, gridNavigation)
 │   │   ├── music/       # Music Assistant integration
 │   │   │   ├── components/  # Music browser, player
 │   │   │   └── stores/  # Music-specific stores
+│   │   ├── lockscreen/  # Lockscreen feature
+│   │   │   ├── components/  # Lockscreen component
+│   │   │   └── stores/      # Lockscreen state
 │   │   └── calendar/    # Calendar feature
-│   ├── stores/          # Global Svelte 5 rune-based stores
-│   ├── types/           # TypeScript interfaces
+│   │       └── stores/      # Calendar sync state
+│   ├── stores/          # Static global stores (HA, Registry, Theme)
+│   ├── types/           # TypeScript interfaces (re-exported)
 │   ├── domain/          # Pure domain logic & services
 │   ├── server/          # Server-side utilities
 │   ├── actions/         # Svelte actions
@@ -135,7 +139,6 @@ Home Assistant entity control cards:
 ### Layout (`src/lib/components/layout/`)
 
 - **PageShell** — consistent page wrapper with title
-- **NavigationHub** — Floor/Room navigation center
 - **GridContainer/GridItem** — CSS Grid-based dashboard layout engine
 - **ErrorBoundary** — graceful error handling
 
@@ -156,14 +159,8 @@ The "God Object" HAStore has been decomposed into specialized, decoupled modules
 - **HistoryService** (`src/lib/domain/historyService.ts`) — Pure logic for transforming raw HA history into graphable data.
 
 ### WeatherStore (`src/lib/stores/weather.svelte.ts`)
-    
-Manages weather data with background polling and Zod-guaranteed type safety:
 
-- **Poller Service** — Centralized background task management.
-- **Zod Validation** — Incoming API responses are validated against schemas before use.
-- **Monadic Handling** — All fetch operations return a `Result<T, E>` type.
-    
-Manages weather data fetching (HA integration), caching, and normalization:
+Manages weather data fetching (HA integration), caching, and normalization with background polling:
 
 ```typescript
 class WeatherStore {
@@ -172,7 +169,7 @@ class WeatherStore {
     
     fetch(force?); // Fetches from HA weather entities
     getIconUrl(code, isDay, isDark); // Maps WMO codes to assets
-    // Features: Throttling (5m), Day/Night calculation, Fallback strategies
+    // Features: Throttling (30m), Zod-validated response schemas
 }
 ```
 
@@ -180,13 +177,20 @@ class WeatherStore {
 
 Native integration with Music Assistant via Home Assistant WebSocket:
 
-- **MAStore** (`src/lib/stores/maStore.svelte.ts`) — Main integration logic.
+- **MAStore** (`src/lib/features/music/stores/maStore.svelte.ts`) — Main integration logic.
     - Handles discovery and connection to `mass` or `music_assistant` domains.
     - Manages player state (players, queues, now playing).
     - Proxies library searching and browsing.
-- **MusicLibraryStore** (`src/lib/stores/musicLibrary.svelte.ts`) — Frontend view state.
-    - Manages browsing stack (drill-down navigation).
-    - Handles search query state.
+- **MusicLibraryStore** (`src/lib/features/music/stores/musicLibrary.svelte.ts`) — Frontend view state.
+    - Manages local favorites independent of MA backend.
+    - Handles search results and browsing stack.
+
+### Feature Stores (Lockscreen & Calendar)
+
+Specialized features with independent state management:
+
+- **LockScreenStore** (`src/lib/features/lockscreen/stores/lockscreen.svelte.ts`) — Manages idle timeout, lock state, and background imagery.
+- **CalendarStore** (`src/lib/features/calendar/stores/calendar.svelte.ts`) — Syncs and aggregates upcoming events from multiple HA calendar entities.
 
 
 ### ThemeStore (`src/lib/stores/theme.svelte.ts`)
@@ -208,39 +212,15 @@ class ThemeStore {
 
 **Persistence**: localStorage (immediate) + server sync (2s debounce)
 
-### CardEditorStore (`src/lib/stores/cardEditor.svelte.ts`)
+### CardEditorStore (`src/lib/features/dashboard/stores/cardEditor.svelte.ts`)
 
-Dialog state for card configuration:
+Dialog state for card configuration.
 
-```typescript
-class CardEditorStore {
-    isOpen = $state(false);
-    config = $state<CardConfig | null>(null);
-    
-    open(config);
-    close();
-    save();
-}
-```
+### DashboardEditorStore (`src/lib/features/dashboard/stores/dashboardEditor.svelte.ts`)
 
-### DashboardEditorStore (`src/lib/stores/dashboardEditor.svelte.ts`)
+Manages the edit mode for dashboard customization, leveraging specialized managers for layout logic.
 
-Manages the edit mode for dashboard customization:
-
-```typescript
-class DashboardEditorStore {
-    isEditing = $state(false);
-    selectedItems = $state<Set<string>>(new Set());
-    
-    toggleEditMode();
-    moveItem(itemId, newPosition);
-    resizeItem(itemId, newSize);
-    saveChanges();
-}
-```
-
-
-### DashboardStore (`src/lib/stores/dashboard.svelte.ts`)
+### DashboardStore (`src/lib/features/dashboard/stores/dashboard.svelte.ts`)
 
 Manages grid configurations, layout persistence, and responsive breakpoints:
 
@@ -248,9 +228,11 @@ Manages grid configurations, layout persistence, and responsive breakpoints:
 class DashboardStore {
     config = $state<RoomDashboardConfig | null>(null);
     savedConfigs = $state<Record<string, RoomDashboardConfig>>({});
+    pages = $state<DashboardPage[]>([]);
     
-    init(configs);         // Load from server on page load
+    init(configs, pages);  // Load from server on page load
     setConfig(config);     // Save + persist changes
+    addPage(name, path);   // Add custom dashboard route
     persistChanges();      // localStorage (immediate) + server (debounced)
 }
 ```
@@ -339,26 +321,18 @@ sequenceDiagram
     ButtonCard-->>User: UI reflects new state
 ```
 
-### Dashboard Generation Flow
+### Dashboard Loading Flow
 
 ```mermaid
 sequenceDiagram
-    participant HAStore
-    participant Registry as HA Registry
-    participant Generator as DashboardGenerator
+    participant User
+    participant Router
     participant Store as DashboardStore
+    participant UI as GridContainer
 
-    HAStore->>Registry: Fetch Areas, Floors, Entities
-    Registry-->>HAStore: Return Registry Data
-    
-    Note over Generator: User navigates to room
-    
-    HAStore->>Generator: generateDashboardForArea(room)
-    Generator->>Generator: Filter entities by area_id
-    Generator->>Generator: Sort by priority (Climate > Media...)
-    Generator->>Generator: Pack items (Bento algorithm)
-    Generator-->>Store: Return GridConfig
-    Store-->>UI: Render GridContainer
+    User->>Router: Navigate to /dashboard/living-room
+    Router->>Store: loadConfig('dashboard_living-room')
+    Store-->>UI: Render Grid (empty or saved)
 ```
 
 ```

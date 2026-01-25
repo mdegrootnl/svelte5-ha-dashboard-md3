@@ -31,10 +31,14 @@
      * Uses minmax(0, 1fr) for "auto" to prevent content from forcing track wider
      */
     let gridTemplateCols = $derived.by(() => {
-        const colCount =
-            breakpoint === "desktop"
-                ? config.columns.desktop
-                : config.columns.mobile;
+        const colCount = !config.columns
+            ? breakpoint === "desktop"
+                ? 12
+                : 4
+            : breakpoint === "desktop"
+              ? config.columns.desktop
+              : config.columns.mobile;
+
         // Uniform columns: repeat(N, minmax(0, 1fr))
         return `repeat(${colCount}, minmax(0, 1fr))`;
     });
@@ -45,7 +49,7 @@
      * GridTrack[] → explicit sizes
      */
     let gridTemplateRows = $derived.by(() => {
-        if (config.rows === "implicit") {
+        if (!config.rows || config.rows === "implicit") {
             // Return empty to let grid-auto-rows define row heights
             return "";
         }
@@ -103,7 +107,7 @@
     let isDragging = $derived(isActiveGrid && dashboardEditorStore.isDragging);
     let ghostPos = $derived(dashboardEditorStore.dragGhostPosition);
     let draggingItem = $derived(
-        isDragging && dashboardEditorStore.dragItemId
+        isDragging && dashboardEditorStore.dragItemId && config.items
             ? config.items.find((i) => i.id === dashboardEditorStore.dragItemId)
             : null,
     );

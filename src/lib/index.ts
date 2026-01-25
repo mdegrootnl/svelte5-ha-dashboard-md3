@@ -12,6 +12,8 @@ export { dashboardStore, DashboardStore } from './features/dashboard/stores/dash
 export { dashboardEditorStore, DashboardEditorStore } from './features/dashboard/stores/dashboardEditor.svelte';
 export { maStore, MusicAssistantStore } from './features/music/stores/maStore.svelte';
 export { musicLibraryStore, MusicLibraryStore } from './features/music/stores/musicLibrary.svelte';
+export { calendarStore, CalendarStore } from './features/calendar/stores/calendar.svelte';
+export { lockScreenStore, LockScreenStore } from './features/lockscreen/stores/lockscreen.svelte';
 
 // MD3 Components
 export { default as Button } from './components/md3/Button.svelte';
@@ -45,6 +47,7 @@ export { default as GridItem } from './components/layout/GridItem.svelte';
 export { default as GridOverlay } from './components/layout/GridOverlay.svelte';
 export { default as GridConfigDialog } from './components/layout/GridConfigDialog.svelte';
 export { default as CardConfigSheet } from './components/layout/CardConfigSheet.svelte';
+export { default as LockScreen } from './features/lockscreen/components/LockScreen.svelte';
 
 // Dashboard Types (re-export for convenience)
 export * from './types/dashboard';
