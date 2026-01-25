@@ -24,6 +24,18 @@ A Material Design 3 dashboard for Home Assistant built with **Svelte 5** and **S
 
 ---
 
+## Running in Production
+
+To ensure all configurations (like upload limits) are applied correctly, always start the application using the custom server entry point:
+
+```bash
+npm start
+# OR
+node server.js
+```
+
+---
+
 ## Project Structure
 
 ```

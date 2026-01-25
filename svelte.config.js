@@ -12,9 +12,7 @@ const config = {
 	},
 
 	kit: {
-		adapter: adapter({
-			bodySizeLimit: 30 * 1024 * 1024 // 30MB (High-res support)
-		}),
+		adapter: adapter(),
 		csrf: {
 			checkOrigin: false
 		},
