@@ -3,12 +3,17 @@ import { dev } from '$app/environment';
 
 export const handle: Handle = async ({ event, resolve }) => {
     // Custom CSRF protection: require a security header for all mutation requests (POST, PUT, DELETE, PATCH)
-    // This is more flexible than SvelteKit's built-in origin check for local networks
-    if (event.url.pathname.startsWith('/api') && !['GET', 'HEAD', 'OPTIONS'].includes(event.request.method)) {
-        console.log(`[Server Hook] Validating CSRF for: ${event.request.method} ${event.url.pathname}`);
-        if (event.request.headers.get('x-dashboard-api') !== 'true') {
-            console.warn(`[Server Hook] Blocked mutation request missing security header: ${event.request.method} ${event.url.pathname}`);
-            return new Response(JSON.stringify({ error: 'Missing required security header' }), {
+    if (event.url.pathname.startsWith('/api') && !['GET', 'HEAD', 'OPTIONS'].includes(event.request.method.toUpperCase())) {
+        const securityHeader = event.request.headers.get('x-dashboard-api');
+
+        if (securityHeader !== 'true') {
+            const headerNames = [...event.request.headers.keys()].join(', ');
+            console.warn(`[Server Hook] CSRF Blocked: ${event.request.method} ${event.url.pathname}. Missing 'x-dashboard-api'. Found headers: ${headerNames}`);
+
+            return new Response(JSON.stringify({
+                error: 'Missing required security header',
+                received_headers: dev ? headerNames : undefined // Only show in dev for security
+            }), {
                 status: 403,
                 headers: { 'Content-Type': 'application/json' }
             });
