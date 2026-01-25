@@ -138,7 +138,7 @@ export class ThemeStore {
         };
 
         try {
-            await fetch('/api/settings', {
+            await fetch('/api/settings?csrf=true', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -169,7 +169,7 @@ export class ThemeStore {
                         navigationItems: this.navigationItems
                     }
                 };
-                fetch('/api/settings', {
+                fetch('/api/settings?csrf=true', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

@@ -240,7 +240,7 @@ export class MusicLibraryStore {
         };
 
         try {
-            await fetch('/api/settings', {
+            await fetch('/api/settings?csrf=true', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -270,7 +270,7 @@ export class MusicLibraryStore {
                         defaultPlayerId: this.defaultPlayerId
                     }
                 };
-                fetch('/api/settings', {
+                fetch('/api/settings?csrf=true', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

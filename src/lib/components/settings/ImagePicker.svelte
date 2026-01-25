@@ -24,7 +24,7 @@
             errorMessage = "";
 
             try {
-                const res = await fetch("/api/upload", {
+                const res = await fetch("/api/upload?csrf=true", {
                     method: "POST",
                     body: file,
                     headers: {
