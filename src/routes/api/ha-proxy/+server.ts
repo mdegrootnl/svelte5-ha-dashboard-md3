@@ -53,6 +53,6 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
 
     } catch (err: any) {
         if (err.status) throw err;
-        throw error(500, `Internal Proxy Error: ${err.message}`);
+        throw error(500, `Internal Proxy Error: ${err.message}`, { cause: err.cause });
     }
 };

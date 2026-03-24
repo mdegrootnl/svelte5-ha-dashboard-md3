@@ -132,7 +132,9 @@
                 <div
                     {...props}
                     class="fixed inset-0 z-50 bg-m3-scrim/50 backdrop-blur-sm"
+                    data-testid="dialog-backdrop"
                     transition:fade={{ duration: 200 }}
+                    onclick={() => cardEditorStore.close()}
                 ></div>
             {/snippet}
         </Dialog.Overlay>

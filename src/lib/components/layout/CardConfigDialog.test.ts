@@ -75,7 +75,7 @@ describe('CardConfigDialog Component', () => {
         cardEditorStore.open({ entityId: 'light.test', name: '' });
         await new Promise(resolve => setTimeout(resolve, 10));
 
-        const backdrop = screen.getByRole('presentation');
+        const backdrop = screen.getByTestId('dialog-backdrop');
         await fireEvent.click(backdrop);
 
         expect(cardEditorStore.isOpen).toBe(false);

@@ -8,6 +8,21 @@ const KEYS = {
     LAST_URL: 'last_hass_url'
 };
 
+/** Home Assistant authentication tokens */
+export interface HATokens {
+    access_token: string;
+    refresh_token?: string;
+    token_type?: string;
+    expires_at?: number;
+    [key: string]: unknown;
+}
+
+/** Weather store configuration */
+export interface WeatherConfig {
+    weatherEntityId?: string;
+    aqiEntityId?: string;
+}
+
 /**
  * Encapsulates all persistent storage interactions.
  */
@@ -15,7 +30,7 @@ export class StorageProvider {
     /**
      * Save Home Assistant tokens.
      */
-    static saveTokens(tokens: any): void {
+    static saveTokens(tokens: HATokens): void {
         if (!browser) return;
         try {
             localStorage.setItem(KEYS.TOKENS, JSON.stringify(tokens));
@@ -27,11 +42,11 @@ export class StorageProvider {
     /**
      * Load Home Assistant tokens.
      */
-    static loadTokens(): any | null {
+    static loadTokens(): HATokens | null {
         if (!browser) return null;
         try {
             const tokens = localStorage.getItem(KEYS.TOKENS);
-            return tokens ? JSON.parse(tokens) : null;
+            return tokens ? JSON.parse(tokens) as HATokens : null;
         } catch (e) {
             logger.error('Failed to load tokens', e);
             return null;
@@ -66,7 +81,7 @@ export class StorageProvider {
     /**
      * Save Weather Configuration.
      */
-    static saveWeatherConfig(config: any): void {
+    static saveWeatherConfig(config: WeatherConfig): void {
         if (!browser) return;
         try {
             localStorage.setItem('weather_config', JSON.stringify(config));
@@ -78,11 +93,11 @@ export class StorageProvider {
     /**
      * Load Weather Configuration.
      */
-    static loadWeatherConfig(): any | null {
+    static loadWeatherConfig(): WeatherConfig | null {
         if (!browser) return null;
         try {
             const config = localStorage.getItem('weather_config');
-            return config ? JSON.parse(config) : null;
+            return config ? JSON.parse(config) as WeatherConfig : null;
         } catch (e) {
             logger.error('Failed to load weather config', e);
             return null;

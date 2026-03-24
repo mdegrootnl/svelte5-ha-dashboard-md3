@@ -5,13 +5,41 @@ import type {
     GridConfig,
     Breakpoint,
     DashboardCardType,
-    RoomDashboardConfig
+    RoomDashboardConfig,
+    ItemLayout,
+    GridTrack
 } from '$lib/types/dashboard';
 import { createDefaultItemLayout } from '$lib/types/dashboard';
 import { dashboardStore } from './dashboard.svelte';
 import { generateUUID } from '$lib/utils/uuid';
 import { layoutsOverlap, getItemLayout, resolveLayoutCollisions, packItemsIntoGrid, getMaxRow, ensureExplicitRows, createNewItem } from '../utils/gridUtils';
 import { findGridById, gridContainsGridId, isGridDescendantOfItem } from '../utils/gridNavigation';
+import {
+    shiftLayoutRowsForAdd,
+    shiftLayoutRowsForRemove,
+    normalizeGridSelection
+} from '../utils/gridEditUtils';
+
+/** Config object passed when creating a new dashboard item from editor selection */
+interface ItemCreationConfig {
+    type?: string;
+    entityId?: string;
+    name?: string;
+    cardSize?: 'condensed' | 'standard' | 'poster';
+    secondaryEntityId?: string;
+    secondaryName?: string;
+    domainFilter?: string;
+    subtitle?: string;
+    alignment?: string;
+    tabs?: GridConfig[];
+    hours_to_show?: number;
+    aggregate_func?: 'avg' | 'min' | 'max' | 'last';
+    path?: string;
+    iconType?: 'icon' | 'image';
+    imageUrl?: string;
+    icon?: string;
+    shortcuts?: { id: string; entityId: string; icon?: string; color?: string }[];
+}
 
 /**
  * Dashboard Editor Store - Controls interactive editing of dashboard layouts
@@ -112,15 +140,11 @@ export class DashboardEditorStore {
         this.isSelectingGrid = false;
         // Normalize selection so start is top-left and end is bottom-right
         if (this.gridSelection) {
-            const minCol = Math.min(this.gridSelection.start.col, this.gridSelection.end.col);
-            const maxCol = Math.max(this.gridSelection.start.col, this.gridSelection.end.col);
-            const minRow = Math.min(this.gridSelection.start.row, this.gridSelection.end.row);
-            const maxRow = Math.max(this.gridSelection.start.row, this.gridSelection.end.row);
-
+            const normalized = normalizeGridSelection(this.gridSelection.start, this.gridSelection.end);
             this.gridSelection = {
                 gridId: this.gridSelection.gridId,
-                start: { col: minCol, row: minRow },
-                end: { col: maxCol, row: maxRow }
+                start: { col: normalized.col, row: normalized.row },
+                end: { col: normalized.col + normalized.colSpan - 1, row: normalized.row + normalized.rowSpan - 1 }
             };
         }
     }
@@ -153,7 +177,7 @@ export class DashboardEditorStore {
      * Create item from current selection
      * Note: This will be called by UI to trigger the actual item creation
      */
-    createItemFromSelection(itemConfig: any, breakpoint: Breakpoint) {
+    createItemFromSelection(itemConfig: ItemCreationConfig, breakpoint: Breakpoint) {
         if (!this.gridSelection) return;
 
         const dims = this.getSelectionDimensions();
@@ -662,7 +686,7 @@ export class DashboardEditorStore {
         ensureExplicitRows(config, rowIndex, this.gridRect?.height);
 
         // Update the specific track
-        const track = (config.rows as any[])[rowIndex - 1];
+        const track = (config.rows as GridTrack[])[rowIndex - 1];
         if (track) {
             track.size = height;
         }
@@ -689,7 +713,7 @@ export class DashboardEditorStore {
             size: height ?? defaultHeight
         };
 
-        const currentTracks = config.rows as any[];
+        const currentTracks = config.rows as GridTrack[];
 
         // Fill gaps if necessary
         if (rowIndex > currentTracks.length + 1) {
@@ -707,16 +731,8 @@ export class DashboardEditorStore {
 
         // Shift items
         for (const item of config.items) {
-            const shiftLayout = (layout: any) => {
-                if (layout.rowStart >= rowIndex) {
-                    layout.rowStart += 1;
-                } else if (layout.rowStart < rowIndex && (layout.rowStart + layout.rowSpan) > rowIndex) {
-                    layout.rowSpan += 1;
-                }
-            };
-
-            shiftLayout(item.layout.desktop);
-            shiftLayout(item.layout.mobile);
+            shiftLayoutRowsForAdd(item.layout.desktop, rowIndex);
+            shiftLayoutRowsForAdd(item.layout.mobile, rowIndex);
         }
 
         dashboardStore.setConfig(root);
@@ -733,23 +749,15 @@ export class DashboardEditorStore {
 
         ensureExplicitRows(config, null, this.gridRect?.height);
 
-        const currentTracks = config.rows as any[];
+        const currentTracks = config.rows as GridTrack[];
         if (rowIndex > currentTracks.length) return;
 
         currentTracks.splice(rowIndex - 1, 1);
 
         // Shift items
         for (const item of config.items) {
-            const shiftLayout = (layout: any) => {
-                if (layout.rowStart > rowIndex) {
-                    layout.rowStart -= 1;
-                } else if (layout.rowStart < rowIndex && (layout.rowStart + layout.rowSpan) > rowIndex) {
-                    layout.rowSpan -= 1;
-                }
-            };
-
-            shiftLayout(item.layout.desktop);
-            shiftLayout(item.layout.mobile);
+            shiftLayoutRowsForRemove(item.layout.desktop, rowIndex);
+            shiftLayoutRowsForRemove(item.layout.mobile, rowIndex);
         }
 
         dashboardStore.setConfig(root);

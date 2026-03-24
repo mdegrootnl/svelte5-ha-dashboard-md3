@@ -24,25 +24,37 @@ vi.mock('./ha.svelte', () => {
             config: { latitude: 52.01, longitude: 4.58 },
             states: {
                 'weather.home': {
+                    entity_id: 'weather.home',
                     state: 'partlycloudy',
                     attributes: {
                         temperature: 20,
                         humidity: 60,
                         wind_speed: 10,
+                        wind_bearing: 180,
                         pressure: 1013,
                         forecast: []
-                    }
+                    },
+                    last_changed: '2023-01-01T00:00:00.000Z',
+                    last_updated: '2023-01-01T00:00:00.000Z',
+                    context: { id: 'test-context-id', parent_id: null, user_id: null }
                 },
                 'sun.sun': {
+                    entity_id: 'sun.sun',
                     state: 'above_horizon',
-                    attributes: {}
+                    attributes: {
+                        next_rising: '2023-01-01T07:00:00.000Z',
+                        next_setting: '2023-01-01T19:00:00.000Z'
+                    },
+                    last_changed: '2023-01-01T00:00:00.000Z',
+                    last_updated: '2023-01-01T00:00:00.000Z',
+                    context: { id: 'test-context-id', parent_id: null, user_id: null }
                 }
             },
             callService: vi.fn((domain, service, data) => {
                 if (data && data.type === 'daily') {
-                    return Promise.resolve({ 'weather.home': { forecast: mockDailyForecast } });
+                    return { ok: true, value: { response: { 'weather.home': { forecast: mockDailyForecast } } } };
                 }
-                return Promise.resolve({ 'weather.home': { forecast: mockForecast } });
+                return { ok: true, value: { response: { 'weather.home': { forecast: mockForecast } } } };
             })
         }
     };
@@ -80,6 +92,34 @@ describe('WeatherStore', () => {
 
     it('getIconUrl returns fallback for unknown codes', () => {
         expect(store.getIconUrl(999)).toBe('/weather/icons/light/cloudy.svg');
+    });
+
+    it('getConditionText returns "Weather" for all codes (implementation placeholder)', () => {
+        // Note: getConditionText is a placeholder that always returns "Weather"
+        expect(store.getConditionText(0)).toBe('Weather');
+        expect(store.getConditionText(2)).toBe('Weather');
+        expect(store.getConditionText(3)).toBe('Weather');
+        expect(store.getConditionText(61)).toBe('Weather');
+        expect(store.getConditionText(95)).toBe('Weather');
+    });
+
+    it('getIconUrl maps WMO weather codes to correct icon paths', () => {
+        // Clear (0) -> clear_day.svg (in day/night variant list)
+        expect(store.getIconUrl(0)).toBe('/weather/icons/light/clear_day.svg');
+        // Partly cloudy (2) -> partly_cloudy_day.svg (in day/night variant list)
+        expect(store.getIconUrl(2)).toBe('/weather/icons/light/partly_cloudy_day.svg');
+        // Cloudy (3) -> cloudy.svg (no day/night suffix)
+        expect(store.getIconUrl(3)).toBe('/weather/icons/light/cloudy.svg');
+        // Fog (45) -> haze_fog.svg (no day/night suffix)
+        expect(store.getIconUrl(45)).toBe('/weather/icons/light/haze_fog.svg');
+        // Rain showers (61) -> rain_showers_day.svg (in day/night variant list)
+        expect(store.getIconUrl(61)).toBe('/weather/icons/light/rain_showers_day.svg');
+        // Heavy rain (65) -> heavy_rain.svg (no day/night suffix)
+        expect(store.getIconUrl(65)).toBe('/weather/icons/light/heavy_rain.svg');
+        // Snow (71) -> flurries.svg (no day/night suffix)
+        expect(store.getIconUrl(71)).toBe('/weather/icons/light/flurries.svg');
+        // Thunderstorm (95) -> thunderstorms_day.svg (in day/night variant list)
+        expect(store.getIconUrl(95)).toBe('/weather/icons/light/thunderstorms_day.svg');
     });
 
     it('fetch populates data correctly', async () => {

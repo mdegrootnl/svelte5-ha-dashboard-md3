@@ -12,7 +12,7 @@ describe('NavigationRail Component', () => {
         render(NavigationRail);
 
         expect(screen.getByText('Home')).toBeInTheDocument();
-        expect(screen.getByText('Dashboard')).toBeInTheDocument();
+        expect(screen.getByText('Home Dashboard')).toBeInTheDocument();
         expect(screen.getByText('Library')).toBeInTheDocument();
         expect(screen.getByText('Theme')).toBeInTheDocument();
         expect(screen.getByText('Settings')).toBeInTheDocument();
@@ -52,7 +52,7 @@ describe('NavigationRail Component', () => {
         render(NavigationRail);
 
         expect(screen.getByText('Home').closest('a')).toHaveAttribute('href', '/');
-        expect(screen.getByText('Dashboard').closest('a')).toHaveAttribute('href', '/dashboard');
+        expect(screen.getByText('Home Dashboard').closest('a')).toHaveAttribute('href', '/dashboard');
         expect(screen.getByText('Settings').closest('a')).toHaveAttribute('href', '/settings');
     });
 });

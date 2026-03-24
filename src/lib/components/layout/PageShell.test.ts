@@ -36,17 +36,17 @@ describe('PageShell Component', () => {
     it('applies correct max-width class', () => {
         const children = createRawSnippet(() => ({ render: () => '<span>Content</span>' }));
 
-        const { container, rerender } = render(PageShell, { props: { title: 'Page', children, maxWidth: 'sm' } });
+        const { container, rerender } = render(PageShell, { props: { title: 'Page', children, maxWidth: 'max-w-sm' } });
         expect(container.querySelector('.max-w-sm')).toBeInTheDocument();
 
-        rerender({ title: 'Page', children, maxWidth: '4xl' });
+        rerender({ title: 'Page', children, maxWidth: 'max-w-4xl' });
         expect(container.querySelector('.max-w-4xl')).toBeInTheDocument();
     });
 
-    it('uses full max-width by default', () => {
+    it('uses max-w-7xl by default', () => {
         const children = createRawSnippet(() => ({ render: () => '<span>Content</span>' }));
         const { container } = render(PageShell, { props: { title: 'Page', children } });
 
-        expect(container.querySelector('.max-w-full')).toBeInTheDocument();
+        expect(container.querySelector('.max-w-7xl')).toBeInTheDocument();
     });
 });

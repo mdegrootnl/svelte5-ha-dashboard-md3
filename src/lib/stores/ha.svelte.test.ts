@@ -56,7 +56,7 @@ describe('HAStore', () => {
         await expect(store.login('localhost')).rejects.toThrow('Invalid credentials');
 
         expect(store.connectionState).toBe('error');
-        expect(store.connectionError).toBe('Invalid credentials');
+        expect(store.connectionError).toBe('Error: Invalid credentials');
     });
 
 

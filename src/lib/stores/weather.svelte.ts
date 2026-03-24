@@ -8,19 +8,68 @@ import { createLogger } from '$lib/utils/logger';
 
 const logger = createLogger('WeatherStore');
 
+interface CurrentWeather {
+    temperature_2m: number;
+    weather_code: number;
+    is_day: number;
+    relative_humidity_2m: number;
+    wind_speed_10m: number;
+    wind_direction_10m: number;
+    surface_pressure: number;
+}
+
+export interface HourlyForecast {
+    time: Date;
+    temp: number;
+    code: number;
+    precip: number;
+    isDay: boolean;
+}
+
+export interface DailyForecast {
+    date: Date;
+    min: number;
+    max: number;
+    code: number;
+    precip: number;
+    sunrise?: undefined;
+    sunset?: undefined;
+}
+
+interface AstronomyData {
+    sunrise: Date;
+    sunset: Date;
+}
+
+interface AirQualityData {
+    aqi: number;
+    level: string;
+    description: string;
+}
+
+/** Raw forecast item from Home Assistant */
+interface HAForecastItem {
+    datetime?: string;
+    date?: string;
+    time?: string;
+    condition?: string;
+    temperature?: number;
+    templow?: number;
+    precipitation_probability?: number;
+    precipitation?: number;
+}
+
+/** Raw forecast response from HA weather.get_forecasts service */
+interface HAForecastResponse {
+    [entityId: string]: { forecast: HAForecastItem[] };
+}
+
 interface WeatherState {
-    current: any;
-    hourly: any[];
-    daily: any[];
-    astronomy: {
-        sunrise: Date;
-        sunset: Date;
-    } | null;
-    air_quality: {
-        aqi: number;
-        level: string; // 'Good', 'Moderate', etc.
-        description: string;
-    } | null;
+    current: CurrentWeather;
+    hourly: HourlyForecast[];
+    daily: DailyForecast[];
+    astronomy: AstronomyData | null;
+    air_quality: AirQualityData | null;
 }
 
 export class WeatherStore {
@@ -189,8 +238,8 @@ export class WeatherStore {
                 surface_pressure: attributes.pressure,
             };
 
-            let hourly: any[] = [];
-            let daily: any[] = [];
+            let hourly: HourlyForecast[] = [];
+            let daily: DailyForecast[] = [];
 
             // Get Forecasts
             // Modern HA: Call service. Old HA: Attributes.
@@ -218,13 +267,13 @@ export class WeatherStore {
 
 
                 // Helper to extract forecast array from response
-                const extractForecast = (resp: any, entityId: string): any[] => {
+                const extractForecast = (resp: unknown, entityId: string): HAForecastItem[] => {
                     if (!resp) return [];
-                    const payload = resp.response ?? resp;
+                    const payload = (resp as { response?: HAForecastResponse }).response ?? resp as HAForecastResponse;
                     // Try exact ID
                     if (payload[entityId]?.forecast) return payload[entityId].forecast;
                     // Try first key
-                    const firstVal = Object.values(payload)[0] as any;
+                    const firstVal = Object.values(payload)[0] as { forecast?: HAForecastItem[] };
                     if (firstVal?.forecast) return firstVal.forecast;
                     // Try exact ID (some integrations might return array directly? unlikely but possible in custom implementations)
                     if (Array.isArray(payload[entityId])) return payload[entityId];
@@ -245,7 +294,6 @@ export class WeatherStore {
                 }
 
             } catch (serviceErr) {
-                logger.warn("[Weather] Service weather.get_forecasts failed:", serviceErr);
                 logger.warn("[Weather] Service weather.get_forecasts failed:", serviceErr);
             }
 
@@ -369,7 +417,7 @@ export class WeatherStore {
         }
     }
 
-    private mapHAForecast(forecast: any[], type: 'hourly' | 'daily') {
+    private mapHAForecast(forecast: HAForecastItem[], type: 'hourly' | 'daily') {
         if (!Array.isArray(forecast)) return [];
 
         // Get sun info for Day/Night calculation
@@ -389,7 +437,7 @@ export class WeatherStore {
             // Simplified: Just take the time of day roughly.
         }
 
-        return forecast.map((f: any) => {
+        return forecast.map((f: HAForecastItem) => {
             // Robust date parsing (datetime, date, time)
             const dateStr = f.datetime || f.date || f.time;
             const date = dateStr ? new Date(dateStr) : new Date();

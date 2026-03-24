@@ -1,6 +1,26 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
+// --- localStorage mock for jsdom ---
+// jsdom's localStorage needs to be accessed via globalThis or self, not directly
+const mockStorage: Record<string, string> = {};
+const localStorageMock = {
+    getItem: (key: string) => mockStorage[key] ?? null,
+    setItem: (key: string, value: string) => { mockStorage[key] = value; },
+    removeItem: (key: string) => { delete mockStorage[key]; },
+    clear: () => { Object.keys(mockStorage).forEach(k => delete mockStorage[k]); },
+    get length() { return Object.keys(mockStorage).length; },
+    key: (i: number) => Object.keys(mockStorage)[i] ?? null,
+};
+// Only set if not already defined (jsdom should define it, but some setups don't)
+if (typeof globalThis.localStorage === 'undefined' || typeof (globalThis.localStorage as any)?.clear !== 'function') {
+    Object.defineProperty(globalThis, 'localStorage', {
+        value: localStorageMock,
+        writable: true,
+        configurable: true
+    });
+}
+
 // Fix for "mount(...) is not available on the server" in Vitest/Svelte 5
 // Svelte 5 needs proper browser globals even in jsdom to avoid SSR mode detection
 if (typeof window !== 'undefined') {
