@@ -1,6 +1,6 @@
 # Architecture Overview
 
-**Last Updated**: January 25, 2026
+**Last Updated**: May 14, 2026
 
 A Material Design 3 dashboard for Home Assistant built with **Svelte 5** and **SvelteKit**.
 
@@ -376,8 +376,27 @@ To maintain type safety and correct board behavior, adding a new card type requi
   - **Failure to map the type will result in the card defaulting to a "button" card.**
 
 ### 3. Rendering Logic
-- **Grid Rendering**: Update `GridItem.svelte` to switch on the new type and render the corresponding component.
+- **Card Rendering**: Update `DashboardCardRenderer.svelte` to switch on the new type and render the corresponding component. Root dashboard cards and nested tab cards should use this shared renderer.
 - **Config Rendering**: Update `CardConfigSheet.svelte` to show appropriate fields for the new card type and update the preview logic.
+
+---
+
+## Card Library Direction
+
+The `/library` route should stay a polished runtime showcase, not a roadmap board. It should render finished MD3-native card examples with realistic Home Assistant data, empty states, and compact/wide layout checks.
+
+Reference projects are used for product patterns only:
+
+- Mushroom and Button Card: entity tiles, sub-actions, state-aware controls.
+- Mini Media Player: compact playback, source, grouping, and volume patterns.
+- Mini Graph and ApexCharts: graph presets and multi-series data surfaces.
+- Bubble Card: section navigation, room actions, and mobile-first controls.
+- Auto Entities: dynamic collections such as active lights, low batteries, unavailable devices, and updates.
+- Power Flow Plus: energy flow and daily usage summaries.
+- Calendar Card Pro and Atomic Calendar Revive: agenda and family calendar surfaces.
+- Universal Remote and Vacuum Card: specialist control panels.
+
+Build order remains reuse-first: extend Button, Media, Graph, Navigation, and Tab behavior where possible, then add specialist card types only for distinct jobs.
 
 ---
 
