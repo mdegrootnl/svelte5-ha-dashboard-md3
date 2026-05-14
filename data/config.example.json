@@ -1,0 +1,63 @@
+{
+  "theme": {
+    "sourceColor": "#6750A4",
+    "isDark": false,
+    "navigationStyle": "standard",
+    "navigationItems": [
+      {
+        "id": "dashboard",
+        "label": "Home Dashboard",
+        "icon": "home",
+        "href": "/dashboard"
+      },
+      {
+        "id": "music",
+        "label": "Music",
+        "icon": "music_note",
+        "href": "/music"
+      },
+      {
+        "id": "weather",
+        "label": "Weather",
+        "icon": "partly_cloudy_day",
+        "href": "/weather"
+      },
+      {
+        "id": "library",
+        "label": "Library",
+        "icon": "widgets",
+        "href": "/library"
+      },
+      {
+        "id": "theme",
+        "label": "Theme",
+        "icon": "palette",
+        "href": "/theme"
+      },
+      {
+        "id": "calendar",
+        "label": "Calendar",
+        "icon": "calendar_month",
+        "href": "/calendar"
+      },
+      {
+        "id": "settings",
+        "label": "Settings",
+        "icon": "settings",
+        "href": "/settings"
+      }
+    ]
+  },
+  "dashboards": {},
+  "pages": [],
+  "musicLibrary": {
+    "favorites": [],
+    "lastSyncedAt": 0
+  },
+  "lockScreen": {
+    "enabled": true,
+    "timeout": 300,
+    "backgroundLandscape": "",
+    "backgroundPortrait": ""
+  }
+}

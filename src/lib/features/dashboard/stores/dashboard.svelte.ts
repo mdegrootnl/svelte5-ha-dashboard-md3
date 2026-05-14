@@ -140,11 +140,10 @@ export class DashboardStore {
         };
 
         try {
-            await fetch('/api/settings?csrf=true', {
+            await fetch('/api/settings', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'x-dashboard-api': 'true'
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(config)
             });
@@ -168,11 +167,10 @@ export class DashboardStore {
                     dashboards: this.savedConfigs,
                     pages: this.pages
                 };
-                fetch('/api/settings?csrf=true', {
+                fetch('/api/settings', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'x-dashboard-api': 'true'
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(config),
                     keepalive: true

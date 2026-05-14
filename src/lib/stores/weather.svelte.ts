@@ -16,6 +16,7 @@ interface CurrentWeather {
     wind_speed_10m: number;
     wind_direction_10m: number;
     surface_pressure: number;
+    uv_index?: number;
 }
 
 export interface HourlyForecast {
@@ -32,8 +33,8 @@ export interface DailyForecast {
     max: number;
     code: number;
     precip: number;
-    sunrise?: undefined;
-    sunset?: undefined;
+    sunrise?: Date;
+    sunset?: Date;
 }
 
 interface AstronomyData {
@@ -129,8 +130,14 @@ export class WeatherStore {
         'exceptional': 99
     };
 
-    private mapHAStateToWMO(state: string): number {
+    private mapHAStateToWMO(state: string | undefined): number {
+        if (!state) return 3;
         return this.haStateMap[state] ?? 3; // Default to cloudy if unknown
+    }
+
+    private numberOrDefault(value: unknown, fallback = 0): number {
+        const parsed = typeof value === 'number' ? value : Number(value);
+        return Number.isFinite(parsed) ? parsed : fallback;
     }
 
     async fetch(force = false): Promise<Result<void, Error>> {
@@ -228,14 +235,15 @@ export class WeatherStore {
             const isDay = sunState === 'below_horizon' ? 0 : 1;
 
             // Construct 'current' object matching Open-Meteo structure for compatibility
-            const current = {
-                temperature_2m: attributes.temperature,
+            const current: CurrentWeather = {
+                temperature_2m: this.numberOrDefault(attributes.temperature),
                 weather_code: wmoCode,
                 is_day: isDay,
-                relative_humidity_2m: attributes.humidity,
-                wind_speed_10m: attributes.wind_speed,
-                wind_direction_10m: attributes.wind_bearing, // Direction in degrees
-                surface_pressure: attributes.pressure,
+                relative_humidity_2m: this.numberOrDefault(attributes.humidity),
+                wind_speed_10m: this.numberOrDefault(attributes.wind_speed),
+                wind_direction_10m: this.numberOrDefault(attributes.wind_bearing),
+                surface_pressure: this.numberOrDefault(attributes.pressure),
+                uv_index: this.numberOrDefault(attributes.uv_index ?? attributes.uv, 0),
             };
 
             let hourly: HourlyForecast[] = [];
@@ -417,7 +425,9 @@ export class WeatherStore {
         }
     }
 
-    private mapHAForecast(forecast: HAForecastItem[], type: 'hourly' | 'daily') {
+    private mapHAForecast(forecast: HAForecastItem[], type: 'hourly'): HourlyForecast[];
+    private mapHAForecast(forecast: HAForecastItem[], type: 'daily'): DailyForecast[];
+    private mapHAForecast(forecast: HAForecastItem[], type: 'hourly' | 'daily'): HourlyForecast[] | DailyForecast[] {
         if (!Array.isArray(forecast)) return [];
 
         // Get sun info for Day/Night calculation
@@ -437,42 +447,38 @@ export class WeatherStore {
             // Simplified: Just take the time of day roughly.
         }
 
-        return forecast.map((f: HAForecastItem) => {
-            // Robust date parsing (datetime, date, time)
-            const dateStr = f.datetime || f.date || f.time;
-            const date = dateStr ? new Date(dateStr) : new Date();
-            const wmo = this.mapHAStateToWMO(f.condition);
-
-            if (type === 'daily') {
+        if (type === 'daily') {
+            return forecast.map((f: HAForecastItem): DailyForecast => {
+                const dateStr = f.datetime || f.date || f.time;
+                const date = dateStr ? new Date(dateStr) : new Date();
+                const wmo = this.mapHAStateToWMO(f.condition);
+                const max = this.numberOrDefault(f.temperature);
                 return {
                     date: date,
-                    min: f.templow ?? f.temperature, // Fallback if templow missing
-                    max: f.temperature,
+                    min: this.numberOrDefault(f.templow ?? f.temperature, max),
+                    max,
                     code: wmo,
-                    precip: f.precipitation_probability ?? f.precipitation,
+                    precip: this.numberOrDefault(f.precipitation_probability ?? f.precipitation),
                     sunrise: undefined,
                     sunset: undefined
                 };
-            } else {
-                // Calculate isDay based on local hour
-                const hour = date.getHours() + date.getMinutes() / 60;
-                // Simple logic: Day if between sunrise and sunset
-                // Note: accurate enough for icons
-                let isDay = hour >= sunriseHour && hour < sunsetHour;
+            });
+        }
 
-                // Handle wrapping if sunset < sunrise (e.g. polar? rare) or just simple logic
-                // If sun rises at 7 and sets at 19.
-                // 20 is > 19 -> Nigth. 5 is < 7 -> Night.
-                // 12 is > 7 and < 19 -> Day.
+        return forecast.map((f: HAForecastItem): HourlyForecast => {
+                const dateStr = f.datetime || f.date || f.time;
+                const date = dateStr ? new Date(dateStr) : new Date();
+                const wmo = this.mapHAStateToWMO(f.condition);
+                const hour = date.getHours() + date.getMinutes() / 60;
+                const isDay = hour >= sunriseHour && hour < sunsetHour;
 
                 return {
                     time: date,
-                    temp: f.temperature,
+                    temp: this.numberOrDefault(f.temperature),
                     code: wmo,
-                    precip: f.precipitation_probability ?? f.precipitation,
+                    precip: this.numberOrDefault(f.precipitation_probability ?? f.precipitation),
                     isDay
                 };
-            }
         });
     }
 

@@ -11,9 +11,8 @@
   - Volume slider
 -->
 <script lang="ts">
-    import { haStore } from "$lib/stores/ha.svelte";
+    import AuthenticatedImage from "$lib/components/common/AuthenticatedImage.svelte";
     import { maStore } from "../stores/maStore.svelte";
-    import { onMount, onDestroy } from "svelte";
 
     import Close from "~icons/material-symbols/close";
     import PlayArrow from "~icons/material-symbols/play-arrow";
@@ -35,9 +34,7 @@
 
     // Derived state from store
     let nowPlaying = $derived(maStore.nowPlaying);
-    let artwork = $derived(
-        nowPlaying?.artwork ? haStore.getProxiedUrl(nowPlaying.artwork) : null,
-    );
+    let artwork = $derived(nowPlaying?.artwork ?? null);
 
     // Local position tracking (updates every second when playing)
     let currentPosition = $state(0);
@@ -117,7 +114,7 @@
     <!-- Background with blurred artwork -->
     {#if artwork}
         <div class="absolute inset-0 overflow-hidden">
-            <img
+            <AuthenticatedImage
                 src={artwork}
                 alt=""
                 class="w-full h-full object-cover scale-110 blur-2xl opacity-50"
@@ -155,7 +152,7 @@
         <!-- Album Art -->
         <div class="flex-1 flex items-center justify-center p-8 min-h-0">
             {#if artwork}
-                <img
+                <AuthenticatedImage
                     src={artwork}
                     alt="Album Art"
                     class="max-w-full max-h-full aspect-square rounded-lg shadow-2xl object-cover"

@@ -163,11 +163,10 @@ export class LockScreenStore {
         };
 
         try {
-            await fetch('/api/settings?csrf=true', {
+            await fetch('/api/settings', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'x-dashboard-api': 'true'
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(config)
             });

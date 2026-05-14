@@ -321,6 +321,13 @@ export class HAStore {
     }
 
     /**
+     * Fetch a Home Assistant resource with auth headers and expose it as a blob URL.
+     */
+    async fetchProxiedBlobUrl(path: string | null): Promise<string | null> {
+        return HAAuthService.fetchProxiedBlobUrl(path, this.url, this.auth?.accessToken);
+    }
+
+    /**
      * Clear history cache (useful when switching entities)
      */
     clearHistoryCache() {

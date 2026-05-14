@@ -2,8 +2,8 @@ import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url, request, fetch }) => {
-    const haUrlFromHeader = request.headers.get('x-ha-url') || url.searchParams.get('url');
-    const authHeader = request.headers.get('Authorization') || (url.searchParams.get('token') ? `Bearer ${url.searchParams.get('token')}` : null);
+    const haUrlFromHeader = request.headers.get('x-ha-url');
+    const authHeader = request.headers.get('Authorization');
     const resourcePath = url.searchParams.get('path');
 
     if (!haUrlFromHeader) {
@@ -19,16 +19,16 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
     }
 
     try {
-        const normalizedHaUrl = haUrlFromHeader.endsWith('/')
-            ? haUrlFromHeader.slice(0, -1)
-            : haUrlFromHeader;
+        const baseUrl = new URL(haUrlFromHeader);
+        if (!['http:', 'https:'].includes(baseUrl.protocol)) {
+            throw error(400, 'Invalid Home Assistant URL');
+        }
 
-        // Ensure path starts with /
         const normalizedPath = resourcePath.startsWith('/')
             ? resourcePath
             : `/${resourcePath}`;
 
-        const targetUrl = `${normalizedHaUrl}${normalizedPath}`;
+        const targetUrl = new URL(normalizedPath, baseUrl);
 
         const res = await fetch(targetUrl, {
             headers: {
@@ -47,12 +47,12 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
         return new Response(data, {
             headers: {
                 'Content-Type': contentType,
-                'Cache-Control': 'public, max-age=3600' // Cache for 1 hour
+                'Cache-Control': 'private, max-age=3600'
             }
         });
 
     } catch (err: any) {
         if (err.status) throw err;
-        throw error(500, `Internal Proxy Error: ${err.message}`, { cause: err.cause });
+        throw error(500, `Internal Proxy Error: ${err.message}`);
     }
 };

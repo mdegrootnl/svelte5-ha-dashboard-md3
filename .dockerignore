@@ -7,3 +7,6 @@ dist
 .github
 coverage
 tests
+temp_icons_fix
+data/config.json
+data/uploads

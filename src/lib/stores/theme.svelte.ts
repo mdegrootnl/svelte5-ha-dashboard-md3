@@ -138,11 +138,10 @@ export class ThemeStore {
         };
 
         try {
-            await fetch('/api/settings?csrf=true', {
+            await fetch('/api/settings', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'x-dashboard-api': 'true'
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(config)
             });
@@ -169,11 +168,10 @@ export class ThemeStore {
                         navigationItems: this.navigationItems
                     }
                 };
-                fetch('/api/settings?csrf=true', {
+                fetch('/api/settings', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'x-dashboard-api': 'true'
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(config),
                     keepalive: true

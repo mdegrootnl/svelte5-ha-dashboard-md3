@@ -19,7 +19,7 @@ export class HAAuthService {
         try {
             const auth = await getAuth({
                 saveTokens: (tokens) => StorageProvider.saveTokens(tokens),
-                loadTokens: () => StorageProvider.loadTokens()
+                loadTokens: async () => StorageProvider.loadTokens()
             });
             return auth;
         } catch (err) {
@@ -39,7 +39,7 @@ export class HAAuthService {
             const auth = await getAuth({
                 hassUrl,
                 saveTokens: (tokens) => StorageProvider.saveTokens(tokens),
-                loadTokens: () => StorageProvider.loadTokens()
+                loadTokens: async () => StorageProvider.loadTokens()
             });
             return auth;
         } catch (err) {
@@ -66,6 +66,21 @@ export class HAAuthService {
     /**
      * Get a proxied URL for a Home Assistant resource.
      */
+    private static normalizeResourcePath(path: string, baseUrl: string | null): { path: string; shouldProxy: boolean } {
+        if (path.startsWith('http')) {
+            if (!baseUrl || !path.startsWith(baseUrl)) {
+                return { path, shouldProxy: false };
+            }
+            return { path: path.replace(baseUrl, '') || '/', shouldProxy: true };
+        }
+
+        if (path.startsWith('/api/uploads/')) {
+            return { path, shouldProxy: false };
+        }
+
+        return { path, shouldProxy: true };
+    }
+
     static getProxiedUrl(path: string | null, baseUrl: string | null, token: string | undefined): string | null {
         if (!path) return null;
         if (!token || !baseUrl) return path;
@@ -75,20 +90,33 @@ export class HAAuthService {
             logger.debug('Proxying MA URL:', { input: path });
         }
 
-        // If it's an absolute URL, check if it's our HA URL
-        if (path.startsWith('http')) {
-            // If it's not our HA URL, return as is (CSP now allows it)
-            if (!baseUrl || !path.startsWith(baseUrl)) {
-                return path;
-            }
+        const normalized = this.normalizeResourcePath(path, baseUrl);
+        if (!normalized.shouldProxy) return normalized.path;
 
-            // It IS our HA URL but absolute, we should still proxy it to add the token
-            // Strip the base URL to make it relative for the proxy
-            path = path.replace(baseUrl, '');
-        }
-
-        const proxied = `/api/ha-proxy?path=${encodeURIComponent(path)}&token=${encodeURIComponent(token)}&url=${encodeURIComponent(baseUrl)}`;
+        const proxied = `/api/ha-proxy?path=${encodeURIComponent(normalized.path)}`;
         if (path.includes('music_assistant')) logger.debug('Proxied result:', proxied);
         return proxied;
+    }
+
+    static async fetchProxiedBlobUrl(path: string | null, baseUrl: string | null, token: string | undefined): Promise<string | null> {
+        if (!path) return null;
+        if (!token || !baseUrl) return path;
+
+        const normalized = this.normalizeResourcePath(path, baseUrl);
+        if (!normalized.shouldProxy) return normalized.path;
+
+        const response = await fetch(`/api/ha-proxy?path=${encodeURIComponent(normalized.path)}`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'x-ha-url': baseUrl
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch proxied resource: ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        return URL.createObjectURL(blob);
     }
 }

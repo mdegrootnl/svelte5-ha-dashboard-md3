@@ -1,6 +1,7 @@
 node_modules
 
 # Output
+coverage
 .output
 .vercel
 .netlify
@@ -21,3 +22,10 @@ Thumbs.db
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Local runtime data
+data/config.json
+data/uploads/
+
+# Scratch/imported asset dumps
+temp_icons_fix/

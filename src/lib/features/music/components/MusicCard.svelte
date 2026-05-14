@@ -9,7 +9,7 @@
   - Supports square (default) or circular (artist) image shapes
 -->
 <script lang="ts">
-    import { haStore } from "$lib/stores/ha.svelte";
+    import AuthenticatedImage from "$lib/components/common/AuthenticatedImage.svelte";
     import { musicLibraryStore } from "../stores/musicLibrary.svelte";
     import type {
         MAMediaItem,
@@ -90,8 +90,8 @@
                 : 'rounded-md'} bg-m3-surface-container-highest mb-3 overflow-hidden relative"
         >
             {#if item.image_url}
-                <img
-                    src={haStore.getProxiedUrl(item.image_url)}
+                <AuthenticatedImage
+                    src={item.image_url}
                     alt={item.name}
                     class="w-full h-full object-cover"
                 />

@@ -1,5 +1,6 @@
 import { browser } from '$app/environment';
 import { createLogger } from '../utils/logger';
+import type { AuthData } from 'home-assistant-js-websocket';
 
 const logger = createLogger('StorageProvider');
 
@@ -9,13 +10,7 @@ const KEYS = {
 };
 
 /** Home Assistant authentication tokens */
-export interface HATokens {
-    access_token: string;
-    refresh_token?: string;
-    token_type?: string;
-    expires_at?: number;
-    [key: string]: unknown;
-}
+export type HATokens = AuthData;
 
 /** Weather store configuration */
 export interface WeatherConfig {
@@ -30,10 +25,14 @@ export class StorageProvider {
     /**
      * Save Home Assistant tokens.
      */
-    static saveTokens(tokens: HATokens): void {
+    static saveTokens(tokens: HATokens | null): void {
         if (!browser) return;
         try {
-            localStorage.setItem(KEYS.TOKENS, JSON.stringify(tokens));
+            if (tokens) {
+                localStorage.setItem(KEYS.TOKENS, JSON.stringify(tokens));
+            } else {
+                localStorage.removeItem(KEYS.TOKENS);
+            }
         } catch (e) {
             logger.error('Failed to save tokens', e);
         }

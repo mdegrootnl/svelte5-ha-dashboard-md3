@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/svelte';
+import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import MusicCard from './MusicCard.svelte';
 import { haStore } from '$lib/stores/ha.svelte';
@@ -8,7 +8,7 @@ import type { MAMediaItem, MATrack, MAAlbum } from '$lib/types/musicAssistant';
 // Mock the stores
 vi.mock('$lib/stores/ha.svelte', () => ({
     haStore: {
-        getProxiedUrl: vi.fn((url) => `proxied-${url}`)
+        fetchProxiedBlobUrl: vi.fn(async (url) => `proxied-${url}`)
     }
 }));
 
@@ -66,11 +66,13 @@ describe('MusicCard Component', () => {
         expect(screen.getByText('Album Artist')).toBeInTheDocument();
     });
 
-    it('uses proxied URL for images', () => {
+    it('uses proxied URL for images', async () => {
         render(MusicCard, { props: { item: mockTrack, onPlay: mockOnPlay } });
 
-        const img = screen.getByAltText('Test Track') as HTMLImageElement;
-        expect(img.src).toContain('proxied-artwork.jpg');
+        await waitFor(() => {
+            const img = screen.getByAltText('Test Track') as HTMLImageElement;
+            expect(img.src).toContain('proxied-artwork.jpg');
+        });
     });
 
     it('renders circular image for artists when rounded prop is true', () => {

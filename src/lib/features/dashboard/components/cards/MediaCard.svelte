@@ -8,6 +8,7 @@
     import MediaVolume from "./media/MediaVolume.svelte";
     import MediaProgress from "./media/MediaProgress.svelte";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
+    import AuthenticatedImage from "$lib/components/common/AuthenticatedImage.svelte";
 
     // Props
     interface Props {
@@ -128,8 +129,8 @@
     <!-- Immersive Background -->
     {#if effectiveBackground === "immersive" && artworkSrc && !isOff}
         <div class="absolute inset-0 z-0">
-            <img
-                src={haStore.getProxiedUrl(artworkSrc)}
+            <AuthenticatedImage
+                src={artworkSrc}
                 alt=""
                 class="w-full h-full object-cover opacity-70 blur-xl scale-110"
             />
@@ -224,8 +225,8 @@
             <!-- Artwork Area -->
             <div class="flex-1 flex items-center justify-center p-2 min-h-0">
                 {#if artworkSrc}
-                    <img
-                        src={haStore.getProxiedUrl(artworkSrc)}
+                    <AuthenticatedImage
+                        src={artworkSrc}
                         alt="Cover"
                         class="h-full max-h-[200px] aspect-square rounded-[var(--radius-m3-md)] object-cover shadow-2xl"
                     />
@@ -277,8 +278,8 @@
             class="flex items-center gap-[3cqmin] p-[3cqmin] h-full overflow-hidden"
         >
             {#if artworkSrc}
-                <img
-                    src={haStore.getProxiedUrl(artworkSrc)}
+                <AuthenticatedImage
+                    src={artworkSrc}
                     alt="Cover"
                     class="size-[15cqmin] rounded-[var(--radius-m3-sm)] object-cover shadow-sm shrink-0"
                 />
@@ -320,8 +321,8 @@
             <div class="flex items-start gap-3">
                 {#if artworkSrc}
                     <div class="relative group">
-                        <img
-                            src={haStore.getProxiedUrl(artworkSrc)}
+                        <AuthenticatedImage
+                            src={artworkSrc}
                             alt="Cover"
                             class="h-14 w-14 rounded-[var(--radius-m3-md)] object-cover shadow-md shrink-0"
                         />

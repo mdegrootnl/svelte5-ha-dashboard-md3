@@ -13,7 +13,14 @@ describe('StorageProvider', () => {
     });
 
     it('should save and load tokens', () => {
-        const tokens = { access_token: 'test_token', refresh_token: 'test_refresh' };
+        const tokens = {
+            hassUrl: 'http://test',
+            clientId: null,
+            expires: Date.now() + 3600,
+            refresh_token: 'test_refresh',
+            access_token: 'test_token',
+            expires_in: 1800
+        };
         StorageProvider.saveTokens(tokens);
 
         const loaded = StorageProvider.loadTokens();
@@ -32,7 +39,14 @@ describe('StorageProvider', () => {
     });
 
     it('should clear storage', () => {
-        StorageProvider.saveTokens({ a: 1 });
+        StorageProvider.saveTokens({
+            hassUrl: 'http://test',
+            clientId: null,
+            expires: Date.now() + 3600,
+            refresh_token: 'test_refresh',
+            access_token: 'test_token',
+            expires_in: 1800
+        });
         StorageProvider.saveLastUrl('http://test');
 
         StorageProvider.clear();

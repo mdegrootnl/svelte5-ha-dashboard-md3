@@ -6,7 +6,7 @@ import type { MAMediaItem } from '$lib/types/musicAssistant';
 // Mock the stores used by child MusicCard
 vi.mock('$lib/stores/ha.svelte', () => ({
     haStore: {
-        getProxiedUrl: vi.fn((url) => `proxied-${url}`)
+        fetchProxiedBlobUrl: vi.fn(async (url) => `proxied-${url}`)
     }
 }));
 

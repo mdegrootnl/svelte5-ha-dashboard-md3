@@ -82,11 +82,10 @@
     let isDayTime = $derived.by(() => {
         if (!current) return true;
 
-        // Use daily forecast for sunrise/sunset
-        const today = weatherStore.data?.daily?.[0];
-        if (today && today.sunrise && today.sunset) {
+        const astronomy = weatherStore.data?.astronomy;
+        if (astronomy?.sunrise && astronomy?.sunset) {
             return (
-                now >= today.sunrise.getTime() && now < today.sunset.getTime()
+                now >= astronomy.sunrise.getTime() && now < astronomy.sunset.getTime()
             );
         }
 

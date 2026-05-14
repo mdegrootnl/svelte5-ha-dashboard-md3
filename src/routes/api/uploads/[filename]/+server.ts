@@ -1,28 +1,37 @@
 import { readFile } from 'fs/promises';
-import { join } from 'path';
+import { resolve, sep } from 'path';
 import type { RequestHandler } from './$types';
 import { error } from '@sveltejs/kit';
+
+const CONTENT_TYPES: Record<string, string> = {
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    gif: 'image/gif',
+    webp: 'image/webp'
+};
 
 export const GET: RequestHandler = async ({ params }) => {
     const { filename } = params;
 
-    if (!filename || filename.includes('..')) {
+    if (!filename || !/^[a-zA-Z0-9_-]+\.(jpe?g|png|gif|webp)$/i.test(filename)) {
         throw error(400, 'Invalid filename');
     }
 
+    const uploadDir = resolve(process.cwd(), 'data', 'uploads');
+    const filePath = resolve(uploadDir, filename);
+    if (!filePath.startsWith(`${uploadDir}${sep}`)) {
+        throw error(400, 'Invalid filename');
+    }
+
+    const ext = filename.split('.').pop()?.toLowerCase();
+    const contentType = ext ? CONTENT_TYPES[ext] : undefined;
+    if (!contentType) {
+        throw error(400, 'Unsupported file type');
+    }
+
     try {
-        const filePath = join(process.cwd(), 'data', 'uploads', filename);
         const file = await readFile(filePath);
-
-        // Determine mime type based on extension
-        const ext = filename.split('.').pop()?.toLowerCase();
-        let contentType = 'application/octet-stream';
-
-        if (ext === 'jpg' || ext === 'jpeg') contentType = 'image/jpeg';
-        else if (ext === 'png') contentType = 'image/png';
-        else if (ext === 'gif') contentType = 'image/gif';
-        else if (ext === 'webp') contentType = 'image/webp';
-        else if (ext === 'svg') contentType = 'image/svg+xml';
 
         return new Response(file, {
             headers: {

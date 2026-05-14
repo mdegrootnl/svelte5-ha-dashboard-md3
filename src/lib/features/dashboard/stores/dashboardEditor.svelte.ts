@@ -30,7 +30,7 @@ interface ItemCreationConfig {
     secondaryName?: string;
     domainFilter?: string;
     subtitle?: string;
-    alignment?: string;
+    alignment?: DashboardItem['alignment'];
     tabs?: GridConfig[];
     hours_to_show?: number;
     aggregate_func?: 'avg' | 'min' | 'max' | 'last';
@@ -39,6 +39,10 @@ interface ItemCreationConfig {
     imageUrl?: string;
     icon?: string;
     shortcuts?: { id: string; entityId: string; icon?: string; color?: string }[];
+}
+
+function normalizeAlignment(alignment: unknown): DashboardItem['alignment'] {
+    return alignment === 'center' || alignment === 'end' ? alignment : 'start';
 }
 
 /**
@@ -231,7 +235,7 @@ export class DashboardEditorStore {
             secondaryName: itemConfig.secondaryName || "",
             domainFilter: itemConfig.domainFilter || "",
             subtitle: itemConfig.subtitle || "",
-            alignment: itemConfig.alignment || "start",
+            alignment: normalizeAlignment(itemConfig.alignment),
             tabs: itemConfig.tabs,
             activeTabIndex: 0,
             hours_to_show: itemConfig.hours_to_show,
@@ -718,9 +722,9 @@ export class DashboardEditorStore {
         // Fill gaps if necessary
         if (rowIndex > currentTracks.length + 1) {
             const fillCount = rowIndex - 1 - currentTracks.length;
-            const fillers = Array.from({ length: fillCount }, () => ({
+            const fillers: GridTrack[] = Array.from({ length: fillCount }, () => ({
                 id: generateUUID(),
-                type: "row",
+                type: "row" as const,
                 size: defaultHeight
             }));
             currentTracks.push(...fillers);
@@ -775,7 +779,7 @@ export class DashboardEditorStore {
         console.log(`Setting column ${colIndex} width to ${width}px for ${breakpoint}`);
     }
 
-    addItem(itemConfig: Partial<DashboardItem> & { type?: string; name?: string; cardSize?: 'condensed' | 'standard' | 'poster'; subtitle?: string; alignment?: string }) {
+    addItem(itemConfig: Partial<DashboardItem> & { type?: string; name?: string; cardSize?: 'condensed' | 'standard' | 'poster'; subtitle?: string; alignment?: DashboardItem['alignment'] }) {
         const context = this.getActiveGrid();
         if (!context) return;
         const { root, tab: config } = context;

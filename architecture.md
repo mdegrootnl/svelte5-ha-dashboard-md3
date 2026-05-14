@@ -34,6 +34,15 @@ npm start
 node server.js
 ```
 
+Runtime dashboard state is intentionally kept outside the git checkout. In the self-hosted Docker deployment, `/app/data` should be mounted from a persistent server directory such as `/srv/ha-dashboard/data`, configured through `DASHBOARD_DATA_DIR`. The live `config.json` and uploaded images belong in that mounted directory; git tracks only `data/config.example.json` as a sanitized starter.
+
+For same-origin API protection, set `DASHBOARD_ORIGIN` to the exact URL used in the browser, for example:
+
+```bash
+DASHBOARD_DATA_DIR=/srv/ha-dashboard/data
+DASHBOARD_ORIGIN=http://192.168.0.113:3000
+```
+
 ---
 
 ## Project Structure

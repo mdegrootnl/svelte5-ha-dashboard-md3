@@ -10,7 +10,7 @@
   - Tapping expands to full Now Playing view
 -->
 <script lang="ts">
-    import { haStore } from "$lib/stores/ha.svelte";
+    import AuthenticatedImage from "$lib/components/common/AuthenticatedImage.svelte";
     import { maStore } from "../stores/maStore.svelte";
 
     import PlayArrow from "~icons/material-symbols/play-arrow";
@@ -33,9 +33,7 @@
     let activePlayer = $derived(
         maStore.activePlayerId ? maStore.players[maStore.activePlayerId] : null,
     );
-    let artwork = $derived(
-        nowPlaying?.artwork ? haStore.getProxiedUrl(nowPlaying.artwork) : null,
-    );
+    let artwork = $derived(nowPlaying?.artwork ?? null);
 
     // Progress percentage
     let progress = $derived(
@@ -68,7 +66,7 @@
     <div class="flex items-center gap-3 p-3">
         <!-- Album Art or Player Icon -->
         {#if artwork}
-            <img
+            <AuthenticatedImage
                 src={artwork}
                 alt="Album Art"
                 class="w-12 h-12 rounded-md object-cover shadow-sm flex-shrink-0"

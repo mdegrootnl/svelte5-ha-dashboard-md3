@@ -21,22 +21,56 @@ export const ResponsiveLayoutSchema = z.object({
 /**
  * Schema for a single dashboard item.
  */
-export const DashboardItemSchema = z.object({
+export const DashboardCardTypeSchema = z.enum([
+    "button",
+    "media",
+    "thermostat",
+    "title",
+    "tabs",
+    "graph",
+    "navigation"
+]);
+
+const NavigationShortcutSchema = z.object({
+    id: z.string(),
+    entityId: z.string(),
+    icon: z.string().optional(),
+    color: z.string().optional(),
+}).passthrough();
+
+const GraphCardEntitySchema = z.object({
+    entity_id: z.string(),
+    name: z.string().optional(),
+    color: z.string().optional(),
+}).passthrough();
+
+export const DashboardItemSchema: z.ZodTypeAny = z.lazy(() => z.object({
     id: z.string(),
     name: z.string().default(""),
     entityId: z.string(),
-    cardType: z.enum(["button", "media", "thermostat", "graph"]),
+    icon: z.string().optional(),
+    cardType: DashboardCardTypeSchema,
     layout: ResponsiveLayoutSchema,
     secondaryEntityId: z.string().default(""),
     secondaryName: z.string().default(""),
+    domainFilter: z.string().default(""),
+    subtitle: z.string().optional(),
+    alignment: z.enum(["start", "center", "end"]).optional(),
     color: z.string().optional(),
     backgroundColor: z.string().optional(),
 
-    // Navigation Props
+    activeTabIndex: z.number().optional(),
+    tabs: z.array(GridConfigSchema).optional(),
+
+    hours_to_show: z.number().optional(),
+    aggregate_func: z.enum(['avg', 'min', 'max', 'last']).optional(),
+    graphEntities: z.array(GraphCardEntitySchema).optional(),
+
     path: z.string().optional(),
     iconType: z.enum(["icon", "image"]).optional(),
     imageUrl: z.string().optional(),
-});
+    shortcuts: z.array(NavigationShortcutSchema).optional(),
+}).passthrough());
 
 export const GraphCardConfigSchema = z.object({
     entities: z.array(z.object({
@@ -80,7 +114,7 @@ export const GridTrackSchema = z.object({
 /**
  * Schema for a grid configuration (tab).
  */
-export const GridConfigSchema = z.object({
+const createGridConfigSchema = () => z.object({
     id: z.string(),
     name: z.string(),
     icon: z.string().optional(),
@@ -95,16 +129,65 @@ export const GridConfigSchema = z.object({
     rowHeight: z.number().optional().default(80),
     rowGap: z.number().optional(),
     columnGap: z.number().optional(),
-});
+}).passthrough();
+
+export const GridConfigSchema: z.ZodTypeAny = z.lazy(() => createGridConfigSchema());
 
 /**
  * Schema for a full room dashboard configuration.
  */
-export const RoomDashboardConfigSchema = z.object({
+export const RoomDashboardConfigSchema: z.ZodTypeAny = z.lazy(() =>
+    createGridConfigSchema().extend({
+        activeTabId: z.string(),
+        tabs: z.array(GridConfigSchema),
+    }).passthrough()
+);
+
+const NavigationItemSchema = z.object({
     id: z.string(),
-    activeTabId: z.string(),
-    tabs: z.array(GridConfigSchema),
-});
+    label: z.string(),
+    icon: z.string(),
+    href: z.string(),
+}).passthrough();
+
+const ThemeConfigPartialSchema = z.object({
+    sourceColor: z.string().min(1).optional(),
+    isDark: z.boolean().optional(),
+    navigationStyle: z.enum(['standard', 'modern']).optional(),
+    navigationItems: z.array(NavigationItemSchema).optional(),
+}).strict();
+
+const DashboardPageSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    path: z.string(),
+    icon: z.string().optional(),
+}).passthrough();
+
+const MusicLibraryConfigPartialSchema = z.object({
+    favorites: z.array(z.object({
+        uri: z.string(),
+        name: z.string(),
+        media_type: z.string(),
+    }).passthrough()).optional(),
+    lastSyncedAt: z.number().optional(),
+    defaultPlayerId: z.string().optional(),
+}).strict();
+
+const LockScreenConfigPartialSchema = z.object({
+    enabled: z.boolean().optional(),
+    timeout: z.number().min(0).optional(),
+    backgroundLandscape: z.string().optional(),
+    backgroundPortrait: z.string().optional(),
+}).strict();
+
+export const AppConfigPartialSchema = z.object({
+    theme: ThemeConfigPartialSchema.optional(),
+    dashboards: z.record(z.string(), RoomDashboardConfigSchema).optional(),
+    pages: z.array(DashboardPageSchema).optional(),
+    musicLibrary: MusicLibraryConfigPartialSchema.optional(),
+    lockScreen: LockScreenConfigPartialSchema.optional(),
+}).strict();
 
 /**
  * Home Assistant Floor Schema.

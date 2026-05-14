@@ -24,13 +24,12 @@
             errorMessage = "";
 
             try {
-                const res = await fetch("/api/upload?csrf=true", {
+                const res = await fetch("/api/upload", {
                     method: "POST",
                     body: file,
                     headers: {
                         "x-filename": encodeURIComponent(file.name),
                         "content-type": file.type,
-                        "x-dashboard-api": "true",
                     },
                 });
 
