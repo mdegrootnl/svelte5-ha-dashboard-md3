@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { cardEditorStore, executeCardAction, haStore } from "$lib";
+    import { buildSmartRemoteOptions, cardEditorStore, executeCardAction, haRegistryStore, haStore } from "$lib";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import type { CardAction, RemoteCardOptions } from "$lib/types";
     import IconEdit from "~icons/material-symbols/edit";
@@ -28,7 +28,16 @@
         class: className = "",
     }: Props = $props();
 
-    let targetEntityId = $derived(options?.mediaPlayerEntityId || options?.remoteEntityId || entityId);
+    let context = $derived({
+        states: haStore.states,
+        entities: haRegistryStore.entityRegistry,
+        devices: haRegistryStore.deviceRegistry,
+        areas: haRegistryStore.areas,
+        floors: haRegistryStore.floors,
+    });
+
+    let smartOptions = $derived(buildSmartRemoteOptions(context, options, entityId));
+    let targetEntityId = $derived(smartOptions.mediaPlayerEntityId || smartOptions.remoteEntityId || entityId);
     let entity = $derived(targetEntityId ? haStore.getEntity(targetEntityId) : null);
 
     const defaultActions: CardAction[] = [
@@ -42,11 +51,17 @@
         { id: "volume_up", icon: "volume_up", label: "Volume up", domain: "media_player", service: "volume_up" },
     ];
 
-    let actions = $derived(options?.actions && options.actions.length > 0 ? options.actions : defaultActions);
+    let actions = $derived(smartOptions.actions && smartOptions.actions.length > 0 ? smartOptions.actions : defaultActions);
+
+    function fallbackForAction(action: CardAction) {
+        if (action.domain === "remote") return smartOptions.remoteEntityId || targetEntityId;
+        if (action.domain === "media_player") return smartOptions.mediaPlayerEntityId || targetEntityId;
+        return targetEntityId;
+    }
 
     function runAction(action: CardAction, e: Event) {
         e.stopPropagation();
-        executeCardAction(action, targetEntityId);
+        executeCardAction(action, fallbackForAction(action));
     }
 
     function openConfig(e: Event) {
@@ -74,7 +89,7 @@
 </script>
 
 <article
-    class="relative h-full w-full rounded-m3-md bg-m3-surface-container-highest text-m3-on-surface overflow-hidden group @container {className}"
+    class="relative h-full w-full rounded-m3-card bg-m3-surface-container-highest text-m3-on-surface overflow-hidden group @container {className}"
     style={`container-type: size;${backgroundColor ? ` background-color: ${backgroundColor};` : ""}`}
 >
     <div class="h-full flex flex-col p-[clamp(0.625rem,4cqmin,1.5rem)] gap-[clamp(0.375rem,3cqmin,1rem)]">
@@ -91,7 +106,7 @@
                     {name || entity?.attributes.friendly_name || "Remote"}
                 </h3>
                 <p class="text-[clamp(10px,3.4cqmin,13px)] text-m3-on-surface-variant truncate">
-                    {entity?.state || options?.preset || "tv"}
+                    {entity?.state || smartOptions.preset || "tv"}
                 </p>
             </div>
         </header>

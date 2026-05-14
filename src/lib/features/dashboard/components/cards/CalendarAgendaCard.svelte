@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { cardEditorStore, haRegistryStore, haStore, resolveEntityQuery } from "$lib";
+    import { buildSmartCalendarOptions, cardEditorStore, haRegistryStore, haStore } from "$lib";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import type { CalendarCardOptions } from "$lib/types";
     import IconEdit from "~icons/material-symbols/edit";
@@ -42,12 +42,8 @@
         floors: haRegistryStore.floors,
     });
 
-    let calendarIds = $derived.by(() => {
-        if (options?.entityIds && options.entityIds.length > 0) return options.entityIds;
-        if (entityId) return [entityId];
-        return resolveEntityQuery(context, { domains: ["calendar"], limit: options?.maxEvents ?? 4 })
-            .map((item) => item.entityId);
-    });
+    let smartOptions = $derived(buildSmartCalendarOptions(context, options, entityId));
+    let calendarIds = $derived(smartOptions.entityIds ?? []);
 
     let calendars = $derived(
         calendarIds.map((id) => haStore.getEntity(id)).filter(isStoreEntity),
@@ -88,7 +84,7 @@
 </script>
 
 <article
-    class="relative h-full w-full rounded-m3-md bg-m3-surface-container-highest text-m3-on-surface overflow-hidden group @container {className}"
+    class="relative h-full w-full rounded-m3-card bg-m3-surface-container-highest text-m3-on-surface overflow-hidden group @container {className}"
     style={`container-type: size;${backgroundColor ? ` background-color: ${backgroundColor};` : ""}`}
 >
     <div class="h-full flex flex-col p-[clamp(0.625rem,4cqmin,1.5rem)] gap-[clamp(0.375rem,3cqmin,1rem)]">
@@ -105,13 +101,13 @@
                     {name || "Agenda"}
                 </h3>
                 <p class="text-[clamp(10px,3.4cqmin,13px)] text-m3-on-surface-variant">
-                    Next {options?.daysToShow ?? 7} days
+                    Next {smartOptions.daysToShow ?? 7} days
                 </p>
             </div>
         </header>
 
         <div class="flex-1 min-h-0 flex flex-col gap-[clamp(0.25rem,2cqmin,0.75rem)] overflow-hidden">
-            {#each calendars.slice(0, options?.maxEvents ?? 4) as calendar (calendar.entity_id)}
+            {#each calendars.slice(0, smartOptions.maxEvents ?? 4) as calendar (calendar.entity_id)}
                 <div class="rounded-m3-md bg-m3-surface-container-high p-[clamp(0.5rem,3cqmin,1rem)] flex items-center gap-[clamp(0.375rem,3cqmin,1rem)] min-h-0">
                     <div class="size-[clamp(2rem,14cqmin,3.25rem)] rounded-m3-full bg-m3-secondary-container text-m3-on-secondary-container flex items-center justify-center shrink-0">
                         <DynamicIcon name="event" class="size-[58%]" />

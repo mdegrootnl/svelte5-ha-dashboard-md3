@@ -1,0 +1,86 @@
+import { fireEvent, render, screen } from '@testing-library/svelte';
+import { tick } from 'svelte';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import CardLibrarySheet from './CardLibrarySheet.svelte';
+import { cardEditorStore } from '$lib/features/dashboard/stores/cardEditor.svelte';
+import type { CardConfig } from '$lib/types';
+
+const smartCardCases = [
+    {
+        name: 'Room',
+        type: 'room',
+        options: { room: { source: 'auto' } },
+    },
+    {
+        name: 'Collection',
+        type: 'collection',
+        options: { collection: { mode: 'auto', showState: true } },
+    },
+    {
+        name: 'Energy',
+        type: 'energy',
+        options: { energy: { source: 'auto' } },
+    },
+    {
+        name: 'Calendar',
+        type: 'calendar',
+        options: { calendar: { source: 'auto', daysToShow: 7, maxEvents: 4 } },
+    },
+    {
+        name: 'Weather',
+        type: 'weather',
+        options: { weather: { source: 'auto' } },
+    },
+    {
+        name: 'Remote',
+        type: 'remote',
+        options: { remote: { preset: 'tv' } },
+    },
+    {
+        name: 'Device Panel',
+        type: 'device_panel',
+        options: { device_panel: { preset: 'auto' } },
+    },
+] as const;
+
+describe('CardLibrarySheet', () => {
+    beforeEach(() => {
+        cardEditorStore.close();
+    });
+
+    it('groups cards with source-pattern labels', async () => {
+        render(CardLibrarySheet);
+        cardEditorStore.openLibrary();
+        await tick();
+
+        expect(screen.getByText('Core Controls')).toBeInTheDocument();
+        expect(screen.getByText('Smart Summaries')).toBeInTheDocument();
+        expect(screen.getByText('Specialist Controls')).toBeInTheDocument();
+        expect(screen.getByText('Inspired by Auto Entities')).toBeInTheDocument();
+    });
+
+    it.each(smartCardCases.map((card) => [card.name, card] as const))(
+        'opens %s with the expected default options',
+        async (_label, { name, type, options }) => {
+            const onSave = vi.fn();
+            cardEditorStore.config = {
+                entityId: '',
+                name: '',
+                onSave,
+            };
+
+            render(CardLibrarySheet);
+            cardEditorStore.openLibrary();
+            await tick();
+
+            await fireEvent.click(screen.getByRole('button', { name: new RegExp(name) }));
+
+            expect(cardEditorStore.mode).toBe('config');
+            expect(cardEditorStore.config.type).toBe(type);
+            expect(cardEditorStore.config.options).toEqual(options);
+
+            cardEditorStore.save(cardEditorStore.config as CardConfig);
+            expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ type }));
+        },
+    );
+});

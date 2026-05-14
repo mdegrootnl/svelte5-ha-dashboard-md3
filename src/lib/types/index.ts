@@ -1,6 +1,7 @@
 // Entity Types
 export * from './icons';
 import type {
+    ButtonCardOptions,
     CalendarCardOptions,
     CollectionCardOptions,
     DashboardCardOptions,
@@ -13,6 +14,7 @@ import type {
     WeatherCardOptions
 } from './dashboard';
 export type {
+    ButtonCardOptions,
     CalendarCardOptions,
     CollectionCardOptions,
     DashboardCardOptions,

@@ -62,9 +62,16 @@ const EntityQueryConfigSchema = z.object({
     sort: z.enum(["name", "domain", "state", "last_changed"]).optional(),
 }).passthrough();
 
-const SmartSourceSchema = z.enum(["auto", "area", "query", "manual"]);
+const SmartSourceSchema = z.enum(["auto", "area", "floor", "query", "manual"]);
 
 const DashboardCardOptionsSchema = z.object({
+    button: z.object({
+        display: z.enum(["tile", "compact"]).optional(),
+        control: z.enum(["auto", "toggle", "brightness", "cover", "button", "none"]).optional(),
+        showState: z.boolean().optional(),
+        stateColor: z.boolean().optional(),
+        actions: z.array(CardActionSchema).optional(),
+    }).passthrough().optional(),
     room: z.object({
         source: SmartSourceSchema.optional(),
         areaId: z.string().optional(),
@@ -248,6 +255,7 @@ const ThemeConfigPartialSchema = z.object({
     sourceColor: z.string().min(1).optional(),
     isDark: z.boolean().optional(),
     navigationStyle: z.enum(['standard', 'modern']).optional(),
+    cardRadius: z.number().min(0).max(32).optional(),
     navigationItems: z.array(NavigationItemSchema).optional(),
 }).strict();
 

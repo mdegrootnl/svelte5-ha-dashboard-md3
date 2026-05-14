@@ -20,155 +20,254 @@
 
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import type { CardConfig } from "$lib/types";
-    import { createDefaultGridConfig } from "$lib/types/dashboard";
+    import {
+        createDefaultGridConfig,
+        type DashboardCardOptions,
+        type DashboardCardType,
+    } from "$lib/types/dashboard";
+    import type { Component } from "svelte";
 
     let open = $derived(cardEditorStore.mode === "library");
 
-    const cardTypes = [
+    type LibraryCardId = DashboardCardType | "light" | "switch";
+    type LibrarySectionId = "core" | "layout" | "smart" | "specialist";
+
+    interface LibraryCardDefinition {
+        id: LibraryCardId;
+        configType: DashboardCardType;
+        name: string;
+        description: string;
+        sourcePattern: string;
+        icon: Component;
+        domain: string;
+        section: LibrarySectionId;
+        options?: DashboardCardOptions;
+    }
+
+    const cardSections: Array<{
+        id: LibrarySectionId;
+        title: string;
+        description: string;
+    }> = [
         {
-            type: "light",
-            name: "Light",
-            description: "Control lights and dimmers",
-            icon: IconLightbulb,
-            domain: "light",
+            id: "core",
+            title: "Core Controls",
+            description: "Single-entity cards for daily dashboard control.",
         },
         {
-            type: "title",
-            name: "Title",
-            description: "Section header",
-            icon: IconHdrAuto,
-            domain: "",
+            id: "layout",
+            title: "Layout",
+            description: "Structure, navigation, tabs, and chart surfaces.",
         },
         {
-            type: "tabs",
-            name: "Tabs",
-            description: "Container with multiple tabs",
-            icon: IconViewModule,
-            domain: "",
+            id: "smart",
+            title: "Smart Summaries",
+            description: "Auto-discovered cards backed by HA inventory data.",
         },
         {
-            type: "switch",
-            name: "Switch",
-            description: "Toggle switches and outlets",
-            icon: IconToggleOn,
-            domain: "switch",
-        },
-        {
-            type: "thermostat",
-            name: "Thermostat",
-            description: "Climate control",
-            icon: IconThermostat,
-            domain: "climate",
-        },
-        {
-            type: "media",
-            name: "Media Player",
-            description: "Control media playback",
-            icon: IconPlayCircle,
-            domain: "media_player",
-        },
-        {
-            type: "graph",
-            name: "Graph",
-            description: "History graph with auto-aggregation",
-            icon: IconShowChart,
-            domain: "sensor",
-        },
-        {
-            type: "navigation",
-            name: "Navigation",
-            description: "Link to another page",
-            icon: IconLink,
-            domain: "",
-        },
-        {
-            type: "room",
-            name: "Room",
-            description: "Area summary with smart controls",
-            icon: IconRoom,
-            domain: "",
-        },
-        {
-            type: "collection",
-            name: "Collection",
-            description: "Auto entity lists and status views",
-            icon: IconFilterAlt,
-            domain: "",
-        },
-        {
-            type: "energy",
-            name: "Energy",
-            description: "Solar, grid, home, and usage overview",
-            icon: IconBolt,
-            domain: "sensor",
-        },
-        {
-            type: "calendar",
-            name: "Calendar",
-            description: "Agenda from calendar entities",
-            icon: IconCalendar,
-            domain: "calendar",
-        },
-        {
-            type: "weather",
-            name: "Weather",
-            description: "Weather, rain, wind, and outdoor sensors",
-            icon: IconWeather,
-            domain: "weather",
-        },
-        {
-            type: "remote",
-            name: "Remote",
-            description: "TV and media remote controls",
-            icon: IconRemote,
-            domain: "media_player",
-        },
-        {
-            type: "device_panel",
-            name: "Device Panel",
-            description: "Specialist cover, fan, vacuum, and timer controls",
-            icon: IconDevicePanel,
-            domain: "",
+            id: "specialist",
+            title: "Specialist Controls",
+            description: "Focused panels for media, remotes, and devices.",
         },
     ];
 
-    function handleSelect(cardType: any) {
-        // Create initial config for the selected type
-        const initialConfig: any = {
+    const cardTypes: LibraryCardDefinition[] = [
+        {
+            id: "light",
+            configType: "button",
+            name: "Light",
+            description: "Control lights and dimmers",
+            sourcePattern: "MD3 Button tile",
+            icon: IconLightbulb,
+            domain: "light",
+            section: "core",
+        },
+        {
+            id: "title",
+            configType: "title",
+            name: "Title",
+            description: "Section header",
+            sourcePattern: "Dashboard section label",
+            icon: IconHdrAuto,
+            domain: "",
+            section: "layout",
+        },
+        {
+            id: "tabs",
+            configType: "tabs",
+            name: "Tabs",
+            description: "Container with multiple tabs",
+            sourcePattern: "MD3 tab container",
+            icon: IconViewModule,
+            domain: "",
+            section: "layout",
+        },
+        {
+            id: "switch",
+            configType: "button",
+            name: "Switch",
+            description: "Toggle switches and outlets",
+            sourcePattern: "MD3 Button tile",
+            icon: IconToggleOn,
+            domain: "switch",
+            section: "core",
+        },
+        {
+            id: "thermostat",
+            configType: "thermostat",
+            name: "Thermostat",
+            description: "Climate control",
+            sourcePattern: "Native climate panel",
+            icon: IconThermostat,
+            domain: "climate",
+            section: "core",
+        },
+        {
+            id: "media",
+            configType: "media",
+            name: "Media Player",
+            description: "Control media playback",
+            sourcePattern: "Inspired by Mini Media Player",
+            icon: IconPlayCircle,
+            domain: "media_player",
+            section: "specialist",
+        },
+        {
+            id: "graph",
+            configType: "graph",
+            name: "Graph",
+            description: "History graph with auto-aggregation",
+            sourcePattern: "Inspired by Mini Graph",
+            icon: IconShowChart,
+            domain: "sensor",
+            section: "layout",
+        },
+        {
+            id: "navigation",
+            configType: "navigation",
+            name: "Navigation",
+            description: "Link to another page",
+            sourcePattern: "Inspired by Bubble navigation",
+            icon: IconLink,
+            domain: "",
+            section: "layout",
+        },
+        {
+            id: "room",
+            configType: "room",
+            name: "Room",
+            description: "Area summary with smart controls",
+            sourcePattern: "Inspired by Mushroom and Bubble",
+            icon: IconRoom,
+            domain: "",
+            section: "smart",
+            options: { room: { source: "auto" } },
+        },
+        {
+            id: "collection",
+            configType: "collection",
+            name: "Collection",
+            description: "Auto entity lists and status views",
+            sourcePattern: "Inspired by Auto Entities",
+            icon: IconFilterAlt,
+            domain: "",
+            section: "smart",
+            options: { collection: { mode: "auto", showState: true } },
+        },
+        {
+            id: "energy",
+            configType: "energy",
+            name: "Energy",
+            description: "Solar, grid, home, and usage overview",
+            sourcePattern: "Inspired by Power Flow Plus",
+            icon: IconBolt,
+            domain: "sensor",
+            section: "smart",
+            options: { energy: { source: "auto" } },
+        },
+        {
+            id: "calendar",
+            configType: "calendar",
+            name: "Calendar",
+            description: "Agenda from calendar entities",
+            sourcePattern: "Inspired by Calendar Card Pro",
+            icon: IconCalendar,
+            domain: "calendar",
+            section: "smart",
+            options: { calendar: { source: "auto", daysToShow: 7, maxEvents: 4 } },
+        },
+        {
+            id: "weather",
+            configType: "weather",
+            name: "Weather",
+            description: "Weather, rain, wind, and outdoor sensors",
+            sourcePattern: "Inspired by weather/rain cards",
+            icon: IconWeather,
+            domain: "weather",
+            section: "smart",
+            options: { weather: { source: "auto" } },
+        },
+        {
+            id: "remote",
+            configType: "remote",
+            name: "Remote",
+            description: "TV and media remote controls",
+            sourcePattern: "Inspired by universal remote cards",
+            icon: IconRemote,
+            domain: "media_player",
+            section: "specialist",
+            options: { remote: { preset: "tv" } },
+        },
+        {
+            id: "device_panel",
+            configType: "device_panel",
+            name: "Device Panel",
+            description: "Specialist cover, fan, vacuum, and timer controls",
+            sourcePattern: "Inspired by vacuum/fan/cover cards",
+            icon: IconDevicePanel,
+            domain: "",
+            section: "specialist",
+            options: { device_panel: { preset: "auto" } },
+        },
+    ];
+
+    const groupedCards = $derived(
+        cardSections
+            .map((section) => ({
+                ...section,
+                cards: cardTypes.filter((cardType) => cardType.section === section.id),
+            }))
+            .filter((section) => section.cards.length > 0),
+    );
+
+    function cloneOptions(options: DashboardCardOptions | undefined) {
+        return options ? structuredClone(options) : undefined;
+    }
+
+    function handleSelect(cardType: LibraryCardDefinition) {
+        type LibraryConfig = {
+            entityId: string;
+            name: string;
+            domainFilter: string;
+            type: DashboardCardType;
+            options?: DashboardCardOptions;
+            tabs?: ReturnType<typeof createDefaultGridConfig>[];
+            onSave?: (config: CardConfig) => void;
+        };
+
+        const initialConfig: LibraryConfig = {
             entityId: "",
             name: "",
             domainFilter: cardType.domain,
-            // Use 'button' for light/switch, specific types for others
-            // Mapping needs to match what GridItem expects
-            type: [
-                "thermostat",
-                "media",
-                "title",
-                "tabs",
-                "graph",
-                "navigation",
-                "room",
-                "collection",
-                "energy",
-                "calendar",
-                "weather",
-                "remote",
-                "device_panel",
-            ].includes(cardType.type)
-                ? cardType.type
-                : "button",
+            type: cardType.configType,
         };
 
-        if (cardType.type === "tabs") {
+        if (cardType.configType === "tabs") {
             initialConfig.tabs = [createDefaultGridConfig("Tab 1")];
         }
-        if (cardType.type === "room") initialConfig.options = { room: { source: "auto" } };
-        if (cardType.type === "collection") initialConfig.options = { collection: { mode: "auto", showState: true } };
-        if (cardType.type === "energy") initialConfig.options = { energy: { source: "auto" } };
-        if (cardType.type === "calendar") initialConfig.options = { calendar: { source: "auto", daysToShow: 7, maxEvents: 4 } };
-        if (cardType.type === "weather") initialConfig.options = { weather: { source: "auto" } };
-        if (cardType.type === "remote") initialConfig.options = { remote: { preset: "tv" } };
-        if (cardType.type === "device_panel") initialConfig.options = { device_panel: { preset: "auto" } };
+
+        const options = cloneOptions(cardType.options);
+        if (options) initialConfig.options = options;
 
         // Capture the save handler defined when opening the library
         // We must capture it NOW, because when we call openConfig(), cardEditorStore.config will be overwritten
@@ -179,7 +278,7 @@
             parentOnSave?.(config);
         };
 
-        cardEditorStore.openConfig(initialConfig, true);
+        cardEditorStore.openConfig(initialConfig as CardConfig, true);
     }
 
     function handleClose() {
@@ -194,26 +293,52 @@
     icon={IconLibraryAdd}
     onclose={handleClose}
 >
-    <div class="grid grid-cols-1 gap-2">
-        {#each cardTypes as cardType}
-            <button
-                class="flex items-center gap-4 p-4 rounded-m3-md bg-m3-surface-container-high hover:bg-m3-surface-container-highest transition-colors text-left group"
-                onclick={() => handleSelect(cardType)}
-            >
-                <div
-                    class="flex items-center justify-center w-12 h-12 rounded-full bg-m3-secondary-container text-m3-on-secondary-container group-hover:bg-m3-primary-container group-hover:text-m3-on-primary-container transition-colors"
-                >
-                    <cardType.icon class="size-6" />
-                </div>
-                <div class="flex-1">
-                    <h3 class="text-m3-title-medium text-m3-on-surface">
-                        {cardType.name}
+    <div class="flex flex-col gap-5">
+        {#each groupedCards as section}
+            <section class="flex flex-col gap-2">
+                <div class="px-1">
+                    <h3 class="text-m3-title-small text-m3-on-surface">
+                        {section.title}
                     </h3>
                     <p class="text-m3-body-small text-m3-on-surface-variant">
-                        {cardType.description}
+                        {section.description}
                     </p>
                 </div>
-            </button>
+
+                <div class="grid grid-cols-1 gap-2">
+                    {#each section.cards as cardType}
+                        <button
+                            class="flex items-center gap-4 p-4 rounded-m3-md bg-m3-surface-container-high hover:bg-m3-surface-container-highest transition-colors text-left group"
+                            onclick={() => handleSelect(cardType)}
+                        >
+                            <div
+                                class="flex items-center justify-center w-12 h-12 rounded-full bg-m3-secondary-container text-m3-on-secondary-container group-hover:bg-m3-primary-container group-hover:text-m3-on-primary-container transition-colors shrink-0"
+                            >
+                                <cardType.icon class="size-6" />
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                                    <h4
+                                        class="text-m3-title-medium text-m3-on-surface truncate"
+                                    >
+                                        {cardType.name}
+                                    </h4>
+                                    <span
+                                        class="w-fit max-w-full rounded-m3-full bg-m3-tertiary-container text-m3-on-tertiary-container px-2.5 py-1 text-m3-label-small truncate"
+                                    >
+                                        {cardType.sourcePattern}
+                                    </span>
+                                </div>
+                                <p
+                                    class="text-m3-body-small text-m3-on-surface-variant"
+                                >
+                                    {cardType.description}
+                                </p>
+                            </div>
+                        </button>
+                    {/each}
+                </div>
+            </section>
         {/each}
     </div>
 </SideSheet>

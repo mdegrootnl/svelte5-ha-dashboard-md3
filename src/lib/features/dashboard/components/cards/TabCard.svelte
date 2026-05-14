@@ -147,7 +147,7 @@
 <div
     class="flex flex-col h-full w-full relative group transition-all duration-200"
     class:bg-m3-surface-container-low={isGlobalEditing}
-    class:rounded-xl={isGlobalEditing}
+    class:rounded-m3-card={isGlobalEditing}
     class:border={isGlobalEditing}
     class:border-m3-outline-variant={isGlobalEditing}
     class:border-dashed={isGlobalEditing}
@@ -165,7 +165,7 @@
                 role="tab"
                 aria-selected={activeIndex === i}
                 class="
-                    relative flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap border select-none
+                    relative flex items-center gap-2 px-4 py-2 rounded-m3-card text-sm font-medium transition-all whitespace-nowrap border select-none
                     {activeIndex === i
                     ? 'bg-m3-primary text-m3-on-primary border-transparent shadow-md'
                     : 'bg-m3-surface-container-highest/50 border-transparent text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}
@@ -205,7 +205,7 @@
 
         {#if isGlobalEditing}
             <button
-                class="flex items-center justify-center size-8 rounded-full bg-m3-surface-container-highest/50 border border-transparent text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface transition-colors"
+                class="flex items-center justify-center size-8 rounded-m3-card bg-m3-surface-container-highest/50 border border-transparent text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface transition-colors"
                 onclick={addTab}
                 title="Add Tab"
             >
@@ -289,7 +289,7 @@
                 >
                     <!-- Add Card Button -->
                     <button
-                        class="flex items-center gap-2 px-4 py-2 bg-m3-primary-container text-m3-on-primary-container rounded-full shadow-lg hover:brightness-110 transition-all font-medium"
+                        class="flex items-center gap-2 px-4 py-2 bg-m3-primary-container text-m3-on-primary-container rounded-m3-card shadow-lg hover:brightness-110 transition-all font-medium"
                         onclick={handleAddCard}
                         title="Add Card"
                     >
@@ -299,7 +299,7 @@
 
                     <!-- Grid Settings Button -->
                     <button
-                        class="flex items-center justify-center p-2 bg-m3-surface-container-high text-m3-on-surface rounded-full shadow-lg hover:bg-m3-surface-container-highest transition-all"
+                        class="flex items-center justify-center p-2 bg-m3-surface-container-high text-m3-on-surface rounded-m3-card shadow-lg hover:bg-m3-surface-container-highest transition-all"
                         onclick={(e) => {
                             e.stopPropagation();
                             isGridConfigOpen = true;
@@ -313,7 +313,7 @@
 
                     <!-- Settings Button (Parent Card Config) -->
                     <button
-                        class="flex items-center justify-center p-2 bg-m3-surface-container-high text-m3-on-surface rounded-full shadow-lg hover:bg-m3-surface-container-highest transition-all"
+                        class="flex items-center justify-center p-2 bg-m3-surface-container-high text-m3-on-surface rounded-m3-card shadow-lg hover:bg-m3-surface-container-highest transition-all"
                         onclick={openParentConfig}
                         title="Card Settings"
                     >
@@ -321,7 +321,7 @@
                     </button>
                     <!-- Done Button -->
                     <button
-                        class="flex items-center gap-2 px-4 py-2 bg-m3-primary text-m3-on-primary rounded-full shadow-lg hover:brightness-110 transition-all font-medium"
+                        class="flex items-center gap-2 px-4 py-2 bg-m3-primary text-m3-on-primary rounded-m3-card shadow-lg hover:brightness-110 transition-all font-medium"
                         onclick={exitFocus}
                     >
                         <IconCheck class="size-4" />

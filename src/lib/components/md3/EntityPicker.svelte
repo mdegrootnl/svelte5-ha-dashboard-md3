@@ -9,6 +9,7 @@
         placeholder?: string;
         class?: string;
         domainFilter?: string; // Optional: filter by domain (e.g., "light", "climate")
+        onchange?: (value: string) => void;
     }
 
     let {
@@ -17,6 +18,7 @@
         placeholder = "entity.example",
         class: className = "",
         domainFilter,
+        onchange,
     }: Props = $props();
 
     let inputElement: HTMLInputElement;
@@ -73,6 +75,7 @@
         value = target.value;
         isOpen = true;
         highlightedIndex = 0;
+        onchange?.(value);
     }
 
     // Handle focus
@@ -127,6 +130,7 @@
         searchQuery = entityId;
         isOpen = false;
         highlightedIndex = -1;
+        onchange?.(entityId);
     }
 </script>
 

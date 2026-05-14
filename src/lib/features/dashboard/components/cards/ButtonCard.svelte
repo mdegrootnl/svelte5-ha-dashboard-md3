@@ -3,6 +3,7 @@
         type CardVariant,
         haStore,
         cardEditorStore,
+        executeCardAction,
         supportsBrightness,
         getDomain,
         getEntityName,
@@ -17,6 +18,7 @@
     import IconPlayCircle from "~icons/material-symbols/play-circle";
     import IconDevices from "~icons/material-symbols/devices";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
+    import type { ButtonCardOptions, CardAction } from "$lib/types";
 
     interface Props {
         id?: string;
@@ -35,6 +37,7 @@
         entityId: string;
         name: string;
         domainFilter: string;
+        options?: ButtonCardOptions;
         ondelete?: () => void;
     }
 
@@ -53,6 +56,7 @@
         entityId = $bindable(""),
         name = $bindable(""),
         domainFilter = $bindable(""),
+        options = $bindable({}),
         ondelete,
     }: Props = $props();
 
@@ -60,6 +64,15 @@
     // If entityId is present, we try to derive values from HA Store
 
     let entity = $derived(entityId ? haStore.getEntity(entityId) : null);
+    let controlMode = $derived(options?.control ?? "auto");
+    let isSlider = $derived(
+        controlMode === "brightness" ||
+            (controlMode === "auto" && variant === "slider"),
+    );
+    let canToggle = $derived(controlMode !== "none");
+    let showState = $derived(options?.showState !== false);
+    let useStateColor = $derived(options?.stateColor !== false);
+    let actionButtons = $derived(options?.actions ?? []);
 
     $effect(() => {
         if (entity) {
@@ -71,7 +84,7 @@
                 entity.entity_id.startsWith("light.") &&
                 supportsBrightness(entity.attributes)
             ) {
-                if (variant !== "slider") {
+                if (controlMode === "auto" && variant !== "slider") {
                     variant = "slider";
                 }
             }
@@ -80,11 +93,11 @@
             if (entity.state === "on") {
                 isActive = true;
                 displayState = "On";
-                if (variant === "switch") value = 100;
+                if (!isSlider) value = 100;
             } else if (entity.state === "off") {
                 isActive = false;
                 displayState = "Off";
-                if (variant === "switch") value = 0;
+                if (!isSlider) value = 0;
             } else {
                 displayState = entity.state;
                 isActive =
@@ -94,7 +107,7 @@
 
             // Slider value from brightness if available
             if (
-                variant === "slider" &&
+                isSlider &&
                 entity.attributes.brightness &&
                 !isDragging
             ) {
@@ -132,9 +145,9 @@
 
     // -- Styling --
 
-    // Base styles: Standard card rounding (rounded-m3-md), flexible height (min-h-20), transition
+    // Base styles: themed card rounding, flexible height (min-h-20), transition
     const baseStyles =
-        "relative flex w-full h-full min-h-20 rounded-m3-md overflow-hidden transition-all duration-200 select-none group";
+        "relative flex w-full h-full min-h-20 rounded-m3-card overflow-hidden transition-all duration-200 select-none group";
 
     // Dynamic background and text colors
     let cardStyle = $derived.by(() => {
@@ -143,7 +156,7 @@
         // Background
         if (backgroundColor) {
             styles += `background-color: ${backgroundColor}; `;
-        } else if (isActive && variant === "switch") {
+        } else if (isActive && !isSlider && useStateColor) {
             const activeColor = color || "var(--color-m3-primary)";
             styles += `background-color: color-mix(in srgb, ${activeColor} 15%, transparent); `;
             styles += `box-shadow: inset 0 0 0 1px color-mix(in srgb, ${activeColor} 20%, transparent); `;
@@ -153,7 +166,7 @@
         }
 
         // Foreground (active state enhancement)
-        if (isActive && variant === "switch") {
+        if (isActive && !isSlider && useStateColor) {
             const fgColor = color || "var(--color-m3-primary)";
             styles += `color: ${fgColor}; `;
         } else {
@@ -164,20 +177,36 @@
     });
 
     let interactiveStyles = $derived(
-        onclick || variant === "switch"
+        onclick || canToggle || isSlider
             ? "cursor-pointer active:scale-[0.98] transition-transform"
             : "",
     );
 
     // Icon container styles - using color-mix for themed background
     let iconContainerStyle = $derived.by(() => {
-        const baseColor = isActive
+        const baseColor = isActive && useStateColor
             ? color || "var(--color-m3-primary)"
             : "var(--color-m3-on-surface-variant)";
 
-        const opacity = isActive ? "20%" : "10%";
+        const opacity = isActive && useStateColor ? "20%" : "10%";
         return `background-color: color-mix(in srgb, ${baseColor} ${opacity}, transparent); color: ${baseColor};`;
     });
+
+    let contentPadding = $derived(
+        options?.display === "compact"
+            ? "px-[clamp(0.75rem,6cqb,1.125rem)] gap-[clamp(0.625rem,5cqb,0.875rem)]"
+            : "px-[clamp(0.875rem,8cqb,1.5rem)] gap-[clamp(0.75rem,7cqb,1.125rem)]",
+    );
+    let iconSizeClass = $derived(
+        options?.display === "compact"
+            ? "size-[clamp(2.5rem,44cqb,3.75rem)]"
+            : "size-[clamp(2.75rem,46cqb,4.75rem)]",
+    );
+    let actionGapClass = $derived(
+        options?.display === "compact"
+            ? "gap-[clamp(0.25rem,3cqb,0.5rem)]"
+            : "gap-[clamp(0.375rem,4cqb,0.625rem)]",
+    );
 
     // -- Config Dialog --
 
@@ -188,15 +217,20 @@
             entityId: entityId || "",
             name: name || "",
             domainFilter: domainFilter || "",
+            type: "button",
             color: color,
             backgroundColor: backgroundColor,
             icon: typeof iconProp === "string" ? iconProp : "",
+            options: { button: options },
             onSave: (newConfig) => {
                 entityId = newConfig.entityId;
                 name = newConfig.name;
                 color = newConfig.color;
                 backgroundColor = newConfig.backgroundColor;
                 iconProp = newConfig.icon || "";
+                options =
+                    (newConfig.options as { button?: ButtonCardOptions })
+                        ?.button || options;
             },
             onDelete: ondelete,
         });
@@ -210,7 +244,7 @@
     let didMove = false; // To distinguish click vs drag
 
     function handlePointerDown(e: PointerEvent) {
-        if (variant !== "slider") return;
+        if (!isSlider) return;
 
         // Prevent default text selection
         e.preventDefault();
@@ -266,6 +300,8 @@
     const TOGGLE_THROTTLE_MS = 500; // Prevent rapid toggle clicks
 
     function handleToggle() {
+        if (!canToggle) return;
+
         // Rate limit toggle to prevent server flooding
         if (Date.now() - lastToggleTime < TOGGLE_THROTTLE_MS) {
             return;
@@ -277,13 +313,13 @@
         }
         if (entityId) {
             const domain = getDomain(entityId);
-            if (domain === "cover") {
+            if (controlMode === "cover" || domain === "cover") {
                 const service =
                     entity?.state === "open" || entity?.state === "opening"
                         ? "close_cover"
                         : "open_cover";
                 haStore.callService(domain, service, { entity_id: entityId });
-            } else if (domain === "button") {
+            } else if (controlMode === "button" || domain === "button") {
                 haStore.callService(domain, "press", { entity_id: entityId });
             } else if (domain === "scene" || domain === "script") {
                 haStore.callService(domain, "turn_on", { entity_id: entityId });
@@ -313,7 +349,12 @@
 
     // Explicit generic click handler for Switch mode
     function handleSwitchClick() {
-        if (variant === "switch") handleToggle();
+        if (!isSlider && canToggle) handleToggle();
+    }
+
+    function runAction(action: CardAction, e: Event) {
+        e.stopPropagation();
+        executeCardAction(action, entityId);
     }
 
     let cardElement: HTMLElement;
@@ -336,7 +377,7 @@
     style="container-type: size; touch-action: none; {cardStyle}"
 >
     <!-- Slider Progress Background (Visual) -->
-    {#if variant === "slider"}
+    {#if isSlider}
         <!-- Active Track -->
         <div
             class="absolute inset-y-0 left-0 transition-all duration-75"
@@ -350,11 +391,11 @@
 
     <!-- Content Layer -->
     <div
-        class="relative z-10 flex items-center w-full h-full px-[4cqmin] gap-[4cqmin] pointer-events-none"
+        class="relative z-10 flex items-center w-full h-full {contentPadding} pointer-events-none"
     >
         <!-- Icon Circle -->
         <div
-            class="flex items-center justify-center size-[clamp(2.5rem,24cqmin,4.75rem)] rounded-full shrink-0 transition-colors duration-200"
+            class="flex items-center justify-center {iconSizeClass} rounded-full shrink-0 transition-colors duration-200"
             style={iconContainerStyle}
         >
             {#if effectiveIcon}
@@ -374,19 +415,40 @@
             >
                 {title}
             </span>
-            <!-- Always render state span to maintain vertical alignment, just hide it if slider -->
-            <span
-                class="text-[clamp(10px,4cqmin,14px)] opacity-70 leading-tight truncate transition-opacity"
-            >
-                {#if variant === "slider" && isActive}
-                    {displayState === "On" || !displayState.includes("%")
-                        ? `On · ${value}%`
-                        : displayState}
-                {:else}
-                    {displayState}
-                {/if}
-            </span>
+            {#if showState}
+                <span
+                    class="text-[clamp(10px,4cqmin,14px)] opacity-70 leading-tight truncate transition-opacity"
+                >
+                    {#if isSlider && isActive}
+                        {displayState === "On" || !displayState.includes("%")
+                            ? `On - ${value}%`
+                            : displayState}
+                    {:else}
+                        {displayState}
+                    {/if}
+                </span>
+            {/if}
         </div>
+
+        {#if actionButtons.length > 0}
+            <div
+                class="flex items-center {actionGapClass} pointer-events-auto"
+            >
+                {#each actionButtons.slice(0, 3) as action (action.id)}
+                    <button
+                        class="size-[clamp(1.75rem,12cqmin,2.75rem)] rounded-m3-full bg-m3-surface-container-high text-m3-on-surface flex items-center justify-center hover:bg-m3-surface-container active:scale-95 transition-transform"
+                        onclick={(e) => runAction(action, e)}
+                        onpointerdown={(e) => e.stopPropagation()}
+                        title={action.label || action.id}
+                    >
+                        <DynamicIcon
+                            name={action.icon || "radio_button_unchecked"}
+                            class="size-[58%]"
+                        />
+                    </button>
+                {/each}
+            </div>
+        {/if}
     </div>
 
     <!-- Edit FAB (Visible on Hover) -->

@@ -54,6 +54,9 @@ describe('smart dashboard cards', () => {
                 message: 'Football training',
                 start_time: '2026-05-14T18:00:00Z',
             }),
+            'remote.android_tv': state('remote.android_tv', 'on', {
+                friendly_name: 'Android TV Remote',
+            }),
             'media_player.tv': state('media_player.tv', 'on', {
                 friendly_name: 'TV',
             }),
@@ -117,6 +120,34 @@ describe('smart dashboard cards', () => {
             },
         });
         expect(screen.getByText('Football training')).toBeInTheDocument();
+    });
+
+    it('auto-discovers calendar, remote, and device entities from HA state', () => {
+        render(CalendarAgendaCard, {
+            props: {
+                name: 'Auto Agenda',
+                options: { source: 'auto' },
+            },
+        });
+        expect(screen.getByText('Football training')).toBeInTheDocument();
+
+        render(RemotePanelCard, {
+            props: {
+                name: '',
+                options: { preset: 'android_tv' },
+            },
+        });
+        expect(screen.getByText('TV')).toBeInTheDocument();
+        expect(screen.getByText('on')).toBeInTheDocument();
+
+        render(DevicePanelCard, {
+            props: {
+                name: '',
+                options: { preset: 'cover' },
+            },
+        });
+        expect(screen.getByText('Blinds')).toBeInTheDocument();
+        expect(screen.getByText('cover - open')).toBeInTheDocument();
     });
 
     it('maps remote and device panel actions to HA services', async () => {

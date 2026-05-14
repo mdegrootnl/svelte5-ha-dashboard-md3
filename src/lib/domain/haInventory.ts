@@ -1,10 +1,13 @@
 import type {
+    CalendarCardOptions,
     CollectionCardOptions,
+    DevicePanelCardOptions,
     EnergyCardOptions,
     EntityQueryConfig,
     HADeviceRegistryEntry,
     HAEntity,
     HAEntityRegistryEntry,
+    RemoteCardOptions,
     WeatherCardOptions,
 } from '$lib/types';
 import type { HAArea, HAFloor } from '$lib/types/dashboard';
@@ -34,6 +37,7 @@ export interface ResolvedEntity {
 
 const ACTIVE_STATES = new Set(['on', 'open', 'playing', 'home', 'active', 'locked', 'above_horizon']);
 const BAD_STATES = new Set(['unavailable', 'unknown']);
+const DEVICE_PANEL_DOMAINS = ['cover', 'fan', 'vacuum', 'timer', 'todo', 'switch', 'button'];
 
 function includesAny(source: string[] | undefined, candidates: Array<string | null | undefined>): boolean {
     if (!source || source.length === 0) return true;
@@ -154,6 +158,11 @@ function findFirstEntityId(context: InventoryContext, terms: string[], domains?:
     })?.entityId;
 }
 
+function fallbackIfDomain(entityId: string | undefined, domains: string[]) {
+    if (!entityId) return undefined;
+    return domains.includes(getDomain(entityId)) ? entityId : undefined;
+}
+
 export function buildSmartEnergyOptions(context: InventoryContext, current: EnergyCardOptions = {}): EnergyCardOptions {
     return {
         source: current.source ?? 'auto',
@@ -176,6 +185,109 @@ export function buildSmartWeatherOptions(context: InventoryContext, current: Wea
         humidityEntityId: current.humidityEntityId ?? findFirstEntityId(context, ['humidity', 'vocht'], ['sensor'], ['humidity']),
         rainEntityId: current.rainEntityId ?? findFirstEntityId(context, ['rain', 'regen', 'precipitation'], ['sensor'], ['precipitation']),
         windEntityId: current.windEntityId ?? findFirstEntityId(context, ['wind'], ['sensor'], ['wind_speed']),
+    };
+}
+
+export function buildSmartCalendarOptions(
+    context: InventoryContext,
+    current: CalendarCardOptions = {},
+    fallbackEntityId = ''
+): CalendarCardOptions {
+    const manualIds = current.entityIds?.filter(Boolean);
+    const fallbackId = fallbackIfDomain(fallbackEntityId, ['calendar']);
+    const entityIds = manualIds && manualIds.length > 0
+        ? manualIds
+        : fallbackId
+            ? [fallbackId]
+            : resolveEntityQuery(context, {
+                domains: ['calendar'],
+                limit: current.maxEvents ?? 4,
+            }).map((entity) => entity.entityId);
+
+    return {
+        ...current,
+        source: current.source ?? 'auto',
+        daysToShow: current.daysToShow ?? 7,
+        maxEvents: current.maxEvents ?? 4,
+        entityIds,
+    };
+}
+
+export function buildSmartRemoteOptions(
+    context: InventoryContext,
+    current: RemoteCardOptions = {},
+    fallbackEntityId = ''
+): RemoteCardOptions {
+    return {
+        ...current,
+        source: current.source ?? 'auto',
+        preset: current.preset ?? 'tv',
+        remoteEntityId:
+            current.remoteEntityId ??
+            fallbackIfDomain(fallbackEntityId, ['remote']) ??
+            findFirstEntityId(context, ['remote', 'tv', 'android', 'webos', 'receiver'], ['remote']),
+        mediaPlayerEntityId:
+            current.mediaPlayerEntityId ??
+            fallbackIfDomain(fallbackEntityId, ['media_player']) ??
+            findFirstEntityId(context, ['tv', 'media', 'receiver', 'android', 'webos'], ['media_player']),
+    };
+}
+
+function devicePanelDomainsForPreset(preset: DevicePanelCardOptions['preset']) {
+    switch (preset) {
+        case 'cover':
+            return ['cover'];
+        case 'fan':
+        case 'purifier':
+            return ['fan'];
+        case 'vacuum':
+            return ['vacuum'];
+        case 'timer':
+            return ['timer'];
+        case 'todo':
+            return ['todo'];
+        default:
+            return DEVICE_PANEL_DOMAINS;
+    }
+}
+
+function devicePanelTermsForPreset(preset: DevicePanelCardOptions['preset']) {
+    switch (preset) {
+        case 'cover':
+            return ['cover', 'blind', 'shade', 'curtain'];
+        case 'fan':
+            return ['fan', 'ventilator'];
+        case 'purifier':
+            return ['purifier', 'air', 'filter', 'fan'];
+        case 'vacuum':
+            return ['vacuum', 'roborock', 'clean'];
+        case 'timer':
+            return ['timer'];
+        case 'todo':
+            return ['todo', 'task', 'shopping'];
+        default:
+            return ['cover', 'blind', 'fan', 'purifier', 'vacuum', 'timer', 'todo', 'switch', 'button'];
+    }
+}
+
+export function buildSmartDevicePanelOptions(
+    context: InventoryContext,
+    current: DevicePanelCardOptions = {},
+    fallbackEntityId = ''
+): DevicePanelCardOptions {
+    const preset = current.preset ?? 'auto';
+    const domains = devicePanelDomainsForPreset(preset);
+    const manualId = current.entityId ?? current.entityIds?.find(Boolean);
+    const fallbackId = fallbackIfDomain(fallbackEntityId, domains);
+
+    return {
+        ...current,
+        source: current.source ?? 'auto',
+        preset,
+        entityId:
+            manualId ??
+            fallbackId ??
+            findFirstEntityId(context, devicePanelTermsForPreset(preset), domains),
     };
 }
 

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+    buildSmartCalendarOptions,
+    buildSmartDevicePanelOptions,
     buildSmartEnergyOptions,
+    buildSmartRemoteOptions,
     createCollectionQuery,
     filterLowBattery,
     resolveEntityQuery,
@@ -35,6 +38,19 @@ const context: InventoryContext = {
             friendly_name: 'Home Power',
             device_class: 'power',
             unit_of_measurement: 'W',
+        }),
+        'calendar.family': entity('calendar.family', 'on', {
+            friendly_name: 'Family Calendar',
+            message: 'Dinner',
+        }),
+        'media_player.tv': entity('media_player.tv', 'on', {
+            friendly_name: 'Living Room TV',
+        }),
+        'remote.android_tv': entity('remote.android_tv', 'on', {
+            friendly_name: 'Android TV Remote',
+        }),
+        'cover.blinds': entity('cover.blinds', 'closed', {
+            friendly_name: 'Kitchen Blinds',
         }),
         'update.router': entity('update.router', 'on', { friendly_name: 'Router Update' }),
     },
@@ -181,5 +197,27 @@ describe('haInventory', () => {
 
         expect(options.solarPowerEntityId).toBe('sensor.solar_power');
         expect(options.homePowerEntityId).toBe('sensor.home_power');
+    });
+
+    it('builds smart calendar defaults without requiring manual entity ids', () => {
+        const options = buildSmartCalendarOptions(context);
+
+        expect(options.entityIds).toEqual(['calendar.family']);
+        expect(options.daysToShow).toBe(7);
+        expect(options.maxEvents).toBe(4);
+    });
+
+    it('builds smart remote defaults from remote and media player domains', () => {
+        const options = buildSmartRemoteOptions(context);
+
+        expect(options.remoteEntityId).toBe('remote.android_tv');
+        expect(options.mediaPlayerEntityId).toBe('media_player.tv');
+    });
+
+    it('builds smart device panel defaults by preset', () => {
+        const options = buildSmartDevicePanelOptions(context, { preset: 'cover' });
+
+        expect(options.entityId).toBe('cover.blinds');
+        expect(options.preset).toBe('cover');
     });
 });

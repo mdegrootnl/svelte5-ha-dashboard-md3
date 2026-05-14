@@ -1,7 +1,5 @@
 <script>
     import { haStore } from "$lib/stores/ha.svelte";
-    import { onMount, onDestroy } from "svelte";
-
     let { entityId, theme = "light", color = "" } = $props();
     let entity = $derived(haStore.getEntity(entityId));
 
@@ -13,8 +11,8 @@
     let mediaState = $derived(entity?.state);
 
     let currentPosition = $state(0);
-    /** @type {number | undefined} */
-    let raf;
+    /** @type {ReturnType<typeof setInterval> | undefined} */
+    let timer;
 
     function updatePosition() {
         if (mediaState === "playing" && positionUpdatedAt && duration > 0) {
@@ -26,20 +24,25 @@
             currentPosition = positionBase;
         }
 
-        if (mediaState === "playing") {
-            raf = requestAnimationFrame(updatePosition);
-        }
+    }
+
+    function clearTimer() {
+        if (!timer) return;
+        clearInterval(timer);
+        timer = undefined;
     }
 
     $effect(() => {
+        clearTimer();
+
         if (mediaState === "playing") {
-            cancelAnimationFrame(raf || 0);
-            raf = requestAnimationFrame(updatePosition);
+            updatePosition();
+            timer = setInterval(updatePosition, 1000);
         } else {
-            cancelAnimationFrame(raf || 0);
             currentPosition = positionBase;
         }
-        return () => cancelAnimationFrame(raf || 0);
+
+        return clearTimer;
     });
 
     /** @param {number} seconds */

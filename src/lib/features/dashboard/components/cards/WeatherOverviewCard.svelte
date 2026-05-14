@@ -87,7 +87,7 @@
 </script>
 
 <article
-    class="relative h-full w-full rounded-m3-md bg-m3-surface-container-highest text-m3-on-surface overflow-hidden group @container {className}"
+    class="relative h-full w-full rounded-m3-card bg-m3-surface-container-highest text-m3-on-surface overflow-hidden group @container {className}"
     style={`container-type: size;${backgroundColor ? ` background-color: ${backgroundColor};` : ""}`}
 >
     <div class="h-full flex flex-col p-[clamp(0.625rem,4cqmin,1.5rem)] gap-[clamp(0.375rem,3cqmin,1rem)]">

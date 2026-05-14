@@ -30,6 +30,7 @@
         item.secondaryName ??= "";
 
         item.options ??= {};
+        if (item.cardType === "button") item.options.button ??= {};
         if (item.cardType === "room") item.options.room ??= { source: "auto" };
         if (item.cardType === "collection") item.options.collection ??= { mode: "auto", showState: true };
         if (item.cardType === "energy") item.options.energy ??= { source: "auto" };
@@ -65,7 +66,7 @@
     }
 </script>
 
-{#if item.cardType === "button"}
+{#if item.cardType === "button" && item.options}
     <ButtonCard
         id={item.id}
         bind:name={item.name}
@@ -74,6 +75,7 @@
         bind:color={item.color}
         bind:backgroundColor={item.backgroundColor}
         bind:icon={item.icon}
+        bind:options={item.options.button}
         ondelete={remove}
     />
 {:else if item.cardType === "media"}

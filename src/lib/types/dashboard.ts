@@ -31,7 +31,7 @@ export type DashboardCardType =
     | "remote"
     | "device_panel";
 
-export type SmartSourceConfig = "auto" | "area" | "query" | "manual";
+export type SmartSourceConfig = "auto" | "area" | "floor" | "query" | "manual";
 
 export interface CardAction {
     id: string;
@@ -55,6 +55,14 @@ export interface EntityQueryConfig {
     includeDiagnostic?: boolean;
     limit?: number;
     sort?: "name" | "domain" | "state" | "last_changed";
+}
+
+export interface ButtonCardOptions {
+    display?: "tile" | "compact";
+    control?: "auto" | "toggle" | "brightness" | "cover" | "button" | "none";
+    showState?: boolean;
+    stateColor?: boolean;
+    actions?: CardAction[];
 }
 
 export interface RoomCardOptions {
@@ -121,6 +129,7 @@ export interface DevicePanelCardOptions {
 }
 
 export interface DashboardCardOptions {
+    button?: ButtonCardOptions;
     room?: RoomCardOptions;
     collection?: CollectionCardOptions;
     energy?: EnergyCardOptions;

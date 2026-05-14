@@ -11,6 +11,7 @@ describe('ThemeStore', () => {
         const store = new ThemeStore();
         expect(store.sourceColor).toBe('#6750A4');
         expect(store.isDark).toBe(false);
+        expect(store.cardRadius).toBe(12);
     });
 
     it('should derive a valid theme', () => {
@@ -29,11 +30,23 @@ describe('ThemeStore', () => {
 
     it('should apply theme to document (manual call via any for test)', () => {
         const store = new ThemeStore();
+        store.setCardRadius(18);
         (store as any).applyToDocument();
 
         const root = document.documentElement;
         expect(root.style.getPropertyValue('--color-m3-primary')).toBeDefined();
+        expect(root.style.getPropertyValue('--radius-m3-card')).toBe('18px');
         expect(root.classList.contains('dark')).toBe(false);
+    });
+
+    it('should clamp card radius changes', () => {
+        const store = new ThemeStore();
+
+        store.setCardRadius(99);
+        expect(store.cardRadius).toBe(32);
+
+        store.setCardRadius(-10);
+        expect(store.cardRadius).toBe(0);
     });
 
     it('should apply dark mode classes when isDark is true', () => {

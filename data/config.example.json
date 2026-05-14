@@ -3,6 +3,7 @@
     "sourceColor": "#6750A4",
     "isDark": false,
     "navigationStyle": "standard",
+    "cardRadius": 12,
     "navigationItems": [
       {
         "id": "dashboard",

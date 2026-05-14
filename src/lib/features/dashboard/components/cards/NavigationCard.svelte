@@ -37,7 +37,7 @@
 
     // Base styles
     const baseStyles =
-        "relative flex w-full h-full min-h-20 rounded-m3-md overflow-hidden transition-all duration-200 select-none group";
+        "relative flex w-full h-full min-h-20 rounded-m3-card overflow-hidden transition-all duration-200 select-none group";
 
     // Dynamic background and text colors
     let cardStyle = $derived.by(() => {

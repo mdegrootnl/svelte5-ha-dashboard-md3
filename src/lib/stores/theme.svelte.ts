@@ -23,6 +23,8 @@ export class ThemeStore {
     isDark = $state(false);
     // Navigation style preference
     navigationStyle = $state<'standard' | 'modern'>('standard');
+    // Dashboard/card corner radius in px
+    cardRadius = $state(DEFAULT_CONFIG.theme.cardRadius);
     // Navigation items
     navigationItems = $state<NavigationItem[]>(DEFAULT_CONFIG.theme.navigationItems);
 
@@ -50,15 +52,11 @@ export class ThemeStore {
      * Server is the source of truth - always use it.
      */
     init(config: ThemeConfig) {
-        // Skip if already initialized with same values
-        if (this.sourceColor === config.sourceColor && this.isDark === config.isDark) {
-            return;
-        }
-
         this.sourceColor = config.sourceColor;
         this.isDark = config.isDark;
         // Default to standard if missing (migration safety)
         this.navigationStyle = config.navigationStyle ?? 'standard';
+        this.cardRadius = this.normalizeCardRadius(config.cardRadius);
 
         // Load items or fall back to filtered defaults (in case of deep merge issues)
         if (config.navigationItems && Array.isArray(config.navigationItems) && config.navigationItems.length > 0) {
@@ -95,6 +93,7 @@ export class ThemeStore {
             sourceColor: this.sourceColor,
             isDark: this.isDark,
             navigationStyle: this.navigationStyle,
+            cardRadius: this.cardRadius,
             navigationItems: this.navigationItems
         };
 
@@ -133,6 +132,7 @@ export class ThemeStore {
                 sourceColor: this.sourceColor,
                 isDark: this.isDark,
                 navigationStyle: this.navigationStyle,
+                cardRadius: this.cardRadius,
                 navigationItems: this.navigationItems
             }
         };
@@ -165,6 +165,7 @@ export class ThemeStore {
                         sourceColor: this.sourceColor,
                         isDark: this.isDark,
                         navigationStyle: this.navigationStyle,
+                        cardRadius: this.cardRadius,
                         navigationItems: this.navigationItems
                     }
                 };
@@ -205,10 +206,24 @@ export class ThemeStore {
         this.scheduleSyncToServer();
     }
 
+    setCardRadius(radius: number) {
+        this.cardRadius = this.normalizeCardRadius(radius);
+        this.saveToLocalStorage();
+        this.scheduleSyncToServer();
+    }
+
     setNavigationItems(items: NavigationItem[]) {
         this.navigationItems = items;
         this.saveToLocalStorage();
         this.scheduleSyncToServer();
+    }
+
+    private normalizeCardRadius(radius?: number) {
+        if (typeof radius !== 'number' || Number.isNaN(radius)) {
+            return DEFAULT_CONFIG.theme.cardRadius;
+        }
+
+        return Math.max(0, Math.min(32, Math.round(radius)));
     }
 
     // Apply the current theme to CSS variables
@@ -227,6 +242,8 @@ export class ThemeStore {
         const set = (name: string, argb: number) => {
             root.style.setProperty(`--color-m3-${name}`, hexFromArgb(argb));
         };
+
+        root.style.setProperty('--radius-m3-card', `${this.cardRadius}px`);
 
         // Core Palette
         set('primary', scheme.primary);

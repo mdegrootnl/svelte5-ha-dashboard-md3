@@ -35,11 +35,22 @@
     import RoutePicker from "$lib/components/md3/RoutePicker.svelte";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
+    import { haRegistryStore } from "$lib/stores/haRegistry.svelte";
     import { getDomain } from "$lib/utils/entity";
     import type {
+        ButtonCardOptions,
+        CalendarCardOptions,
         CardSize,
+        CardAction,
+        CollectionCardOptions,
+        DevicePanelCardOptions,
+        EnergyCardOptions,
+        EntityQueryConfig,
         GraphCardEntity,
         NavigationCardShortcut,
+        RemoteCardOptions,
+        RoomCardOptions,
+        WeatherCardOptions,
     } from "$lib/types";
 
     // Computed proxy for cleaner access
@@ -114,6 +125,10 @@
     let isThermostatCard = $derived(
         cardEditorStore.config?.type === "thermostat",
     );
+    let isButtonCard = $derived(
+        cardEditorStore.config?.type === "button" ||
+            (!cardEditorStore.config?.type && currentDomain !== "media_player"),
+    );
     let isMediaCard = $derived(
         cardEditorStore.config?.type === "media" ||
             currentDomain === "media_player",
@@ -143,6 +158,7 @@
 
     $effect(() => {
         if (!open) return;
+        if (isButtonCard) tempConfig.options.button ??= {};
         if (isRoomCard) tempConfig.options.room ??= { source: "auto" };
         if (isCollectionCard) {
             tempConfig.options.collection ??= { mode: "auto", showState: true };
@@ -228,6 +244,186 @@
 
     let CurrentIcon = $derived(getIconComponent(currentDomain));
 
+    type RoomSection =
+        | "lights"
+        | "climate"
+        | "media"
+        | "covers"
+        | "sensors"
+        | "health";
+
+    const roomSourceModes = [
+        { value: "auto", label: "Auto" },
+        { value: "area", label: "Area" },
+        { value: "floor", label: "Floor" },
+        { value: "manual", label: "Manual" },
+        { value: "query", label: "Query" },
+    ] as const;
+
+    const roomSectionOptions: Array<{ value: RoomSection; label: string }> = [
+        { value: "lights", label: "Lights" },
+        { value: "climate", label: "Climate" },
+        { value: "media", label: "Media" },
+        { value: "covers", label: "Covers" },
+        { value: "sensors", label: "Sensors" },
+        { value: "health", label: "Health" },
+    ];
+
+    const collectionModeOptions = [
+        { value: "auto", label: "Auto" },
+        { value: "lights_on", label: "Active" },
+        { value: "low_battery", label: "Battery" },
+        { value: "unavailable", label: "Offline" },
+        { value: "updates", label: "Updates" },
+        { value: "custom", label: "Custom" },
+    ] as const;
+
+    const collectionDomainOptions = [
+        "light",
+        "switch",
+        "fan",
+        "cover",
+        "climate",
+        "media_player",
+        "sensor",
+        "binary_sensor",
+        "update",
+    ];
+
+    const collectionStateOptions = [
+        "on",
+        "off",
+        "open",
+        "closed",
+        "playing",
+        "unavailable",
+        "unknown",
+    ];
+
+    type EnergyEntityKey = Exclude<keyof EnergyCardOptions, "source">;
+    type WeatherEntityKey = Exclude<keyof WeatherCardOptions, "source">;
+    type ActionOwner = "button" | "remote" | "device_panel";
+
+    const buttonDisplayOptions = [
+        { value: "tile", label: "Tile" },
+        { value: "compact", label: "Compact" },
+    ] as const;
+
+    const buttonControlOptions = [
+        { value: "auto", label: "Auto" },
+        { value: "toggle", label: "Toggle" },
+        { value: "brightness", label: "Brightness" },
+        { value: "cover", label: "Cover" },
+        { value: "button", label: "Press" },
+        { value: "none", label: "None" },
+    ] as const;
+
+    const energyEntityFields: Array<{
+        key: EnergyEntityKey;
+        label: string;
+        placeholder: string;
+    }> = [
+        {
+            key: "solarPowerEntityId",
+            label: "Solar Power",
+            placeholder: "sensor.solar_power",
+        },
+        {
+            key: "homePowerEntityId",
+            label: "Home Load",
+            placeholder: "sensor.home_power",
+        },
+        {
+            key: "gridImportEntityId",
+            label: "Grid Import",
+            placeholder: "sensor.grid_import_power",
+        },
+        {
+            key: "gridExportEntityId",
+            label: "Grid Export",
+            placeholder: "sensor.grid_export_power",
+        },
+        {
+            key: "batteryPowerEntityId",
+            label: "Battery Power",
+            placeholder: "sensor.battery_power",
+        },
+        {
+            key: "todayEnergyEntityId",
+            label: "Energy Today",
+            placeholder: "sensor.energy_today",
+        },
+        {
+            key: "gasEntityId",
+            label: "Gas",
+            placeholder: "sensor.gas_today",
+        },
+        {
+            key: "waterEntityId",
+            label: "Water",
+            placeholder: "sensor.water_today",
+        },
+    ];
+
+    const weatherEntityFields: Array<{
+        key: WeatherEntityKey;
+        label: string;
+        placeholder: string;
+        domainFilter?: string;
+    }> = [
+        {
+            key: "weatherEntityId",
+            label: "Weather Entity",
+            placeholder: "weather.home",
+            domainFilter: "weather",
+        },
+        {
+            key: "temperatureEntityId",
+            label: "Temperature Sensor",
+            placeholder: "sensor.outdoor_temperature",
+            domainFilter: "sensor",
+        },
+        {
+            key: "humidityEntityId",
+            label: "Humidity Sensor",
+            placeholder: "sensor.outdoor_humidity",
+            domainFilter: "sensor",
+        },
+        {
+            key: "rainEntityId",
+            label: "Rain Sensor",
+            placeholder: "sensor.rain_today",
+            domainFilter: "sensor",
+        },
+        {
+            key: "windEntityId",
+            label: "Wind Sensor",
+            placeholder: "sensor.wind_speed",
+            domainFilter: "sensor",
+        },
+    ];
+
+    const remotePresetOptions = [
+        "tv",
+        "receiver",
+        "android_tv",
+        "webos",
+        "custom",
+    ] as const;
+
+    const devicePanelPresetOptions = [
+        "auto",
+        "cover",
+        "fan",
+        "vacuum",
+        "purifier",
+        "timer",
+        "todo",
+    ] as const;
+
+    let areaOptions = $derived(haRegistryStore.areas);
+    let floorOptions = $derived(haRegistryStore.floors);
+
     let DefaultIconName = $derived.by(() => {
         if (isThermostatCard) return "thermostat";
         if (isMediaCard) return "play_circle";
@@ -262,6 +458,7 @@
 
     function normalizeOptions() {
         const options = tempConfig.options || {};
+        if (isButtonCard && !options.button) options.button = {};
         if (isRoomCard && !options.room) options.room = { source: "auto" };
         if (isCollectionCard && !options.collection) {
             options.collection = { mode: "auto", showState: true };
@@ -276,6 +473,324 @@
             options.device_panel = { preset: "auto" };
         }
         return options;
+    }
+
+    function ensureButtonOptions(): ButtonCardOptions {
+        tempConfig.options ??= {};
+        tempConfig.options.button ??= {};
+        return tempConfig.options.button as ButtonCardOptions;
+    }
+
+    function updateButtonOptions(patch: Partial<ButtonCardOptions>) {
+        tempConfig.options.button = {
+            ...ensureButtonOptions(),
+            ...patch,
+        };
+    }
+
+    function ensureRoomOptions(): RoomCardOptions {
+        tempConfig.options ??= {};
+        tempConfig.options.room ??= { source: "auto" };
+        return tempConfig.options.room as RoomCardOptions;
+    }
+
+    function updateRoomOptions(patch: Partial<RoomCardOptions>) {
+        tempConfig.options.room = { ...ensureRoomOptions(), ...patch };
+    }
+
+    function setRoomSource(source: RoomCardOptions["source"]) {
+        const current = ensureRoomOptions();
+        updateRoomOptions({
+            source,
+            areaId: source === "area" ? current.areaId : undefined,
+            floorId: source === "floor" ? current.floorId : undefined,
+            entityIds: source === "manual" ? (current.entityIds ?? []) : undefined,
+            query:
+                source === "query"
+                    ? (current.query ?? { limit: 12 })
+                    : current.query,
+        });
+    }
+
+    function setRoomEntity(index: number, value: string) {
+        const current = ensureRoomOptions();
+        const entityIds = [...(current.entityIds ?? [])];
+        entityIds[index] = value;
+        updateRoomOptions({ source: "manual", entityIds });
+    }
+
+    function addRoomEntity() {
+        const current = ensureRoomOptions();
+        updateRoomOptions({
+            source: "manual",
+            entityIds: [...(current.entityIds ?? []), ""],
+        });
+    }
+
+    function removeRoomEntity(index: number) {
+        const current = ensureRoomOptions();
+        updateRoomOptions({
+            entityIds: (current.entityIds ?? []).filter((_, i) => i !== index),
+        });
+    }
+
+    function toggleRoomSection(section: RoomSection) {
+        const current = ensureRoomOptions();
+        const sections = current.sections ?? roomSectionOptions.map((item) => item.value);
+        updateRoomOptions({
+            sections: sections.includes(section)
+                ? sections.filter((item) => item !== section)
+                : [...sections, section],
+        });
+    }
+
+    function updateRoomQuery(patch: Partial<EntityQueryConfig>) {
+        const current = ensureRoomOptions();
+        updateRoomOptions({
+            source: "query",
+            query: { ...(current.query ?? {}), ...patch },
+        });
+    }
+
+    function ensureCollectionOptions(): CollectionCardOptions {
+        tempConfig.options ??= {};
+        tempConfig.options.collection ??= { mode: "auto", showState: true };
+        return tempConfig.options.collection as CollectionCardOptions;
+    }
+
+    function updateCollectionOptions(patch: Partial<CollectionCardOptions>) {
+        tempConfig.options.collection = {
+            ...ensureCollectionOptions(),
+            ...patch,
+        };
+    }
+
+    function updateCollectionQuery(patch: Partial<EntityQueryConfig>) {
+        const current = ensureCollectionOptions();
+        updateCollectionOptions({
+            mode: "custom",
+            query: { ...(current.query ?? {}), ...patch },
+        });
+    }
+
+    function toggleCollectionQueryValue(
+        key: "domains" | "states" | "areaIds" | "floorIds",
+        value: string,
+    ) {
+        const current = ensureCollectionOptions();
+        const query = current.query ?? {};
+        const values = [...((query[key] as string[] | undefined) ?? [])];
+        const nextValues = values.includes(value)
+            ? values.filter((item) => item !== value)
+            : [...values, value];
+        const patch = {
+            [key]: nextValues.length > 0 ? nextValues : undefined,
+        } as Partial<EntityQueryConfig>;
+        updateCollectionQuery(patch);
+    }
+
+    function setCollectionEntity(index: number, value: string) {
+        const current = ensureCollectionOptions();
+        const entityIds = [...(current.entityIds ?? [])];
+        entityIds[index] = value;
+        updateCollectionOptions({ source: "manual", entityIds });
+    }
+
+    function addCollectionEntity() {
+        const current = ensureCollectionOptions();
+        updateCollectionOptions({
+            source: "manual",
+            entityIds: [...(current.entityIds ?? []), ""],
+        });
+    }
+
+    function removeCollectionEntity(index: number) {
+        const current = ensureCollectionOptions();
+        updateCollectionOptions({
+            entityIds: (current.entityIds ?? []).filter((_, i) => i !== index),
+        });
+    }
+
+    function ensureEnergyOptions(): EnergyCardOptions {
+        tempConfig.options ??= {};
+        tempConfig.options.energy ??= { source: "auto" };
+        return tempConfig.options.energy as EnergyCardOptions;
+    }
+
+    function updateEnergyOptions(patch: Partial<EnergyCardOptions>) {
+        tempConfig.options.energy = { ...ensureEnergyOptions(), ...patch };
+    }
+
+    function setEnergyEntity(key: EnergyEntityKey, value: string) {
+        updateEnergyOptions({
+            source: "manual",
+            [key]: value || undefined,
+        });
+    }
+
+    function ensureCalendarOptions(): CalendarCardOptions {
+        tempConfig.options ??= {};
+        tempConfig.options.calendar ??= {
+            source: "auto",
+            daysToShow: 7,
+            maxEvents: 4,
+        };
+        return tempConfig.options.calendar as CalendarCardOptions;
+    }
+
+    function updateCalendarOptions(patch: Partial<CalendarCardOptions>) {
+        tempConfig.options.calendar = {
+            ...ensureCalendarOptions(),
+            ...patch,
+        };
+    }
+
+    function setCalendarEntity(index: number, value: string) {
+        const current = ensureCalendarOptions();
+        const entityIds = [...(current.entityIds ?? [])];
+        entityIds[index] = value;
+        updateCalendarOptions({ source: "manual", entityIds });
+    }
+
+    function addCalendarEntity() {
+        const current = ensureCalendarOptions();
+        updateCalendarOptions({
+            source: "manual",
+            entityIds: [...(current.entityIds ?? []), ""],
+        });
+    }
+
+    function removeCalendarEntity(index: number) {
+        const current = ensureCalendarOptions();
+        updateCalendarOptions({
+            entityIds: (current.entityIds ?? []).filter((_, i) => i !== index),
+        });
+    }
+
+    function ensureWeatherOptions(): WeatherCardOptions {
+        tempConfig.options ??= {};
+        tempConfig.options.weather ??= { source: "auto" };
+        return tempConfig.options.weather as WeatherCardOptions;
+    }
+
+    function updateWeatherOptions(patch: Partial<WeatherCardOptions>) {
+        tempConfig.options.weather = {
+            ...ensureWeatherOptions(),
+            ...patch,
+        };
+    }
+
+    function setWeatherEntity(key: WeatherEntityKey, value: string) {
+        updateWeatherOptions({
+            source: "manual",
+            [key]: value || undefined,
+        });
+    }
+
+    function ensureRemoteOptions(): RemoteCardOptions {
+        tempConfig.options ??= {};
+        tempConfig.options.remote ??= { preset: "tv" };
+        return tempConfig.options.remote as RemoteCardOptions;
+    }
+
+    function updateRemoteOptions(patch: Partial<RemoteCardOptions>) {
+        tempConfig.options.remote = {
+            ...ensureRemoteOptions(),
+            ...patch,
+        };
+    }
+
+    function ensureDevicePanelOptions(): DevicePanelCardOptions {
+        tempConfig.options ??= {};
+        tempConfig.options.device_panel ??= { preset: "auto" };
+        return tempConfig.options.device_panel as DevicePanelCardOptions;
+    }
+
+    function updateDevicePanelOptions(patch: Partial<DevicePanelCardOptions>) {
+        tempConfig.options.device_panel = {
+            ...ensureDevicePanelOptions(),
+            ...patch,
+        };
+    }
+
+    function getActions(owner: ActionOwner): CardAction[] {
+        if (owner === "button") return tempConfig.options.button?.actions ?? [];
+        return owner === "remote"
+            ? (tempConfig.options.remote?.actions ?? [])
+            : (tempConfig.options.device_panel?.actions ?? []);
+    }
+
+    function updateActions(owner: ActionOwner, actions: CardAction[]) {
+        if (owner === "button") updateButtonOptions({ actions });
+        else if (owner === "remote") updateRemoteOptions({ actions });
+        else updateDevicePanelOptions({ actions });
+    }
+
+    function addAction(owner: ActionOwner) {
+        updateActions(owner, [
+            ...getActions(owner),
+            {
+                id: Math.random().toString(36).substring(2, 11),
+                label: "",
+                icon: "",
+                domain: "",
+                service: "",
+            },
+        ]);
+    }
+
+    function removeAction(owner: ActionOwner, index: number) {
+        updateActions(
+            owner,
+            getActions(owner).filter((_, i) => i !== index),
+        );
+    }
+
+    function updateAction(
+        owner: ActionOwner,
+        index: number,
+        patch: Partial<CardAction>,
+    ) {
+        const actions = getActions(owner).map((action, i) =>
+            i === index ? { ...action, ...patch } : action,
+        );
+        updateActions(owner, actions);
+    }
+
+    function updateActionCommand(
+        owner: ActionOwner,
+        index: number,
+        command: string,
+    ) {
+        const action = getActions(owner)[index];
+        if (!action) return;
+        const serviceData = { ...(action.serviceData ?? {}) };
+        if (command) serviceData.command = command;
+        else delete serviceData.command;
+        updateAction(owner, index, {
+            serviceData:
+                Object.keys(serviceData).length > 0 ? serviceData : undefined,
+        });
+    }
+
+    function getActionCommand(action: CardAction) {
+        const command = action.serviceData?.command;
+        return typeof command === "string" ? command : "";
+    }
+
+    function devicePresetDomain(preset?: DevicePanelCardOptions["preset"]) {
+        switch (preset) {
+            case "cover":
+            case "fan":
+            case "vacuum":
+            case "timer":
+            case "todo":
+                return preset;
+            case "purifier":
+                return "fan";
+            default:
+                return undefined;
+        }
     }
 
     function handleSave() {
@@ -577,6 +1092,7 @@
                             icon={tempConfig.icon || CurrentIcon}
                             color={tempConfig.color}
                             backgroundColor={tempConfig.backgroundColor}
+                            options={tempConfig.options.button || {}}
                         />
                     {/if}
                 </div>
@@ -714,6 +1230,209 @@
                         </div>
                         <IconBrush class="size-5 text-m3-on-surface-variant" />
                     </button>
+                </div>
+            {/if}
+
+            {#if isButtonCard}
+                <div
+                    class="flex flex-col gap-4 border-t border-m3-outline-variant/30 pt-4 mt-2"
+                >
+                    <div class="flex flex-col gap-2">
+                        <span
+                            class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                            >Display</span
+                        >
+                        <div
+                            class="grid grid-cols-2 gap-1 rounded-m3-md bg-m3-surface-container-highest p-1"
+                        >
+                            {#each buttonDisplayOptions as option}
+                                <button
+                                    class="py-2 px-3 rounded-m3-sm text-m3-label-medium transition-all {tempConfig
+                                        .options.button?.display ===
+                                        option.value ||
+                                    (!tempConfig.options.button?.display &&
+                                        option.value === 'tile')
+                                        ? 'bg-m3-secondary-container text-m3-on-secondary-container'
+                                        : 'text-m3-on-surface-variant hover:bg-m3-on-surface/5'}"
+                                    onclick={() =>
+                                        updateButtonOptions({
+                                            display: option.value,
+                                        })}
+                                >
+                                    {option.label}
+                                </button>
+                            {/each}
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <span
+                            class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                            >Control</span
+                        >
+                        <div
+                            class="grid grid-cols-3 gap-1 rounded-m3-md bg-m3-surface-container-highest p-1"
+                        >
+                            {#each buttonControlOptions as option}
+                                <button
+                                    class="py-2 px-3 rounded-m3-sm text-m3-label-medium transition-all {tempConfig
+                                        .options.button?.control ===
+                                        option.value ||
+                                    (!tempConfig.options.button?.control &&
+                                        option.value === 'auto')
+                                        ? 'bg-m3-secondary-container text-m3-on-secondary-container'
+                                        : 'text-m3-on-surface-variant hover:bg-m3-on-surface/5'}"
+                                    onclick={() =>
+                                        updateButtonOptions({
+                                            control: option.value,
+                                        })}
+                                >
+                                    {option.label}
+                                </button>
+                            {/each}
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <button
+                            class="py-2 px-3 rounded-m3-full text-m3-label-medium transition-all {tempConfig
+                                .options.button?.showState !== false
+                                ? 'bg-m3-primary-container text-m3-on-primary-container'
+                                : 'bg-m3-surface-container-high text-m3-on-surface-variant'}"
+                            onclick={() =>
+                                updateButtonOptions({
+                                    showState:
+                                        tempConfig.options.button?.showState ===
+                                        false,
+                                })}
+                        >
+                            State label
+                        </button>
+                        <button
+                            class="py-2 px-3 rounded-m3-full text-m3-label-medium transition-all {tempConfig
+                                .options.button?.stateColor !== false
+                                ? 'bg-m3-primary-container text-m3-on-primary-container'
+                                : 'bg-m3-surface-container-high text-m3-on-surface-variant'}"
+                            onclick={() =>
+                                updateButtonOptions({
+                                    stateColor:
+                                        tempConfig.options.button?.stateColor ===
+                                        false,
+                                })}
+                        >
+                            State color
+                        </button>
+                    </div>
+
+                    <div class="flex flex-col gap-3">
+                        <div class="flex items-center justify-between gap-2">
+                            <span
+                                class="text-m3-label-medium text-m3-on-surface-variant"
+                                >Sub-actions</span
+                            >
+                            <div class="flex gap-2">
+                                <Button
+                                    variant="tonal"
+                                    onclick={() =>
+                                        updateButtonOptions({
+                                            actions: undefined,
+                                        })}
+                                >
+                                    Clear
+                                </Button>
+                                <Button
+                                    variant="tonal"
+                                    onclick={() => addAction("button")}
+                                    icon={IconAdd}
+                                >
+                                    Add
+                                </Button>
+                            </div>
+                        </div>
+
+                        {#each tempConfig.options.button?.actions ?? [] as action, idx (action.id)}
+                            <div
+                                class="relative rounded-m3-md bg-m3-surface-container-high p-3 flex flex-col gap-3"
+                            >
+                                <IconButton
+                                    onclick={() => removeAction("button", idx)}
+                                    title="Remove"
+                                    icon={IconDelete}
+                                    class="absolute right-2 top-2 text-m3-error"
+                                />
+                                <div class="grid grid-cols-2 gap-3 pr-10">
+                                    <TextField
+                                        variant="outlined"
+                                        label="Label"
+                                        value={action.label ?? ""}
+                                        oninput={(e: Event) =>
+                                            updateAction("button", idx, {
+                                                label: (
+                                                    e.target as HTMLInputElement
+                                                ).value,
+                                            })}
+                                    />
+                                    <TextField
+                                        variant="outlined"
+                                        label="Icon"
+                                        value={action.icon ?? ""}
+                                        oninput={(e: Event) =>
+                                            updateAction("button", idx, {
+                                                icon: (
+                                                    e.target as HTMLInputElement
+                                                ).value,
+                                            })}
+                                    />
+                                </div>
+                                <EntityPicker
+                                    label="Action Entity"
+                                    placeholder="scene.movie"
+                                    value={action.entityId ?? ""}
+                                    onchange={(value) =>
+                                        updateAction("button", idx, {
+                                            entityId: value || undefined,
+                                        })}
+                                />
+                                <div class="grid grid-cols-2 gap-3">
+                                    <TextField
+                                        variant="outlined"
+                                        label="Domain"
+                                        value={action.domain ?? ""}
+                                        oninput={(e: Event) =>
+                                            updateAction("button", idx, {
+                                                domain:
+                                                    (
+                                                        e.target as HTMLInputElement
+                                                    ).value || undefined,
+                                            })}
+                                    />
+                                    <TextField
+                                        variant="outlined"
+                                        label="Service"
+                                        value={action.service ?? ""}
+                                        oninput={(e: Event) =>
+                                            updateAction("button", idx, {
+                                                service:
+                                                    (
+                                                        e.target as HTMLInputElement
+                                                    ).value || undefined,
+                                            })}
+                                    />
+                                </div>
+                                <TextField
+                                    variant="outlined"
+                                    label="Command"
+                                    value={getActionCommand(action)}
+                                    oninput={(e: Event) =>
+                                        updateActionCommand(
+                                            "button",
+                                            idx,
+                                            (e.target as HTMLInputElement).value,
+                                        )}
+                                />
+                            </div>
+                        {/each}
+                    </div>
                 </div>
             {/if}
 
@@ -940,13 +1659,195 @@
                     class="flex flex-col gap-4 border-t border-m3-outline-variant/30 pt-4 mt-2"
                 >
                     {#if isRoomCard}
-                        <TextField
-                            variant="outlined"
-                            label="Area ID"
-                            placeholder="living_room"
-                            bind:value={tempConfig.options.room.areaId}
-                            class="w-full"
-                        />
+                        <div class="flex flex-col gap-2">
+                            <span
+                                class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                                >Room Source</span
+                            >
+                            <div
+                                class="grid grid-cols-3 gap-1 rounded-m3-md bg-m3-surface-container-highest p-1"
+                            >
+                                {#each roomSourceModes as sourceMode}
+                                    <button
+                                        class="py-2 px-3 rounded-m3-sm text-m3-label-medium transition-all {tempConfig
+                                            .options.room?.source ===
+                                            sourceMode.value ||
+                                        (!tempConfig.options.room?.source &&
+                                            sourceMode.value === 'auto')
+                                            ? 'bg-m3-secondary-container text-m3-on-secondary-container'
+                                            : 'text-m3-on-surface-variant hover:bg-m3-on-surface/5'}"
+                                        onclick={() =>
+                                            setRoomSource(sourceMode.value)}
+                                    >
+                                        {sourceMode.label}
+                                    </button>
+                                {/each}
+                            </div>
+                        </div>
+
+                        {#if areaOptions.length > 0}
+                            <div class="flex flex-col gap-2">
+                                <span
+                                    class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                                    >Area</span
+                                >
+                                <div class="flex flex-wrap gap-2">
+                                    {#each areaOptions as area}
+                                        <button
+                                            class="px-3 py-2 rounded-m3-full text-m3-label-medium transition-all {tempConfig
+                                                .options.room?.areaId ===
+                                            area.area_id
+                                                ? 'bg-m3-primary-container text-m3-on-primary-container'
+                                                : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest'}"
+                                            onclick={() =>
+                                                updateRoomOptions({
+                                                    source: "area",
+                                                    areaId: area.area_id,
+                                                    floorId: undefined,
+                                                })}
+                                        >
+                                            {area.name}
+                                        </button>
+                                    {/each}
+                                </div>
+                            </div>
+                        {:else}
+                            <TextField
+                                variant="outlined"
+                                label="Area ID"
+                                placeholder="living_room"
+                                value={tempConfig.options.room?.areaId ?? ""}
+                                oninput={(e: Event) =>
+                                    updateRoomOptions({
+                                        source: "area",
+                                        areaId: (
+                                            e.target as HTMLInputElement
+                                        ).value,
+                                    })}
+                                class="w-full"
+                            />
+                        {/if}
+
+                        {#if floorOptions.length > 0}
+                            <div class="flex flex-col gap-2">
+                                <span
+                                    class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                                    >Floor</span
+                                >
+                                <div class="flex flex-wrap gap-2">
+                                    {#each floorOptions as floor}
+                                        <button
+                                            class="px-3 py-2 rounded-m3-full text-m3-label-medium transition-all {tempConfig
+                                                .options.room?.floorId ===
+                                            floor.floor_id
+                                                ? 'bg-m3-tertiary-container text-m3-on-tertiary-container'
+                                                : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest'}"
+                                            onclick={() =>
+                                                updateRoomOptions({
+                                                    source: "floor",
+                                                    floorId: floor.floor_id,
+                                                    areaId: undefined,
+                                                })}
+                                        >
+                                            {floor.name}
+                                        </button>
+                                    {/each}
+                                </div>
+                            </div>
+                        {/if}
+
+                        <div class="flex flex-col gap-2">
+                            <span
+                                class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                                >Sections</span
+                            >
+                            <div class="grid grid-cols-2 gap-2">
+                                {#each roomSectionOptions as section}
+                                    {@const sections =
+                                        tempConfig.options.room?.sections ??
+                                        roomSectionOptions.map(
+                                            (item) => item.value,
+                                        )}
+                                    <button
+                                        class="flex items-center justify-between gap-2 px-3 py-2 rounded-m3-md text-m3-label-medium transition-all {sections.includes(
+                                            section.value,
+                                        )
+                                            ? 'bg-m3-secondary-container text-m3-on-secondary-container'
+                                            : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest'}"
+                                        onclick={() =>
+                                            toggleRoomSection(section.value)}
+                                    >
+                                        <span>{section.label}</span>
+                                        <span>{sections.includes(section.value)
+                                                ? "On"
+                                                : "Off"}</span>
+                                    </button>
+                                {/each}
+                            </div>
+                        </div>
+
+                        {#if tempConfig.options.room?.source === "query"}
+                            <div class="grid grid-cols-2 gap-3">
+                                <TextField
+                                    variant="outlined"
+                                    label="Limit"
+                                    type="number"
+                                    value={(tempConfig.options.room?.query
+                                        ?.limit ?? 12).toString()}
+                                    oninput={(e: Event) =>
+                                        updateRoomQuery({
+                                            limit:
+                                                parseInt(
+                                                    (
+                                                        e.target as HTMLInputElement
+                                                    ).value,
+                                                ) || 12,
+                                        })}
+                                />
+                            </div>
+                        {/if}
+
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center justify-between">
+                                <span
+                                    class="text-m3-label-medium text-m3-on-surface-variant"
+                                    >Pinned Entities</span
+                                >
+                                <Button
+                                    variant="tonal"
+                                    onclick={addRoomEntity}
+                                    icon={IconAdd}
+                                >
+                                    Add
+                                </Button>
+                            </div>
+                            {#each tempConfig.options.room?.entityIds ?? [] as entityId, idx}
+                                <div class="flex items-start gap-2">
+                                    <EntityPicker
+                                        label="Room Entity"
+                                        placeholder="light.living_room"
+                                        value={entityId}
+                                        onchange={(value) =>
+                                            setRoomEntity(idx, value)}
+                                        class="flex-1"
+                                    />
+                                    <IconButton
+                                        onclick={() => removeRoomEntity(idx)}
+                                        title="Remove"
+                                        icon={IconDelete}
+                                        class="text-m3-error mt-2"
+                                    />
+                                </div>
+                            {/each}
+                            {#if (tempConfig.options.room?.entityIds ?? []).length === 0}
+                                <p
+                                    class="text-m3-body-small text-m3-on-surface-variant opacity-70"
+                                >
+                                    Leave empty to auto-discover room entities
+                                    from the selected area or floor.
+                                </p>
+                            {/if}
+                        </div>
                     {/if}
 
                     {#if isCollectionCard}
@@ -958,20 +1859,230 @@
                             <div
                                 class="grid grid-cols-2 gap-1 rounded-m3-md bg-m3-surface-container-highest p-1"
                             >
-                                {#each ["auto", "lights_on", "low_battery", "unavailable", "updates", "custom"] as mode}
+                                {#each collectionModeOptions as modeOption}
                                     <button
                                         class="py-2 px-3 rounded-m3-sm text-m3-label-medium transition-all {tempConfig
-                                            .options.collection?.mode === mode
+                                            .options.collection?.mode ===
+                                        modeOption.value
                                             ? 'bg-m3-secondary-container text-m3-on-secondary-container'
                                             : 'text-m3-on-surface-variant hover:bg-m3-on-surface/5'}"
                                         onclick={() => {
-                                            tempConfig.options.collection ??= {};
-                                            tempConfig.options.collection.mode =
-                                                mode;
+                                            updateCollectionOptions({
+                                                mode: modeOption.value,
+                                                query:
+                                                    modeOption.value ===
+                                                    "custom"
+                                                        ? (tempConfig.options
+                                                              .collection
+                                                              ?.query ?? {
+                                                              limit: 12,
+                                                          })
+                                                        : tempConfig.options
+                                                              .collection
+                                                              ?.query,
+                                            });
                                         }}
                                     >
-                                        {mode.replace("_", " ")}
+                                        {modeOption.label}
                                     </button>
+                                {/each}
+                            </div>
+                        </div>
+
+                        <div
+                            class="flex items-center justify-between gap-3 rounded-m3-md bg-m3-surface-container-high p-3"
+                        >
+                            <div class="min-w-0">
+                                <p
+                                    class="text-m3-label-large text-m3-on-surface"
+                                >
+                                    Show entity states
+                                </p>
+                                <p
+                                    class="text-m3-body-small text-m3-on-surface-variant"
+                                >
+                                    Display values such as on, unavailable, or
+                                    battery percent.
+                                </p>
+                            </div>
+                            <button
+                                class="shrink-0 px-4 py-2 rounded-m3-full text-m3-label-medium {tempConfig
+                                    .options.collection?.showState !== false
+                                    ? 'bg-m3-primary text-m3-on-primary'
+                                    : 'bg-m3-surface-container-highest text-m3-on-surface-variant'}"
+                                onclick={() =>
+                                    updateCollectionOptions({
+                                        showState:
+                                            tempConfig.options.collection
+                                                ?.showState === false,
+                                    })}
+                            >
+                                {tempConfig.options.collection?.showState !==
+                                false
+                                    ? "On"
+                                    : "Off"}
+                            </button>
+                        </div>
+
+                        {#if tempConfig.options.collection?.mode === "low_battery"}
+                            <TextField
+                                variant="outlined"
+                                label="Battery Threshold"
+                                type="number"
+                                value={(tempConfig.options.collection
+                                    ?.threshold ?? 25).toString()}
+                                oninput={(e: Event) =>
+                                    updateCollectionOptions({
+                                        threshold:
+                                            parseInt(
+                                                (
+                                                    e.target as HTMLInputElement
+                                                ).value,
+                                            ) || 25,
+                                    })}
+                                class="w-full"
+                            />
+                        {/if}
+
+                        {#if tempConfig.options.collection?.mode === "custom"}
+                            <div class="flex flex-col gap-2">
+                                <span
+                                    class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                                    >Domains</span
+                                >
+                                <div class="flex flex-wrap gap-2">
+                                    {#each collectionDomainOptions as domain}
+                                        {@const domains =
+                                            tempConfig.options.collection?.query
+                                                ?.domains ?? []}
+                                        <button
+                                            class="px-3 py-2 rounded-m3-full text-m3-label-medium transition-all {domains.includes(
+                                                domain,
+                                            )
+                                                ? 'bg-m3-primary-container text-m3-on-primary-container'
+                                                : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest'}"
+                                            onclick={() =>
+                                                toggleCollectionQueryValue(
+                                                    "domains",
+                                                    domain,
+                                                )}
+                                        >
+                                            {domain.replace("_", " ")}
+                                        </button>
+                                    {/each}
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col gap-2">
+                                <span
+                                    class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                                    >States</span
+                                >
+                                <div class="flex flex-wrap gap-2">
+                                    {#each collectionStateOptions as state}
+                                        {@const states =
+                                            tempConfig.options.collection?.query
+                                                ?.states ?? []}
+                                        <button
+                                            class="px-3 py-2 rounded-m3-full text-m3-label-medium transition-all {states.includes(
+                                                state,
+                                            )
+                                                ? 'bg-m3-tertiary-container text-m3-on-tertiary-container'
+                                                : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest'}"
+                                            onclick={() =>
+                                                toggleCollectionQueryValue(
+                                                    "states",
+                                                    state,
+                                                )}
+                                        >
+                                            {state}
+                                        </button>
+                                    {/each}
+                                </div>
+                            </div>
+
+                            <TextField
+                                variant="outlined"
+                                label="Result Limit"
+                                type="number"
+                                value={(tempConfig.options.collection?.query
+                                    ?.limit ?? 12).toString()}
+                                oninput={(e: Event) =>
+                                    updateCollectionQuery({
+                                        limit:
+                                            parseInt(
+                                                (
+                                                    e.target as HTMLInputElement
+                                                ).value,
+                                            ) || 12,
+                                    })}
+                                class="w-full"
+                            />
+                        {/if}
+
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center justify-between">
+                                <span
+                                    class="text-m3-label-medium text-m3-on-surface-variant"
+                                    >Pinned Entities</span
+                                >
+                                <Button
+                                    variant="tonal"
+                                    onclick={addCollectionEntity}
+                                    icon={IconAdd}
+                                >
+                                    Add
+                                </Button>
+                            </div>
+                            {#each tempConfig.options.collection?.entityIds ?? [] as entityId, idx}
+                                <div class="flex items-start gap-2">
+                                    <EntityPicker
+                                        label="Collection Entity"
+                                        placeholder="sensor.battery"
+                                        value={entityId}
+                                        onchange={(value) =>
+                                            setCollectionEntity(idx, value)}
+                                        class="flex-1"
+                                    />
+                                    <IconButton
+                                        onclick={() =>
+                                            removeCollectionEntity(idx)}
+                                        title="Remove"
+                                        icon={IconDelete}
+                                        class="text-m3-error mt-2"
+                                    />
+                                </div>
+                            {/each}
+                            {#if (tempConfig.options.collection?.entityIds ?? []).length === 0}
+                                <p
+                                    class="text-m3-body-small text-m3-on-surface-variant opacity-70"
+                                >
+                                    Pinned entities override smart discovery but
+                                    are never written unless you choose them.
+                                </p>
+                            {/if}
+                        </div>
+                    {/if}
+
+                    {#if isEnergyCard}
+                        <div class="flex flex-col gap-3">
+                            <span
+                                class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                                >Energy Entities</span
+                            >
+                            <div class="grid grid-cols-1 gap-3">
+                                {#each energyEntityFields as field}
+                                    <EntityPicker
+                                        label={field.label}
+                                        placeholder={field.placeholder}
+                                        value={tempConfig.options.energy?.[
+                                            field.key
+                                        ] ?? ""}
+                                        domainFilter="sensor"
+                                        onchange={(value) =>
+                                            setEnergyEntity(field.key, value)}
+                                        class="w-full"
+                                    />
                                 {/each}
                             </div>
                         </div>
@@ -984,31 +2095,262 @@
                                 label="Days"
                                 type="number"
                                 value={(tempConfig.options.calendar?.daysToShow ?? 7).toString()}
-                                oninput={(e: Event) => {
-                                    tempConfig.options.calendar ??= {};
-                                    tempConfig.options.calendar.daysToShow =
-                                        parseInt(
-                                            (
-                                                e.target as HTMLInputElement
-                                            ).value,
-                                        ) || 7;
-                                }}
+                                oninput={(e: Event) =>
+                                    updateCalendarOptions({
+                                        daysToShow: Math.max(
+                                            1,
+                                            parseInt(
+                                                (
+                                                    e.target as HTMLInputElement
+                                                ).value,
+                                            ) || 7,
+                                        ),
+                                    })}
                             />
                             <TextField
                                 variant="outlined"
                                 label="Max Events"
                                 type="number"
                                 value={(tempConfig.options.calendar?.maxEvents ?? 4).toString()}
-                                oninput={(e: Event) => {
-                                    tempConfig.options.calendar ??= {};
-                                    tempConfig.options.calendar.maxEvents =
-                                        parseInt(
-                                            (
-                                                e.target as HTMLInputElement
-                                            ).value,
-                                        ) || 4;
-                                }}
+                                oninput={(e: Event) =>
+                                    updateCalendarOptions({
+                                        maxEvents: Math.max(
+                                            1,
+                                            parseInt(
+                                                (
+                                                    e.target as HTMLInputElement
+                                                ).value,
+                                            ) || 4,
+                                        ),
+                                    })}
                             />
+                        </div>
+
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center justify-between">
+                                <span
+                                    class="text-m3-label-medium text-m3-on-surface-variant"
+                                    >Calendar Entities</span
+                                >
+                                <Button
+                                    variant="tonal"
+                                    onclick={addCalendarEntity}
+                                    icon={IconAdd}
+                                >
+                                    Add
+                                </Button>
+                            </div>
+                            {#each tempConfig.options.calendar?.entityIds ?? [] as entityId, idx}
+                                <div class="flex items-start gap-2">
+                                    <EntityPicker
+                                        label="Calendar Entity"
+                                        placeholder="calendar.family"
+                                        value={entityId}
+                                        domainFilter="calendar"
+                                        onchange={(value) =>
+                                            setCalendarEntity(idx, value)}
+                                        class="flex-1"
+                                    />
+                                    <IconButton
+                                        onclick={() =>
+                                            removeCalendarEntity(idx)}
+                                        title="Remove"
+                                        icon={IconDelete}
+                                        class="text-m3-error mt-2"
+                                    />
+                                </div>
+                            {/each}
+                        </div>
+                    {/if}
+
+                    {#if isWeatherCard}
+                        <div class="flex flex-col gap-3">
+                            <span
+                                class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                                >Weather Entities</span
+                            >
+                            <div class="grid grid-cols-1 gap-3">
+                                {#each weatherEntityFields as field}
+                                    <EntityPicker
+                                        label={field.label}
+                                        placeholder={field.placeholder}
+                                        value={tempConfig.options.weather?.[
+                                            field.key
+                                        ] ?? ""}
+                                        domainFilter={field.domainFilter}
+                                        onchange={(value) =>
+                                            setWeatherEntity(field.key, value)}
+                                        class="w-full"
+                                    />
+                                {/each}
+                            </div>
+                        </div>
+                    {/if}
+
+                    {#if isRemoteCard}
+                        <div class="flex flex-col gap-2">
+                            <span
+                                class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                                >Remote Preset</span
+                            >
+                            <div
+                                class="grid grid-cols-2 gap-1 rounded-m3-md bg-m3-surface-container-highest p-1"
+                            >
+                                {#each remotePresetOptions as preset}
+                                    <button
+                                        class="py-2 px-3 rounded-m3-sm text-m3-label-medium capitalize transition-all {tempConfig
+                                            .options.remote?.preset === preset
+                                            ? 'bg-m3-secondary-container text-m3-on-secondary-container'
+                                            : 'text-m3-on-surface-variant hover:bg-m3-on-surface/5'}"
+                                        onclick={() =>
+                                            updateRemoteOptions({ preset })}
+                                    >
+                                        {preset.replace("_", " ")}
+                                    </button>
+                                {/each}
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-3">
+                            <EntityPicker
+                                label="Remote Entity"
+                                placeholder="remote.living_room_tv"
+                                value={tempConfig.options.remote
+                                    ?.remoteEntityId ?? ""}
+                                domainFilter="remote"
+                                onchange={(value) =>
+                                    updateRemoteOptions({
+                                        source: "manual",
+                                        remoteEntityId: value || undefined,
+                                    })}
+                                class="w-full"
+                            />
+                            <EntityPicker
+                                label="Media Player"
+                                placeholder="media_player.tv"
+                                value={tempConfig.options.remote
+                                    ?.mediaPlayerEntityId ?? ""}
+                                domainFilter="media_player"
+                                onchange={(value) =>
+                                    updateRemoteOptions({
+                                        source: "manual",
+                                        mediaPlayerEntityId:
+                                            value || undefined,
+                                    })}
+                                class="w-full"
+                            />
+                        </div>
+
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center justify-between gap-2">
+                                <span
+                                    class="text-m3-label-medium text-m3-on-surface-variant"
+                                    >Custom Actions</span
+                                >
+                                <div class="flex gap-2">
+                                    <Button
+                                        variant="tonal"
+                                        onclick={() =>
+                                            updateRemoteOptions({
+                                                actions: undefined,
+                                            })}
+                                    >
+                                        Defaults
+                                    </Button>
+                                    <Button
+                                        variant="tonal"
+                                        onclick={() => addAction("remote")}
+                                        icon={IconAdd}
+                                    >
+                                        Add
+                                    </Button>
+                                </div>
+                            </div>
+                            {#each tempConfig.options.remote?.actions ?? [] as action, idx (action.id)}
+                                <div
+                                    class="relative rounded-m3-md bg-m3-surface-container-high p-3 flex flex-col gap-3"
+                                >
+                                    <IconButton
+                                        onclick={() =>
+                                            removeAction("remote", idx)}
+                                        title="Remove"
+                                        icon={IconDelete}
+                                        class="absolute right-2 top-2 text-m3-error"
+                                    />
+                                    <div class="grid grid-cols-2 gap-3 pr-10">
+                                        <TextField
+                                            variant="outlined"
+                                            label="Label"
+                                            value={action.label ?? ""}
+                                            oninput={(e: Event) =>
+                                                updateAction("remote", idx, {
+                                                    label: (
+                                                        e.target as HTMLInputElement
+                                                    ).value,
+                                                })}
+                                        />
+                                        <TextField
+                                            variant="outlined"
+                                            label="Icon"
+                                            value={action.icon ?? ""}
+                                            oninput={(e: Event) =>
+                                                updateAction("remote", idx, {
+                                                    icon: (
+                                                        e.target as HTMLInputElement
+                                                    ).value,
+                                                })}
+                                        />
+                                    </div>
+                                    <EntityPicker
+                                        label="Action Entity"
+                                        placeholder="media_player.tv"
+                                        value={action.entityId ?? ""}
+                                        onchange={(value) =>
+                                            updateAction("remote", idx, {
+                                                entityId: value || undefined,
+                                            })}
+                                    />
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <TextField
+                                            variant="outlined"
+                                            label="Domain"
+                                            value={action.domain ?? ""}
+                                            oninput={(e: Event) =>
+                                                updateAction("remote", idx, {
+                                                    domain:
+                                                        (
+                                                            e.target as HTMLInputElement
+                                                        ).value || undefined,
+                                                })}
+                                        />
+                                        <TextField
+                                            variant="outlined"
+                                            label="Service"
+                                            value={action.service ?? ""}
+                                            oninput={(e: Event) =>
+                                                updateAction("remote", idx, {
+                                                    service:
+                                                        (
+                                                            e.target as HTMLInputElement
+                                                        ).value || undefined,
+                                                })}
+                                        />
+                                    </div>
+                                    <TextField
+                                        variant="outlined"
+                                        label="Command"
+                                        value={getActionCommand(action)}
+                                        oninput={(e: Event) =>
+                                            updateActionCommand(
+                                                "remote",
+                                                idx,
+                                                (
+                                                    e.target as HTMLInputElement
+                                                ).value,
+                                            )}
+                                    />
+                                </div>
+                            {/each}
                         </div>
                     {/if}
 
@@ -1021,23 +2363,169 @@
                             <div
                                 class="grid grid-cols-2 gap-1 rounded-m3-md bg-m3-surface-container-highest p-1"
                             >
-                                {#each ["auto", "cover", "fan", "vacuum", "purifier", "timer", "todo"] as preset}
+                                {#each devicePanelPresetOptions as preset}
                                     <button
-                                        class="py-2 px-3 rounded-m3-sm text-m3-label-medium transition-all {tempConfig
+                                        class="py-2 px-3 rounded-m3-sm text-m3-label-medium capitalize transition-all {tempConfig
                                             .options.device_panel?.preset ===
                                         preset
                                             ? 'bg-m3-secondary-container text-m3-on-secondary-container'
                                             : 'text-m3-on-surface-variant hover:bg-m3-on-surface/5'}"
-                                        onclick={() => {
-                                            tempConfig.options.device_panel ??= {};
-                                            tempConfig.options.device_panel.preset =
-                                                preset;
-                                        }}
+                                        onclick={() =>
+                                            updateDevicePanelOptions({
+                                                preset,
+                                            })}
                                     >
                                         {preset.replace("_", " ")}
                                     </button>
                                 {/each}
                             </div>
+                        </div>
+
+                        <EntityPicker
+                            label="Device Entity"
+                            placeholder="cover.blinds"
+                            value={tempConfig.options.device_panel?.entityId ??
+                                ""}
+                            domainFilter={devicePresetDomain(
+                                tempConfig.options.device_panel?.preset,
+                            )}
+                            onchange={(value) =>
+                                updateDevicePanelOptions({
+                                    source: "manual",
+                                    entityId: value || undefined,
+                                })}
+                            class="w-full"
+                        />
+
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center justify-between gap-2">
+                                <span
+                                    class="text-m3-label-medium text-m3-on-surface-variant"
+                                    >Custom Actions</span
+                                >
+                                <div class="flex gap-2">
+                                    <Button
+                                        variant="tonal"
+                                        onclick={() =>
+                                            updateDevicePanelOptions({
+                                                actions: undefined,
+                                            })}
+                                    >
+                                        Defaults
+                                    </Button>
+                                    <Button
+                                        variant="tonal"
+                                        onclick={() =>
+                                            addAction("device_panel")}
+                                        icon={IconAdd}
+                                    >
+                                        Add
+                                    </Button>
+                                </div>
+                            </div>
+                            {#each tempConfig.options.device_panel?.actions ?? [] as action, idx (action.id)}
+                                <div
+                                    class="relative rounded-m3-md bg-m3-surface-container-high p-3 flex flex-col gap-3"
+                                >
+                                    <IconButton
+                                        onclick={() =>
+                                            removeAction("device_panel", idx)}
+                                        title="Remove"
+                                        icon={IconDelete}
+                                        class="absolute right-2 top-2 text-m3-error"
+                                    />
+                                    <div class="grid grid-cols-2 gap-3 pr-10">
+                                        <TextField
+                                            variant="outlined"
+                                            label="Label"
+                                            value={action.label ?? ""}
+                                            oninput={(e: Event) =>
+                                                updateAction(
+                                                    "device_panel",
+                                                    idx,
+                                                    {
+                                                        label: (
+                                                            e.target as HTMLInputElement
+                                                        ).value,
+                                                    },
+                                                )}
+                                        />
+                                        <TextField
+                                            variant="outlined"
+                                            label="Icon"
+                                            value={action.icon ?? ""}
+                                            oninput={(e: Event) =>
+                                                updateAction(
+                                                    "device_panel",
+                                                    idx,
+                                                    {
+                                                        icon: (
+                                                            e.target as HTMLInputElement
+                                                        ).value,
+                                                    },
+                                                )}
+                                        />
+                                    </div>
+                                    <EntityPicker
+                                        label="Action Entity"
+                                        placeholder="cover.blinds"
+                                        value={action.entityId ?? ""}
+                                        onchange={(value) =>
+                                            updateAction("device_panel", idx, {
+                                                entityId: value || undefined,
+                                            })}
+                                    />
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <TextField
+                                            variant="outlined"
+                                            label="Domain"
+                                            value={action.domain ?? ""}
+                                            oninput={(e: Event) =>
+                                                updateAction(
+                                                    "device_panel",
+                                                    idx,
+                                                    {
+                                                        domain:
+                                                            (
+                                                                e.target as HTMLInputElement
+                                                            ).value ||
+                                                            undefined,
+                                                    },
+                                                )}
+                                        />
+                                        <TextField
+                                            variant="outlined"
+                                            label="Service"
+                                            value={action.service ?? ""}
+                                            oninput={(e: Event) =>
+                                                updateAction(
+                                                    "device_panel",
+                                                    idx,
+                                                    {
+                                                        service:
+                                                            (
+                                                                e.target as HTMLInputElement
+                                                            ).value ||
+                                                            undefined,
+                                                    },
+                                                )}
+                                        />
+                                    </div>
+                                    <TextField
+                                        variant="outlined"
+                                        label="Command"
+                                        value={getActionCommand(action)}
+                                        oninput={(e: Event) =>
+                                            updateActionCommand(
+                                                "device_panel",
+                                                idx,
+                                                (
+                                                    e.target as HTMLInputElement
+                                                ).value,
+                                            )}
+                                    />
+                                </div>
+                            {/each}
                         </div>
                     {/if}
                 </div>

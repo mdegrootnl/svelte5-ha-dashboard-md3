@@ -29,6 +29,10 @@
     }: Props = $props();
 
     type StoreEntity = NonNullable<ReturnType<typeof haStore.getEntity>>;
+    type RoomSection = NonNullable<RoomCardOptions["sections"]>[number];
+
+    const DEFAULT_ROOM_DOMAINS = ["light", "switch", "fan", "cover", "climate", "media_player", "sensor", "binary_sensor"];
+    const DEFAULT_ROOM_SECTIONS: RoomSection[] = ["lights", "climate", "media", "covers", "sensors", "health"];
 
     function isStoreEntity(item: ReturnType<typeof haStore.getEntity>): item is StoreEntity {
         return !!item;
@@ -55,19 +59,29 @@
                 .filter(isStoreEntity);
         }
 
-        return resolveEntityQuery(context, {
-            domains: ["light", "switch", "fan", "cover", "climate", "media_player", "sensor", "binary_sensor"],
-            areaIds: options?.areaId ? [options.areaId] : undefined,
-            floorIds: options?.floorId ? [options.floorId] : undefined,
-            limit: 12,
-        }).map((item) => haStore.getEntity(item.entityId)).filter(isStoreEntity);
+        const query =
+            options?.source === "query"
+                ? {
+                      domains: DEFAULT_ROOM_DOMAINS,
+                      limit: 12,
+                      ...(options.query ?? {}),
+                  }
+                : {
+                      domains: DEFAULT_ROOM_DOMAINS,
+                      areaIds: options?.areaId ? [options.areaId] : undefined,
+                      floorIds: options?.floorId ? [options.floorId] : undefined,
+                      limit: options?.query?.limit ?? 12,
+                  };
+
+        return resolveEntityQuery(context, query).map((item) => haStore.getEntity(item.entityId)).filter(isStoreEntity);
     });
 
+    let enabledSections = $derived(options?.sections && options.sections.length > 0 ? options.sections : DEFAULT_ROOM_SECTIONS);
     let activeCount = $derived(roomEntities.filter((item) => isActiveState(item.state)).length);
     let problemCount = $derived(roomEntities.filter((item) => item.state === "unavailable" || item.state === "unknown").length);
     let climate = $derived(roomEntities.find((item) => getDomain(item.entity_id) === "climate"));
     let media = $derived(roomEntities.find((item) => getDomain(item.entity_id) === "media_player"));
-    let highlights = $derived(roomEntities.slice(0, 5));
+    let highlights = $derived(roomEntities.filter((item) => sectionIncludesDomain(getDomain(item.entity_id))).slice(0, 5));
 
     function domainIcon(domain: string) {
         switch (domain) {
@@ -98,6 +112,15 @@
             return configuredIcon;
         }
         return domainIcon(getDomain(entity.entity_id));
+    }
+
+    function sectionIncludesDomain(domain: string) {
+        if (["light", "switch", "fan"].includes(domain)) return enabledSections.includes("lights");
+        if (domain === "cover") return enabledSections.includes("covers");
+        if (domain === "climate") return enabledSections.includes("climate");
+        if (domain === "media_player") return enabledSections.includes("media");
+        if (["sensor", "binary_sensor"].includes(domain)) return enabledSections.includes("sensors");
+        return true;
     }
 
     function openConfig(e: Event) {
@@ -131,7 +154,7 @@
 </script>
 
 <article
-    class="relative h-full w-full rounded-m3-md bg-m3-surface-container-highest text-m3-on-surface overflow-hidden group @container {className}"
+    class="relative h-full w-full rounded-m3-card bg-m3-surface-container-highest text-m3-on-surface overflow-hidden group @container {className}"
     style={`container-type: size;${backgroundColor ? ` background-color: ${backgroundColor};` : ""}`}
 >
     <div class="flex h-full flex-col gap-[clamp(0.375rem,4cqmin,1.25rem)] p-[clamp(0.625rem,5cqmin,1.75rem)]">

@@ -8,8 +8,10 @@
     import { untrack } from "svelte";
 
     let now = $state(new Date());
+    let mounted = $state(false);
     let timer: ReturnType<typeof setInterval>;
     let calendarTimer: ReturnType<typeof setInterval>;
+    let mountTimer: ReturnType<typeof setTimeout>;
 
     function updateTime() {
         now = new Date();
@@ -27,6 +29,9 @@
     });
 
     onMount(() => {
+        mountTimer = setTimeout(() => {
+            mounted = true;
+        }, 1500);
         timer = setInterval(updateTime, 1000);
         updateTime();
 
@@ -44,6 +49,7 @@
     });
 
     onDestroy(() => {
+        clearTimeout(mountTimer);
         clearInterval(timer);
         clearInterval(calendarTimer);
     });
@@ -81,7 +87,7 @@
     });
 </script>
 
-{#if lockScreenStore.isLocked}
+{#if mounted && lockScreenStore.isLocked}
     <!-- Fullscreen Overlay -->
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->

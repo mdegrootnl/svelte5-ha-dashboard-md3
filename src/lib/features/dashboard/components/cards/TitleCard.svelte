@@ -76,7 +76,7 @@
 </script>
 
 <div
-    class="relative flex flex-col {justifyClass} text-start w-full h-full p-1 gap-0.5 rounded-xl group {className} overflow-visible z-10 @container"
+    class="relative flex flex-col {justifyClass} text-start w-full h-full p-1 gap-0.5 rounded-m3-card group {className} overflow-visible z-10 @container"
     style={`container-type: size;${backgroundColor ? ` background-color: ${backgroundColor};` : ""}`}
 >
     <h2

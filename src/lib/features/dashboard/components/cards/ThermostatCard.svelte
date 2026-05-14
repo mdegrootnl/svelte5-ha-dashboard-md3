@@ -283,7 +283,7 @@
 
 <!-- Card Container -->
 <div
-    class="relative flex flex-col w-full h-full rounded-[var(--radius-m3-md)] bg-m3-surface-container overflow-hidden shadow-sm group {className} @container"
+    class="relative flex flex-col w-full h-full rounded-m3-card bg-m3-surface-container overflow-hidden shadow-sm group {className} @container"
     bind:clientHeight
     style={`container-type: size;${backgroundColor ? ` background-color: ${backgroundColor};` : ""}`}
 >

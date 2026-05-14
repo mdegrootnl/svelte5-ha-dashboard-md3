@@ -119,7 +119,7 @@
 </script>
 
 <div
-    class={`flex flex-col w-full shadow-sm transition-all ${containerClass} rounded-[var(--radius-m3-md)] relative group h-full @container`}
+    class={`flex flex-col w-full shadow-sm transition-all ${containerClass} rounded-m3-card relative group h-full @container`}
     bind:clientHeight
     style={`container-type: size;${backgroundColor &&
     (isOff || effectiveBackground !== "immersive" || !artworkSrc)

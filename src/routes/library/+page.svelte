@@ -21,6 +21,56 @@
     import VolumeUp from "~icons/material-symbols/volume-up";
     import Workspaces from "~icons/material-symbols/workspaces";
 
+    const mockEntityIds = [
+        "media_player.spotify",
+        "media_player.living_room_tv",
+        "media_player.kitchen_speaker",
+        "climate.living_room",
+        "sensor.outdoor_temperature",
+        "climate.diyless_thermostat_1_central_heating",
+        "sensor.diyless_thermostat_1_opentherm_outdoor_temperature",
+        "light.library_table",
+        "light.library_accent",
+        "switch.library_outlet",
+        "fan.library_fan",
+        "sensor.library_temperature",
+        "sensor.library_humidity",
+        "sensor.library_energy",
+        "sensor.library_solar_power",
+        "sensor.library_home_power",
+        "sensor.library_grid_power",
+        "sensor.library_battery",
+        "weather.library_home",
+        "sensor.library_rain",
+        "sensor.library_wind",
+        "calendar.family",
+        "media_player.library_tv",
+        "cover.library_blinds",
+    ] as const;
+
+    type DemoEntityState = (typeof haStore.states)[string];
+    const originalMockStates = new Map<string, DemoEntityState | undefined>();
+    let capturedOriginalStates = false;
+
+    function captureOriginalStates() {
+        if (capturedOriginalStates) return;
+        for (const entityId of mockEntityIds) {
+            originalMockStates.set(entityId, haStore.states[entityId]);
+        }
+        capturedOriginalStates = true;
+    }
+
+    function restoreOriginalStates() {
+        if (!capturedOriginalStates) return;
+        const nextStates = { ...haStore.states };
+        for (const entityId of mockEntityIds) {
+            const original = originalMockStates.get(entityId);
+            if (original) nextStates[entityId] = original;
+            else delete nextStates[entityId];
+        }
+        haStore.states = nextStates;
+    }
+
     // Define card data structure
     interface CardData {
         id: number;
@@ -116,6 +166,7 @@
     }
 
     function loadMockMedia() {
+        captureOriginalStates();
         haStore.states = {
             ...haStore.states,
             "media_player.spotify": {
@@ -171,6 +222,7 @@
     }
 
     function loadMockClimate() {
+        captureOriginalStates();
         haStore.states = {
             ...haStore.states,
             "climate.living_room": {
@@ -238,6 +290,7 @@
     }
 
     function loadMockDashboardExamples() {
+        captureOriginalStates();
         haStore.states = {
             ...haStore.states,
             "light.library_table": mockState("light.library_table", "on", {
@@ -354,7 +407,10 @@
         loadMockDashboardExamples();
     }
 
-    onMount(loadAllExamples);
+    onMount(() => {
+        loadAllExamples();
+        return restoreOriginalStates;
+    });
 </script>
 
 <PageShell

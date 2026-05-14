@@ -39,8 +39,7 @@
     let title = $derived(name || modeLabel(options?.mode));
     let resolvedEntities = $derived.by(() => {
         if (options?.entityIds && options.entityIds.length > 0) {
-            const manualQuery = { ...options.query, limit: options.query?.limit ?? 12 };
-            const all = resolveEntityQuery(context, manualQuery);
+            const all = resolveEntityQuery(context, { includeHidden: true, includeDiagnostic: true });
             return options.entityIds
                 .map((id) => all.find((item) => item.entityId === id))
                 .filter((item): item is ResolvedEntity => !!item);
@@ -125,7 +124,7 @@
 </script>
 
 <article
-    class="relative h-full w-full rounded-m3-md bg-m3-surface-container-highest text-m3-on-surface overflow-hidden group @container {className}"
+    class="relative h-full w-full rounded-m3-card bg-m3-surface-container-highest text-m3-on-surface overflow-hidden group @container {className}"
     style={`container-type: size;${backgroundColor ? ` background-color: ${backgroundColor};` : ""}`}
 >
     <div class="h-full flex flex-col p-[clamp(0.625rem,4cqmin,1.5rem)] gap-[clamp(0.375rem,3cqmin,1rem)]">

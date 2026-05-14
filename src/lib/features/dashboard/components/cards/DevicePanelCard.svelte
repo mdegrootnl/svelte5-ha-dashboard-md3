@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { cardEditorStore, executeCardAction, getDomain, haStore } from "$lib";
+    import { buildSmartDevicePanelOptions, cardEditorStore, executeCardAction, getDomain, haRegistryStore, haStore } from "$lib";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import type { CardAction, DevicePanelCardOptions } from "$lib/types";
     import IconEdit from "~icons/material-symbols/edit";
@@ -28,10 +28,19 @@
         class: className = "",
     }: Props = $props();
 
-    let targetEntityId = $derived(options?.entityId || entityId || options?.entityIds?.[0] || "");
+    let context = $derived({
+        states: haStore.states,
+        entities: haRegistryStore.entityRegistry,
+        devices: haRegistryStore.deviceRegistry,
+        areas: haRegistryStore.areas,
+        floors: haRegistryStore.floors,
+    });
+
+    let smartOptions = $derived(buildSmartDevicePanelOptions(context, options, entityId));
+    let targetEntityId = $derived(smartOptions.entityId || entityId || smartOptions.entityIds?.[0] || "");
     let entity = $derived(targetEntityId ? haStore.getEntity(targetEntityId) : null);
     let domain = $derived(targetEntityId ? getDomain(targetEntityId) : "");
-    let preset = $derived(options?.preset && options.preset !== "auto" ? options.preset : domain || "device");
+    let preset = $derived(smartOptions.preset && smartOptions.preset !== "auto" ? smartOptions.preset : domain || "device");
 
     function domainIcon(domain: string) {
         switch (domain) {
@@ -88,7 +97,7 @@
         ];
     }
 
-    let actions = $derived(options?.actions && options.actions.length > 0 ? options.actions : defaultActions());
+    let actions = $derived(smartOptions.actions && smartOptions.actions.length > 0 ? smartOptions.actions : defaultActions());
 
     function runAction(action: CardAction, e: Event) {
         e.stopPropagation();
@@ -120,7 +129,7 @@
 </script>
 
 <article
-    class="relative h-full w-full rounded-m3-md bg-m3-surface-container-highest text-m3-on-surface overflow-hidden group @container {className}"
+    class="relative h-full w-full rounded-m3-card bg-m3-surface-container-highest text-m3-on-surface overflow-hidden group @container {className}"
     style={`container-type: size;${backgroundColor ? ` background-color: ${backgroundColor};` : ""}`}
 >
     <div class="h-full flex flex-col p-[clamp(0.625rem,4cqmin,1.5rem)] gap-[clamp(0.375rem,3cqmin,1rem)]">

@@ -249,7 +249,7 @@
     }
 
     const baseStyles =
-        "relative flex flex-col w-full h-full rounded-[var(--radius-m3-md)] bg-m3-surface-container-highest text-m3-on-surface overflow-hidden transition-all duration-200 group";
+        "relative flex flex-col w-full h-full rounded-m3-card bg-m3-surface-container-highest text-m3-on-surface overflow-hidden transition-all duration-200 group";
     // -- Responsive Layout --
     let clientHeight = $state(0);
     const LAYOUT = {

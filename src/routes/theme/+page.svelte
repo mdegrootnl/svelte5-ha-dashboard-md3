@@ -32,6 +32,11 @@
     // Chips selection
     let filterSelected = $state(false);
     let imagePreview = $state<string | null>(null);
+    const cardRadiusPresets = [
+        { label: "Sharp", value: 4 },
+        { label: "Soft", value: 12 },
+        { label: "Round", value: 24 },
+    ];
 
     async function handleImageUpload(e: Event) {
         const input = e.target as HTMLInputElement;
@@ -190,6 +195,51 @@
                 checked={themeStore.isDark}
                 onchange={() => themeStore.toggleDark()}
             />
+        </section>
+
+        <!-- Card Shape -->
+        <section class="flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+                <span class="text-m3-label-large text-m3-on-surface"
+                    >Card Corners</span
+                >
+                <span class="text-m3-body-small text-m3-on-surface-variant"
+                    >{themeStore.cardRadius}px</span
+                >
+            </div>
+            <input
+                type="range"
+                min="0"
+                max="32"
+                step="1"
+                value={themeStore.cardRadius}
+                oninput={(e) =>
+                    themeStore.setCardRadius(
+                        Number((e.currentTarget as HTMLInputElement).value),
+                    )}
+                class="w-full accent-m3-primary"
+                aria-label="Card corner radius"
+            />
+            <div class="grid grid-cols-3 gap-2">
+                {#each cardRadiusPresets as preset}
+                    <button
+                        type="button"
+                        class="h-9 px-3 text-m3-label-medium transition-colors border border-m3-outline-variant bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest {themeStore.cardRadius ===
+                        preset.value
+                            ? 'bg-m3-primary-container text-m3-on-primary-container border-transparent'
+                            : ''}"
+                        style:border-radius={`${preset.value}px`}
+                        onclick={() => themeStore.setCardRadius(preset.value)}
+                    >
+                        {preset.label}
+                    </button>
+                {/each}
+            </div>
+            <div
+                class="h-16 bg-m3-surface-container-highest border border-m3-outline-variant"
+                style:border-radius="var(--radius-m3-card)"
+                use:tooltip={"radius-m3-card"}
+            ></div>
         </section>
 
         <!-- Core Palette Visualization (Mini) -->

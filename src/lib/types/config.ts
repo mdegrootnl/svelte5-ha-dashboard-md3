@@ -13,6 +13,7 @@ export interface ThemeConfig {
     isDark: boolean;
     navigationStyle: 'standard' | 'modern';
     navigationItems: NavigationItem[];
+    cardRadius: number;
 }
 
 export interface MusicLibraryConfig {
@@ -41,6 +42,7 @@ export const DEFAULT_CONFIG: AppConfig = {
         sourceColor: '#6750A4',
         isDark: false,
         navigationStyle: 'standard',
+        cardRadius: 12,
         navigationItems: [
             { id: 'home', label: 'Home', icon: 'home', href: '/' },
             { id: 'dashboard', label: 'Home Dashboard', icon: 'home', href: '/dashboard' },
