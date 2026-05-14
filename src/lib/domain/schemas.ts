@@ -28,8 +28,100 @@ export const DashboardCardTypeSchema = z.enum([
     "title",
     "tabs",
     "graph",
-    "navigation"
+    "navigation",
+    "room",
+    "collection",
+    "energy",
+    "calendar",
+    "weather",
+    "remote",
+    "device_panel"
 ]);
+
+const CardActionSchema = z.object({
+    id: z.string(),
+    label: z.string().optional(),
+    icon: z.string().optional(),
+    entityId: z.string().optional(),
+    domain: z.string().optional(),
+    service: z.string().optional(),
+    serviceData: z.record(z.string(), z.unknown()).optional(),
+    confirmation: z.string().optional(),
+}).passthrough();
+
+const EntityQueryConfigSchema = z.object({
+    domains: z.array(z.string()).optional(),
+    deviceClasses: z.array(z.string()).optional(),
+    areaIds: z.array(z.string()).optional(),
+    floorIds: z.array(z.string()).optional(),
+    labels: z.array(z.string()).optional(),
+    states: z.array(z.string()).optional(),
+    includeHidden: z.boolean().optional(),
+    includeDiagnostic: z.boolean().optional(),
+    limit: z.number().min(1).optional(),
+    sort: z.enum(["name", "domain", "state", "last_changed"]).optional(),
+}).passthrough();
+
+const SmartSourceSchema = z.enum(["auto", "area", "query", "manual"]);
+
+const DashboardCardOptionsSchema = z.object({
+    room: z.object({
+        source: SmartSourceSchema.optional(),
+        areaId: z.string().optional(),
+        floorId: z.string().optional(),
+        entityIds: z.array(z.string()).optional(),
+        query: EntityQueryConfigSchema.optional(),
+        actions: z.array(CardActionSchema).optional(),
+        sections: z.array(z.enum(["lights", "climate", "media", "covers", "sensors", "health"])).optional(),
+    }).passthrough().optional(),
+    collection: z.object({
+        source: SmartSourceSchema.optional(),
+        mode: z.enum(["auto", "lights_on", "low_battery", "unavailable", "updates", "custom"]).optional(),
+        query: EntityQueryConfigSchema.optional(),
+        entityIds: z.array(z.string()).optional(),
+        threshold: z.number().optional(),
+        showState: z.boolean().optional(),
+    }).passthrough().optional(),
+    energy: z.object({
+        source: SmartSourceSchema.optional(),
+        gridImportEntityId: z.string().optional(),
+        gridExportEntityId: z.string().optional(),
+        solarPowerEntityId: z.string().optional(),
+        homePowerEntityId: z.string().optional(),
+        batteryPowerEntityId: z.string().optional(),
+        todayEnergyEntityId: z.string().optional(),
+        gasEntityId: z.string().optional(),
+        waterEntityId: z.string().optional(),
+    }).passthrough().optional(),
+    calendar: z.object({
+        source: SmartSourceSchema.optional(),
+        entityIds: z.array(z.string()).optional(),
+        daysToShow: z.number().min(1).optional(),
+        maxEvents: z.number().min(1).optional(),
+    }).passthrough().optional(),
+    weather: z.object({
+        source: SmartSourceSchema.optional(),
+        weatherEntityId: z.string().optional(),
+        temperatureEntityId: z.string().optional(),
+        humidityEntityId: z.string().optional(),
+        rainEntityId: z.string().optional(),
+        windEntityId: z.string().optional(),
+    }).passthrough().optional(),
+    remote: z.object({
+        source: SmartSourceSchema.optional(),
+        remoteEntityId: z.string().optional(),
+        mediaPlayerEntityId: z.string().optional(),
+        preset: z.enum(["tv", "receiver", "android_tv", "webos", "custom"]).optional(),
+        actions: z.array(CardActionSchema).optional(),
+    }).passthrough().optional(),
+    device_panel: z.object({
+        source: SmartSourceSchema.optional(),
+        preset: z.enum(["auto", "vacuum", "purifier", "fan", "cover", "timer", "todo"]).optional(),
+        entityId: z.string().optional(),
+        entityIds: z.array(z.string()).optional(),
+        actions: z.array(CardActionSchema).optional(),
+    }).passthrough().optional(),
+}).passthrough();
 
 const NavigationShortcutSchema = z.object({
     id: z.string(),
@@ -58,6 +150,7 @@ export const DashboardItemSchema: z.ZodTypeAny = z.lazy(() => z.object({
     alignment: z.enum(["start", "center", "end"]).optional(),
     color: z.string().optional(),
     backgroundColor: z.string().optional(),
+    options: DashboardCardOptionsSchema.optional(),
 
     activeTabIndex: z.number().optional(),
     tabs: z.array(GridConfigSchema).optional(),
@@ -65,6 +158,7 @@ export const DashboardItemSchema: z.ZodTypeAny = z.lazy(() => z.object({
     hours_to_show: z.number().optional(),
     aggregate_func: z.enum(['avg', 'min', 'max', 'last']).optional(),
     graphEntities: z.array(GraphCardEntitySchema).optional(),
+    fetchHistory: z.boolean().optional(),
 
     path: z.string().optional(),
     iconType: z.enum(["icon", "image"]).optional(),

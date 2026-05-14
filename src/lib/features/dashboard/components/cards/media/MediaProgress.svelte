@@ -72,15 +72,15 @@
 </script>
 
 {#if duration > 0}
-    <div class="flex flex-col gap-1.5 w-full">
-        <div class={`w-full h-1 ${trackBg} rounded-full overflow-hidden`}>
+    <div class="flex flex-col gap-[clamp(0.25rem,1.4cqmin,0.5rem)] w-full">
+        <div class={`w-full h-[clamp(0.1875rem,1cqmin,0.375rem)] ${trackBg} rounded-full overflow-hidden`}>
             <div
                 class={`h-full ${progressBg} transition-all duration-300 ease-linear`}
                 style={`width: ${(currentPosition / duration) * 100}%; ${progressStyle}`}
             ></div>
         </div>
         <div
-            class={`flex justify-between text-[10px] font-medium leading-none tabular-nums ${textColor}`}
+            class={`flex justify-between text-[clamp(0.625rem,2.8cqmin,0.875rem)] font-medium leading-none tabular-nums ${textColor}`}
         >
             <span>{formatTime(currentPosition)}</span>
             <span>{formatTime(duration)}</span>

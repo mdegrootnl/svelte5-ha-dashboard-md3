@@ -59,42 +59,58 @@
         }
         return "";
     });
+
+    let gapClass = $derived(
+        compact
+            ? "gap-[clamp(0.125rem,1.5cqmin,0.5rem)]"
+            : "gap-[clamp(0.375rem,4cqmin,1.25rem)]",
+    );
+    let sideButtonSizeClass = $derived(
+        compact
+            ? "size-[clamp(1.5rem,8cqmin,2.5rem)]"
+            : "size-[clamp(2rem,11cqmin,3.5rem)]",
+    );
+    let playButtonSizeClass = $derived(
+        compact
+            ? "size-[clamp(1.875rem,10cqmin,3rem)]"
+            : "size-[clamp(2.5rem,14cqmin,4.25rem)]",
+    );
 </script>
 
 <div
-    class={`flex items-center justify-center ${compact ? "gap-1" : "gap-4"} w-full`}
+    class={`flex items-center justify-center ${gapClass} w-full`}
 >
     <!-- Previous Button -->
     <button
-        class={`rounded-full transition-all ${baseBtnClass} ${compact ? "p-1" : "p-2"}`}
+        class={`rounded-full transition-all flex items-center justify-center ${baseBtnClass} ${sideButtonSizeClass}`}
         style={baseBtnStyle}
         onclick={prevTrack}
         aria-label="Previous Track"
     >
-        <SkipPrevious class={compact ? "w-5 h-5" : "w-7 h-7"} />
+        <SkipPrevious class="size-[58%]" />
     </button>
 
     <!-- Play/Pause Button -->
     <button
-        class={`rounded-full transition-all shadow-sm flex items-center justify-center ${playBtnClass} ${compact ? "p-1.5" : "p-3"}`}
+        class={`rounded-full transition-all shadow-sm flex items-center justify-center ${playBtnClass} ${playButtonSizeClass}`}
         style={playBtnStyle}
         onclick={togglePlay}
         aria-label={isPlaying ? "Pause" : "Play"}
     >
         {#if isPlaying}
-            <Pause class={compact ? "w-6 h-6" : "w-8 h-8"} />
+            <Pause class="size-[58%]" />
         {:else}
-            <PlayArrow class={compact ? "w-6 h-6" : "w-8 h-8"} />
+            <PlayArrow class="size-[58%]" />
         {/if}
     </button>
 
     <!-- Next Button -->
     <button
-        class={`rounded-full transition-all ${baseBtnClass} ${compact ? "p-1" : "p-2"}`}
+        class={`rounded-full transition-all flex items-center justify-center ${baseBtnClass} ${sideButtonSizeClass}`}
         style={baseBtnStyle}
         onclick={nextTrack}
         aria-label="Next Track"
     >
-        <SkipNext class={compact ? "w-5 h-5" : "w-7 h-7"} />
+        <SkipNext class="size-[58%]" />
     </button>
 </div>

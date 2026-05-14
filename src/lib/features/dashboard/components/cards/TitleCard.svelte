@@ -77,7 +77,7 @@
 
 <div
     class="relative flex flex-col {justifyClass} text-start w-full h-full p-1 gap-0.5 rounded-xl group {className} overflow-visible z-10 @container"
-    style:background-color={backgroundColor || ""}
+    style={`container-type: size;${backgroundColor ? ` background-color: ${backgroundColor};` : ""}`}
 >
     <h2
         class="text-[clamp(1.5rem,8cqmin,3rem)] leading-tight whitespace-nowrap"
@@ -96,11 +96,11 @@
 
     <!-- Edit FAB (Visible on Hover in edit mode) -->
     <button
-        class="absolute top-1 right-1 p-1.5 rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-30 hover:brightness-110 pointer-events-auto"
+        class="absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-30 hover:brightness-110 pointer-events-auto"
         onclick={openConfig}
         onpointerdown={(e) => e.stopPropagation()}
         title="Edit Card"
     >
-        <IconEdit class="size-4" />
+        <IconEdit class="size-[clamp(0.875rem,3.5cqmin,1.25rem)]" />
     </button>
 </div>

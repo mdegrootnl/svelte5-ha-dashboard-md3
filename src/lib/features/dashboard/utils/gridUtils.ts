@@ -260,6 +260,7 @@ export function createNewItem(
         iconType: itemConfig.iconType || "icon",
         imageUrl: itemConfig.imageUrl || "",
         icon: itemConfig.icon || "",
-        shortcuts: itemConfig.shortcuts || []
+        shortcuts: itemConfig.shortcuts || [],
+        options: itemConfig.options
     };
 }

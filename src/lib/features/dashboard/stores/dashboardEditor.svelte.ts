@@ -39,10 +39,32 @@ interface ItemCreationConfig {
     imageUrl?: string;
     icon?: string;
     shortcuts?: { id: string; entityId: string; icon?: string; color?: string }[];
+    options?: DashboardItem['options'];
 }
 
 function normalizeAlignment(alignment: unknown): DashboardItem['alignment'] {
     return alignment === 'center' || alignment === 'end' ? alignment : 'start';
+}
+
+function normalizeCardType(type: string | undefined): DashboardCardType {
+    switch (type) {
+        case "thermostat":
+        case "media":
+        case "title":
+        case "tabs":
+        case "graph":
+        case "navigation":
+        case "room":
+        case "collection":
+        case "energy":
+        case "calendar":
+        case "weather":
+        case "remote":
+        case "device_panel":
+            return type;
+        default:
+            return "button";
+    }
 }
 
 /**
@@ -191,13 +213,7 @@ export class DashboardEditorStore {
         if (!context) return;
         const { root, tab: config } = context;
 
-        let cardType: DashboardCardType = "button";
-        if (itemConfig.type === "thermostat") cardType = "thermostat";
-        if (itemConfig.type === "media") cardType = "media";
-        if (itemConfig.type === "title") cardType = "title";
-        if (itemConfig.type === "tabs") cardType = "tabs";
-        if (itemConfig.type === "graph") cardType = "graph";
-        if (itemConfig.type === "navigation") cardType = "navigation";
+        const cardType = normalizeCardType(itemConfig.type);
 
         // Place at the calculated max row for the respective breakpoint
         const desktopRow = getMaxRow(config.items, 'desktop');
@@ -245,7 +261,8 @@ export class DashboardEditorStore {
             iconType: itemConfig.iconType || "icon",
             imageUrl: itemConfig.imageUrl || "",
             icon: itemConfig.icon || "",
-            shortcuts: itemConfig.shortcuts || []
+            shortcuts: itemConfig.shortcuts || [],
+            options: itemConfig.options
         };
 
         config.items.push(newItem);
@@ -784,13 +801,7 @@ export class DashboardEditorStore {
         if (!context) return;
         const { root, tab: config } = context;
 
-        let cardType: DashboardCardType = "button";
-        if (itemConfig.type === "thermostat") cardType = "thermostat";
-        if (itemConfig.type === "media") cardType = "media";
-        if (itemConfig.type === "title") cardType = "title";
-        if (itemConfig.type === "tabs") cardType = "tabs";
-        if (itemConfig.type === "graph") cardType = "graph";
-        if (itemConfig.type === "navigation") cardType = "navigation";
+        const cardType = normalizeCardType(itemConfig.type);
 
         const maxRow = getMaxRow(config.items, 'desktop');
         const newItem = createNewItem(cardType, itemConfig, maxRow);

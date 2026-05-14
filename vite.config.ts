@@ -4,5 +4,10 @@ import Icons from 'unplugin-icons/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-	plugins: [tailwindcss(), sveltekit(), Icons({ compiler: 'svelte' })]
+	plugins: [tailwindcss(), sveltekit(), Icons({ compiler: 'svelte' })],
+	server: {
+		watch: {
+			ignored: ['**/build/**', '**/.svelte-kit/output/**', '**/coverage/**']
+		}
+	}
 });

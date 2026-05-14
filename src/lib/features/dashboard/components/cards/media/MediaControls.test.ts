@@ -79,6 +79,6 @@ describe('MediaControls Component', () => {
         vi.spyOn(haStore, 'getEntity').mockReturnValue(entity as any);
 
         const { container } = render(MediaControls, { props: { entityId: 'media_player.test', compact: true } });
-        expect(container.querySelector('.gap-1')).toBeInTheDocument();
+        expect(container.firstElementChild?.className).toContain('gap-[clamp(0.125rem,1.5cqmin,0.5rem)]');
     });
 });

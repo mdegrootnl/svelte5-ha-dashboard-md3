@@ -15,7 +15,120 @@ export interface GridTrack {
 /**
  * Card types that can be rendered in the grid
  */
-export type DashboardCardType = "button" | "media" | "thermostat" | "title" | "tabs" | "graph" | "navigation";
+export type DashboardCardType =
+    | "button"
+    | "media"
+    | "thermostat"
+    | "title"
+    | "tabs"
+    | "graph"
+    | "navigation"
+    | "room"
+    | "collection"
+    | "energy"
+    | "calendar"
+    | "weather"
+    | "remote"
+    | "device_panel";
+
+export type SmartSourceConfig = "auto" | "area" | "query" | "manual";
+
+export interface CardAction {
+    id: string;
+    label?: string;
+    icon?: string;
+    entityId?: string;
+    domain?: string;
+    service?: string;
+    serviceData?: Record<string, unknown>;
+    confirmation?: string;
+}
+
+export interface EntityQueryConfig {
+    domains?: string[];
+    deviceClasses?: string[];
+    areaIds?: string[];
+    floorIds?: string[];
+    labels?: string[];
+    states?: string[];
+    includeHidden?: boolean;
+    includeDiagnostic?: boolean;
+    limit?: number;
+    sort?: "name" | "domain" | "state" | "last_changed";
+}
+
+export interface RoomCardOptions {
+    source?: SmartSourceConfig;
+    areaId?: string;
+    floorId?: string;
+    entityIds?: string[];
+    query?: EntityQueryConfig;
+    actions?: CardAction[];
+    sections?: Array<"lights" | "climate" | "media" | "covers" | "sensors" | "health">;
+}
+
+export interface CollectionCardOptions {
+    source?: SmartSourceConfig;
+    mode?: "auto" | "lights_on" | "low_battery" | "unavailable" | "updates" | "custom";
+    query?: EntityQueryConfig;
+    entityIds?: string[];
+    threshold?: number;
+    showState?: boolean;
+}
+
+export interface EnergyCardOptions {
+    source?: SmartSourceConfig;
+    gridImportEntityId?: string;
+    gridExportEntityId?: string;
+    solarPowerEntityId?: string;
+    homePowerEntityId?: string;
+    batteryPowerEntityId?: string;
+    todayEnergyEntityId?: string;
+    gasEntityId?: string;
+    waterEntityId?: string;
+}
+
+export interface CalendarCardOptions {
+    source?: SmartSourceConfig;
+    entityIds?: string[];
+    daysToShow?: number;
+    maxEvents?: number;
+}
+
+export interface WeatherCardOptions {
+    source?: SmartSourceConfig;
+    weatherEntityId?: string;
+    temperatureEntityId?: string;
+    humidityEntityId?: string;
+    rainEntityId?: string;
+    windEntityId?: string;
+}
+
+export interface RemoteCardOptions {
+    source?: SmartSourceConfig;
+    remoteEntityId?: string;
+    mediaPlayerEntityId?: string;
+    preset?: "tv" | "receiver" | "android_tv" | "webos" | "custom";
+    actions?: CardAction[];
+}
+
+export interface DevicePanelCardOptions {
+    source?: SmartSourceConfig;
+    preset?: "auto" | "vacuum" | "purifier" | "fan" | "cover" | "timer" | "todo";
+    entityId?: string;
+    entityIds?: string[];
+    actions?: CardAction[];
+}
+
+export interface DashboardCardOptions {
+    room?: RoomCardOptions;
+    collection?: CollectionCardOptions;
+    energy?: EnergyCardOptions;
+    calendar?: CalendarCardOptions;
+    weather?: WeatherCardOptions;
+    remote?: RemoteCardOptions;
+    device_panel?: DevicePanelCardOptions;
+}
 
 /**
  * Layout definition for a specific breakpoint
@@ -64,6 +177,8 @@ export interface DashboardItem {
     color?: string;
     /** Background color for the card (CSS variable) */
     backgroundColor?: string;
+    /** Typed card-specific configuration for newer card families */
+    options?: DashboardCardOptions;
 
     /** Tab Card Properties */
     activeTabIndex?: number;
@@ -73,6 +188,8 @@ export interface DashboardItem {
     hours_to_show?: number;
     aggregate_func?: "avg" | "min" | "max" | "last";
     graphEntities?: GraphCardEntity[];
+    /** Disable live HA history calls for static/demo graph surfaces. */
+    fetchHistory?: boolean;
 
     /** Navigation Card Properties */
     path?: string;
@@ -224,12 +341,36 @@ export function createDefaultItemLayout(
     cardSize: 'condensed' | 'standard' | 'poster' = 'standard'
 ): ResponsiveLayout {
     // Size based on card type
-    const desktopSpan = (cardType === "button" || cardType === "navigation") ? 2 : (cardType === "thermostat" || cardType === "title") ? 4 : 6;
-    const mobileSpan = (cardType === "button" || cardType === "graph" || cardType === "navigation") ? 2 : 4;
+    const desktopSpan = (
+        cardType === "button" ||
+        cardType === "navigation" ||
+        cardType === "collection" ||
+        cardType === "weather" ||
+        cardType === "remote"
+    ) ? 2 : (
+        cardType === "thermostat" ||
+        cardType === "title" ||
+        cardType === "calendar" ||
+        cardType === "device_panel"
+    ) ? 4 : 6;
+    const mobileSpan = (
+        cardType === "button" ||
+        cardType === "graph" ||
+        cardType === "navigation" ||
+        cardType === "collection" ||
+        cardType === "weather" ||
+        cardType === "remote"
+    ) ? 2 : 4;
 
     // Row span based on card size
     // Graph cards default to 2x spans if not specified
-    const rowSpan = cardType === "graph" ? 2 : (cardSize === 'condensed' ? 1 : cardSize === 'standard' ? 2 : 3);
+    const rowSpan = (
+        cardType === "graph" ||
+        cardType === "room" ||
+        cardType === "energy" ||
+        cardType === "calendar" ||
+        cardType === "device_panel"
+    ) ? 2 : (cardSize === 'condensed' ? 1 : cardSize === 'standard' ? 2 : 3);
 
     return {
         desktop: {

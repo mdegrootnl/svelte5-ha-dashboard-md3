@@ -9,6 +9,13 @@
     import TitleCard from "$lib/features/dashboard/components/cards/TitleCard.svelte";
     import GraphCard from "$lib/features/dashboard/components/cards/GraphCard.svelte";
     import NavigationCard from "$lib/features/dashboard/components/cards/NavigationCard.svelte";
+    import RoomSummaryCard from "$lib/features/dashboard/components/cards/RoomSummaryCard.svelte";
+    import EntityCollectionCard from "$lib/features/dashboard/components/cards/EntityCollectionCard.svelte";
+    import EnergyFlowCard from "$lib/features/dashboard/components/cards/EnergyFlowCard.svelte";
+    import CalendarAgendaCard from "$lib/features/dashboard/components/cards/CalendarAgendaCard.svelte";
+    import WeatherOverviewCard from "$lib/features/dashboard/components/cards/WeatherOverviewCard.svelte";
+    import RemotePanelCard from "$lib/features/dashboard/components/cards/RemotePanelCard.svelte";
+    import DevicePanelCard from "$lib/features/dashboard/components/cards/DevicePanelCard.svelte";
     import IconLightbulb from "~icons/material-symbols/lightbulb";
     import IconThermostat from "~icons/material-symbols/thermostat";
     import IconDevices from "~icons/material-symbols/devices";
@@ -27,23 +34,13 @@
     import ImagePicker from "$lib/components/settings/ImagePicker.svelte";
     import RoutePicker from "$lib/components/md3/RoutePicker.svelte";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
-    import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
-    import { getDomain, getEntityName } from "$lib/utils/entity";
-    import { generateUUID } from "$lib/utils/uuid";
+    import { getDomain } from "$lib/utils/entity";
     import type {
-        ThermostatCardConfig,
         CardSize,
         GraphCardEntity,
         NavigationCardShortcut,
     } from "$lib/types";
-
-    function handleDelete() {
-        if (cardEditorStore.config.id) {
-            dashboardEditorStore.deleteItem(cardEditorStore.config.id);
-            cardEditorStore.close();
-        }
-    }
 
     // Computed proxy for cleaner access
     let open = $derived(cardEditorStore.mode === "config");
@@ -61,7 +58,14 @@
             | "title"
             | "tabs"
             | "graph"
-            | "navigation";
+            | "navigation"
+            | "room"
+            | "collection"
+            | "energy"
+            | "calendar"
+            | "weather"
+            | "remote"
+            | "device_panel";
         secondaryEntityId: string;
         secondaryName: string;
         domainFilter?: string;
@@ -79,6 +83,7 @@
         imageUrl: string;
         icon: string;
         shortcuts: NavigationCardShortcut[];
+        options: Record<string, any>;
     }>({
         entityId: "",
         name: "",
@@ -98,6 +103,7 @@
         imageUrl: "",
         icon: "",
         shortcuts: [],
+        options: {},
     });
 
     // Get current entity domain for icon display
@@ -118,6 +124,43 @@
     let isNavigationCard = $derived(
         cardEditorStore.config?.type === "navigation",
     );
+    let isRoomCard = $derived(cardEditorStore.config?.type === "room");
+    let isCollectionCard = $derived(cardEditorStore.config?.type === "collection");
+    let isEnergyCard = $derived(cardEditorStore.config?.type === "energy");
+    let isCalendarCard = $derived(cardEditorStore.config?.type === "calendar");
+    let isWeatherCard = $derived(cardEditorStore.config?.type === "weather");
+    let isRemoteCard = $derived(cardEditorStore.config?.type === "remote");
+    let isDevicePanelCard = $derived(cardEditorStore.config?.type === "device_panel");
+    let isSmartCard = $derived(
+        isRoomCard ||
+            isCollectionCard ||
+            isEnergyCard ||
+            isCalendarCard ||
+            isWeatherCard ||
+            isRemoteCard ||
+            isDevicePanelCard,
+    );
+
+    $effect(() => {
+        if (!open) return;
+        if (isRoomCard) tempConfig.options.room ??= { source: "auto" };
+        if (isCollectionCard) {
+            tempConfig.options.collection ??= { mode: "auto", showState: true };
+        }
+        if (isEnergyCard) tempConfig.options.energy ??= { source: "auto" };
+        if (isCalendarCard) {
+            tempConfig.options.calendar ??= {
+                source: "auto",
+                daysToShow: 7,
+                maxEvents: 4,
+            };
+        }
+        if (isWeatherCard) tempConfig.options.weather ??= { source: "auto" };
+        if (isRemoteCard) tempConfig.options.remote ??= { preset: "tv" };
+        if (isDevicePanelCard) {
+            tempConfig.options.device_panel ??= { preset: "auto" };
+        }
+    });
 
     // Sync when opening
     $effect(() => {
@@ -147,6 +190,7 @@
                 shortcuts: JSON.parse(
                     JSON.stringify((config as any).shortcuts || []),
                 ),
+                options: JSON.parse(JSON.stringify((config as any).options || {})),
             };
         }
     });
@@ -157,6 +201,13 @@
         if (isTabCard) return IconViewModule;
         if (isGraphCard) return IconShowChart;
         if (isNavigationCard) return IconLink;
+        if (isRoomCard) return IconViewModule;
+        if (isCollectionCard) return IconSensors;
+        if (isEnergyCard) return IconShowChart;
+        if (isCalendarCard) return IconHdrAuto;
+        if (isWeatherCard) return IconDevices;
+        if (isRemoteCard) return IconPlayCircle;
+        if (isDevicePanelCard) return IconDevices;
 
         switch (domain) {
             case "light":
@@ -182,6 +233,13 @@
         if (isMediaCard) return "play_circle";
         if (isGraphCard) return "show_chart";
         if (isNavigationCard) return "explore";
+        if (isRoomCard) return "meeting_room";
+        if (isCollectionCard) return "filter_alt";
+        if (isEnergyCard) return "electric_bolt";
+        if (isCalendarCard) return "calendar_month";
+        if (isWeatherCard) return "partly_cloudy_day";
+        if (isRemoteCard) return "settings_remote";
+        if (isDevicePanelCard) return "developer_board";
         if (isTitleCard) return "title";
         if (isTabCard) return "view_module";
 
@@ -202,10 +260,29 @@
         }
     });
 
+    function normalizeOptions() {
+        const options = tempConfig.options || {};
+        if (isRoomCard && !options.room) options.room = { source: "auto" };
+        if (isCollectionCard && !options.collection) {
+            options.collection = { mode: "auto", showState: true };
+        }
+        if (isEnergyCard && !options.energy) options.energy = { source: "auto" };
+        if (isCalendarCard && !options.calendar) {
+            options.calendar = { source: "auto", daysToShow: 7, maxEvents: 4 };
+        }
+        if (isWeatherCard && !options.weather) options.weather = { source: "auto" };
+        if (isRemoteCard && !options.remote) options.remote = { preset: "tv" };
+        if (isDevicePanelCard && !options.device_panel) {
+            options.device_panel = { preset: "auto" };
+        }
+        return options;
+    }
+
     function handleSave() {
         const finalConfig = {
             ...cardEditorStore.config,
             ...tempConfig,
+            options: normalizeOptions(),
         };
         cardEditorStore.save(finalConfig);
     }
@@ -229,7 +306,21 @@
             ? "Edit Tab Card"
             : isGraphCard
               ? "Edit Graph Card"
-              : "Edit Card"}
+              : isRoomCard
+                ? "Edit Room Card"
+                : isCollectionCard
+                  ? "Edit Collection Card"
+                  : isEnergyCard
+                    ? "Edit Energy Card"
+                    : isCalendarCard
+                      ? "Edit Calendar Card"
+                      : isWeatherCard
+                        ? "Edit Weather Card"
+                        : isRemoteCard
+                          ? "Edit Remote Card"
+                          : isDevicePanelCard
+                            ? "Edit Device Panel"
+                            : "Edit Card"}
     subtitle={tempConfig.name || "Configure card settings"}
     icon={CurrentIcon}
     {showBack}
@@ -238,7 +329,7 @@
 >
     <div class="flex flex-col gap-4 pb-64">
         <!-- Card Size Selector (Hidden for Title, Tab, and Navigation Card) -->
-        {#if !isTitleCard && !isTabCard && !isNavigationCard}
+        {#if !isTitleCard && !isTabCard && !isNavigationCard && !isSmartCard}
             <div class="flex flex-col gap-2">
                 <span class="text-m3-label-medium text-m3-on-surface-variant"
                     >Card Size</span
@@ -309,7 +400,8 @@
                         ? '80px'
                         : tempConfig.cardSize === 'standard' ||
                             isTitleCard ||
-                            isNavigationCard
+                            isNavigationCard ||
+                            isSmartCard
                           ? '170px'
                           : '280px'};"
                 >
@@ -333,6 +425,69 @@
                             imageUrl={tempConfig.imageUrl}
                             color={tempConfig.color}
                             backgroundColor={tempConfig.backgroundColor}
+                        />
+                    {:else if isRoomCard}
+                        <RoomSummaryCard
+                            entityId={tempConfig.entityId}
+                            name={tempConfig.name}
+                            icon={tempConfig.icon}
+                            color={tempConfig.color}
+                            backgroundColor={tempConfig.backgroundColor}
+                            options={tempConfig.options.room || { source: "auto" }}
+                        />
+                    {:else if isCollectionCard}
+                        <EntityCollectionCard
+                            entityId={tempConfig.entityId}
+                            name={tempConfig.name}
+                            icon={tempConfig.icon}
+                            color={tempConfig.color}
+                            backgroundColor={tempConfig.backgroundColor}
+                            options={tempConfig.options.collection || { mode: "auto", showState: true }}
+                        />
+                    {:else if isEnergyCard}
+                        <EnergyFlowCard
+                            entityId={tempConfig.entityId}
+                            name={tempConfig.name}
+                            icon={tempConfig.icon}
+                            color={tempConfig.color}
+                            backgroundColor={tempConfig.backgroundColor}
+                            options={tempConfig.options.energy || { source: "auto" }}
+                        />
+                    {:else if isCalendarCard}
+                        <CalendarAgendaCard
+                            entityId={tempConfig.entityId}
+                            name={tempConfig.name}
+                            icon={tempConfig.icon}
+                            color={tempConfig.color}
+                            backgroundColor={tempConfig.backgroundColor}
+                            options={tempConfig.options.calendar || { source: "auto", daysToShow: 7, maxEvents: 4 }}
+                        />
+                    {:else if isWeatherCard}
+                        <WeatherOverviewCard
+                            entityId={tempConfig.entityId}
+                            name={tempConfig.name}
+                            icon={tempConfig.icon}
+                            color={tempConfig.color}
+                            backgroundColor={tempConfig.backgroundColor}
+                            options={tempConfig.options.weather || { source: "auto" }}
+                        />
+                    {:else if isRemoteCard}
+                        <RemotePanelCard
+                            entityId={tempConfig.entityId}
+                            name={tempConfig.name}
+                            icon={tempConfig.icon}
+                            color={tempConfig.color}
+                            backgroundColor={tempConfig.backgroundColor}
+                            options={tempConfig.options.remote || { preset: "tv" }}
+                        />
+                    {:else if isDevicePanelCard}
+                        <DevicePanelCard
+                            entityId={tempConfig.entityId}
+                            name={tempConfig.name}
+                            icon={tempConfig.icon}
+                            color={tempConfig.color}
+                            backgroundColor={tempConfig.backgroundColor}
+                            options={tempConfig.options.device_panel || { preset: "auto" }}
                         />
                     {:else if isMediaCard}
                         <MediaCard
@@ -509,7 +664,7 @@
                 </div>
             </div>
             <!-- Entity ID with autocomplete (Hidden for Title, Tab, and Navigation Card) -->
-            {#if !isTitleCard && !isTabCard && !isNavigationCard}
+            {#if !isTitleCard && !isTabCard && !isNavigationCard && !isRoomCard && !isCollectionCard}
                 <EntityPicker
                     label="Entity ID"
                     placeholder={isThermostatCard
@@ -777,6 +932,114 @@
                             </p>
                         {/if}
                     </div>
+                </div>
+            {/if}
+
+            {#if isSmartCard}
+                <div
+                    class="flex flex-col gap-4 border-t border-m3-outline-variant/30 pt-4 mt-2"
+                >
+                    {#if isRoomCard}
+                        <TextField
+                            variant="outlined"
+                            label="Area ID"
+                            placeholder="living_room"
+                            bind:value={tempConfig.options.room.areaId}
+                            class="w-full"
+                        />
+                    {/if}
+
+                    {#if isCollectionCard}
+                        <div class="flex flex-col gap-2">
+                            <span
+                                class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                                >Collection Mode</span
+                            >
+                            <div
+                                class="grid grid-cols-2 gap-1 rounded-m3-md bg-m3-surface-container-highest p-1"
+                            >
+                                {#each ["auto", "lights_on", "low_battery", "unavailable", "updates", "custom"] as mode}
+                                    <button
+                                        class="py-2 px-3 rounded-m3-sm text-m3-label-medium transition-all {tempConfig
+                                            .options.collection?.mode === mode
+                                            ? 'bg-m3-secondary-container text-m3-on-secondary-container'
+                                            : 'text-m3-on-surface-variant hover:bg-m3-on-surface/5'}"
+                                        onclick={() => {
+                                            tempConfig.options.collection ??= {};
+                                            tempConfig.options.collection.mode =
+                                                mode;
+                                        }}
+                                    >
+                                        {mode.replace("_", " ")}
+                                    </button>
+                                {/each}
+                            </div>
+                        </div>
+                    {/if}
+
+                    {#if isCalendarCard}
+                        <div class="grid grid-cols-2 gap-3">
+                            <TextField
+                                variant="outlined"
+                                label="Days"
+                                type="number"
+                                value={(tempConfig.options.calendar?.daysToShow ?? 7).toString()}
+                                oninput={(e: Event) => {
+                                    tempConfig.options.calendar ??= {};
+                                    tempConfig.options.calendar.daysToShow =
+                                        parseInt(
+                                            (
+                                                e.target as HTMLInputElement
+                                            ).value,
+                                        ) || 7;
+                                }}
+                            />
+                            <TextField
+                                variant="outlined"
+                                label="Max Events"
+                                type="number"
+                                value={(tempConfig.options.calendar?.maxEvents ?? 4).toString()}
+                                oninput={(e: Event) => {
+                                    tempConfig.options.calendar ??= {};
+                                    tempConfig.options.calendar.maxEvents =
+                                        parseInt(
+                                            (
+                                                e.target as HTMLInputElement
+                                            ).value,
+                                        ) || 4;
+                                }}
+                            />
+                        </div>
+                    {/if}
+
+                    {#if isDevicePanelCard}
+                        <div class="flex flex-col gap-2">
+                            <span
+                                class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                                >Panel Preset</span
+                            >
+                            <div
+                                class="grid grid-cols-2 gap-1 rounded-m3-md bg-m3-surface-container-highest p-1"
+                            >
+                                {#each ["auto", "cover", "fan", "vacuum", "purifier", "timer", "todo"] as preset}
+                                    <button
+                                        class="py-2 px-3 rounded-m3-sm text-m3-label-medium transition-all {tempConfig
+                                            .options.device_panel?.preset ===
+                                        preset
+                                            ? 'bg-m3-secondary-container text-m3-on-secondary-container'
+                                            : 'text-m3-on-surface-variant hover:bg-m3-on-surface/5'}"
+                                        onclick={() => {
+                                            tempConfig.options.device_panel ??= {};
+                                            tempConfig.options.device_panel.preset =
+                                                preset;
+                                        }}
+                                    >
+                                        {preset.replace("_", " ")}
+                                    </button>
+                                {/each}
+                            </div>
+                        </div>
+                    {/if}
                 </div>
             {/if}
 

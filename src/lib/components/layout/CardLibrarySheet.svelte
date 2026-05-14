@@ -9,6 +9,14 @@
     import IconSensors from "~icons/material-symbols/sensors";
     import IconPlayCircle from "~icons/material-symbols/play-circle";
     import IconLink from "~icons/material-symbols/link";
+    import IconRoom from "~icons/material-symbols/meeting-room";
+    import IconFilterAlt from "~icons/material-symbols/filter-alt";
+    import IconBolt from "~icons/material-symbols/electric-bolt";
+    import IconCalendar from "~icons/material-symbols/calendar-month";
+    import IconWeather from "~icons/material-symbols/partly-cloudy-day";
+    import IconRemote from "~icons/material-symbols/settings-remote";
+    import IconDevicePanel from "~icons/material-symbols/developer-board";
+    import IconShowChart from "~icons/material-symbols/show-chart";
 
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import type { CardConfig } from "$lib/types";
@@ -73,9 +81,56 @@
             icon: IconLink,
             domain: "",
         },
+        {
+            type: "room",
+            name: "Room",
+            description: "Area summary with smart controls",
+            icon: IconRoom,
+            domain: "",
+        },
+        {
+            type: "collection",
+            name: "Collection",
+            description: "Auto entity lists and status views",
+            icon: IconFilterAlt,
+            domain: "",
+        },
+        {
+            type: "energy",
+            name: "Energy",
+            description: "Solar, grid, home, and usage overview",
+            icon: IconBolt,
+            domain: "sensor",
+        },
+        {
+            type: "calendar",
+            name: "Calendar",
+            description: "Agenda from calendar entities",
+            icon: IconCalendar,
+            domain: "calendar",
+        },
+        {
+            type: "weather",
+            name: "Weather",
+            description: "Weather, rain, wind, and outdoor sensors",
+            icon: IconWeather,
+            domain: "weather",
+        },
+        {
+            type: "remote",
+            name: "Remote",
+            description: "TV and media remote controls",
+            icon: IconRemote,
+            domain: "media_player",
+        },
+        {
+            type: "device_panel",
+            name: "Device Panel",
+            description: "Specialist cover, fan, vacuum, and timer controls",
+            icon: IconDevicePanel,
+            domain: "",
+        },
     ];
-
-    import IconShowChart from "~icons/material-symbols/show-chart";
 
     function handleSelect(cardType: any) {
         // Create initial config for the selected type
@@ -85,20 +140,35 @@
             domainFilter: cardType.domain,
             // Use 'button' for light/switch, specific types for others
             // Mapping needs to match what GridItem expects
-            type:
-                cardType.type === "thermostat" ||
-                cardType.type === "media" ||
-                cardType.type === "title" ||
-                cardType.type === "tabs" ||
-                cardType.type === "graph" ||
-                cardType.type === "navigation"
-                    ? cardType.type
-                    : "button",
+            type: [
+                "thermostat",
+                "media",
+                "title",
+                "tabs",
+                "graph",
+                "navigation",
+                "room",
+                "collection",
+                "energy",
+                "calendar",
+                "weather",
+                "remote",
+                "device_panel",
+            ].includes(cardType.type)
+                ? cardType.type
+                : "button",
         };
 
         if (cardType.type === "tabs") {
             initialConfig.tabs = [createDefaultGridConfig("Tab 1")];
         }
+        if (cardType.type === "room") initialConfig.options = { room: { source: "auto" } };
+        if (cardType.type === "collection") initialConfig.options = { collection: { mode: "auto", showState: true } };
+        if (cardType.type === "energy") initialConfig.options = { energy: { source: "auto" } };
+        if (cardType.type === "calendar") initialConfig.options = { calendar: { source: "auto", daysToShow: 7, maxEvents: 4 } };
+        if (cardType.type === "weather") initialConfig.options = { weather: { source: "auto" } };
+        if (cardType.type === "remote") initialConfig.options = { remote: { preset: "tv" } };
+        if (cardType.type === "device_panel") initialConfig.options = { device_panel: { preset: "auto" } };
 
         // Capture the save handler defined when opening the library
         // We must capture it NOW, because when we call openConfig(), cardEditorStore.config will be overwritten

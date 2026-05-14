@@ -121,10 +121,10 @@
 <div
     class={`flex flex-col w-full shadow-sm transition-all ${containerClass} rounded-[var(--radius-m3-md)] relative group h-full @container`}
     bind:clientHeight
-    style={backgroundColor &&
+    style={`container-type: size;${backgroundColor &&
     (isOff || effectiveBackground !== "immersive" || !artworkSrc)
-        ? `background-color: ${backgroundColor};`
-        : ""}
+        ? ` background-color: ${backgroundColor};`
+        : ""}`}
 >
     <!-- Immersive Background -->
     {#if effectiveBackground === "immersive" && artworkSrc && !isOff}
@@ -146,11 +146,11 @@
         {#if effectiveVariant === "condensed"}
             <!-- Compact Off State (Horizontal) -->
             <div
-                class="flex items-center justify-between w-full h-full px-4 z-10 relative"
+                class="flex items-center justify-between w-full h-full px-[clamp(0.75rem,4cqmin,1.5rem)] z-10 relative"
             >
-                <div class="flex items-center gap-3 min-w-0">
+                <div class="flex items-center gap-[clamp(0.5rem,3cqmin,1rem)] min-w-0">
                     <div
-                        class="size-8 flex items-center justify-center shrink-0"
+                        class="size-[clamp(1.75rem,9cqmin,3rem)] flex items-center justify-center shrink-0"
                     >
                         <DynamicIcon
                             name={iconProp || "power_off"}
@@ -169,7 +169,7 @@
                     </div>
                 </div>
                 <button
-                    class="px-4 py-1.5 rounded-full hover:shadow-md transition-all text-sm font-medium shrink-0 ml-2"
+                    class="px-[clamp(0.625rem,3cqmin,1rem)] py-[clamp(0.25rem,1.5cqmin,0.5rem)] rounded-full hover:shadow-md transition-all text-[clamp(0.75rem,3cqmin,0.9375rem)] font-medium shrink-0 ml-[clamp(0.25rem,2cqmin,0.75rem)]"
                     style:background-color={color || "var(--color-m3-primary)"}
                     style:color={color ? "white" : "var(--color-m3-on-primary)"}
                     onclick={turnOn}
@@ -180,9 +180,9 @@
         {:else}
             <!-- Standard Off State (Vertical) -->
             <div
-                class="flex flex-col items-center justify-center h-full gap-4 z-10 relative p-4"
+                class="flex flex-col items-center justify-center h-full gap-[clamp(0.5rem,4cqmin,1.5rem)] z-10 relative p-[clamp(0.75rem,4cqmin,1.5rem)]"
             >
-                <div class="size-12 flex items-center justify-center">
+                <div class="size-[clamp(2.25rem,13cqmin,4rem)] flex items-center justify-center">
                     <DynamicIcon
                         name={iconProp || "power_off"}
                         class="size-full text-m3-on-surface-variant opacity-50"
@@ -201,7 +201,7 @@
                     </p>
                 </div>
                 <button
-                    class="px-6 py-2 rounded-full hover:shadow-lg transition-all font-medium"
+                    class="px-[clamp(0.875rem,4cqmin,1.5rem)] py-[clamp(0.375rem,2cqmin,0.75rem)] rounded-full hover:shadow-lg transition-all font-medium text-[clamp(0.8125rem,3.2cqmin,1rem)]"
                     style:background-color={color || "var(--color-m3-primary)"}
                     style:color={color ? "white" : "var(--color-m3-on-primary)"}
                     onclick={turnOn}
@@ -214,29 +214,29 @@
         <!-- Poster Variant: Artwork with overlay content -->
         <div class="relative z-10 flex flex-col h-full">
             <!-- Header with Entity Name -->
-            <div class="pt-4 px-4 text-center">
+            <div class="pt-[clamp(0.625rem,3cqmin,1.25rem)] px-[clamp(0.75rem,4cqmin,1.5rem)] text-center">
                 <p
-                    class={`text-[10px] uppercase tracking-widest leading-none ${currentTheme === "dark" ? "text-white/60" : "text-m3-on-surface-variant"}`}
+                    class={`text-[clamp(0.625rem,2.6cqmin,0.8125rem)] uppercase tracking-widest leading-none ${currentTheme === "dark" ? "text-white/60" : "text-m3-on-surface-variant"}`}
                 >
                     {entityName}
                 </p>
             </div>
 
             <!-- Artwork Area -->
-            <div class="flex-1 flex items-center justify-center p-2 min-h-0">
+            <div class="flex-1 flex items-center justify-center p-[clamp(0.375rem,2cqmin,0.875rem)] min-h-0">
                 {#if artworkSrc}
                     <AuthenticatedImage
                         src={artworkSrc}
                         alt="Cover"
-                        class="h-full max-h-[200px] aspect-square rounded-[var(--radius-m3-md)] object-cover shadow-2xl"
+                        class="h-full max-h-[70cqmin] aspect-square rounded-[var(--radius-m3-md)] object-cover shadow-2xl"
                     />
                 {:else}
                     <div
-                        class="h-full max-h-[160px] aspect-square rounded-[var(--radius-m3-md)] bg-m3-on-surface/5 flex items-center justify-center border border-m3-on-surface/5"
+                        class="h-full max-h-[62cqmin] aspect-square rounded-[var(--radius-m3-md)] bg-m3-on-surface/5 flex items-center justify-center border border-m3-on-surface/5"
                     >
                         <DynamicIcon
                             name={iconProp || "music_note"}
-                            class="w-12 h-12 text-m3-on-surface-variant opacity-30"
+                            class="size-[38%] text-m3-on-surface-variant opacity-30"
                         />
                     </div>
                 {/if}
@@ -244,26 +244,26 @@
 
             <!-- Metadata and Controls -->
             <div
-                class={`p-3 pt-0 ${currentTheme === "dark" ? "text-white" : "text-m3-on-surface"}`}
+                class={`p-[clamp(0.625rem,3cqmin,1.25rem)] pt-0 ${currentTheme === "dark" ? "text-white" : "text-m3-on-surface"}`}
             >
-                <div class="mb-2">
+                <div class="mb-[clamp(0.25rem,2cqmin,0.75rem)]">
                     <h3
-                        class="text-m3-title-medium truncate font-bold text-center leading-tight"
+                        class="text-[clamp(0.875rem,4cqmin,1.25rem)] truncate font-bold text-center leading-tight"
                     >
                         {title}
                     </h3>
                     <p
-                        class={`text-m3-body-small truncate text-center ${currentTheme === "dark" ? "text-white/70" : "text-m3-on-surface-variant"}`}
+                        class={`text-[clamp(0.75rem,3cqmin,0.9375rem)] truncate text-center ${currentTheme === "dark" ? "text-white/70" : "text-m3-on-surface-variant"}`}
                     >
                         {artist || "Idle"}
                     </p>
                 </div>
 
-                <div class="mb-2">
+                <div class="mb-[clamp(0.25rem,2cqmin,0.75rem)]">
                     <MediaProgress {entityId} theme={currentTheme} {color} />
                 </div>
 
-                <div class="mb-2">
+                <div class="mb-[clamp(0.25rem,2cqmin,0.75rem)]">
                     <MediaControls {entityId} theme={currentTheme} {color} />
                 </div>
 
@@ -317,23 +317,23 @@
         </div>
     {:else}
         <!-- Standard Variant: Row layout -->
-        <div class="flex flex-col h-full p-3 gap-1 overflow-hidden">
-            <div class="flex items-start gap-3">
+        <div class="flex flex-col h-full p-[clamp(0.625rem,3.5cqmin,1.25rem)] gap-[clamp(0.25rem,1.5cqmin,0.625rem)] overflow-hidden">
+            <div class="flex items-start gap-[clamp(0.5rem,3cqmin,1rem)]">
                 {#if artworkSrc}
                     <div class="relative group">
                         <AuthenticatedImage
                             src={artworkSrc}
                             alt="Cover"
-                            class="h-14 w-14 rounded-[var(--radius-m3-md)] object-cover shadow-md shrink-0"
+                            class="size-[clamp(3rem,15cqmin,5.5rem)] rounded-[var(--radius-m3-md)] object-cover shadow-md shrink-0"
                         />
                     </div>
                 {:else}
                     <div
-                        class="h-14 w-14 rounded-[var(--radius-m3-md)] bg-m3-surface-container-highest flex items-center justify-center shrink-0 border border-m3-outline-variant/10"
+                        class="size-[clamp(3rem,15cqmin,5.5rem)] rounded-[var(--radius-m3-md)] bg-m3-surface-container-highest flex items-center justify-center shrink-0 border border-m3-outline-variant/10"
                     >
                         <DynamicIcon
                             name={iconProp || "music_note"}
-                            class="w-7 h-7 text-m3-on-surface-variant opacity-40"
+                            class="size-[50%] text-m3-on-surface-variant opacity-40"
                         />
                     </div>
                 {/if}
@@ -357,7 +357,7 @@
                 </div>
             </div>
 
-            <div class="flex flex-col gap-1 mt-auto">
+            <div class="flex flex-col gap-[clamp(0.25rem,1.5cqmin,0.625rem)] mt-auto">
                 {#if clientHeight >= 200}
                     <MediaProgress {entityId} {color} />
                 {/if}
@@ -369,11 +369,11 @@
 
     <!-- Edit FAB -->
     <button
-        class="absolute top-2 right-2 p-1.5 rounded-full bg-m3-primary/10 text-m3-primary shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-50 hover:bg-m3-primary hover:text-m3-on-primary backdrop-blur-sm"
+        class="absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary/10 text-m3-primary shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-50 hover:bg-m3-primary hover:text-m3-on-primary backdrop-blur-sm"
         onclick={openConfig}
         onpointerdown={(e) => e.stopPropagation()}
         title="Edit Card"
     >
-        <IconEdit class="w-4 h-4" />
+        <IconEdit class="size-[clamp(0.875rem,3.5cqmin,1.25rem)]" />
     </button>
 </div>

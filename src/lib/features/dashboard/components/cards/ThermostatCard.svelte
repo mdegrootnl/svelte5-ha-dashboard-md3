@@ -285,7 +285,7 @@
 <div
     class="relative flex flex-col w-full h-full rounded-[var(--radius-m3-md)] bg-m3-surface-container overflow-hidden shadow-sm group {className} @container"
     bind:clientHeight
-    style:background-color={backgroundColor || ""}
+    style={`container-type: size;${backgroundColor ? ` background-color: ${backgroundColor};` : ""}`}
 >
     <!-- Background Graph (Visible when NOT expanded) -->
     {#if !isExpanded}
@@ -301,12 +301,12 @@
     {#if isCompact}
         <!-- Compact Row Layout (Height < 130px) -->
         <div
-            class="relative z-10 flex items-center justify-between pl-4 pr-12 h-full gap-4"
+            class="relative z-10 flex items-center justify-between pl-[clamp(0.75rem,4cqmin,1.5rem)] pr-[clamp(2.75rem,12cqmin,4.5rem)] h-full gap-[clamp(0.5rem,4cqmin,1.5rem)]"
         >
             <!-- Status & Info -->
-            <div class="flex items-center gap-3 min-w-0">
+            <div class="flex items-center gap-[clamp(0.375rem,3cqmin,1rem)] min-w-0">
                 <button
-                    class="w-10 h-10 flex items-center justify-center rounded-full transition-colors shrink-0"
+                    class="size-[clamp(2.5rem,20cqmin,4.25rem)] flex items-center justify-center rounded-full transition-colors shrink-0"
                     style:background-color={isActive
                         ? color
                             ? `color-mix(in srgb, ${color} 10%, transparent)`
@@ -319,9 +319,9 @@
                     aria-label="Toggle heating mode"
                 >
                     {#if iconOverride}
-                        <DynamicIcon name={iconOverride} class="size-5" />
+                        <DynamicIcon name={iconOverride} class="size-[58%]" />
                     {:else}
-                        <HvacIconComponent class="size-5" />
+                        <HvacIconComponent class="size-[58%]" />
                     {/if}
                 </button>
                 <div class="flex flex-col min-w-0">
@@ -339,25 +339,25 @@
             </div>
 
             <!-- Controls -->
-            <div class="flex items-center gap-2 shrink-0">
+            <div class="flex items-center gap-[clamp(0.25rem,2cqmin,0.75rem)] shrink-0">
                 <!-- Mini Stepper -->
                 <div
-                    class="flex items-center bg-m3-surface-container-high rounded-full p-1 border border-m3-outline/10"
+                    class="flex items-center bg-m3-surface-container-high rounded-full p-[clamp(0.125rem,1cqmin,0.375rem)] border border-m3-outline/10"
                 >
                     <button
-                        class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-m3-on-surface/10 text-m3-on-surface-variant"
+                        class="size-[clamp(1.75rem,8cqmin,2.5rem)] flex items-center justify-center rounded-full hover:bg-m3-on-surface/10 text-m3-on-surface-variant text-[clamp(1rem,5cqmin,1.5rem)]"
                         onclick={decrementTemp}
                         aria-label="Decrease temperature"
                     >
                         −
                     </button>
                     <span
-                        class="text-m3-body-large text-m3-on-surface font-bold min-w-[2.5rem] text-center"
+                        class="text-[clamp(0.875rem,4cqmin,1.125rem)] text-m3-on-surface font-bold min-w-[clamp(2.25rem,10cqmin,3.25rem)] text-center"
                     >
                         {targetTemp !== null ? targetTemp.toFixed(1) : "--"}
                     </span>
                     <button
-                        class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-m3-on-surface/10 text-m3-on-surface-variant"
+                        class="size-[clamp(1.75rem,8cqmin,2.5rem)] flex items-center justify-center rounded-full hover:bg-m3-on-surface/10 text-m3-on-surface-variant text-[clamp(1rem,5cqmin,1.5rem)]"
                         onclick={incrementTemp}
                         aria-label="Increase temperature"
                     >
@@ -370,17 +370,17 @@
         <!-- Full Layout (Height >= 130px) -->
         <div class="relative z-10 flex flex-col h-full">
             <!-- Header Section -->
-            <div class="flex justify-between items-start px-5 pt-5 pb-3">
+            <div class="flex justify-between items-start px-[clamp(0.75rem,4cqmin,1.5rem)] pt-[clamp(0.75rem,4cqmin,1.5rem)] pb-[clamp(0.375rem,2.5cqmin,1rem)] gap-[clamp(0.5rem,3cqmin,1.25rem)]">
                 <!-- Inside Temperature -->
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-[clamp(0.375rem,3cqmin,1rem)] min-w-0">
                     <div
-                        class="flex items-center justify-center size-10 rounded-full shrink-0"
+                        class="flex items-center justify-center size-[clamp(2.5rem,22cqmin,4.75rem)] rounded-full shrink-0"
                         style:background-color={color
                             ? `color-mix(in srgb, ${color} 10%, transparent)`
                             : "var(--color-m3-secondary-container)"}
                         style:color={color || "var(--color-m3-secondary)"}
                     >
-                        <HvacIconComponent class="size-6" />
+                        <HvacIconComponent class="size-[58%]" />
                     </div>
                     <div class="flex flex-col">
                         <span
@@ -398,18 +398,18 @@
 
                 <!-- Outside Temperature -->
                 {#if secondaryEntityId && outsideTemp !== null}
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-[clamp(0.375rem,3cqmin,1rem)] min-w-0">
                         <div class="text-m3-primary">
-                            <IconCloud class="size-6" />
+                            <IconCloud class="size-[clamp(1rem,5cqmin,1.75rem)]" />
                         </div>
                         <div class="flex flex-col items-end">
                             <span
-                                class="text-m3-title-medium text-m3-on-surface font-medium"
+                                class="text-[clamp(0.875rem,4cqmin,1.25rem)] text-m3-on-surface font-medium"
                             >
                                 {formatTemperature(outsideTemp)}
                             </span>
                             <span
-                                class="text-m3-label-small text-m3-on-surface-variant"
+                                class="text-[clamp(0.625rem,2.8cqmin,0.8125rem)] text-m3-on-surface-variant truncate"
                             >
                                 {secondaryDisplayName}
                             </span>
@@ -420,7 +420,7 @@
 
             <!-- History Graph (Only in Expanded Mode) -->
             {#if isExpanded}
-                <div class="w-full flex-1 min-h-[120px] relative">
+                <div class="w-full flex-1 min-h-[clamp(5rem,24cqmin,9rem)] relative">
                     <HistoryGraph
                         insideData={insideHistory?.points || []}
                         outsideData={outsideHistory?.points || []}
@@ -431,26 +431,26 @@
 
             <!-- Control Footer -->
             <div
-                class="flex items-center justify-between px-4 py-4 border-t border-m3-outline-variant/30 mt-auto"
+                class="flex items-center justify-between px-[clamp(0.625rem,3.5cqmin,1.25rem)] py-[clamp(0.625rem,3.5cqmin,1.25rem)] border-t border-m3-outline-variant/30 mt-auto gap-[clamp(0.375rem,3cqmin,1rem)]"
             >
                 <!-- Temperature Stepper -->
                 <div
-                    class="flex items-center gap-3 bg-m3-surface-container-high rounded-full px-3 py-2"
+                    class="flex items-center gap-[clamp(0.25rem,2cqmin,0.75rem)] bg-m3-surface-container-high rounded-full px-[clamp(0.375rem,2.5cqmin,0.875rem)] py-[clamp(0.25rem,1.6cqmin,0.625rem)]"
                 >
                     <button
-                        class="w-8 h-8 flex items-center justify-center rounded-full text-m3-on-surface-variant hover:bg-m3-on-surface/10 transition-colors"
+                        class="size-[clamp(1.75rem,8cqmin,2.5rem)] flex items-center justify-center rounded-full text-m3-on-surface-variant hover:bg-m3-on-surface/10 transition-colors"
                         onclick={decrementTemp}
                         aria-label="Decrease temperature"
                     >
                         <span class="text-xl font-medium">−</span>
                     </button>
                     <span
-                        class="text-m3-title-large font-bold text-m3-on-surface min-w-[4rem] text-center"
+                        class="text-[clamp(1rem,5cqmin,1.375rem)] font-bold text-m3-on-surface min-w-[clamp(3rem,12cqmin,4.5rem)] text-center"
                     >
                         {targetTemp !== null ? targetTemp.toFixed(1) : "--"}
                     </span>
                     <button
-                        class="w-8 h-8 flex items-center justify-center rounded-full text-m3-on-surface-variant hover:bg-m3-on-surface/10 transition-colors"
+                        class="size-[clamp(1.75rem,8cqmin,2.5rem)] flex items-center justify-center rounded-full text-m3-on-surface-variant hover:bg-m3-on-surface/10 transition-colors"
                         onclick={incrementTemp}
                         aria-label="Increase temperature"
                     >
@@ -459,10 +459,10 @@
                 </div>
 
                 <!-- Mode Controls -->
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-[clamp(0.25rem,2cqmin,0.75rem)]">
                     <!-- HVAC Mode Button -->
                     <button
-                        class="w-12 h-12 flex items-center justify-center rounded-full transition-colors"
+                        class="size-[clamp(2.25rem,10cqmin,3.75rem)] flex items-center justify-center rounded-full transition-colors"
                         style:background-color={isActive
                             ? color
                                 ? `color-mix(in srgb, ${color} 10%, transparent)`
@@ -475,19 +475,19 @@
                         aria-label="Toggle heating mode"
                     >
                         {#if iconOverride}
-                            <DynamicIcon name={iconOverride} class="size-6" />
+                            <DynamicIcon name={iconOverride} class="size-[58%]" />
                         {:else}
-                            <IconFire class="size-6" />
+                            <IconFire class="size-[58%]" />
                         {/if}
                     </button>
 
                     <!-- Power Button -->
                     <button
-                        class="w-12 h-12 flex items-center justify-center rounded-full bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-on-surface/10 transition-colors"
+                        class="size-[clamp(2.25rem,10cqmin,3.75rem)] flex items-center justify-center rounded-full bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-on-surface/10 transition-colors"
                         onclick={togglePower}
                         aria-label="Toggle power"
                     >
-                        <IconPower class="size-6" />
+                        <IconPower class="size-[58%]" />
                     </button>
                 </div>
             </div>
@@ -496,10 +496,10 @@
 
     <!-- Edit FAB (Visible on Hover) -->
     <button
-        class="absolute top-2 right-2 p-2 rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:brightness-110 z-20"
+        class="absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:brightness-110 z-20"
         onclick={openConfig}
         title="Edit Card"
     >
-        <IconEdit class="size-4" />
+        <IconEdit class="size-[clamp(0.875rem,3.5cqmin,1.25rem)]" />
     </button>
 </div>

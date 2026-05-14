@@ -189,7 +189,7 @@
     }
 </script>
 
-<a href={path} class="{baseStyles} {className} @container" style={cardStyle}>
+<a href={path} class="{baseStyles} {className} @container" style="container-type: size; {cardStyle}">
     {#if iconType === "image" && imageUrl}
         <!-- Full-bleed Image Mode -->
         <img
@@ -262,7 +262,7 @@
             >
                 <!-- Icon Circle (toggles all) -->
                 <button
-                    class="flex items-center justify-center size-[18cqmin] rounded-full shrink-0 transition-all duration-200 overflow-hidden cursor-pointer active:scale-95 pointer-events-auto"
+                    class="flex items-center justify-center size-[clamp(2.5rem,24cqmin,4.75rem)] rounded-full shrink-0 transition-all duration-200 overflow-hidden cursor-pointer active:scale-95 pointer-events-auto"
                     style={iconContainerStyle}
                     onclick={toggleAllShortcuts}
                     title="Toggle all"
@@ -293,7 +293,7 @@
                     {#each shortcuts as shortcut (shortcut.id)}
                         {@const isActive = getShortcutState(shortcut.entityId)}
                         <button
-                            class="flex items-center justify-center size-[16cqmin] rounded-full transition-all duration-200 cursor-pointer active:scale-90 overflow-hidden"
+                            class="flex items-center justify-center size-[clamp(2rem,16cqmin,3.5rem)] rounded-full transition-all duration-200 cursor-pointer active:scale-90 overflow-hidden"
                             style={getShortcutStyle(isActive, shortcut.color)}
                             onclick={(e) =>
                                 toggleShortcut(shortcut.entityId, e)}
@@ -312,10 +312,10 @@
 
     <!-- Edit FAB -->
     <button
-        class="absolute top-1 right-1 p-1.5 rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-30 hover:brightness-110 pointer-events-auto"
+        class="absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-30 hover:brightness-110 pointer-events-auto"
         onclick={openConfig}
         title="Edit Navigation"
     >
-        <IconEdit class="size-4" />
+        <IconEdit class="size-[clamp(0.875rem,3.5cqmin,1.25rem)]" />
     </button>
 </a>

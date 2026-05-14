@@ -67,43 +67,43 @@
     });
 </script>
 
-<div class="flex items-center gap-3 w-full group/vol">
+<div class="flex items-center gap-[clamp(0.375rem,3cqmin,1rem)] w-full group/vol">
     <VolumeDown
-        class={`${labelColor} w-5 h-5 shrink-0 transition-colors`}
+        class={`${labelColor} size-[clamp(1rem,5cqmin,1.5rem)] shrink-0 transition-colors`}
         style={theme !== "dark" && color ? `color: ${color};` : ""}
     />
 
-    <div class="relative flex-1 flex items-center h-5">
+    <div class="relative flex-1 flex items-center h-[clamp(1rem,5cqmin,1.5rem)]">
         <input
             type="range"
             min="0"
             max="100"
             bind:value={volume}
             oninput={handleSlide}
-            class={`w-full h-1 rounded-full appearance-none cursor-pointer transition-all ${trackColor} accent-transparent
+            class={`w-full h-[clamp(0.1875rem,1cqmin,0.375rem)] rounded-full appearance-none cursor-pointer transition-all ${trackColor} accent-transparent
                 [&::-webkit-slider-thumb]:appearance-none 
-                [&::-webkit-slider-thumb]:w-3.5 
-                [&::-webkit-slider-thumb]:h-3.5 
+                [&::-webkit-slider-thumb]:w-[clamp(0.75rem,3.5cqmin,1.125rem)] 
+                [&::-webkit-slider-thumb]:h-[clamp(0.75rem,3.5cqmin,1.125rem)] 
                 [&::-webkit-slider-thumb]:rounded-full 
                 [&::-webkit-slider-thumb]:shadow-lg 
                 [&::-webkit-slider-thumb]:transition-transform 
                 [&::-webkit-slider-thumb]:hover:scale-125
                 ${theme === "dark" ? "[&::-webkit-slider-thumb]:bg-white" : "[&::-webkit-slider-thumb]:bg-m3-primary"}
-                [&::-moz-range-thumb]:w-3.5 
-                [&::-moz-range-thumb]:h-3.5 
+                [&::-moz-range-thumb]:w-[clamp(0.75rem,3.5cqmin,1.125rem)] 
+                [&::-moz-range-thumb]:h-[clamp(0.75rem,3.5cqmin,1.125rem)] 
                 ${theme === "dark" ? "[&::-moz-range-thumb]:bg-white" : "[&::-moz-range-thumb]:bg-m3-primary"}
                 [&::-moz-range-thumb]:rounded-full 
                 [&::-moz-range-thumb]:border-0`}
         />
         <!-- Active Track Overlay -->
         <div
-            class={`absolute left-0 top-1/2 -translate-y-1/2 h-1 rounded-full pointer-events-none transition-all ${thumbColor}`}
+            class={`absolute left-0 top-1/2 -translate-y-1/2 h-[clamp(0.1875rem,1cqmin,0.375rem)] rounded-full pointer-events-none transition-all ${thumbColor}`}
             style={`width: ${volume}%; ${activeTrackStyle}`}
         ></div>
     </div>
 
     <span
-        class={`text-[10px] font-bold w-7 text-right tabular-nums transition-colors ${labelColor}`}
+        class={`text-[clamp(0.625rem,2.8cqmin,0.875rem)] font-bold w-[clamp(1.5rem,7cqmin,2.5rem)] text-right tabular-nums transition-colors ${labelColor}`}
     >
         {volume}%
     </span>

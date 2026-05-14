@@ -1,17 +1,9 @@
 <script lang="ts">
     import type {
-        DashboardItem,
         GridConfig,
         TabCardConfig,
     } from "$lib/types/dashboard";
-    // Sibling imports for other card types
-    import ButtonCard from "./ButtonCard.svelte";
-    import MediaCard from "./MediaCard.svelte";
-    import ThermostatCard from "./ThermostatCard.svelte";
-    import TitleCard from "./TitleCard.svelte";
-    import GraphCard from "./GraphCard.svelte";
-    import NavigationCard from "./NavigationCard.svelte";
-    import TabCard from "./TabCard.svelte";
+    import DashboardCardRenderer from "./DashboardCardRenderer.svelte";
 
     import GridContainer from "$lib/components/layout/GridContainer.svelte";
     import GridItem from "$lib/components/layout/GridItem.svelte";
@@ -244,7 +236,7 @@
                 {/if}
 
                 <GridContainer config={currentGrid} isNested={true}>
-                    {#each currentGrid.items as item (item.id)}
+                    {#each currentGrid.items as item, i (item.id)}
                         <GridItem
                             itemId={item.id}
                             desktopLayout={item.layout.desktop}
@@ -257,100 +249,11 @@
                                     item.id,
                                 )}
                         >
-                            {#if item.cardType === "button"}
-                                <ButtonCard
-                                    id={item.id}
-                                    bind:name={item.name}
-                                    bind:entityId={item.entityId}
-                                    bind:domainFilter={item.domainFilter}
-                                    bind:color={item.color}
-                                    bind:backgroundColor={item.backgroundColor}
-                                    bind:icon={item.icon}
-                                    ondelete={() =>
-                                        dashboardEditorStore.deleteItem(
-                                            item.id,
-                                        )}
-                                />
-                            {:else if item.cardType === "media"}
-                                <MediaCard
-                                    id={item.id}
-                                    bind:entityId={item.entityId}
-                                    bind:name={item.name}
-                                    bind:domainFilter={item.domainFilter}
-                                    bind:color={item.color}
-                                    bind:backgroundColor={item.backgroundColor}
-                                    bind:icon={item.icon}
-                                    ondelete={() =>
-                                        dashboardEditorStore.deleteItem(
-                                            item.id,
-                                        )}
-                                />
-                            {:else if item.cardType === "title"}
-                                <TitleCard
-                                    id={item.id}
-                                    bind:name={item.name}
-                                    bind:subtitle={item.subtitle}
-                                    bind:alignment={item.alignment}
-                                    bind:color={item.color}
-                                    bind:backgroundColor={item.backgroundColor}
-                                    ondelete={() =>
-                                        dashboardEditorStore.deleteItem(
-                                            item.id,
-                                        )}
-                                />
-                            {:else if item.cardType === "thermostat"}
-                                <ThermostatCard
-                                    id={item.id}
-                                    bind:entityId={item.entityId}
-                                    bind:name={item.name}
-                                    bind:secondaryEntityId={
-                                        item.secondaryEntityId
-                                    }
-                                    bind:secondaryName={item.secondaryName}
-                                    bind:domainFilter={item.domainFilter}
-                                    bind:color={item.color}
-                                    bind:backgroundColor={item.backgroundColor}
-                                    bind:icon={item.icon}
-                                    ondelete={() =>
-                                        dashboardEditorStore.deleteItem(
-                                            item.id,
-                                        )}
-                                />
-                            {:else if item.cardType === "graph"}
-                                <GraphCard
-                                    id={item.id}
-                                    bind:entityId={item.entityId}
-                                    bind:name={item.name}
-                                    bind:color={item.color}
-                                    bind:backgroundColor={item.backgroundColor}
-                                    bind:icon={item.icon}
-                                    ondelete={() =>
-                                        dashboardEditorStore.deleteItem(
-                                            item.id,
-                                        )}
-                                />
-                            {:else if item.cardType === "navigation"}
-                                <NavigationCard
-                                    id={item.id}
-                                    bind:name={item.name}
-                                    bind:path={item.path}
-                                    bind:icon={item.icon}
-                                    bind:iconType={item.iconType}
-                                    bind:imageUrl={item.imageUrl}
-                                    bind:color={item.color}
-                                    bind:backgroundColor={item.backgroundColor}
-                                    bind:shortcuts={item.shortcuts}
-                                    bind:entityId={item.entityId}
-                                    ondelete={() =>
-                                        dashboardEditorStore.deleteItem(
-                                            item.id,
-                                        )}
-                                />
-                            {:else if item.cardType === "tabs"}
-                                <!-- Recursive TabCard -->
-                                <!-- We need to treat 'item' as TabCardConfig -->
-                                <TabCard config={item as TabCardConfig} />
-                            {/if}
+                            <DashboardCardRenderer
+                                bind:item={currentGrid.items[i]}
+                                ondelete={(id) =>
+                                    dashboardEditorStore.deleteItem(id)}
+                            />
                             {#snippet controls()}
                                 {#if item.cardType === "tabs"}
                                     <button

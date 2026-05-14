@@ -1,7 +1,31 @@
 // Entity Types
 export * from './icons';
-import type { NavigationCardShortcut } from './dashboard';
-export type { NavigationCardShortcut };
+import type {
+    CalendarCardOptions,
+    CollectionCardOptions,
+    DashboardCardOptions,
+    DashboardCardType,
+    DevicePanelCardOptions,
+    EnergyCardOptions,
+    NavigationCardShortcut,
+    RemoteCardOptions,
+    RoomCardOptions,
+    WeatherCardOptions
+} from './dashboard';
+export type {
+    CalendarCardOptions,
+    CollectionCardOptions,
+    DashboardCardOptions,
+    DevicePanelCardOptions,
+    EnergyCardOptions,
+    EntityQueryConfig,
+    NavigationCardShortcut,
+    RemoteCardOptions,
+    RoomCardOptions,
+    SmartSourceConfig,
+    WeatherCardOptions,
+    CardAction
+} from './dashboard';
 export interface HAEntityAttributes {
     friendly_name?: string;
     brightness?: number;
@@ -50,7 +74,7 @@ export interface BaseCardConfig {
     entityId: string;
     name: string;
     icon?: string;
-    type?: 'button' | 'thermostat' | 'media' | 'title' | 'tabs' | 'graph' | 'navigation';
+    type?: DashboardCardType;
     onSave?: (config: CardConfig) => void;
     onDelete?: () => void;
     /** Optional domain filter for entity picker (e.g. "light", "switch") */
@@ -61,6 +85,8 @@ export interface BaseCardConfig {
     color?: string;
     /** Background color for the card (CSS variable) */
     backgroundColor?: string;
+    /** Typed card-specific configuration for newer card families */
+    options?: DashboardCardOptions;
 }
 
 export interface ButtonCardConfig extends BaseCardConfig {
@@ -123,7 +149,15 @@ export interface NavigationCardConfig extends BaseCardConfig {
     };
 }
 
-export type CardConfig = ButtonCardConfig | ThermostatCardConfig | MediaCardConfig | TitleCardConfig | TabEditorConfig | GraphCardConfig | NavigationCardConfig;
+export type CardConfig =
+    | ButtonCardConfig
+    | ThermostatCardConfig
+    | MediaCardConfig
+    | TitleCardConfig
+    | TabEditorConfig
+    | GraphCardConfig
+    | NavigationCardConfig
+    | LabelValueCardConfig;
 
 export type CardVariant = 'switch' | 'slider';
 export type ButtonVariant = 'filled' | 'tonal' | 'outlined' | 'text' | 'elevated';
@@ -165,4 +199,36 @@ export interface HAEntityRegistryEntry {
     options: Record<string, unknown> | null;
     translation_key: string | null;
     labels: string[];
+}
+
+export interface HADeviceRegistryEntry {
+    id: string;
+    area_id: string | null;
+    config_entries: string[];
+    configuration_url: string | null;
+    connections: Array<[string, string]>;
+    disabled_by: string | null;
+    entry_type: string | null;
+    hw_version: string | null;
+    identifiers: Array<[string, string]>;
+    labels: string[];
+    manufacturer: string | null;
+    model: string | null;
+    name_by_user: string | null;
+    name: string | null;
+    serial_number: string | null;
+    sw_version: string | null;
+    via_device_id: string | null;
+}
+
+export interface LabelValueCardConfig extends BaseCardConfig {
+    type:
+        | 'room'
+        | 'collection'
+        | 'energy'
+        | 'calendar'
+        | 'weather'
+        | 'remote'
+        | 'device_panel';
+    options?: DashboardCardOptions;
 }

@@ -115,6 +115,7 @@
                 case "climate":
                     return IconThermostat;
                 case "switch":
+                case "input_boolean":
                     return IconToggleOn;
                 case "sensor":
                 case "binary_sensor":
@@ -276,7 +277,19 @@
         }
         if (entityId) {
             const domain = getDomain(entityId);
-            haStore.callService(domain, "toggle", { entity_id: entityId });
+            if (domain === "cover") {
+                const service =
+                    entity?.state === "open" || entity?.state === "opening"
+                        ? "close_cover"
+                        : "open_cover";
+                haStore.callService(domain, service, { entity_id: entityId });
+            } else if (domain === "button") {
+                haStore.callService(domain, "press", { entity_id: entityId });
+            } else if (domain === "scene" || domain === "script") {
+                haStore.callService(domain, "turn_on", { entity_id: entityId });
+            } else {
+                haStore.callService(domain, "toggle", { entity_id: entityId });
+            }
         }
     }
 
@@ -320,7 +333,7 @@
     onpointerdown={handlePointerDown}
     role="button"
     tabindex="0"
-    style="touch-action: none; {cardStyle}"
+    style="container-type: size; touch-action: none; {cardStyle}"
 >
     <!-- Slider Progress Background (Visual) -->
     {#if variant === "slider"}
@@ -341,7 +354,7 @@
     >
         <!-- Icon Circle -->
         <div
-            class="flex items-center justify-center size-[18cqmin] rounded-full shrink-0 transition-colors duration-200"
+            class="flex items-center justify-center size-[clamp(2.5rem,24cqmin,4.75rem)] rounded-full shrink-0 transition-colors duration-200"
             style={iconContainerStyle}
         >
             {#if effectiveIcon}
@@ -379,11 +392,11 @@
     <!-- Edit FAB (Visible on Hover) -->
     <!-- z-30 to be above the slider input -->
     <button
-        class="absolute top-1 right-1 p-1.5 rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-30 hover:brightness-110 pointer-events-auto"
+        class="absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-30 hover:brightness-110 pointer-events-auto"
         onclick={openConfig}
         onpointerdown={(e) => e.stopPropagation()}
         title="Edit Card"
     >
-        <IconEdit class="size-4" />
+        <IconEdit class="size-[clamp(0.875rem,3.5cqmin,1.25rem)]" />
     </button>
 </div>

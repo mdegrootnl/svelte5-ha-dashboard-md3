@@ -16,7 +16,8 @@
     import IconLink from "~icons/material-symbols/link";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import { getDomain } from "$lib/utils/entity";
-    import type { ThermostatCardConfig, CardConfig } from "$lib/types";
+    import type { CardConfig } from "$lib/types";
+    import type { DashboardCardType } from "$lib/types/dashboard";
     import { Dialog } from "bits-ui";
 
     // Check if this is a thermostat card config
@@ -35,14 +36,7 @@
     let tempConfig = $state<{
         entityId: string;
         name: string;
-        type?:
-            | "button"
-            | "thermostat"
-            | "media"
-            | "title"
-            | "tabs"
-            | "graph"
-            | "navigation";
+        type?: DashboardCardType;
         secondaryEntityId: string;
         secondaryName: string;
         subtitle: string;

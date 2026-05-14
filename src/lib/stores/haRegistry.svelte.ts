@@ -1,5 +1,5 @@
 import type { Connection } from 'home-assistant-js-websocket';
-import type { HAEntityRegistryEntry, HAAreaRegistryEntry, HAFloorRegistryEntry } from '../types';
+import type { HADeviceRegistryEntry, HAEntityRegistryEntry } from '../types';
 import type { HAArea, HAFloor } from '../types/dashboard';
 import { createLogger } from '../utils/logger';
 
@@ -9,6 +9,7 @@ export class HARegistryStore {
     areas = $state<HAArea[]>([]);
     floors = $state<HAFloor[]>([]);
     entityRegistry = $state<HAEntityRegistryEntry[]>([]);
+    deviceRegistry = $state<HADeviceRegistryEntry[]>([]);
     loading = $state(false);
 
     /**
@@ -32,16 +33,18 @@ export class HARegistryStore {
         this.loading = true;
         try {
             logger.debug("Fetching registries...");
-            const [areas, floors, entityRegistry] = await Promise.all([
+            const [areas, floors, entityRegistry, deviceRegistry] = await Promise.all([
                 connection.sendMessagePromise<HAArea[]>({ type: 'config/area_registry/list' }),
                 connection.sendMessagePromise<HAFloor[]>({ type: 'config/floor_registry/list' }),
-                connection.sendMessagePromise<HAEntityRegistryEntry[]>({ type: 'config/entity_registry/list' })
+                connection.sendMessagePromise<HAEntityRegistryEntry[]>({ type: 'config/entity_registry/list' }),
+                connection.sendMessagePromise<HADeviceRegistryEntry[]>({ type: 'config/device_registry/list' })
             ]);
 
-            this.areas = areas;
-            this.floors = floors;
-            this.entityRegistry = entityRegistry;
-            logger.debug(`Registries loaded: ${areas.length} areas, ${floors.length} floors, ${entityRegistry.length} entities.`);
+            this.areas = areas ?? [];
+            this.floors = floors ?? [];
+            this.entityRegistry = entityRegistry ?? [];
+            this.deviceRegistry = deviceRegistry ?? [];
+            logger.debug(`Registries loaded: ${this.areas.length} areas, ${this.floors.length} floors, ${this.entityRegistry.length} entities, ${this.deviceRegistry.length} devices.`);
         } catch (err) {
             logger.error("Failed to fetch registries:", err);
         } finally {

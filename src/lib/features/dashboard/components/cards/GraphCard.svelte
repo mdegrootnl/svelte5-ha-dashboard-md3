@@ -42,6 +42,7 @@
         color?: string;
         backgroundColor?: string;
         icon?: string | any;
+        fetchHistory?: boolean;
     }
 
     let {
@@ -60,6 +61,7 @@
         color = $bindable(),
         backgroundColor = $bindable(),
         icon: iconProp = $bindable(),
+        fetchHistory = true,
     }: Props = $props();
 
     let entity = $derived(entityId ? haStore.getEntity(entityId) : null);
@@ -108,6 +110,45 @@
     let isLoading = $state(false);
     let error = $state<string | null>(null);
 
+    function buildDemoHistory(
+        entities: Array<{ entity_id: string; color?: string }>,
+    ) {
+        const end = timeRange.end;
+        const start = timeRange.start;
+        const span = Math.max(1, end.getTime() - start.getTime());
+        const pointCount = 24;
+
+        return entities.map((entityConfig, seriesIndex) => {
+            const points: HistoryDataPoint[] = Array.from(
+                { length: pointCount },
+                (_, pointIndex) => {
+                    const progress = pointIndex / Math.max(1, pointCount - 1);
+                    const timestamp = new Date(
+                        start.getTime() + span * progress,
+                    );
+                    const base = 18 + seriesIndex * 12;
+                    const wave = Math.sin(pointIndex * 0.65 + seriesIndex) * 2;
+                    const trend = progress * (3 + seriesIndex);
+                    const value = Number((base + wave + trend).toFixed(1));
+
+                    return {
+                        timestamp,
+                        state: String(value),
+                        value,
+                    };
+                },
+            );
+
+            return {
+                entityId: entityConfig.entity_id || `demo-${seriesIndex}`,
+                points,
+                color:
+                    entityConfig.color ||
+                    `var(--color-m3-graph-${(seriesIndex % 6) + 1})`,
+            };
+        });
+    }
+
     // Fetch history data for all entities
     $effect(() => {
         const entitiesToFetch = [
@@ -127,7 +168,19 @@
             })),
         ];
 
-        if (entitiesToFetch.length === 0 || !haStore.connected || !haStore.auth)
+        if (entitiesToFetch.length === 0) {
+            historyData = [];
+            return;
+        }
+
+        if (!fetchHistory) {
+            historyData = buildDemoHistory(entitiesToFetch);
+            isLoading = false;
+            error = null;
+            return;
+        }
+
+        if (!haStore.connected || !haStore.auth)
             return;
 
         async function fetchHistory() {
@@ -212,7 +265,7 @@
 <div
     class="{baseStyles} {className} @container"
     bind:clientHeight
-    style={backgroundColor ? `background-color: ${backgroundColor};` : ""}
+    style={`container-type: size;${backgroundColor ? ` background-color: ${backgroundColor};` : ""}`}
 >
     <!-- Background Graph (Visible when NOT expanded) -->
     {#if !isExpanded && show.graph !== false}
@@ -231,35 +284,35 @@
         </div>
     {/if}
 
-    <div class="p-4 flex flex-col gap-2 relative z-10">
+    <div class="p-[clamp(0.625rem,4cqmin,1.5rem)] flex flex-col gap-[clamp(0.25rem,2cqmin,0.75rem)] relative z-10">
         <!-- Header -->
         <div class="flex items-start justify-between z-10">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-[clamp(0.375rem,3cqmin,1rem)] min-w-0">
                 {#if show.icon !== false}
                     <div
-                        class="flex items-center justify-center size-10 rounded-full shrink-0"
+                        class="flex items-center justify-center size-[clamp(2.5rem,22cqmin,4.75rem)] rounded-full shrink-0"
                         style:background-color={color
                             ? `color-mix(in srgb, ${color} 10%, transparent)`
                             : "var(--color-m3-primary-container)"}
                         style:color={color || "var(--color-m3-primary)"}
                     >
                         {#if iconProp}
-                            <DynamicIcon name={iconProp} class="size-6" />
+                            <DynamicIcon name={iconProp} class="size-[58%]" />
                         {:else}
-                            <Icon class="size-6" />
+                            <Icon class="size-[58%]" />
                         {/if}
                     </div>
                 {/if}
                 <div class="flex flex-col min-w-0">
                     {#if show.name !== false}
-                        <span class="text-sm font-medium truncate opacity-70"
+                        <span class="text-[clamp(0.75rem,3.4cqmin,1rem)] font-medium truncate opacity-70"
                             >{title}</span
                         >
                     {/if}
                     {#if show.state !== false}
-                        <span class="text-2xl font-bold leading-tight truncate">
+                        <span class="text-[clamp(1.25rem,7cqmin,2.25rem)] font-bold leading-tight truncate">
                             {displayState}
-                            <span class="text-sm font-normal opacity-70"
+                            <span class="text-[clamp(0.75rem,3.4cqmin,1rem)] font-normal opacity-70"
                                 >{unitOfMeasurement}</span
                             >
                         </span>
@@ -276,13 +329,13 @@
                 <div
                     class="absolute inset-0 flex items-center justify-center opacity-50"
                 >
-                    <span class="text-xs">Loading history...</span>
+                    <span class="text-[clamp(0.6875rem,3cqmin,0.875rem)]">Loading history...</span>
                 </div>
             {/if}
 
             {#if error}
                 <div
-                    class="absolute inset-0 flex items-center justify-center text-m3-error text-xs p-2 text-center"
+                    class="absolute inset-0 flex items-center justify-center text-m3-error text-[clamp(0.6875rem,3cqmin,0.875rem)] p-[clamp(0.375rem,2cqmin,0.75rem)] text-center"
                 >
                     {error}
                 </div>
@@ -302,10 +355,10 @@
 
     <!-- Edit FAB -->
     <button
-        class="absolute top-2 right-2 p-1.5 rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-20 hover:brightness-110"
+        class="absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-20 hover:brightness-110"
         onclick={openConfig}
         title="Edit Card"
     >
-        <IconEdit class="size-4" />
+        <IconEdit class="size-[clamp(0.875rem,3.5cqmin,1.25rem)]" />
     </button>
 </div>
