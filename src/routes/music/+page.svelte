@@ -1,5 +1,9 @@
 <script lang="ts">
-    import { PageShell, maStore, haStore, Card, Button } from "$lib";
+    import PageShell from "$lib/components/layout/PageShell.svelte";
+    import { maStore } from "$lib/features/music/stores/maStore.svelte";
+    import { haStore } from "$lib/stores/ha.svelte";
+    import Card from "$lib/components/md3/Card.svelte";
+    import Button from "$lib/components/md3/Button.svelte";
     import MusicNowPlaying from "$lib/features/music/components/MusicNowPlaying.svelte";
     import MusicMiniPlayer from "$lib/features/music/components/MusicMiniPlayer.svelte";
     import MusicBrowser from "$lib/features/music/components/MusicBrowser.svelte";

@@ -52,3 +52,16 @@ You are an expert Svelte 5 developer acting as a "Generative UI Engineer." You m
 * **Rule:** When adding a component to an existing file, ensure imports are reconciled.
 * **Rule:** Do NOT overwrite the entire file unless explicitly instructed. Use surgical insertion for imports and template code.
 * **Tooling:** Prefer using the `inject_component` tool for safe file modifications over raw text writing.
+
+## 5. Live Dashboard Performance Invariants
+**Context:** This app is a live Home Assistant dashboard. Small HA entity ticks must not trigger broad state cloning, full inventory scans, render-driven saves, repeated history requests, or unnecessary polling.
+
+* **HA State:** Do NOT clone or replace the full Home Assistant state map during live entity updates. Diff incoming states and mutate only changed or deleted entity keys.
+* **Inventory Queries:** Do NOT scan the full HA entity inventory from render paths or per smart card. Use the indexed inventory store/query APIs.
+* **Dashboard Persistence:** Do NOT persist dashboard config from render effects or default-normalization paths. Persist only from explicit dashboard/editor mutations.
+* **Initialization Guards:** Do NOT use broad `JSON.stringify` comparisons for dashboard initialization or render guards. Prefer version, identity, or explicit dirty-state checks.
+* **History Fetching:** Do NOT fetch history repeatedly for equivalent graph windows. Use rounded cache keys, TTL cache behavior, and in-flight request deduplication.
+* **Background Work:** Do NOT start route-specific polling, global timers, weather/calendar fetches, or other background work unless the owning feature is active and visible.
+* **Layout Variants:** Prefer card layout metadata for compact/expanded rendering decisions. Use DOM measurement only as a fallback for standalone or unknown-layout usage.
+* **Resize Work:** Throttle resize-driven chart or layout recomputation with `requestAnimationFrame`.
+* **Performance Instrumentation:** Keep performance counters/timers internal, dev-only, and disabled in production UI.

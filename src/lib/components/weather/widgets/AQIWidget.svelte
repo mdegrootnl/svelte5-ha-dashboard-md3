@@ -1,6 +1,7 @@
 <script lang="ts">
     import WeatherTile from "./WeatherTile.svelte";
-    import { haStore, cardEditorStore } from "$lib";
+    import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
+    import { haStore } from "$lib/stores/ha.svelte";
     import { browser } from "$app/environment";
     import IconEdit from "~icons/material-symbols/edit";
 
@@ -16,7 +17,8 @@
     let discoveredEntityId = $derived.by(() => {
         if (configuredEntityId) return null; // Don't discover if manually configured
 
-        const sensorKeys = Object.keys(haStore.states);
+        haStore.statesVersion;
+        const sensorKeys = haStore.getEntityIdsSnapshot(false);
         return (
             sensorKeys.find((id) => id.startsWith("sensor.waqi_")) ||
             sensorKeys.find(
@@ -39,7 +41,7 @@
 
     // Get entity data directly from haStore
     let entity = $derived(
-        activeEntityId ? haStore.states[activeEntityId] : null,
+        activeEntityId ? haStore.getLiveEntity(activeEntityId) : null,
     );
 
     // Parse AQI value

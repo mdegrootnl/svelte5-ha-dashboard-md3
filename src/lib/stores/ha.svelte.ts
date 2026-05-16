@@ -10,7 +10,7 @@ import {
     ERR_HASS_HOST_REQUIRED,
     callService
 } from 'home-assistant-js-websocket';
-import { browser, dev } from '$app/environment';
+import { browser } from '$app/environment';
 import type { HistoryData } from '$lib/types';
 import { HistoryService } from '$lib/domain/historyService';
 import { HAAuthService } from '$lib/domain/haAuthService';
@@ -18,6 +18,7 @@ import { StorageProvider } from '$lib/utils/storageProvider';
 import { haRegistryStore } from './haRegistry.svelte';
 import { createLogger } from '$lib/utils/logger';
 import { ok, err, type Result } from '$lib/utils/result';
+import { perfCount, perfMeasure } from '$lib/utils/perf';
 
 const logger = createLogger('HAStore');
 
@@ -29,6 +30,17 @@ export class HAStore {
     auth = $state<Auth | null>(null);
     url = $state<string | null>(null);
     states = $state<HassEntities>({});
+    entityOverrides = $state<HassEntities>({});
+    entityCount = $state(0);
+    statesVersion = $state(0);
+    overridesVersion = $state(0);
+    effectiveStates = $derived.by(() => {
+        this.statesVersion;
+        this.overridesVersion;
+        return Object.keys(this.entityOverrides).length > 0
+            ? { ...this.states, ...this.entityOverrides }
+            : this.states;
+    });
     config = $state<HassConfig | null>(null);
     error = $state<string | null>(null);
     connected = $derived(!!this.connection);
@@ -40,6 +52,7 @@ export class HAStore {
 
     // History cache: key is "entityIds:startTime", value is HistoryData[]
     private historyCache = new Map<string, { data: HistoryData[], timestamp: number }>();
+    private historyInflight = new Map<string, Promise<Result<HistoryData[], Error>>>();
 
     constructor() {
         if (browser) {
@@ -124,7 +137,7 @@ export class HAStore {
 
             // Subscribe to all entities
             subscribeEntities(connection, (states) => {
-                this.states = states;
+                this.applyEntitySnapshot(states);
             });
 
             // Subscribe to configuration (location, units, etc.)
@@ -148,7 +161,93 @@ export class HAStore {
     }
 
     getEntity(entityId: string) {
+        return this.entityOverrides[entityId] ?? this.states[entityId];
+    }
+
+    getLiveEntity(entityId: string) {
         return this.states[entityId];
+    }
+
+    hasEntity(entityId: string) {
+        return entityId in this.entityOverrides || entityId in this.states;
+    }
+
+    getEntityIdsSnapshot(includeOverrides = true): string[] {
+        return Object.keys(this.getStatesView(includeOverrides));
+    }
+
+    getStatesView(includeOverrides = true): HassEntities {
+        if (!includeOverrides || Object.keys(this.entityOverrides).length === 0) {
+            return this.states;
+        }
+        return { ...this.states, ...this.entityOverrides };
+    }
+
+    getStatesSnapshot(includeOverrides = true): HassEntities {
+        return { ...this.getStatesView(includeOverrides) };
+    }
+
+    private hasEntityChanged(current: HassEntities[string] | undefined, next: HassEntities[string]) {
+        if (!current) return true;
+        return current.state !== next.state ||
+            current.last_changed !== next.last_changed ||
+            current.last_updated !== next.last_updated ||
+            current.context?.id !== next.context?.id;
+    }
+
+    private applyEntitySnapshot(nextStates: HassEntities) {
+        perfMeasure('ha.applyEntitySnapshot', () => {
+            let changed = 0;
+            let removed = 0;
+            let nextCount = 0;
+
+            for (const entityId of Object.keys(this.states)) {
+                if (!(entityId in nextStates)) {
+                    delete this.states[entityId];
+                    removed += 1;
+                }
+            }
+
+            for (const [entityId, entity] of Object.entries(nextStates)) {
+                nextCount += 1;
+                if (this.hasEntityChanged(this.states[entityId], entity)) {
+                    this.states[entityId] = entity;
+                    changed += 1;
+                }
+            }
+
+            if (changed > 0 || removed > 0 || this.entityCount !== nextCount) {
+                this.entityCount = nextCount;
+                this.statesVersion += 1;
+                perfCount('ha.entitySnapshots');
+                perfCount('ha.entityChanges', changed + removed);
+            }
+        });
+    }
+
+    setEntityOverrides(states: HassEntities) {
+        this.entityOverrides = states;
+        this.overridesVersion += 1;
+    }
+
+    patchEntityOverrides(states: HassEntities) {
+        this.entityOverrides = { ...this.entityOverrides, ...states };
+        this.overridesVersion += 1;
+    }
+
+    clearEntityOverrides(entityIds?: readonly string[]) {
+        if (!entityIds) {
+            this.entityOverrides = {};
+            this.overridesVersion += 1;
+            return;
+        }
+
+        const nextStates = { ...this.entityOverrides };
+        for (const entityId of entityIds) {
+            delete nextStates[entityId];
+        }
+        this.entityOverrides = nextStates;
+        this.overridesVersion += 1;
     }
 
     async disconnect() {
@@ -244,15 +343,51 @@ export class HAStore {
         const validEntityIds = entityIds.filter(id => /^[a-z_]+\.[a-z0-9_]+$/.test(id));
         if (validEntityIds.length === 0) return ok([]);
 
-        const cacheKey = `${validEntityIds.sort().join(',')}:${startTime.toISOString()}`;
+        const roundedStart = this.roundHistoryDate(startTime);
+        const roundedEnd = this.roundHistoryDate(endTime);
+        const sortedEntityIds = [...validEntityIds].sort();
+        const cacheKey = `${sortedEntityIds.join(',')}:${roundedStart.toISOString()}:${roundedEnd.toISOString()}`;
         const cached = this.historyCache.get(cacheKey);
         const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
         if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
+            perfCount('ha.historyCacheHits');
             return ok(cached.data);
         }
 
+        const inflight = this.historyInflight.get(cacheKey);
+        if (inflight) {
+            perfCount('ha.historyInflightHits');
+            return inflight;
+        }
+
+        const request = this.fetchHistoryUncached(
+            sortedEntityIds,
+            roundedStart,
+            roundedEnd,
+            cacheKey,
+            this.auth.accessToken,
+            this.url,
+        );
+        this.historyInflight.set(cacheKey, request);
+        return request.finally(() => this.historyInflight.delete(cacheKey));
+    }
+
+    private roundHistoryDate(date: Date) {
+        const HISTORY_BUCKET_MS = 5 * 60 * 1000;
+        return new Date(Math.floor(date.getTime() / HISTORY_BUCKET_MS) * HISTORY_BUCKET_MS);
+    }
+
+    private async fetchHistoryUncached(
+        validEntityIds: string[],
+        startTime: Date,
+        endTime: Date,
+        cacheKey: string,
+        authToken: string,
+        haUrl: string,
+    ): Promise<Result<HistoryData[], Error>> {
         try {
+            perfCount('ha.historyFetches');
             logger.debug("Fetching history for:", validEntityIds);
             const start = startTime.toISOString();
             const end = endTime.toISOString();
@@ -273,9 +408,9 @@ export class HAStore {
                 proxyUrl,
                 {
                     headers: {
-                        Authorization: `Bearer ${this.auth.accessToken}`,
+                        Authorization: `Bearer ${authToken}`,
                         'Content-Type': 'application/json',
-                        'x-ha-url': this.url
+                        'x-ha-url': haUrl
                     }
                 }
             );
@@ -332,6 +467,7 @@ export class HAStore {
      */
     clearHistoryCache() {
         this.historyCache.clear();
+        this.historyInflight.clear();
     }
 }
 

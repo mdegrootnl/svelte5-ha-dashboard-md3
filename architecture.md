@@ -1,6 +1,6 @@
 # Architecture Overview
 
-**Last Updated**: May 14, 2026
+**Last Updated**: May 16, 2026
 
 A Material Design 3 dashboard for Home Assistant built with **Svelte 5** and **SvelteKit**.
 
@@ -263,6 +263,30 @@ class DashboardStore {
 - **localStorage**: Fast caching for instant local updates
 - **Debounced sync**: 2-second delay prevents excessive server writes
 
+
+---
+
+## Dashboard Generation
+
+Dashboard generation is preview-first. The generator reads Home Assistant state, entity registry, device registry, areas, floors, and optional labels, then creates normal editable dashboard configs. It does not execute Home Assistant services and does not persist anything until the user applies the preview.
+
+Generation rules:
+
+- Root home and floor dashboards stay light: attention summaries first, then room navigation cards, then weather, energy, calendar, media, and maintenance context when entities exist.
+- Room dashboards follow a stable order: attention, primary controls, comfort/climate, media/remote, openings/security/status, sensors/history, then actions.
+- Home Assistant areas are the source of truth for rooms. Device-area fallback and name inference are allowed, but quality hints identify weaker matches.
+- Home Assistant light groups are preferred over their individual member lights. Nested HA light groups remain visible; only individual member lights are suppressed.
+- Entity names are not rewritten by the generator. Repetitive names are reported through quality hints so naming can be fixed in Home Assistant.
+- Unknown and unavailable entities are excluded from normal generated room content, with quality hints for review.
+- A media player with a generated media card suppresses duplicate remotes for the same target. A remote is generated only when it controls a distinct room-relevant target, and the generated card names the controlled target.
+- Only the highest-value primary room control gets a large card by default. Secondary lights, switches, actions, and status summaries use compact MD3 cards.
+- Clean regeneration is explicit: generated cards can be replaced from a fresh draft, while manual and pinned content is preserved. Applying clean regeneration requires a second confirmation in the preview sheet.
+
+Performance rules:
+
+- Generation builds one inventory index per run and passes that index through helper functions.
+- Card render paths must use indexed/manual entity lookups and must not scan the full inventory per card.
+- The generator never starts route polling, history fetches, service calls, or persistence from render paths.
 
 ---
 

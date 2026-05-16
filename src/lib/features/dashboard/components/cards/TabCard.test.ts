@@ -104,6 +104,14 @@ describe('TabCard Component', () => {
         expect(icons[1].textContent).toBe('settings');
     });
 
+    it('uses the themed tab pill radius for tab navigation', () => {
+        render(TabCardTestWrapper, { props: { config: mockConfig } });
+
+        expect(
+            screen.getByText('Tab 1').closest('button')?.getAttribute('style'),
+        ).toContain('var(--radius-m3-tab-pill)');
+    });
+
     it('switches between tabs on click', async () => {
         render(TabCardTestWrapper, { props: { config: mockConfig } });
 
@@ -141,7 +149,8 @@ describe('TabCard Component', () => {
                 backgroundColor: '',
                 icon: '',
                 secondaryEntityId: '',
-                secondaryName: ''
+                secondaryName: '',
+                options: { button: {} }
             }
         ];
 

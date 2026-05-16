@@ -12,10 +12,12 @@
     import DevicePanelCard from "$lib/features/dashboard/components/cards/DevicePanelCard.svelte";
     import ThermostatCard from "$lib/features/dashboard/components/cards/ThermostatCard.svelte";
     import TitleCard from "$lib/features/dashboard/components/cards/TitleCard.svelte";
+    import DeferredRender from "$lib/components/common/DeferredRender.svelte";
     import PageShell from "$lib/components/layout/PageShell.svelte";
     import Button from "$lib/components/md3/Button.svelte";
     import { haStore } from "$lib/stores/ha.svelte";
     import { onMount } from "svelte";
+    import type { HassEntities } from "home-assistant-js-websocket";
     import Fan from "~icons/material-symbols/mode-fan";
     import Lightbulb from "~icons/material-symbols/lightbulb";
     import VolumeUp from "~icons/material-symbols/volume-up";
@@ -40,6 +42,9 @@
         "sensor.library_home_power",
         "sensor.library_grid_power",
         "sensor.library_battery",
+        "binary_sensor.library_window",
+        "binary_sensor.library_motion",
+        "binary_sensor.library_leak",
         "weather.library_home",
         "sensor.library_rain",
         "sensor.library_wind",
@@ -48,27 +53,35 @@
         "cover.library_blinds",
     ] as const;
 
-    type DemoEntityState = (typeof haStore.states)[string];
-    const originalMockStates = new Map<string, DemoEntityState | undefined>();
-    let capturedOriginalStates = false;
+    type LibrarySection =
+        | "media"
+        | "button"
+        | "thermostat"
+        | "title"
+        | "graph"
+        | "navigation"
+        | "smart"
+        | "tabs";
 
-    function captureOriginalStates() {
-        if (capturedOriginalStates) return;
-        for (const entityId of mockEntityIds) {
-            originalMockStates.set(entityId, haStore.states[entityId]);
-        }
-        capturedOriginalStates = true;
-    }
+    const librarySections: Array<{ id: LibrarySection; label: string }> = [
+        { id: "media", label: "Media" },
+        { id: "button", label: "Buttons" },
+        { id: "thermostat", label: "Climate" },
+        { id: "title", label: "Titles" },
+        { id: "graph", label: "Graphs" },
+        { id: "navigation", label: "Navigation" },
+        { id: "smart", label: "Smart" },
+        { id: "tabs", label: "Tabs" },
+    ];
+
+    let activeSection = $state<LibrarySection>("media");
 
     function restoreOriginalStates() {
-        if (!capturedOriginalStates) return;
-        const nextStates = { ...haStore.states };
-        for (const entityId of mockEntityIds) {
-            const original = originalMockStates.get(entityId);
-            if (original) nextStates[entityId] = original;
-            else delete nextStates[entityId];
-        }
-        haStore.states = nextStates;
+        haStore.clearEntityOverrides(mockEntityIds);
+    }
+
+    function patchDemoStates(states: HassEntities) {
+        haStore.patchEntityOverrides(states);
     }
 
     // Define card data structure
@@ -166,9 +179,7 @@
     }
 
     function loadMockMedia() {
-        captureOriginalStates();
-        haStore.states = {
-            ...haStore.states,
+        patchDemoStates({
             "media_player.spotify": {
                 entity_id: "media_player.spotify",
                 state: "playing",
@@ -218,13 +229,11 @@
                 last_updated: new Date().toISOString(),
                 context: { id: "3", parent_id: null, user_id: null },
             },
-        };
+        });
     }
 
     function loadMockClimate() {
-        captureOriginalStates();
-        haStore.states = {
-            ...haStore.states,
+        patchDemoStates({
             "climate.living_room": {
                 entity_id: "climate.living_room",
                 state: "heat",
@@ -286,13 +295,11 @@
                 last_updated: new Date().toISOString(),
                 context: { id: "c4", parent_id: null, user_id: null },
             },
-        };
+        });
     }
 
     function loadMockDashboardExamples() {
-        captureOriginalStates();
-        haStore.states = {
-            ...haStore.states,
+        patchDemoStates({
             "light.library_table": mockState("light.library_table", "on", {
                 friendly_name: "Table Lamp",
                 brightness: 192,
@@ -367,6 +374,30 @@
                     device_class: "battery",
                 },
             ),
+            "binary_sensor.library_window": mockState(
+                "binary_sensor.library_window",
+                "on",
+                {
+                    friendly_name: "Kitchen Window",
+                    device_class: "window",
+                },
+            ),
+            "binary_sensor.library_motion": mockState(
+                "binary_sensor.library_motion",
+                "on",
+                {
+                    friendly_name: "Hall Motion",
+                    device_class: "motion",
+                },
+            ),
+            "binary_sensor.library_leak": mockState(
+                "binary_sensor.library_leak",
+                "on",
+                {
+                    friendly_name: "Utility Leak Sensor",
+                    device_class: "moisture",
+                },
+            ),
             "weather.library_home": mockState("weather.library_home", "cloudy", {
                 friendly_name: "Home Weather",
                 temperature: 16,
@@ -389,7 +420,7 @@
             }),
             "media_player.library_tv": mockState(
                 "media_player.library_tv",
-                "on",
+                "playing",
                 {
                     friendly_name: "Living Room TV",
                     volume_level: 0.35,
@@ -398,7 +429,7 @@
             "cover.library_blinds": mockState("cover.library_blinds", "open", {
                 friendly_name: "Living Room Blinds",
             }),
-        };
+        });
     }
 
     function loadAllExamples() {
@@ -430,8 +461,30 @@
         </Button>
     {/snippet}
 
+    <div
+        class="flex items-center gap-2 overflow-x-auto pb-2"
+        role="tablist"
+        aria-label="Card library sections"
+    >
+        {#each librarySections as section}
+            <button
+                type="button"
+                role="tab"
+                aria-selected={activeSection === section.id}
+                class="h-10 px-4 rounded-m3-card text-m3-label-large font-medium whitespace-nowrap transition-colors {activeSection ===
+                section.id
+                    ? 'bg-m3-primary text-m3-on-primary'
+                    : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}"
+                onclick={() => (activeSection = section.id)}
+            >
+                {section.label}
+            </button>
+        {/each}
+    </div>
+
     <!-- Media Cards Section -->
-    <section>
+    {#if activeSection === "media"}
+        <section>
         <h2 class="text-m3-title-large text-m3-on-surface mb-4">Media Cards</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <!-- Standard Variant -->
@@ -440,12 +493,14 @@
                     >Standard</span
                 >
                 <div class="h-48">
-                    <MediaCard
-                        entityId="media_player.spotify"
-                        name=""
-                        domainFilter="media_player"
-                        variant="standard"
-                    />
+                    <DeferredRender class="h-full">
+                        <MediaCard
+                            entityId="media_player.spotify"
+                            name=""
+                            domainFilter="media_player"
+                            variant="standard"
+                        />
+                    </DeferredRender>
                 </div>
             </div>
 
@@ -456,13 +511,15 @@
                 >
                 <div class="h-96">
                     <!-- taller container for poster -->
-                    <MediaCard
-                        entityId="media_player.living_room_tv"
-                        name=""
-                        domainFilter="media_player"
-                        variant="poster"
-                        background="immersive"
-                    />
+                    <DeferredRender class="h-full">
+                        <MediaCard
+                            entityId="media_player.living_room_tv"
+                            name=""
+                            domainFilter="media_player"
+                            variant="poster"
+                            background="immersive"
+                        />
+                    </DeferredRender>
                 </div>
             </div>
 
@@ -471,19 +528,23 @@
                 <span class="text-m3-label-medium text-m3-on-surface-variant"
                     >Condensed</span
                 >
-                <div>
-                    <MediaCard
-                        entityId="media_player.kitchen_speaker"
-                        name=""
-                        domainFilter="media_player"
-                        variant="condensed"
-                    />
+                <div class="min-h-24">
+                    <DeferredRender class="h-full min-h-24">
+                        <MediaCard
+                            entityId="media_player.kitchen_speaker"
+                            name=""
+                            domainFilter="media_player"
+                            variant="condensed"
+                        />
+                    </DeferredRender>
                 </div>
             </div>
         </div>
-    </section>
+        </section>
+    {/if}
 
-    <section>
+    {#if activeSection === "button"}
+        <section>
         <h2 class="text-m3-title-large text-m3-on-surface mb-4">
             Button Cards
         </h2>
@@ -492,23 +553,27 @@
             class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
         >
             {#each cards as card, i (card.id)}
-                <ButtonCard
-                    bind:title={card.title}
-                    bind:state={card.state}
-                    icon={card.icon}
-                    variant={card.variant}
-                    bind:isActive={card.isActive}
-                    bind:value={card.value}
-                    bind:entityId={card.entityId}
-                    bind:name={card.name}
-                    bind:domainFilter={card.domainFilter}
-                />
+                <DeferredRender class="min-h-20">
+                    <ButtonCard
+                        bind:title={card.title}
+                        bind:state={card.state}
+                        icon={card.icon}
+                        variant={card.variant}
+                        bind:isActive={card.isActive}
+                        bind:value={card.value}
+                        bind:entityId={card.entityId}
+                        bind:name={card.name}
+                        bind:domainFilter={card.domainFilter}
+                    />
+                </DeferredRender>
             {/each}
         </div>
-    </section>
+        </section>
+    {/if}
 
     <!-- Thermostat Cards Section -->
-    <section>
+    {#if activeSection === "thermostat"}
+        <section>
         <h2 class="text-m3-title-large text-m3-on-surface mb-4">
             Thermostat Cards
         </h2>
@@ -519,13 +584,15 @@
                     >Condensed</span
                 >
                 <div class="h-24">
-                    <ThermostatCard
-                        bind:entityId={thermostat2.entityId}
-                        bind:secondaryEntityId={thermostat2.secondaryEntityId}
-                        bind:name={thermostat2.name}
-                        bind:secondaryName={thermostat2.secondaryName}
-                        bind:domainFilter={thermostat2.domainFilter}
-                    />
+                    <DeferredRender class="h-full">
+                        <ThermostatCard
+                            bind:entityId={thermostat2.entityId}
+                            bind:secondaryEntityId={thermostat2.secondaryEntityId}
+                            bind:name={thermostat2.name}
+                            bind:secondaryName={thermostat2.secondaryName}
+                            bind:domainFilter={thermostat2.domainFilter}
+                        />
+                    </DeferredRender>
                 </div>
             </div>
 
@@ -535,13 +602,15 @@
                     >Standard</span
                 >
                 <div class="h-44">
-                    <ThermostatCard
-                        bind:entityId={thermostat2.entityId}
-                        bind:secondaryEntityId={thermostat2.secondaryEntityId}
-                        bind:name={thermostat2.name}
-                        bind:secondaryName={thermostat2.secondaryName}
-                        bind:domainFilter={thermostat2.domainFilter}
-                    />
+                    <DeferredRender class="h-full">
+                        <ThermostatCard
+                            bind:entityId={thermostat2.entityId}
+                            bind:secondaryEntityId={thermostat2.secondaryEntityId}
+                            bind:name={thermostat2.name}
+                            bind:secondaryName={thermostat2.secondaryName}
+                            bind:domainFilter={thermostat2.domainFilter}
+                        />
+                    </DeferredRender>
                 </div>
             </div>
 
@@ -551,19 +620,23 @@
                     >Expanded (Immersive)</span
                 >
                 <div class="h-96">
-                    <ThermostatCard
-                        bind:entityId={thermostat1.entityId}
-                        bind:secondaryEntityId={thermostat1.secondaryEntityId}
-                        bind:name={thermostat1.name}
-                        bind:secondaryName={thermostat1.secondaryName}
-                        bind:domainFilter={thermostat1.domainFilter}
-                    />
+                    <DeferredRender class="h-full">
+                        <ThermostatCard
+                            bind:entityId={thermostat1.entityId}
+                            bind:secondaryEntityId={thermostat1.secondaryEntityId}
+                            bind:name={thermostat1.name}
+                            bind:secondaryName={thermostat1.secondaryName}
+                            bind:domainFilter={thermostat1.domainFilter}
+                        />
+                    </DeferredRender>
                 </div>
             </div>
         </div>
-    </section>
+        </section>
+    {/if}
 
-    <section>
+    {#if activeSection === "title"}
+        <section>
         <h2 class="text-m3-title-large text-m3-on-surface mb-4">
             Title Cards
         </h2>
@@ -573,12 +646,14 @@
                     >Section header</span
                 >
                 <div class="h-24">
-                    <TitleCard
-                        title="Living Room"
-                        subtitle="Lights, climate, media"
-                        name=""
-                        alignment="start"
-                    />
+                    <DeferredRender class="h-full">
+                        <TitleCard
+                            title="Living Room"
+                            subtitle="Lights, climate, media"
+                            name=""
+                            alignment="start"
+                        />
+                    </DeferredRender>
                 </div>
             </div>
 
@@ -587,14 +662,16 @@
                     >Centered mode label</span
                 >
                 <div class="h-24">
-                    <TitleCard
-                        title="Evening"
-                        subtitle="Scene active"
-                        name=""
-                        alignment="center"
-                        color="#0f766e"
-                        backgroundColor="color-mix(in srgb, #0f766e 12%, transparent)"
-                    />
+                    <DeferredRender class="h-full">
+                        <TitleCard
+                            title="Evening"
+                            subtitle="Scene active"
+                            name=""
+                            alignment="center"
+                            color="#0f766e"
+                            backgroundColor="color-mix(in srgb, #0f766e 12%, transparent)"
+                        />
+                    </DeferredRender>
                 </div>
             </div>
 
@@ -603,19 +680,23 @@
                     >Right aligned</span
                 >
                 <div class="h-24">
-                    <TitleCard
-                        title="Upstairs"
-                        subtitle="2 rooms online"
-                        name=""
-                        alignment="end"
-                        color="#7c3aed"
-                    />
+                    <DeferredRender class="h-full">
+                        <TitleCard
+                            title="Upstairs"
+                            subtitle="2 rooms online"
+                            name=""
+                            alignment="end"
+                            color="#7c3aed"
+                        />
+                    </DeferredRender>
                 </div>
             </div>
         </div>
-    </section>
+        </section>
+    {/if}
 
-    <section>
+    {#if activeSection === "graph"}
+        <section>
         <h2 class="text-m3-title-large text-m3-on-surface mb-4">
             Graph Cards
         </h2>
@@ -625,16 +706,18 @@
                     >Temperature history</span
                 >
                 <div class="h-48">
-                    <GraphCard
-                        entityId="sensor.library_temperature"
-                        name="Temperature"
-                        hours_to_show={12}
-                        points_per_hour={2}
-                        aggregate_func="avg"
-                        icon="device_thermostat"
-                        color="#ef4444"
-                        fetchHistory={false}
-                    />
+                    <DeferredRender class="h-full">
+                        <GraphCard
+                            entityId="sensor.library_temperature"
+                            name="Temperature"
+                            hours_to_show={12}
+                            points_per_hour={2}
+                            aggregate_func="avg"
+                            icon="device_thermostat"
+                            color="#ef4444"
+                            fetchHistory={false}
+                        />
+                    </DeferredRender>
                 </div>
             </div>
 
@@ -643,23 +726,25 @@
                     >Multi entity</span
                 >
                 <div class="h-48">
-                    <GraphCard
-                        entityId="sensor.library_temperature"
-                        name="Room climate"
-                        hours_to_show={24}
-                        points_per_hour={1}
-                        aggregate_func="avg"
-                        icon="monitoring"
-                        color="#ef4444"
-                        fetchHistory={false}
-                        graphEntities={[
-                            {
-                                entity_id: "sensor.library_humidity",
-                                name: "Humidity",
-                                color: "#0ea5e9",
-                            },
-                        ]}
-                    />
+                    <DeferredRender class="h-full">
+                        <GraphCard
+                            entityId="sensor.library_temperature"
+                            name="Room climate"
+                            hours_to_show={24}
+                            points_per_hour={1}
+                            aggregate_func="avg"
+                            icon="monitoring"
+                            color="#ef4444"
+                            fetchHistory={false}
+                            graphEntities={[
+                                {
+                                    entity_id: "sensor.library_humidity",
+                                    name: "Humidity",
+                                    color: "#0ea5e9",
+                                },
+                            ]}
+                        />
+                    </DeferredRender>
                 </div>
             </div>
 
@@ -668,28 +753,32 @@
                     >Compact stat</span
                 >
                 <div class="h-28">
-                    <GraphCard
-                        entityId="sensor.library_energy"
-                        name="Energy Today"
-                        hours_to_show={6}
-                        aggregate_func="last"
-                        icon="bolt"
-                        color="#eab308"
-                        fetchHistory={false}
-                        show={{
-                            graph: false,
-                            icon: true,
-                            name: true,
-                            state: true,
-                            fill: false,
-                        }}
-                    />
+                    <DeferredRender class="h-full">
+                        <GraphCard
+                            entityId="sensor.library_energy"
+                            name="Energy Today"
+                            hours_to_show={6}
+                            aggregate_func="last"
+                            icon="bolt"
+                            color="#eab308"
+                            fetchHistory={false}
+                            show={{
+                                graph: false,
+                                icon: true,
+                                name: true,
+                                state: true,
+                                fill: false,
+                            }}
+                        />
+                    </DeferredRender>
                 </div>
             </div>
         </div>
-    </section>
+        </section>
+    {/if}
 
-    <section>
+    {#if activeSection === "navigation"}
+        <section>
         <h2 class="text-m3-title-large text-m3-on-surface mb-4">
             Navigation Cards
         </h2>
@@ -699,32 +788,34 @@
                     >Room link with shortcuts</span
                 >
                 <div class="h-28">
-                    <NavigationCard
-                        name="Living Room"
-                        path="/dashboard/ground-floor/living-room"
-                        icon="weekend"
-                        color="#2563eb"
-                        shortcuts={[
-                            {
-                                id: "nav-light",
-                                entityId: "light.library_table",
-                                icon: "table_lamp",
-                                color: "#f59e0b",
-                            },
-                            {
-                                id: "nav-outlet",
-                                entityId: "switch.library_outlet",
-                                icon: "outlet",
-                                color: "#22c55e",
-                            },
-                            {
-                                id: "nav-fan",
-                                entityId: "fan.library_fan",
-                                icon: "mode_fan",
-                                color: "#0ea5e9",
-                            },
-                        ]}
-                    />
+                    <DeferredRender class="h-full">
+                        <NavigationCard
+                            name="Living Room"
+                            path="/dashboard/ground-floor/living-room"
+                            icon="weekend"
+                            color="#2563eb"
+                            shortcuts={[
+                                {
+                                    id: "nav-light",
+                                    entityId: "light.library_table",
+                                    icon: "table_lamp",
+                                    color: "#f59e0b",
+                                },
+                                {
+                                    id: "nav-outlet",
+                                    entityId: "switch.library_outlet",
+                                    icon: "outlet",
+                                    color: "#22c55e",
+                                },
+                                {
+                                    id: "nav-fan",
+                                    entityId: "fan.library_fan",
+                                    icon: "mode_fan",
+                                    color: "#0ea5e9",
+                                },
+                            ]}
+                        />
+                    </DeferredRender>
                 </div>
             </div>
 
@@ -733,28 +824,32 @@
                     >Image navigation</span
                 >
                 <div class="h-52">
-                    <NavigationCard
-                        name="Kitchen"
-                        path="/dashboard/ground-floor/kitchen"
-                        icon="restaurant"
-                        iconType="image"
-                        imageUrl="https://images.unsplash.com/photo-1556911220-bff31c812dba?q=80&w=900&auto=format&fit=crop"
-                        color="#f97316"
-                        shortcuts={[
-                            {
-                                id: "nav-kitchen-light",
-                                entityId: "light.library_accent",
-                                icon: "lightbulb",
-                                color: "#f97316",
-                            },
-                        ]}
-                    />
+                    <DeferredRender class="h-full">
+                        <NavigationCard
+                            name="Kitchen"
+                            path="/dashboard/ground-floor/kitchen"
+                            icon="restaurant"
+                            iconType="image"
+                            imageUrl="https://images.unsplash.com/photo-1556911220-bff31c812dba?q=80&w=900&auto=format&fit=crop"
+                            color="#f97316"
+                            shortcuts={[
+                                {
+                                    id: "nav-kitchen-light",
+                                    entityId: "light.library_accent",
+                                    icon: "lightbulb",
+                                    color: "#f97316",
+                                },
+                            ]}
+                        />
+                    </DeferredRender>
                 </div>
             </div>
         </div>
-    </section>
+        </section>
+    {/if}
 
-    <section>
+    {#if activeSection === "smart"}
+        <section>
         <h2 class="text-m3-title-large text-m3-on-surface mb-4">
             Smart Library Cards
         </h2>
@@ -764,21 +859,23 @@
                     >Room summary - inspired by Mushroom and Bubble</span
                 >
                 <div class="h-48">
-                    <RoomSummaryCard
-                        name="Living Room"
-                        icon="weekend"
-                        color="#2563eb"
-                        options={{
-                            source: "manual",
-                            entityIds: [
-                                "light.library_table",
-                                "switch.library_outlet",
-                                "fan.library_fan",
-                                "media_player.library_tv",
-                                "sensor.library_temperature",
-                            ],
-                        }}
-                    />
+                    <DeferredRender class="h-full">
+                        <RoomSummaryCard
+                            name="Living Room"
+                            icon="weekend"
+                            color="#2563eb"
+                            options={{
+                                source: "manual",
+                                entityIds: [
+                                    "light.library_table",
+                                    "switch.library_outlet",
+                                    "fan.library_fan",
+                                    "media_player.library_tv",
+                                    "sensor.library_temperature",
+                                ],
+                            }}
+                        />
+                    </DeferredRender>
                 </div>
             </div>
 
@@ -787,16 +884,82 @@
                     >Status collection - inspired by Auto Entities</span
                 >
                 <div class="h-48">
-                    <EntityCollectionCard
-                        name="Needs Attention"
-                        icon="filter_alt"
-                        color="#dc2626"
-                        options={{
-                            mode: "low_battery",
-                            threshold: 25,
-                            showState: true,
-                        }}
-                    />
+                    <DeferredRender class="h-full">
+                        <EntityCollectionCard
+                            name="Needs Attention"
+                            icon="filter_alt"
+                            color="#dc2626"
+                            options={{
+                                mode: "low_battery",
+                                threshold: 25,
+                                showState: true,
+                            }}
+                        />
+                    </DeferredRender>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-2 md:col-span-2 lg:col-span-3">
+                <span class="text-m3-label-medium text-m3-on-surface-variant"
+                    >Attention collections - generated home overview patterns</span
+                >
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div class="h-28">
+                        <DeferredRender class="h-full">
+                            <EntityCollectionCard
+                                name="Openings"
+                                icon="sensor_door"
+                                color="#f97316"
+                                options={{
+                                    mode: "openings",
+                                    showState: true,
+                                    presentation: "summary",
+                                }}
+                            />
+                        </DeferredRender>
+                    </div>
+                    <div class="h-28">
+                        <DeferredRender class="h-full">
+                            <EntityCollectionCard
+                                name="Motion"
+                                icon="motion_sensor_active"
+                                color="#22c55e"
+                                options={{
+                                    mode: "motion",
+                                    showState: true,
+                                    presentation: "summary",
+                                }}
+                            />
+                        </DeferredRender>
+                    </div>
+                    <div class="h-28">
+                        <DeferredRender class="h-full">
+                            <EntityCollectionCard
+                                name="Media Playing"
+                                icon="play_circle"
+                                color="#2563eb"
+                                options={{
+                                    mode: "media_playing",
+                                    showState: true,
+                                    presentation: "summary",
+                                }}
+                            />
+                        </DeferredRender>
+                    </div>
+                    <div class="h-28">
+                        <DeferredRender class="h-full">
+                            <EntityCollectionCard
+                                name="Security Alerts"
+                                icon="shield_alert"
+                                color="#dc2626"
+                                options={{
+                                    mode: "security",
+                                    showState: true,
+                                    presentation: "summary",
+                                }}
+                            />
+                        </DeferredRender>
+                    </div>
                 </div>
             </div>
 
@@ -805,18 +968,20 @@
                     >Energy flow - inspired by Power Flow Plus</span
                 >
                 <div class="h-48">
-                    <EnergyFlowCard
-                        name="Home Energy"
-                        icon="electric_bolt"
-                        color="#eab308"
-                        options={{
-                            source: "manual",
-                            solarPowerEntityId: "sensor.library_solar_power",
-                            homePowerEntityId: "sensor.library_home_power",
-                            gridImportEntityId: "sensor.library_grid_power",
-                            todayEnergyEntityId: "sensor.library_energy",
-                        }}
-                    />
+                    <DeferredRender class="h-full">
+                        <EnergyFlowCard
+                            name="Home Energy"
+                            icon="electric_bolt"
+                            color="#eab308"
+                            options={{
+                                source: "manual",
+                                solarPowerEntityId: "sensor.library_solar_power",
+                                homePowerEntityId: "sensor.library_home_power",
+                                gridImportEntityId: "sensor.library_grid_power",
+                                todayEnergyEntityId: "sensor.library_energy",
+                            }}
+                        />
+                    </DeferredRender>
                 </div>
             </div>
 
@@ -825,17 +990,19 @@
                     >Agenda - inspired by Calendar Card Pro</span
                 >
                 <div class="h-48">
-                    <CalendarAgendaCard
-                        name="Family Agenda"
-                        icon="calendar_month"
-                        color="#7c3aed"
-                        options={{
-                            source: "manual",
-                            entityIds: ["calendar.family"],
-                            daysToShow: 7,
-                            maxEvents: 4,
-                        }}
-                    />
+                    <DeferredRender class="h-full">
+                        <CalendarAgendaCard
+                            name="Family Agenda"
+                            icon="calendar_month"
+                            color="#7c3aed"
+                            options={{
+                                source: "manual",
+                                entityIds: ["calendar.family"],
+                                daysToShow: 7,
+                                maxEvents: 4,
+                            }}
+                        />
+                    </DeferredRender>
                 </div>
             </div>
 
@@ -844,19 +1011,21 @@
                     >Weather overview - inspired by weather/rain cards</span
                 >
                 <div class="h-48">
-                    <WeatherOverviewCard
-                        name="Outside"
-                        icon="partly_cloudy_day"
-                        color="#0ea5e9"
-                        options={{
-                            source: "manual",
-                            weatherEntityId: "weather.library_home",
-                            temperatureEntityId: "sensor.library_temperature",
-                            humidityEntityId: "sensor.library_humidity",
-                            rainEntityId: "sensor.library_rain",
-                            windEntityId: "sensor.library_wind",
-                        }}
-                    />
+                    <DeferredRender class="h-full">
+                        <WeatherOverviewCard
+                            name="Outside"
+                            icon="partly_cloudy_day"
+                            color="#0ea5e9"
+                            options={{
+                                source: "manual",
+                                weatherEntityId: "weather.library_home",
+                                temperatureEntityId: "sensor.library_temperature",
+                                humidityEntityId: "sensor.library_humidity",
+                                rainEntityId: "sensor.library_rain",
+                                windEntityId: "sensor.library_wind",
+                            }}
+                        />
+                    </DeferredRender>
                 </div>
             </div>
 
@@ -865,124 +1034,135 @@
                     >Remote and device panels - inspired by Remote/Vacuum cards</span
                 >
                 <div class="grid grid-cols-2 gap-3 h-48">
-                    <RemotePanelCard
-                        name="TV Remote"
-                        entityId="media_player.library_tv"
-                        icon="settings_remote"
-                        color="#16a34a"
-                        options={{ preset: "tv" }}
-                    />
-                    <DevicePanelCard
-                        name="Blinds"
-                        entityId="cover.library_blinds"
-                        icon="blinds"
-                        color="#f97316"
-                        options={{
-                            preset: "cover",
-                            entityId: "cover.library_blinds",
-                        }}
-                    />
+                    <DeferredRender class="h-full">
+                        <RemotePanelCard
+                            name="TV Remote"
+                            entityId="media_player.library_tv"
+                            icon="settings_remote"
+                            color="#16a34a"
+                            options={{ preset: "tv" }}
+                        />
+                    </DeferredRender>
+                    <DeferredRender class="h-full">
+                        <DevicePanelCard
+                            name="Blinds"
+                            entityId="cover.library_blinds"
+                            icon="blinds"
+                            color="#f97316"
+                            options={{
+                                preset: "cover",
+                                entityId: "cover.library_blinds",
+                            }}
+                        />
+                    </DeferredRender>
                 </div>
             </div>
         </div>
-    </section>
+        </section>
+    {/if}
 
-    <section>
+    {#if activeSection === "tabs"}
+        <section>
         <h2 class="text-m3-title-large text-m3-on-surface mb-4">Tab Card</h2>
         <div class="flex flex-col gap-2">
             <span class="text-m3-label-medium text-m3-on-surface-variant"
                 >Nested dashboard surface</span
             >
-            <div
-                class="min-h-[34rem] rounded-m3-md border border-m3-outline-variant/40 bg-m3-surface-container-low overflow-hidden p-4 flex flex-col gap-4"
-            >
-                <div class="flex items-center gap-2">
-                    <button
-                        type="button"
-                        class="h-10 px-4 rounded-m3-full bg-m3-primary-container text-m3-on-primary-container text-m3-label-large"
-                    >
-                        Comfort
-                    </button>
-                    <button
-                        type="button"
-                        class="h-10 px-4 rounded-m3-full bg-m3-surface-container-high text-m3-on-surface-variant text-m3-label-large"
-                    >
-                        Media
-                    </button>
-                </div>
+            <DeferredRender class="min-h-[34rem]">
                 <div
-                    class="grid grid-cols-1 md:grid-cols-6 gap-3 flex-1 min-h-0"
+                    class="min-h-[34rem] rounded-m3-md border border-m3-outline-variant/40 bg-m3-surface-container-low overflow-hidden p-4 flex flex-col gap-4"
                 >
-                    <div class="h-24 md:col-span-6">
-                        <TitleCard
-                            title="Comfort"
-                            subtitle="Evening scene"
-                            name=""
-                            alignment="start"
-                        />
+                    <div class="flex items-center gap-2">
+                        <button
+                            type="button"
+                            class="h-10 px-4 bg-m3-primary-container text-m3-on-primary-container text-m3-label-large"
+                            style:border-radius="var(--radius-m3-tab-pill)"
+                        >
+                            Comfort
+                        </button>
+                        <button
+                            type="button"
+                            class="h-10 px-4 bg-m3-surface-container-high text-m3-on-surface-variant text-m3-label-large"
+                            style:border-radius="var(--radius-m3-tab-pill)"
+                        >
+                            Media
+                        </button>
                     </div>
-                    <div class="h-28 md:col-span-2">
-                        <ButtonCard
-                            title="Table Lamp"
-                            state="On"
-                            icon={Lightbulb}
-                            variant="switch"
-                            isActive={true}
-                            entityId="light.library_table"
-                            name=""
-                            domainFilter="light"
-                            color="#f59e0b"
-                        />
-                    </div>
-                    <div class="h-28 md:col-span-2">
-                        <ButtonCard
-                            title="Outlet"
-                            state="On"
-                            icon={Workspaces}
-                            variant="switch"
-                            isActive={true}
-                            entityId="switch.library_outlet"
-                            name=""
-                            domainFilter="switch"
-                            color="#22c55e"
-                        />
-                    </div>
-                    <div class="h-28 md:col-span-2">
-                        <NavigationCard
-                            name="Open Music"
-                            path="/music"
-                            icon="queue_music"
-                            color="#7c3aed"
-                            shortcuts={[
-                                {
-                                    id: "library-media-shortcut",
-                                    entityId: "media_player.kitchen_speaker",
-                                    icon: "play_circle",
-                                },
-                            ]}
-                        />
-                    </div>
-                    <div class="h-52 md:col-span-4">
-                        <GraphCard
-                            entityId="sensor.library_temperature"
-                            name="Temperature"
-                            hours_to_show={12}
-                            aggregate_func="avg"
-                            icon="device_thermostat"
-                            color="#ef4444"
-                            fetchHistory={false}
-                        />
-                    </div>
-                    <div class="h-52 md:col-span-2">
-                        <MediaCard
-                            entityId="media_player.kitchen_speaker"
-                            name=""
-                            domainFilter="media_player"
-                            variant="condensed"
-                        />
+                    <div
+                        class="grid grid-cols-1 md:grid-cols-6 gap-3 flex-1 min-h-0"
+                    >
+                        <div class="h-24 md:col-span-6">
+                            <TitleCard
+                                title="Comfort"
+                                subtitle="Evening scene"
+                                name=""
+                                alignment="start"
+                            />
+                        </div>
+                        <div class="h-28 md:col-span-2">
+                            <ButtonCard
+                                title="Table Lamp"
+                                state="On"
+                                icon={Lightbulb}
+                                variant="switch"
+                                isActive={true}
+                                entityId="light.library_table"
+                                name=""
+                                domainFilter="light"
+                                color="#f59e0b"
+                            />
+                        </div>
+                        <div class="h-28 md:col-span-2">
+                            <ButtonCard
+                                title="Outlet"
+                                state="On"
+                                icon={Workspaces}
+                                variant="switch"
+                                isActive={true}
+                                entityId="switch.library_outlet"
+                                name=""
+                                domainFilter="switch"
+                                color="#22c55e"
+                            />
+                        </div>
+                        <div class="h-28 md:col-span-2">
+                            <NavigationCard
+                                name="Open Music"
+                                path="/music"
+                                icon="queue_music"
+                                color="#7c3aed"
+                                shortcuts={[
+                                    {
+                                        id: "library-media-shortcut",
+                                        entityId: "media_player.kitchen_speaker",
+                                        icon: "play_circle",
+                                    },
+                                ]}
+                            />
+                        </div>
+                        <div class="h-52 md:col-span-4">
+                            <GraphCard
+                                entityId="sensor.library_temperature"
+                                name="Temperature"
+                                hours_to_show={12}
+                                aggregate_func="avg"
+                                icon="device_thermostat"
+                                color="#ef4444"
+                                fetchHistory={false}
+                            />
+                        </div>
+                        <div class="h-52 md:col-span-2">
+                            <MediaCard
+                                entityId="media_player.kitchen_speaker"
+                                name=""
+                                domainFilter="media_player"
+                                variant="condensed"
+                            />
+                        </div>
                     </div>
                 </div>
-            </div>
+            </DeferredRender>
         </div>
-    </section>
+        </section>
+    {/if}
 </PageShell>

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/svelte';
+import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import NavigationCard from './NavigationCard.svelte';
 import { haStore, cardEditorStore } from '$lib';
@@ -9,6 +9,7 @@ describe('NavigationCard Component', () => {
         // Default empty entity
         vi.spyOn(haStore, 'getEntity').mockReturnValue(undefined as any);
         vi.spyOn(haStore, 'callService').mockResolvedValue({ ok: true, value: undefined });
+        vi.spyOn(haStore, 'fetchProxiedBlobUrl').mockImplementation(async (source) => source);
         vi.spyOn(cardEditorStore, 'open').mockImplementation(() => { });
     });
 
@@ -37,6 +38,38 @@ describe('NavigationCard Component', () => {
         const iconSpan = container.querySelector('.material-symbols-outlined');
         expect(iconSpan).toBeInTheDocument();
         expect(iconSpan?.textContent).toBe('kitchen');
+    });
+
+    it('renders generated room summaries as compact chips', () => {
+        render(NavigationCard, {
+            props: {
+                name: 'Kitchen',
+                path: '/dashboard/ground/kitchen',
+                subtitle: '2 attention \u00b7 1 control on \u00b7 motion \u00b7 21.5C',
+                entityId: ''
+            }
+        });
+
+        expect(screen.getByText('2 attention')).toBeInTheDocument();
+        expect(screen.getByText('1 control on')).toBeInTheDocument();
+        expect(screen.getByText('motion')).toBeInTheDocument();
+        expect(screen.queryByText('21.5C')).not.toBeInTheDocument();
+    });
+
+    it('renders generated room summaries with the current ASCII separator', () => {
+        render(NavigationCard, {
+            props: {
+                name: 'Kitchen',
+                path: '/dashboard/ground/kitchen',
+                subtitle: '1 open - 1 control on - motion - 1 low battery',
+                entityId: ''
+            }
+        });
+
+        expect(screen.getByText('1 open')).toBeInTheDocument();
+        expect(screen.getByText('1 control on')).toBeInTheDocument();
+        expect(screen.getByText('motion')).toBeInTheDocument();
+        expect(screen.queryByText('1 low battery')).not.toBeInTheDocument();
     });
 
     it('renders default icon when none provided', () => {
@@ -151,7 +184,7 @@ describe('NavigationCard Component', () => {
         }
     });
 
-    it('renders with image when iconType is image', () => {
+    it('renders with image when iconType is image', async () => {
         const { container } = render(NavigationCard, {
             props: {
                 name: 'Image Room',
@@ -162,8 +195,43 @@ describe('NavigationCard Component', () => {
             }
         });
 
+        await waitFor(() => expect(container.querySelector('img')).toBeInTheDocument());
         const img = container.querySelector('img');
         expect(img).toBeInTheDocument();
         expect(img).toHaveAttribute('src', 'https://example.com/room.jpg');
+        expect(haStore.fetchProxiedBlobUrl).toHaveBeenCalledWith('https://example.com/room.jpg');
+    });
+
+    it('shows attribution affordance for credited navigation images', async () => {
+        const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+        render(NavigationCard, {
+            props: {
+                name: 'Kitchen',
+                path: '/dashboard/kitchen',
+                iconType: 'image',
+                imageUrl: 'https://images.unsplash.com/photo-test',
+                imageAttribution: {
+                    provider: 'unsplash',
+                    sourceName: 'Unsplash',
+                    sourceUrl: 'https://unsplash.com/photos/test',
+                    authorName: 'Ada Lovelace',
+                    authorUrl: 'https://unsplash.com/@ada',
+                },
+                entityId: '',
+            },
+        });
+
+        const credit = await screen.findByLabelText(
+            'Photo by Ada Lovelace on Unsplash. Open attribution link.',
+        );
+        expect(screen.getByText('Photo by Ada Lovelace on Unsplash')).toBeInTheDocument();
+
+        await fireEvent.click(credit);
+        expect(openSpy).toHaveBeenCalledWith(
+            'https://unsplash.com/photos/test',
+            '_blank',
+            'noopener,noreferrer',
+        );
     });
 });

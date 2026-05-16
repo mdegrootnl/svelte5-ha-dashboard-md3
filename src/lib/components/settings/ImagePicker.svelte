@@ -1,13 +1,27 @@
 <script lang="ts">
-    import { Button, TextField } from "$lib";
+    import Button from "$lib/components/md3/Button.svelte";
+    import TextField from "$lib/components/md3/TextField.svelte";
+    import type { DashboardImageAttribution } from "$lib/types/dashboard";
     import Upload from "~icons/material-symbols/upload";
     import Image from "~icons/material-symbols/image";
     import Delete from "~icons/material-symbols/delete";
+    import Search from "~icons/material-symbols/search";
+
+    interface UnsplashImageResult {
+        id: string;
+        thumbUrl: string;
+        imageUrl: string;
+        description: string;
+        attribution: DashboardImageAttribution;
+    }
 
     let {
         value = $bindable(),
+        attribution = $bindable<DashboardImageAttribution | undefined>(),
         label = "Image",
         orientation = "landscape",
+        enableUnsplash = false,
+        searchHint = "",
         onchange,
     } = $props();
 
@@ -15,6 +29,27 @@
 
     let uploading = $state(false);
     let errorMessage = $state("");
+    let unsplashQuery = $state("");
+    let unsplashResults = $state<UnsplashImageResult[]>([]);
+    let searchingUnsplash = $state(false);
+    let unsplashMessage = $state("");
+    let attributionImageUrl = $state(value || "");
+
+    $effect(() => {
+        if (!unsplashQuery && searchHint) {
+            unsplashQuery = searchHint;
+        }
+    });
+
+    $effect(() => {
+        if (attribution && value && !attributionImageUrl) {
+            attributionImageUrl = value;
+        }
+        if (attribution && attributionImageUrl && value !== attributionImageUrl) {
+            attribution = undefined;
+            attributionImageUrl = "";
+        }
+    });
 
     async function handleFile(e: Event) {
         const target = e.target as HTMLInputElement;
@@ -36,6 +71,8 @@
                 if (res.ok) {
                     const data = await res.json();
                     value = data.url;
+                    attribution = undefined;
+                    attributionImageUrl = "";
                     onchange?.();
                 } else {
                     const errorData = await res.json().catch(() => ({}));
@@ -61,6 +98,64 @@
 
     function clear() {
         value = "";
+        attribution = undefined;
+        attributionImageUrl = "";
+        onchange?.();
+    }
+
+    async function searchUnsplash() {
+        const query = unsplashQuery.trim() || searchHint.trim();
+        if (!query) return;
+
+        searchingUnsplash = true;
+        unsplashMessage = "";
+        errorMessage = "";
+
+        try {
+            const params = new URLSearchParams({
+                query,
+                orientation: orientation === "portrait" ? "portrait" : "landscape",
+            });
+            const res = await fetch(`/api/image-providers/unsplash/search?${params.toString()}`);
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                unsplashResults = [];
+                unsplashMessage =
+                    data.error || `Unsplash search failed with status ${res.status}`;
+                return;
+            }
+
+            unsplashResults = data.results || [];
+            unsplashMessage =
+                unsplashResults.length === 0 ? "No Unsplash images found." : "";
+        } catch (err) {
+            unsplashResults = [];
+            unsplashMessage = "Unsplash search is unavailable.";
+            console.error("Unsplash search error", err);
+        } finally {
+            searchingUnsplash = false;
+        }
+    }
+
+    async function selectUnsplashImage(result: UnsplashImageResult) {
+        value = result.imageUrl;
+        attribution = result.attribution;
+        attributionImageUrl = result.imageUrl;
+        onchange?.();
+
+        const downloadLocation = result.attribution.downloadLocation;
+        if (!downloadLocation) return;
+
+        try {
+            await fetch("/api/image-providers/unsplash/download", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ downloadLocation }),
+            });
+        } catch (err) {
+            console.warn("Unsplash download tracking failed", err);
+        }
     }
 </script>
 
@@ -133,10 +228,74 @@
                     </p>
                 {/if}
             </div>
-            <p class="text-m3-body-small text-m3-on-surface-variant">
-                Upload a local file (saved to local functionality) or paste a
-                URL.
-            </p>
+            {#if attribution?.provider === "unsplash"}
+                <p class="text-m3-body-small text-m3-on-surface-variant">
+                    Selected Unsplash photo by {attribution.authorName ||
+                        "Unknown photographer"}.
+                </p>
+            {:else}
+                <p class="text-m3-body-small text-m3-on-surface-variant">
+                    Upload a local file (saved to local functionality) or paste a
+                    URL.
+                </p>
+            {/if}
         </div>
     </div>
+
+    {#if enableUnsplash}
+        <div class="mt-2 flex flex-col gap-3 rounded-m3-md border border-m3-outline-variant/50 bg-m3-surface-container-low p-3">
+            <div class="flex items-end gap-2">
+                <div class="min-w-0 flex-1">
+                    <TextField
+                        label="Browse Unsplash"
+                        placeholder="kitchen interior, cozy bedroom..."
+                        bind:value={unsplashQuery}
+                    />
+                </div>
+                <Button
+                    variant="tonal"
+                    onclick={searchUnsplash}
+                    icon={Search}
+                    disabled={searchingUnsplash}
+                >
+                    {searchingUnsplash ? "Searching..." : "Search"}
+                </Button>
+            </div>
+
+            {#if unsplashMessage}
+                <p class="text-m3-body-small text-m3-on-surface-variant">
+                    {unsplashMessage}
+                </p>
+            {/if}
+
+            {#if unsplashResults.length > 0}
+                <div class="grid grid-cols-2 gap-2">
+                    {#each unsplashResults as result (result.id)}
+                        <button
+                            type="button"
+                            class="group relative aspect-video overflow-hidden rounded-m3-sm border border-m3-outline-variant/50 bg-m3-surface-container-high text-left transition-all hover:border-m3-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m3-primary"
+                            onclick={() => selectUnsplashImage(result)}
+                            aria-label={`Use Unsplash photo by ${result.attribution.authorName || "Unknown photographer"}`}
+                        >
+                            <img
+                                src={result.thumbUrl}
+                                alt={result.description || "Unsplash result"}
+                                class="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+                            />
+                            <span
+                                class="absolute inset-x-0 bottom-0 bg-black/55 px-2 py-1 text-m3-label-small text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+                            >
+                                {result.attribution.authorName ||
+                                    "Unsplash photographer"}
+                            </span>
+                        </button>
+                    {/each}
+                </div>
+                <p class="text-m3-body-small text-m3-on-surface-variant">
+                    Unsplash photos keep photographer attribution on the final
+                    card.
+                </p>
+            {/if}
+        </div>
+    {/if}
 </div>

@@ -11,8 +11,14 @@
     import IconButton from "$lib/components/md3/IconButton.svelte";
     import WeatherSettingsSheet from "./WeatherSettingsSheet.svelte";
     import IconSettings from "~icons/material-symbols/settings";
+    import { onMount } from "svelte";
 
     let settingsOpen = $state(false);
+
+    onMount(() => {
+        weatherStore.startPolling();
+        return () => weatherStore.stopPolling();
+    });
 </script>
 
 <WeatherSettingsSheet bind:open={settingsOpen} />

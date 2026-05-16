@@ -42,6 +42,7 @@
     --radius-m3-xl: 28px;
     --radius-m3-full: 9999px;
     --radius-m3-card: 12px;
+    --radius-m3-tab-pill: 32px;
 
     /* --- Primary (Electric Azure) --- */
     --color-m3-primary: oklch(0.623 0.165 242.896);

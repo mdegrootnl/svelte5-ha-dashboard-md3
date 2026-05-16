@@ -12,6 +12,7 @@ describe('ThemeStore', () => {
         expect(store.sourceColor).toBe('#6750A4');
         expect(store.isDark).toBe(false);
         expect(store.cardRadius).toBe(12);
+        expect(store.tabPillRadius).toBe(32);
     });
 
     it('should derive a valid theme', () => {
@@ -31,11 +32,13 @@ describe('ThemeStore', () => {
     it('should apply theme to document (manual call via any for test)', () => {
         const store = new ThemeStore();
         store.setCardRadius(18);
+        store.setTabPillRadius(24);
         (store as any).applyToDocument();
 
         const root = document.documentElement;
         expect(root.style.getPropertyValue('--color-m3-primary')).toBeDefined();
         expect(root.style.getPropertyValue('--radius-m3-card')).toBe('18px');
+        expect(root.style.getPropertyValue('--radius-m3-tab-pill')).toBe('24px');
         expect(root.classList.contains('dark')).toBe(false);
     });
 
@@ -47,6 +50,16 @@ describe('ThemeStore', () => {
 
         store.setCardRadius(-10);
         expect(store.cardRadius).toBe(0);
+    });
+
+    it('should clamp tab pill radius changes', () => {
+        const store = new ThemeStore();
+
+        store.setTabPillRadius(99);
+        expect(store.tabPillRadius).toBe(48);
+
+        store.setTabPillRadius(-10);
+        expect(store.tabPillRadius).toBe(0);
     });
 
     it('should apply dark mode classes when isDark is true', () => {

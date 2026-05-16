@@ -23,6 +23,7 @@
         color?: string;
         backgroundColor?: string;
         icon?: string | any;
+        layoutRows?: number;
     }
 
     let {
@@ -37,6 +38,7 @@
         color = $bindable(),
         backgroundColor = $bindable(),
         icon: iconProp = $bindable(),
+        layoutRows,
     }: Props = $props();
 
     // Derived State
@@ -60,15 +62,26 @@
 
     // Responsive Logic
     let clientHeight = $state(0);
+    function variantForRows(rows: number): "standard" | "condensed" | "poster" {
+        if (rows <= 1) return "condensed";
+        if (rows >= 3) return "poster";
+        return "standard";
+    }
+
     // 1 row (<145px): Condensed
     // 2 rows (<220px): Standard
     // 3+ rows (>=220px): Poster
-    let effectiveVariant = $derived(
-        clientHeight < 145
+    let effectiveVariant = $derived.by(() => {
+        if (typeof layoutRows === "number") return variantForRows(layoutRows);
+        if (clientHeight === 0) return variant;
+        return clientHeight < 145
             ? "condensed"
             : clientHeight < 220
               ? "standard"
-              : "poster",
+              : "poster";
+    });
+    let showStandardProgress = $derived(
+        typeof layoutRows === "number" ? layoutRows >= 3 : clientHeight >= 200,
     );
 
     // Default to immersive for posters if background not explicitly set to something else
@@ -119,7 +132,7 @@
 </script>
 
 <div
-    class={`flex flex-col w-full shadow-sm transition-all ${containerClass} rounded-m3-card relative group h-full @container`}
+    class={`flex flex-col w-full shadow-sm transition-all ${containerClass} rounded-m3-card relative group/card h-full @container`}
     bind:clientHeight
     style={`container-type: size;${backgroundColor &&
     (isOff || effectiveBackground !== "immersive" || !artworkSrc)
@@ -358,7 +371,7 @@
             </div>
 
             <div class="flex flex-col gap-[clamp(0.25rem,1.5cqmin,0.625rem)] mt-auto">
-                {#if clientHeight >= 200}
+                {#if showStandardProgress}
                     <MediaProgress {entityId} {color} />
                 {/if}
                 <MediaControls {entityId} {color} />
@@ -369,7 +382,7 @@
 
     <!-- Edit FAB -->
     <button
-        class="absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary/10 text-m3-primary shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-50 hover:bg-m3-primary hover:text-m3-on-primary backdrop-blur-sm"
+        class="absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary/10 text-m3-primary shadow-sm opacity-0 group-hover/card:opacity-100 transition-opacity z-50 hover:bg-m3-primary hover:text-m3-on-primary backdrop-blur-sm"
         onclick={openConfig}
         onpointerdown={(e) => e.stopPropagation()}
         title="Edit Card"

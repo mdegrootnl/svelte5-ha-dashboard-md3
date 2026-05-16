@@ -9,49 +9,51 @@
 
     let now = $state(new Date());
     let mounted = $state(false);
-    let timer: ReturnType<typeof setInterval>;
-    let calendarTimer: ReturnType<typeof setInterval>;
     let mountTimer: ReturnType<typeof setTimeout>;
+    let isActive = $derived(
+        mounted && lockScreenStore.enabled && lockScreenStore.isLocked,
+    );
 
     function updateTime() {
         now = new Date();
     }
 
-    // Reactive fetch when HA connects
-    $effect(() => {
-        const isConnected = haStore.connectionState === "connected";
-        if (isConnected) {
-            untrack(() => {
-                weatherStore.fetch();
-                calendarStore.fetchUpcoming(3);
-            });
-        }
-    });
+    function fetchLockScreenData() {
+        weatherStore.fetch();
+        calendarStore.fetchUpcoming(3);
+    }
 
     onMount(() => {
         mountTimer = setTimeout(() => {
             mounted = true;
         }, 1500);
-        timer = setInterval(updateTime, 1000);
         updateTime();
-
-        // Initial fetch (attempt immediately in case already connected)
-        if (haStore.connectionState === "connected") {
-            weatherStore.fetch();
-            calendarStore.fetchUpcoming(3);
-        }
-
-        // Refresh calendar every 15 minutes
-        calendarTimer = setInterval(
-            () => calendarStore.fetchUpcoming(3),
-            15 * 60 * 1000,
-        );
     });
 
     onDestroy(() => {
         clearTimeout(mountTimer);
-        clearInterval(timer);
-        clearInterval(calendarTimer);
+    });
+
+    $effect(() => {
+        if (!isActive) return;
+
+        updateTime();
+        const timer = setInterval(updateTime, 1000);
+
+        if (haStore.connectionState === "connected") {
+            untrack(fetchLockScreenData);
+        }
+
+        const dataTimer = setInterval(() => {
+            if (haStore.connectionState === "connected") {
+                fetchLockScreenData();
+            }
+        }, 15 * 60 * 1000);
+
+        return () => {
+            clearInterval(timer);
+            clearInterval(dataTimer);
+        };
     });
 
     // Formatters
@@ -87,7 +89,7 @@
     });
 </script>
 
-{#if mounted && lockScreenStore.isLocked}
+{#if isActive}
     <!-- Fullscreen Overlay -->
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->

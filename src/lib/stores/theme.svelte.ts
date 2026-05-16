@@ -25,6 +25,8 @@ export class ThemeStore {
     navigationStyle = $state<'standard' | 'modern'>('standard');
     // Dashboard/card corner radius in px
     cardRadius = $state(DEFAULT_CONFIG.theme.cardRadius);
+    // Tab navigation pill corner radius in px
+    tabPillRadius = $state(DEFAULT_CONFIG.theme.tabPillRadius);
     // Navigation items
     navigationItems = $state<NavigationItem[]>(DEFAULT_CONFIG.theme.navigationItems);
 
@@ -57,6 +59,7 @@ export class ThemeStore {
         // Default to standard if missing (migration safety)
         this.navigationStyle = config.navigationStyle ?? 'standard';
         this.cardRadius = this.normalizeCardRadius(config.cardRadius);
+        this.tabPillRadius = this.normalizeTabPillRadius(config.tabPillRadius);
 
         // Load items or fall back to filtered defaults (in case of deep merge issues)
         if (config.navigationItems && Array.isArray(config.navigationItems) && config.navigationItems.length > 0) {
@@ -94,6 +97,7 @@ export class ThemeStore {
             isDark: this.isDark,
             navigationStyle: this.navigationStyle,
             cardRadius: this.cardRadius,
+            tabPillRadius: this.tabPillRadius,
             navigationItems: this.navigationItems
         };
 
@@ -133,6 +137,7 @@ export class ThemeStore {
                 isDark: this.isDark,
                 navigationStyle: this.navigationStyle,
                 cardRadius: this.cardRadius,
+                tabPillRadius: this.tabPillRadius,
                 navigationItems: this.navigationItems
             }
         };
@@ -166,6 +171,7 @@ export class ThemeStore {
                         isDark: this.isDark,
                         navigationStyle: this.navigationStyle,
                         cardRadius: this.cardRadius,
+                        tabPillRadius: this.tabPillRadius,
                         navigationItems: this.navigationItems
                     }
                 };
@@ -212,6 +218,12 @@ export class ThemeStore {
         this.scheduleSyncToServer();
     }
 
+    setTabPillRadius(radius: number) {
+        this.tabPillRadius = this.normalizeTabPillRadius(radius);
+        this.saveToLocalStorage();
+        this.scheduleSyncToServer();
+    }
+
     setNavigationItems(items: NavigationItem[]) {
         this.navigationItems = items;
         this.saveToLocalStorage();
@@ -224,6 +236,14 @@ export class ThemeStore {
         }
 
         return Math.max(0, Math.min(32, Math.round(radius)));
+    }
+
+    private normalizeTabPillRadius(radius?: number) {
+        if (typeof radius !== 'number' || Number.isNaN(radius)) {
+            return DEFAULT_CONFIG.theme.tabPillRadius;
+        }
+
+        return Math.max(0, Math.min(48, Math.round(radius)));
     }
 
     // Apply the current theme to CSS variables
@@ -244,6 +264,7 @@ export class ThemeStore {
         };
 
         root.style.setProperty('--radius-m3-card', `${this.cardRadius}px`);
+        root.style.setProperty('--radius-m3-tab-pill', `${this.tabPillRadius}px`);
 
         // Core Palette
         set('primary', scheme.primary);

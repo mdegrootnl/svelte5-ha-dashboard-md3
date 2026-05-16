@@ -55,17 +55,19 @@
 
 <div class="flex items-center gap-2 w-full py-2">
     <div
-        class="flex flex-1 items-center bg-m3-surface-container-high rounded-m3-card h-[60px] overflow-hidden"
+        class="flex flex-1 items-center bg-m3-surface-container-high h-[60px] overflow-hidden"
+        style:border-radius="var(--radius-m3-tab-pill)"
     >
         {#each tabs as tab (tab.id)}
             {@const isActive = tab.id === activeTabId}
             <button
                 class="
-                    relative flex flex-1 items-center justify-center gap-2 px-4 h-full rounded-m3-card transition-all whitespace-nowrap
+                    relative flex flex-1 items-center justify-center gap-2 px-4 h-full transition-all whitespace-nowrap
                     {isActive
                     ? 'bg-m3-secondary-container text-m3-on-secondary-container shadow-sm'
                     : 'text-m3-on-surface-variant hover:text-m3-on-surface hover:bg-m3-on-surface/5'}
                 "
+                style:border-radius="var(--radius-m3-tab-pill)"
                 onclick={() => handleSelect(tab.id)}
             >
                 <!-- Tab Icon -->
@@ -139,7 +141,8 @@
 
     {#if isEditing}
         <button
-            class="flex items-center justify-center size-12 md:size-16 rounded-m3-card bg-m3-primary-container text-m3-on-primary-container hover:brightness-95 transition-colors shadow-sm shrink-0"
+            class="flex items-center justify-center size-12 md:size-16 bg-m3-primary-container text-m3-on-primary-container hover:brightness-95 transition-colors shadow-sm shrink-0"
+            style:border-radius="var(--radius-m3-tab-pill)"
             onclick={handleAdd}
             title="Add Tab"
         >

@@ -32,7 +32,11 @@
     let isFloating = $derived(isFocused || hasValue);
 
     // Get all entity IDs from haStore
-    let allEntityIds = $derived(Object.keys(haStore.states));
+    let allEntityIds = $derived.by(() => {
+        haStore.statesVersion;
+        haStore.overridesVersion;
+        return haStore.getEntityIdsSnapshot();
+    });
 
     // Filter entities based on search query and optional domain filter
     let filteredEntities = $derived.by(() => {
@@ -49,7 +53,7 @@
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
             entities = entities.filter((id) => {
-                const entity = haStore.states[id];
+                const entity = haStore.getEntity(id);
                 const friendlyName =
                     entity?.attributes?.friendly_name?.toLowerCase() || "";
                 return (
@@ -64,7 +68,7 @@
 
     // Get friendly name for an entity
     function getFriendlyName(entityId: string): string {
-        const entity = haStore.states[entityId];
+        const entity = haStore.getEntity(entityId);
         return entity?.attributes?.friendly_name || entityId;
     }
 

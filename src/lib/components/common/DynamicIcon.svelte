@@ -20,12 +20,12 @@
 </script>
 
 <span
-    class="inline-flex items-center justify-center leading-none {className}"
+    class="inline-flex items-center justify-center overflow-hidden leading-none {className}"
     style="container-type: size; {customStyle}"
 >
     <span
-        class="material-symbols-outlined"
-        style="font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; font-size: max(1em, 100cqmin);"
+        class="material-symbols-outlined block select-none leading-none"
+        style="font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; font-size: clamp(0.875rem, max(78cqmin, 1em), 3rem);"
         >{name}</span
     >
 </span>

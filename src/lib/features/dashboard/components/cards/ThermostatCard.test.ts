@@ -1,24 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import ThermostatCard from './ThermostatCard.svelte';
-import { haStore } from '$lib';
+import { haStore } from '$lib/stores/ha.svelte';
 import type { HassEntity } from 'home-assistant-js-websocket';
 
 // Mock the haStore
-vi.mock('$lib', async () => {
-    const actual = await vi.importActual('$lib');
-    return {
-        ...actual,
-        haStore: {
-            getEntity: vi.fn(),
-            callService: vi.fn(),
-            getHistory: vi.fn().mockResolvedValue({ ok: true, value: [] }),
-        },
-        cardEditorStore: {
-            open: vi.fn(),
-        },
-    };
-});
+vi.mock('$lib/stores/ha.svelte', () => ({
+    haStore: {
+        getEntity: vi.fn(),
+        callService: vi.fn(),
+        getHistory: vi.fn().mockResolvedValue({ ok: true, value: [] }),
+    },
+}));
+
+vi.mock('$lib/features/dashboard/stores/cardEditor.svelte', () => ({
+    cardEditorStore: {
+        open: vi.fn(),
+    },
+}));
 
 // Helper to create mock HassEntity
 function createMockEntity(overrides: Partial<HassEntity> & { entity_id: string; state: string }): HassEntity {

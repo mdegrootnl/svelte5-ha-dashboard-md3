@@ -1,6 +1,9 @@
 import { browser } from '$app/environment';
 import {
     type Breakpoint,
+    type DashboardGenerationState,
+    type DashboardPage,
+    type GridConfig,
     type RoomDashboardConfig,
     createDefaultGridConfig,
     type HAArea
@@ -8,10 +11,163 @@ import {
 import { haStore, HAStore } from '$lib/stores/ha.svelte';
 import { haRegistryStore } from '$lib/stores/haRegistry.svelte';
 import { createLogger } from '$lib/utils/logger';
+import { perfCount } from '$lib/utils/perf';
+import { generateUUID } from '$lib/utils/uuid';
+import {
+    normalizeDashboardConfigs,
+    normalizeRoomDashboardConfig,
+} from '../utils/dashboardDefaults';
 
 const logger = createLogger('DashboardStore');
 const STORAGE_KEY = 'dashboard-config';
 const SYNC_DEBOUNCE_MS = 2000;
+
+type GeneratedConfigTarget = {
+    generationState?: DashboardGenerationState;
+};
+
+function markGeneratedTargetModified(target: GeneratedConfigTarget | null | undefined) {
+    if (target?.generationState === 'generated') {
+        target.generationState = 'user_modified';
+    }
+}
+
+function markGridTreeModified(grid: GridConfig) {
+    markGeneratedTargetModified(grid);
+    for (const item of grid.items) {
+        markGeneratedTargetModified(item);
+        if (item.cardType === 'tabs' && item.tabs) {
+            for (const childGrid of item.tabs) {
+                markGridTreeModified(childGrid);
+            }
+        }
+    }
+}
+
+function markGridTreeModifiedById(grid: GridConfig, gridId: string): boolean {
+    if (grid.id === gridId) {
+        markGridTreeModified(grid);
+        return true;
+    }
+
+    for (const item of grid.items) {
+        if (item.cardType !== 'tabs' || !item.tabs) continue;
+
+        for (const childGrid of item.tabs) {
+            if (markGridTreeModifiedById(childGrid, gridId)) {
+                markGeneratedTargetModified(item);
+                markGeneratedTargetModified(grid);
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+function markItemModifiedInGrid(grid: GridConfig, itemId: string): boolean {
+    for (const item of grid.items) {
+        if (item.id === itemId) {
+            markGeneratedTargetModified(item);
+            markGeneratedTargetModified(grid);
+            return true;
+        }
+
+        if (item.cardType === 'tabs' && item.tabs) {
+            for (const childGrid of item.tabs) {
+                if (markItemModifiedInGrid(childGrid, itemId)) {
+                    markGeneratedTargetModified(item);
+                    markGeneratedTargetModified(grid);
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+function setItemGenerationStateInGrid(
+    grid: GridConfig,
+    itemId: string,
+    state: DashboardGenerationState,
+): boolean {
+    for (const item of grid.items) {
+        if (item.id === itemId) {
+            item.generationState = state;
+            markGeneratedTargetModified(grid);
+            return true;
+        }
+
+        if (item.cardType === 'tabs' && item.tabs) {
+            for (const childGrid of item.tabs) {
+                if (setItemGenerationStateInGrid(childGrid, itemId, state)) {
+                    markGeneratedTargetModified(item);
+                    markGeneratedTargetModified(grid);
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+function markGridModifiedInGrid(grid: GridConfig, gridId: string): boolean {
+    if (grid.id === gridId) {
+        markGeneratedTargetModified(grid);
+        return true;
+    }
+
+    for (const item of grid.items) {
+        if (item.cardType !== 'tabs' || !item.tabs) continue;
+
+        for (const childGrid of item.tabs) {
+            if (markGridModifiedInGrid(childGrid, gridId)) {
+                markGeneratedTargetModified(item);
+                markGeneratedTargetModified(grid);
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+function setGridGenerationStateInGrid(
+    grid: GridConfig,
+    gridId: string,
+    state: DashboardGenerationState,
+): boolean {
+    if (grid.id === gridId) {
+        grid.generationState = state;
+        return true;
+    }
+
+    for (const item of grid.items) {
+        if (item.cardType !== 'tabs' || !item.tabs) continue;
+
+        for (const childGrid of item.tabs) {
+            if (setGridGenerationStateInGrid(childGrid, gridId, state)) {
+                markGeneratedTargetModified(item);
+                markGeneratedTargetModified(grid);
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+function forEachRootGrid(config: RoomDashboardConfig, visit: (grid: GridConfig) => boolean) {
+    if (visit(config)) return true;
+
+    for (const tab of config.tabs) {
+        if (visit(tab)) return true;
+    }
+
+    return false;
+}
 
 /**
  * Dashboard Store - Manages grid configurations and HA hierarchy
@@ -58,6 +214,8 @@ export class DashboardStore {
 
     // Debounce timer for server sync
     private syncTimer: ReturnType<typeof setTimeout> | null = null;
+    private lastInitConfigs: Record<string, RoomDashboardConfig> | null = null;
+    private lastInitPages: DashboardPage[] | null = null;
 
     constructor(ha: HAStore) {
         this.ha = ha;
@@ -68,17 +226,15 @@ export class DashboardStore {
      * Server is the source of truth - always use it.
      */
     init(configs: Record<string, RoomDashboardConfig>, pages: DashboardPage[] = []) {
-        // Skip if already initialized with same data
-        const configsChanged = JSON.stringify(this.savedConfigs) !== JSON.stringify(configs);
-        const pagesChanged = JSON.stringify(this.pages) !== JSON.stringify(pages);
-
-        if (this.initialized && !configsChanged && !pagesChanged) {
+        if (this.initialized && this.lastInitConfigs === configs && this.lastInitPages === pages) {
             return;
         }
 
-        this.savedConfigs = configs;
+        this.savedConfigs = normalizeDashboardConfigs(configs);
         this.pages = pages;
         this.initialized = true;
+        this.lastInitConfigs = configs;
+        this.lastInitPages = pages;
 
         // Don't save to localStorage here - only save on user-initiated changes
     }
@@ -183,6 +339,10 @@ export class DashboardStore {
      * Helper to save changes
      */
     private persistChanges() {
+        if (this.config) {
+            this.savedConfigs[this.config.id] = this.config;
+        }
+        perfCount('dashboard.persistCalls');
         this.saveToLocalStorage();
         this.scheduleSyncToServer();
     }
@@ -191,9 +351,120 @@ export class DashboardStore {
      * Set the active configuration
      */
     setConfig(config: RoomDashboardConfig) {
-        this.config = config;
-        this.savedConfigs[config.id] = config;
+        const normalized = normalizeRoomDashboardConfig(config);
+        this.config = normalized;
+        this.savedConfigs[normalized.id] = normalized;
         this.persistChanges();
+    }
+
+    /**
+     * Save multiple generated configurations in one persistence pass.
+     */
+    setConfigs(configs: RoomDashboardConfig[], activeConfigId?: string) {
+        for (const config of configs) {
+            const normalized = normalizeRoomDashboardConfig(config);
+            this.savedConfigs[normalized.id] = normalized;
+        }
+
+        const activeConfig = activeConfigId
+            ? this.savedConfigs[activeConfigId]
+            : this.savedConfigs[configs[0]?.id];
+        if (activeConfig) {
+            this.config = activeConfig;
+        }
+
+        this.persistChanges();
+    }
+
+    /**
+     * Mark generated metadata as user-modified without persisting immediately.
+     * Callers should follow with their normal setConfig/persist path.
+     */
+    markItemModified(itemId: string, config = this.config) {
+        if (!config) return;
+
+        const found = forEachRootGrid(config, (grid) =>
+            markItemModifiedInGrid(grid, itemId),
+        );
+
+        if (found) {
+            markGeneratedTargetModified(config);
+        }
+    }
+
+    /**
+     * Mark a generated grid or the current dashboard root as user-modified.
+     */
+    markGridModified(gridId?: string, config = this.config) {
+        if (!config) return;
+
+        if (!gridId || config.id === gridId) {
+            markGeneratedTargetModified(config);
+            return;
+        }
+
+        const found = forEachRootGrid(config, (grid) =>
+            markGridModifiedInGrid(grid, gridId),
+        );
+
+        if (found) {
+            markGeneratedTargetModified(config);
+        }
+    }
+
+    /**
+     * Mark every generated item in a grid as user-modified.
+     * Useful for bulk layout operations such as auto-arrange.
+     */
+    markGridItemsModified(gridId: string, config = this.config) {
+        if (!config) return;
+
+        const found = forEachRootGrid(config, (grid) =>
+            markGridTreeModifiedById(grid, gridId),
+        );
+
+        if (found) {
+            markGeneratedTargetModified(config);
+        }
+    }
+
+    /**
+     * Explicitly pin or unpin a generated card. Pinning makes future generation
+     * merges preserve the card even if a later recipe would replace it.
+     */
+    setItemGenerationState(itemId: string, state: DashboardGenerationState) {
+        if (!this.config) return;
+
+        const found = forEachRootGrid(this.config, (grid) =>
+            setItemGenerationStateInGrid(grid, itemId, state),
+        );
+
+        if (found) {
+            markGeneratedTargetModified(this.config);
+            this.persistChanges();
+        }
+    }
+
+    /**
+     * Explicitly pin or unpin a generated grid/tab.
+     */
+    setGridGenerationState(gridId: string | undefined, state: DashboardGenerationState) {
+        if (!this.config) return;
+
+        if (!gridId || this.config.id === gridId) {
+            this.config.generationState = state;
+            this.persistChanges();
+            return;
+        }
+
+        const found = forEachRootGrid(this.config, (grid) =>
+            setGridGenerationStateInGrid(grid, gridId, state),
+        );
+
+        if (found) {
+            markGeneratedTargetModified(this.config);
+            this.persistChanges();
+        }
     }
 
     /**
@@ -203,19 +474,7 @@ export class DashboardStore {
         let config = this.savedConfigs[id];
 
         if (config) {
-            // Migration: Ensure all RoomDashboardConfig properties exist
-            if (!config.tabs) {
-                config.tabs = [];
-                config.activeTabId = "";
-            }
-            if (!config.rows) {
-                config.rows = "implicit";
-                config.columns = config.columns || { desktop: 12, mobile: 4 };
-                config.gap = config.gap ?? 16;
-                config.padding = config.padding ?? 16;
-                config.rowHeight = config.rowHeight ?? 80;
-                config.items = config.items || [];
-            }
+            normalizeRoomDashboardConfig(config);
             this.config = config;
         }
         return config || null;
@@ -260,6 +519,7 @@ export class DashboardStore {
 
         this.config.tabs.push(newTab);
         this.config.activeTabId = newTab.id;
+        this.markGridModified(this.config.id);
         this.persistChanges();
     }
 
@@ -280,6 +540,7 @@ export class DashboardStore {
             this.config.activeTabId = this.config.tabs[newIndex].id;
         }
 
+        this.markGridModified(this.config.id);
         this.persistChanges();
     }
 
@@ -288,6 +549,7 @@ export class DashboardStore {
         const tab = this.config.tabs.find(t => t.id === tabId);
         if (tab) {
             tab.name = name;
+            this.markGridModified(tab.id);
             this.persistChanges();
         }
     }
@@ -297,6 +559,7 @@ export class DashboardStore {
         const tab = this.config.tabs.find(t => t.id === tabId);
         if (tab) {
             tab.icon = icon;
+            this.markGridModified(tab.id);
             this.persistChanges();
         }
     }
@@ -338,7 +601,7 @@ export class DashboardStore {
                 tabs: [gridConfig],
                 activeTabId: gridConfig.id
             };
-            this.savedConfigs[configId] = newConfig;
+            this.savedConfigs[configId] = normalizeRoomDashboardConfig(newConfig);
         }
 
         this.persistChanges();
@@ -358,7 +621,5 @@ export class DashboardStore {
         this.persistChanges();
     }
 }
-import { generateUUID } from '$lib/utils/uuid';
-import type { DashboardPage } from '$lib/types/dashboard';
 
 export const dashboardStore = new DashboardStore(haStore);

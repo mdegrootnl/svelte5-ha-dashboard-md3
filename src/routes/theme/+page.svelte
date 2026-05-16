@@ -1,15 +1,13 @@
 <script lang="ts">
-    import {
-        themeStore,
-        Button,
-        FAB,
-        Card,
-        TextField,
-        Chip,
-        Switch,
-        Checkbox,
-        Radio,
-    } from "$lib";
+    import { themeStore } from "$lib/stores/theme.svelte";
+    import Button from "$lib/components/md3/Button.svelte";
+    import FAB from "$lib/components/md3/FAB.svelte";
+    import Card from "$lib/components/md3/Card.svelte";
+    import TextField from "$lib/components/md3/TextField.svelte";
+    import Chip from "$lib/components/md3/Chip.svelte";
+    import Switch from "$lib/components/md3/Switch.svelte";
+    import Checkbox from "$lib/components/md3/Checkbox.svelte";
+    import Radio from "$lib/components/md3/Radio.svelte";
     import PageShell from "$lib/components/layout/PageShell.svelte";
 
     // Icons
@@ -36,6 +34,11 @@
         { label: "Sharp", value: 4 },
         { label: "Soft", value: 12 },
         { label: "Round", value: 24 },
+    ];
+    const tabPillRadiusPresets = [
+        { label: "Sharp", value: 4 },
+        { label: "Soft", value: 12 },
+        { label: "Pill", value: 32 },
     ];
 
     async function handleImageUpload(e: Event) {
@@ -240,6 +243,71 @@
                 style:border-radius="var(--radius-m3-card)"
                 use:tooltip={"radius-m3-card"}
             ></div>
+        </section>
+
+        <!-- Tab Pill Shape -->
+        <section class="flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+                <span class="text-m3-label-large text-m3-on-surface"
+                    >Tab Pill Corners</span
+                >
+                <span class="text-m3-body-small text-m3-on-surface-variant"
+                    >{themeStore.tabPillRadius}px</span
+                >
+            </div>
+            <input
+                type="range"
+                min="0"
+                max="48"
+                step="1"
+                value={themeStore.tabPillRadius}
+                oninput={(e) =>
+                    themeStore.setTabPillRadius(
+                        Number((e.currentTarget as HTMLInputElement).value),
+                    )}
+                class="w-full accent-m3-primary"
+                aria-label="Tab pill corner radius"
+            />
+            <div class="grid grid-cols-3 gap-2">
+                {#each tabPillRadiusPresets as preset}
+                    <button
+                        type="button"
+                        class="h-9 px-3 text-m3-label-medium transition-colors border border-m3-outline-variant bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest {themeStore.tabPillRadius ===
+                        preset.value
+                            ? 'bg-m3-primary-container text-m3-on-primary-container border-transparent'
+                            : ''}"
+                        style:border-radius={`${preset.value}px`}
+                        onclick={() =>
+                            themeStore.setTabPillRadius(preset.value)}
+                    >
+                        {preset.label}
+                    </button>
+                {/each}
+            </div>
+            <button
+                type="button"
+                class="h-9 px-3 text-m3-label-medium transition-colors border border-m3-outline-variant bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest"
+                style:border-radius="var(--radius-m3-tab-pill)"
+                onclick={() => themeStore.setTabPillRadius(themeStore.cardRadius)}
+            >
+                Match Cards
+            </button>
+            <div
+                class="flex items-center gap-3 bg-m3-surface-container-highest border border-m3-outline-variant p-3"
+                style:border-radius="var(--radius-m3-card)"
+                use:tooltip={"radius-m3-tab-pill"}
+            >
+                <span
+                    class="px-4 py-2 bg-m3-primary text-m3-on-primary text-m3-label-large"
+                    style:border-radius="var(--radius-m3-tab-pill)"
+                    >Comfort</span
+                >
+                <span
+                    class="px-4 py-2 bg-m3-surface-container-high text-m3-on-surface-variant text-m3-label-large"
+                    style:border-radius="var(--radius-m3-tab-pill)"
+                    >Media</span
+                >
+            </div>
         </section>
 
         <!-- Core Palette Visualization (Mini) -->

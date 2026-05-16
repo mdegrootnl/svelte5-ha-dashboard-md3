@@ -1,6 +1,7 @@
 <script lang="ts">
     import * as d3Shape from "d3-shape";
     import * as d3Scale from "d3-scale";
+    import { perfCount, perfMeasure } from "$lib/utils/perf";
 
     interface ChartSeries {
         data: Array<{ timestamp: Date; value: number | null }>;
@@ -89,16 +90,80 @@
     // Gradient ID to ensure uniqueness if multiple charts exist
     const gradientId = `grad-${Math.random().toString(36).slice(2, 9)}`;
 
+    function requestChartFrame(callback: FrameRequestCallback) {
+        if (typeof requestAnimationFrame === "function") {
+            return requestAnimationFrame(callback);
+        }
+        return setTimeout(() => callback(performance.now()), 0) as unknown as number;
+    }
+
+    function cancelChartFrame(id: number) {
+        if (typeof cancelAnimationFrame === "function") {
+            cancelAnimationFrame(id);
+        } else {
+            clearTimeout(id);
+        }
+    }
+
     $effect(() => {
         if (!container) return;
+        let frame: number | null = null;
+        let nextWidth = 0;
+        let nextHeight = 0;
         const observer = new ResizeObserver((entries) => {
-            for (let entry of entries) {
-                width = entry.contentRect.width;
-                trackedHeight = entry.contentRect.height;
-            }
+            const entry = entries[entries.length - 1];
+            if (!entry) return;
+
+            nextWidth = entry.contentRect.width;
+            nextHeight = entry.contentRect.height;
+
+            if (frame !== null) return;
+            frame = requestChartFrame(() => {
+                frame = null;
+                width = nextWidth;
+                trackedHeight = nextHeight;
+                perfCount("chart.resize");
+            });
         });
         observer.observe(container);
-        return () => observer.disconnect();
+        return () => {
+            if (frame !== null) cancelChartFrame(frame);
+            observer.disconnect();
+        };
+    });
+
+    const chartBounds = $derived.by(() => {
+        let minTime = Number.POSITIVE_INFINITY;
+        let maxTime = Number.NEGATIVE_INFINITY;
+        let minValue = Number.POSITIVE_INFINITY;
+        let maxValue = Number.NEGATIVE_INFINITY;
+        let hasPoints = false;
+        let hasValues = false;
+
+        for (const active of activeSeries) {
+            for (const point of active.data) {
+                const time = point.timestamp.getTime();
+                if (Number.isFinite(time)) {
+                    hasPoints = true;
+                    if (time < minTime) minTime = time;
+                    if (time > maxTime) maxTime = time;
+                }
+
+                if (point.value !== null) {
+                    hasValues = true;
+                    if (point.value < minValue) minValue = point.value;
+                    if (point.value > maxValue) maxValue = point.value;
+                }
+            }
+        }
+
+        return {
+            minTime,
+            maxTime,
+            minValue: hasValues ? minValue : 0,
+            maxValue: hasValues ? maxValue : 100,
+            hasPoints,
+        };
     });
 
     const x = $derived.by(() => {
@@ -109,31 +174,18 @@
                 .range([0, width]);
         }
 
-        const allPoints = activeSeries.flatMap((s) => s.data);
-        if (allPoints.length === 0)
+        if (!chartBounds.hasPoints)
             return d3Scale.scaleTime().range([0, width]);
 
         return d3Scale
             .scaleTime()
-            .domain([
-                new Date(
-                    Math.min(...allPoints.map((d) => d.timestamp.getTime())),
-                ),
-                new Date(
-                    Math.max(...allPoints.map((d) => d.timestamp.getTime())),
-                ),
-            ])
+            .domain([new Date(chartBounds.minTime), new Date(chartBounds.maxTime)])
             .range([0, width]);
     });
 
     const y = $derived.by(() => {
-        const allValues = activeSeries
-            .flatMap((s) => s.data)
-            .map((d) => d.value)
-            .filter((v): v is number => v !== null);
-
-        const minVal = allValues.length > 0 ? Math.min(...allValues) : 0;
-        const maxVal = allValues.length > 0 ? Math.max(...allValues) : 100;
+        const minVal = chartBounds.minValue;
+        const maxVal = chartBounds.maxValue;
 
         // Use trackedHeight if available, fallback to height prop
         const currentHeight = trackedHeight || height;
@@ -147,8 +199,8 @@
             .range([currentHeight, 0]);
     });
 
-    const paths = $derived(
-        activeSeries.map((s, idx) => {
+    const paths = $derived.by(() =>
+        perfMeasure("chart.paths", () => activeSeries.map((s, idx) => {
             const currentHeight = trackedHeight || height;
             const line = d3Shape
                 .line<{ timestamp: Date; value: number | null }>()
@@ -174,7 +226,7 @@
                 strokeWidth: s.strokeWidth ?? strokeWidth,
                 gradientId: `${gradientId}-${idx}`,
             };
-        }),
+        })),
     );
 </script>
 

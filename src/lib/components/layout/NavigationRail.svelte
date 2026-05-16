@@ -31,7 +31,7 @@
             >
                 <DynamicIcon
                     name={link.icon}
-                    class="transition-colors text-2xl {isActive
+                    class="size-6 transition-colors {isActive
                         ? 'text-m3-on-secondary-container'
                         : 'text-m3-on-surface-variant'}"
                 />

@@ -8,6 +8,7 @@ import RemotePanelCard from './RemotePanelCard.svelte';
 import RoomSummaryCard from './RoomSummaryCard.svelte';
 import WeatherOverviewCard from './WeatherOverviewCard.svelte';
 import { haRegistryStore, haStore } from '$lib';
+import { inventoryStore } from '$lib/stores/inventory.svelte';
 
 function state(entity_id: string, value: string, attributes = {}) {
     return {
@@ -63,7 +64,14 @@ describe('smart dashboard cards', () => {
             'cover.blinds': state('cover.blinds', 'open', {
                 friendly_name: 'Blinds',
             }),
+            'binary_sensor.hall_motion': state('binary_sensor.hall_motion', 'on', {
+                friendly_name: 'Hall Motion',
+                device_class: 'motion',
+            }),
         } as any;
+        haStore.entityCount = Object.keys(haStore.states).length;
+        haStore.statesVersion += 1;
+        haRegistryStore.version += 1;
     });
 
     it('renders a room summary from manual entities', () => {
@@ -88,6 +96,63 @@ describe('smart dashboard cards', () => {
 
         expect(screen.getByText('Remote Battery')).toBeInTheDocument();
         expect(screen.getByText('12%')).toBeInTheDocument();
+    });
+
+    it('renders a compact summary collection', () => {
+        render(EntityCollectionCard, {
+            props: {
+                name: 'Attention',
+                options: { mode: 'lights_on', presentation: 'summary' },
+            },
+        });
+
+        expect(screen.getByText('Attention')).toBeInTheDocument();
+        expect(screen.getByText('1 item')).toBeInTheDocument();
+        expect(screen.getByText('Table Lamp')).toBeInTheDocument();
+    });
+
+    it('renders empty summary collections with a neutral clear state', () => {
+        render(EntityCollectionCard, {
+            props: {
+                name: 'Security',
+                options: { mode: 'security', presentation: 'summary' },
+            },
+        });
+
+        const clearBadge = screen.getByText('Clear');
+        expect(screen.getByText('Nothing needs attention')).toBeInTheDocument();
+        expect(clearBadge.getAttribute('style')).toContain('var(--color-m3-outline)');
+    });
+
+    it('resolves manual collection entities without the broad query helper', () => {
+        const querySpy = vi.spyOn(inventoryStore, 'query');
+        render(EntityCollectionCard, {
+            props: {
+                name: 'Manual',
+                options: { source: 'manual', mode: 'custom', entityIds: ['light.table'] },
+            },
+        });
+
+        expect(screen.getByText('Table Lamp')).toBeInTheDocument();
+        expect(querySpy).not.toHaveBeenCalled();
+    });
+
+    it('renders attention collection modes from live inventory', () => {
+        render(EntityCollectionCard, {
+            props: {
+                name: 'Open Now',
+                options: { mode: 'openings' },
+            },
+        });
+        expect(screen.getByText('Blinds')).toBeInTheDocument();
+
+        render(EntityCollectionCard, {
+            props: {
+                name: 'Activity',
+                options: { mode: 'motion' },
+            },
+        });
+        expect(screen.getByText('Hall Motion')).toBeInTheDocument();
     });
 
     it('renders energy, weather, and calendar data', () => {
@@ -138,7 +203,8 @@ describe('smart dashboard cards', () => {
             },
         });
         expect(screen.getByText('TV')).toBeInTheDocument();
-        expect(screen.getByText('on')).toBeInTheDocument();
+        expect(screen.getByText(/Controls TV - on/)).toBeInTheDocument();
+        expect(screen.getByText(/via Android TV Remote/)).toBeInTheDocument();
 
         render(DevicePanelCard, {
             props: {
@@ -162,7 +228,7 @@ describe('smart dashboard cards', () => {
                 },
             },
         });
-        await fireEvent.click(screen.getByTitle('Volume'));
+        await fireEvent.click(screen.getByTitle(/Volume - media_player.tv/));
         expect(callService).toHaveBeenCalledWith('media_player', 'volume_up', {
             entity_id: 'media_player.tv',
         });

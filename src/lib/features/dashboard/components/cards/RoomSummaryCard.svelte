@@ -1,5 +1,10 @@
 <script lang="ts">
-    import { cardEditorStore, executeCardAction, getDomain, getEntityName, haRegistryStore, haStore, isActiveState, resolveEntityQuery } from "$lib";
+    import { executeCardAction } from "$lib/domain/cardActions";
+    import { isActiveState } from "$lib/domain/haInventory";
+    import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
+    import { inventoryStore } from "$lib/stores/inventory.svelte";
+    import { haStore } from "$lib/stores/ha.svelte";
+    import { getDomain, getEntityName } from "$lib/utils/entity";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import type { RoomCardOptions } from "$lib/types";
     import IconEdit from "~icons/material-symbols/edit";
@@ -38,16 +43,8 @@
         return !!item;
     }
 
-    let context = $derived({
-        states: haStore.states,
-        entities: haRegistryStore.entityRegistry,
-        devices: haRegistryStore.deviceRegistry,
-        areas: haRegistryStore.areas,
-        floors: haRegistryStore.floors,
-    });
-
     let areaName = $derived.by(() => {
-        const area = haRegistryStore.areas.find((item) => item.area_id === options?.areaId);
+        const area = inventoryStore.index.areas.find((item) => item.area_id === options?.areaId);
         return name || area?.name || "Room";
     });
 
@@ -73,7 +70,7 @@
                       limit: options?.query?.limit ?? 12,
                   };
 
-        return resolveEntityQuery(context, query).map((item) => haStore.getEntity(item.entityId)).filter(isStoreEntity);
+        return inventoryStore.query(query).map((item) => haStore.getEntity(item.entityId)).filter(isStoreEntity);
     });
 
     let enabledSections = $derived(options?.sections && options.sections.length > 0 ? options.sections : DEFAULT_ROOM_SECTIONS);
@@ -154,7 +151,7 @@
 </script>
 
 <article
-    class="relative h-full w-full rounded-m3-card bg-m3-surface-container-highest text-m3-on-surface overflow-hidden group @container {className}"
+    class="relative h-full w-full rounded-m3-card bg-m3-surface-container-highest text-m3-on-surface overflow-hidden group/card @container {className}"
     style={`container-type: size;${backgroundColor ? ` background-color: ${backgroundColor};` : ""}`}
 >
     <div class="flex h-full flex-col gap-[clamp(0.375rem,4cqmin,1.25rem)] p-[clamp(0.625rem,5cqmin,1.75rem)]">
@@ -231,7 +228,7 @@
     </div>
 
     <button
-        class="absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-20 hover:brightness-110"
+        class="absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover/card:opacity-100 transition-opacity z-20 hover:brightness-110"
         onclick={openConfig}
         title="Edit Room Card"
     >

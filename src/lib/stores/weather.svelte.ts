@@ -96,8 +96,15 @@ export class WeatherStore {
             if (savedConfig) {
                 this.config = savedConfig;
             }
-            this.poller.start();
         }
+    }
+
+    startPolling(immediate = true) {
+        this.poller.start(immediate);
+    }
+
+    stopPolling() {
+        this.poller.stop();
     }
 
     setConfig(config: { weatherEntityId?: string; aqiEntityId?: string }) {
@@ -109,6 +116,12 @@ export class WeatherStore {
 
     destroy() {
         this.poller.stop();
+    }
+
+    private getEntityIds() {
+        return typeof haStore.getEntityIdsSnapshot === 'function'
+            ? haStore.getEntityIdsSnapshot(false)
+            : Object.keys(haStore.states);
     }
 
     // State to WMO Code Mapping
@@ -192,13 +205,13 @@ export class WeatherStore {
 
             if (!entityId) {
                 // If no entities yet, wait a moment for registry/states to populate
-                let entities = untrack(() => Object.keys(haStore.states).filter(id => id.startsWith('weather.')));
+                let entities = untrack(() => this.getEntityIds().filter(id => id.startsWith('weather.')));
                 if (entities.length === 0) {
                     logger.info('No weather entities found yet, waiting for discovery...');
                     let attempts = 0;
                     while (entities.length === 0 && attempts < 10) {
                         await new Promise(resolve => setTimeout(resolve, 500));
-                        entities = untrack(() => Object.keys(haStore.states).filter(id => id.startsWith('weather.')));
+                        entities = untrack(() => this.getEntityIds().filter(id => id.startsWith('weather.')));
                         attempts++;
                     }
                 }
@@ -365,7 +378,7 @@ export class WeatherStore {
                 // 1. WAQI integration: sensor.waqi_*
                 // 2. Any sensor containing 'aqi' in the name
                 // 3. Air quality entities (air_quality.*)
-                const sensorKeys = untrack(() => Object.keys(haStore.states));
+                const sensorKeys = untrack(() => this.getEntityIds());
 
                 aqiEntityId = sensorKeys.find(id =>
                     id.startsWith('sensor.waqi_')

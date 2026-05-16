@@ -4,6 +4,7 @@ export * from './utils';
 export { HistoryService } from './domain/historyService';
 export * from './domain/haInventory';
 export * from './domain/cardActions';
+export * from './domain/dashboardGenerator';
 
 // Stores
 export { haStore, HAStore } from './stores/ha.svelte';

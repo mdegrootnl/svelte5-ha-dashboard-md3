@@ -1,26 +1,28 @@
 <script lang="ts">
     import { page } from "$app/stores";
     import { browser } from "$app/environment";
-    import {
-        haStore,
-        PageShell,
-        GridContainer,
-        GridItem,
-        GridOverlay,
-        GridConfigDialog,
-        dashboardStore,
-        DashboardStore,
-        dashboardEditorStore,
-        type GridConfig,
-        type RoomDashboardConfig,
-        type TabCardConfig,
-        DynamicIcon,
-        createDefaultGridConfig,
-    } from "$lib";
+    import { haStore } from "$lib/stores/ha.svelte";
+    import PageShell from "$lib/components/layout/PageShell.svelte";
+    import GridContainer from "$lib/components/layout/GridContainer.svelte";
+    import GridItem from "$lib/components/layout/GridItem.svelte";
+    import GridOverlay from "$lib/components/layout/GridOverlay.svelte";
+    import GridConfigDialog from "$lib/components/layout/GridConfigDialog.svelte";
+    import { dashboardStore, DashboardStore } from "$lib/features/dashboard/stores/dashboard.svelte";
+    import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
+    import { haRegistryStore } from "$lib/stores/haRegistry.svelte";
+    import type {
+        DashboardItem,
+        GridConfig,
+        RoomDashboardConfig,
+        TabCardConfig,
+    } from "$lib/types/dashboard";
+    import { createDefaultGridConfig } from "$lib/types/dashboard";
+    import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import DashboardCardRenderer from "$lib/features/dashboard/components/cards/DashboardCardRenderer.svelte";
+    import GenerationStateBadge from "$lib/features/dashboard/components/GenerationStateBadge.svelte";
     import { fade } from "svelte/transition";
+    import type { Component } from "svelte";
     import TabBar from "$lib/components/layout/TabBar.svelte"; // Import TabBar
-    import IconPicker from "$lib/components/common/IconPicker.svelte";
     import TextInputDialog from "$lib/components/common/TextInputDialog.svelte";
     import IconRefresh from "~icons/material-symbols/refresh";
     import IconEdit from "~icons/material-symbols/edit";
@@ -29,9 +31,8 @@
     import IconDelete from "~icons/material-symbols/delete";
     import IconGridView from "~icons/material-symbols/grid-view";
     import IconAdd from "~icons/material-symbols/add";
-    import CardLibrarySheet from "$lib/components/layout/CardLibrarySheet.svelte";
-    import CardConfigSheet from "$lib/components/layout/CardConfigSheet.svelte";
     import IconTab from "~icons/material-symbols/tab-outline";
+    import IconPushPin from "~icons/material-symbols/push-pin";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
 
     let { data } = $props();
@@ -53,6 +54,12 @@
     let isRenameDialogOpen = $state(false);
     let tabToRenameId = $state<string | null>(null);
     let tabToRenameName = $state("");
+    let CardLibrarySheetComponent = $state<Component<any> | null>(null);
+    let CardConfigSheetComponent = $state<Component<any> | null>(null);
+    let IconPickerComponent = $state<Component<any> | null>(null);
+    let DashboardGenerationSheetComponent = $state<Component<any> | null>(null);
+    let isGenerationSheetOpen = $state(false);
+    let generationCleanGenerated = $state(false);
 
     // Responsive breakpoint detection
     function updateBreakpoint() {
@@ -70,18 +77,44 @@
         }
     });
 
+    $effect(() => {
+        if (cardEditorStore.mode === "library" && !CardLibrarySheetComponent) {
+            import("$lib/components/layout/CardLibrarySheet.svelte").then(
+                (module) => {
+                    CardLibrarySheetComponent = module.default;
+                },
+            );
+        }
+
+        if (cardEditorStore.mode === "config" && !CardConfigSheetComponent) {
+            import("$lib/components/layout/CardConfigSheet.svelte").then(
+                (module) => {
+                    CardConfigSheetComponent = module.default;
+                },
+            );
+        }
+
+        if (cardEditorStore.isIconPickerOpen && !IconPickerComponent) {
+            import("$lib/components/common/IconPicker.svelte").then(
+                (module) => {
+                    IconPickerComponent = module.default;
+                },
+            );
+        }
+
+        if (isGenerationSheetOpen && !DashboardGenerationSheetComponent) {
+            import("$lib/components/layout/DashboardGenerationSheet.svelte").then(
+                (module) => {
+                    DashboardGenerationSheetComponent = module.default;
+                },
+            );
+        }
+    });
+
     // Sync roomConfig with store changes
     $effect(() => {
         if (dashboardStore.config) {
             roomConfig = dashboardStore.config;
-        }
-    });
-
-    // Auto-save dashboard config changes
-    $effect(() => {
-        if (roomConfig) {
-            // This will trigger whenever deep changes occur in roomConfig
-            dashboardStore.setConfig(roomConfig);
         }
     });
 
@@ -130,14 +163,140 @@
     });
 
     // Derive info
-    let connectedEntities = $derived(Object.keys(haStore.states).length);
     let isEditing = $derived(dashboardEditorStore.isEditing);
     let selectedItemId = $derived(dashboardEditorStore.selectedItemId);
+    let currentDashboardId = $derived(
+        DashboardStore.deriveConfigId(floor || undefined, room || undefined),
+    );
+    let routeAreaId = $derived.by(() => {
+        if (!room) return null;
+        const exact = haRegistryStore.areas.find((area) => area.area_id === room);
+        if (exact) return exact.area_id;
+        const normalizedRoom = room.toLowerCase().replaceAll("-", " ");
+        return (
+            haRegistryStore.areas.find(
+                (area) => area.name.toLowerCase() === normalizedRoom,
+            )?.area_id ?? null
+        );
+    });
+    let routeArea = $derived(
+        routeAreaId
+            ? haRegistryStore.areas.find((area) => area.area_id === routeAreaId)
+            : null,
+    );
+    let routeFloor = $derived.by(() => {
+        if (routeArea?.floor_id) {
+            return (
+                haRegistryStore.floors.find(
+                    (floorItem) => floorItem.floor_id === routeArea.floor_id,
+                ) ?? null
+            );
+        }
+        if (!floor) return null;
+        const exact = haRegistryStore.floors.find(
+            (floorItem) => floorItem.floor_id === floor,
+        );
+        if (exact) return exact;
+        const normalizedFloor = floor.toLowerCase().replaceAll("-", " ");
+        return (
+            haRegistryStore.floors.find(
+                (floorItem) => floorItem.name.toLowerCase() === normalizedFloor,
+            ) ?? null
+        );
+    });
+    let pageTitle = $derived(
+        routeArea?.name ??
+            (room
+                ? formatRouteLabel(room)
+                : routeFloor?.name ?? (floor ? formatRouteLabel(floor) : roomConfig?.name ?? "Home Dashboard")),
+    );
+    let pageIcon = $derived(
+        normalizeHeaderIcon(
+            routeArea?.icon ?? routeFloor?.icon ?? roomConfig?.icon,
+            room ? "meeting_room" : floor ? "layers" : "home",
+        ),
+    );
+    let selectedItem = $derived.by(() =>
+        findItemInGrid(activeTab, selectedItemId),
+    );
+    let selectedItemCanPin = $derived(hasGenerationSource(selectedItem));
+    let selectedItemIsPinned = $derived(
+        selectedItem?.generationState === "pinned",
+    );
+    let activeTabCanPin = $derived(hasGenerationSource(activeTab));
+    let activeTabIsPinned = $derived(activeTab?.generationState === "pinned");
 
-    // Regenerate dashboard
-    function regenerateDashboard() {
-        // Regeneration is removed as per user request
-        console.log("Regeneration is disabled.");
+    function hasGenerationSource(
+        target:
+            | { generatedBy?: unknown; generationState?: unknown }
+            | null
+            | undefined,
+    ) {
+        return Boolean(target?.generatedBy || target?.generationState);
+    }
+
+    function findItemInGrid(
+        grid: GridConfig | null,
+        itemId: string | null,
+    ): DashboardItem | null {
+        if (!grid || !itemId) return null;
+
+        for (const item of grid.items) {
+            if (item.id === itemId) return item;
+
+            if (item.cardType === "tabs" && item.tabs) {
+                for (const childGrid of item.tabs) {
+                    const childItem = findItemInGrid(childGrid, itemId);
+                    if (childItem) return childItem;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    function openGenerationSheet(cleanGenerated = false) {
+        generationCleanGenerated = cleanGenerated;
+        isGenerationSheetOpen = true;
+    }
+
+    function formatRouteLabel(value: string) {
+        return decodeURIComponent(value)
+            .replace(/[-_]+/g, " ")
+            .trim()
+            .replace(/\b\p{L}/gu, (letter) => letter.toUpperCase());
+    }
+
+    function normalizeHeaderIcon(icon: string | null | undefined, fallback: string) {
+        if (!icon) return fallback;
+        const normalized = icon.replace(/^mdi:/, "").replace(/-/g, "_");
+        const materialMap: Record<string, string> = {
+            chef_hat: "restaurant",
+            countertop: "countertops",
+            dining: "dining",
+            dining_room: "dining",
+            fridge: "kitchen",
+            home_floor_0: "layers",
+            home_floor_1: "layers",
+            silverware_fork_knife: "restaurant",
+            sofa: "chair",
+            television: "tv",
+        };
+        return materialMap[normalized] ?? normalized;
+    }
+
+    function openCleanGenerationSheet() {
+        openGenerationSheet(true);
+    }
+
+    function applyGeneratedDashboard(
+        config: RoomDashboardConfig,
+        relatedConfigs: RoomDashboardConfig[] = [],
+    ) {
+        dashboardStore.setConfigs([config, ...relatedConfigs], config.id);
+        roomConfig = config;
+        dashboardEditorStore.enterEditMode();
+        isGenerationSheetOpen = false;
     }
 
     // Open card library
@@ -175,6 +334,24 @@
     // Delete selected item
     function deleteSelected() {
         dashboardEditorStore.deleteSelectedItem();
+    }
+
+    function toggleSelectedItemPin() {
+        if (!selectedItem) return;
+
+        dashboardStore.setItemGenerationState(
+            selectedItem.id,
+            selectedItemIsPinned ? "user_modified" : "pinned",
+        );
+    }
+
+    function toggleActiveTabPin() {
+        if (!activeTab) return;
+
+        dashboardStore.setGridGenerationState(
+            activeTab.id,
+            activeTabIsPinned ? "user_modified" : "pinned",
+        );
     }
 
     // Handle global pointer move for drag/resize
@@ -266,15 +443,13 @@
 </svelte:head>
 
 <PageShell
-    title={room ? room : floor ? floor : "Home Dashboard"}
-    description={haStore.connected
-        ? `Connected · ${connectedEntities} entities`
-        : "Configure connection in Settings"}
+    title={pageTitle}
+    description={haStore.connected ? undefined : "Configure connection in Settings"}
     maxWidth="6xl"
 >
     {#snippet icon()}
-        <div class="text-m3-primary">
-            <DynamicIcon name="home" class="text-4xl" />
+        <div class="flex size-10 items-center justify-center text-m3-primary">
+            <DynamicIcon name={pageIcon} class="size-10" />
         </div>
     {/snippet}
     {#if dashboardEditorStore.focusedGridId}
@@ -291,6 +466,24 @@
             <!-- Edit Mode Controls -->
             {#if isEditing}
                 <button
+                    onclick={() => openGenerationSheet(false)}
+                    class="inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full bg-m3-secondary-container text-m3-on-secondary-container text-m3-label-large font-medium hover:brightness-95 transition-colors"
+                    title="Generate dashboard draft"
+                >
+                    <IconRefresh class="size-5" />
+                    <span class="hidden md:inline">Generate</span>
+                </button>
+
+                <button
+                    onclick={openCleanGenerationSheet}
+                    class="inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full bg-m3-error-container text-m3-on-error-container text-m3-label-large font-medium hover:brightness-95 transition-colors"
+                    title="Clean generated cards and regenerate a preview"
+                >
+                    <IconDelete class="size-5" />
+                    <span class="hidden md:inline">Clean</span>
+                </button>
+
+                <button
                     onclick={openCardLibrary}
                     class="inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full bg-m3-primary text-m3-on-primary text-m3-label-large font-medium hover:brightness-95 transition-colors shadow-m3-elevation-1"
                     title="Add new card"
@@ -302,6 +495,27 @@
 
                 <!-- Selected item actions -->
                 {#if selectedItemId}
+                    {#if selectedItemCanPin}
+                        <button
+                            onclick={toggleSelectedItemPin}
+                            class={`inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full text-m3-label-large font-medium hover:brightness-95 transition-colors ${
+                                selectedItemIsPinned
+                                    ? "bg-m3-primary-container text-m3-on-primary-container"
+                                    : "bg-m3-surface-container-high text-m3-on-surface"
+                            }`}
+                            title={selectedItemIsPinned
+                                ? "Unpin selected generated card"
+                                : "Pin selected generated card"}
+                        >
+                            <IconPushPin class="size-5" />
+                            <span class="hidden md:inline"
+                                >{selectedItemIsPinned
+                                    ? "Unpin"
+                                    : "Pin"}</span
+                            >
+                        </button>
+                    {/if}
+
                     <button
                         onclick={deleteSelected}
                         class="inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full bg-m3-error-container text-m3-on-error-container text-m3-label-large font-medium hover:brightness-95 transition-colors"
@@ -328,6 +542,25 @@
                     <IconGridView class="size-5" />
                     <span class="hidden md:inline">Grid</span>
                 </button>
+
+                {#if activeTabCanPin}
+                    <button
+                        onclick={toggleActiveTabPin}
+                        class={`inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full text-m3-label-large font-medium hover:brightness-95 transition-colors ${
+                            activeTabIsPinned
+                                ? "bg-m3-primary-container text-m3-on-primary-container"
+                                : "bg-m3-surface-container-high text-m3-on-surface"
+                        }`}
+                        title={activeTabIsPinned
+                            ? "Unpin current generated tab"
+                            : "Pin current generated tab"}
+                    >
+                        <IconPushPin class="size-5" />
+                        <span class="hidden md:inline"
+                            >{activeTabIsPinned ? "Unpin Tab" : "Pin Tab"}</span
+                        >
+                    </button>
+                {/if}
 
                 {#if isEditing}
                     <button
@@ -373,7 +606,7 @@
     {#if roomConfig && activeTab}
         <section class="relative flex flex-col gap-4">
             <!-- Tab Bar -->
-            {#if roomConfig.tabs.length > 0}
+            {#if roomConfig.tabs.length > 1 || isEditing}
                 <TabBar
                     tabs={roomConfig.tabs}
                     activeTabId={roomConfig.activeTabId}
@@ -395,6 +628,37 @@
                     <IconEdit class="size-4" />
                     Edit Mode — Click cards to select, drag to move, use handles
                     to resize
+                </div>
+                {#if activeTabCanPin}
+                    <GenerationStateBadge
+                        state={activeTab.generationState ??
+                            (activeTab.generatedBy ? "generated" : undefined)}
+                        sourceReason={activeTab.generatedBy?.reason}
+                    />
+                {/if}
+            {/if}
+
+            {#if activeTab.items.length === 0}
+                <div
+                    class="rounded-m3-card border border-dashed border-m3-outline-variant bg-m3-surface-container-low p-6 text-center"
+                >
+                    <p class="text-m3-title-medium text-m3-on-surface">
+                        This dashboard is empty.
+                    </p>
+                    <p
+                        class="mt-1 text-m3-body-medium text-m3-on-surface-variant"
+                    >
+                        Generate a draft from Home Assistant inventory, preview
+                        it, then apply only when it looks useful.
+                    </p>
+                    <button
+                        type="button"
+                        class="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-full bg-m3-primary px-5 text-m3-label-large text-m3-on-primary hover:brightness-95"
+                        onclick={() => openGenerationSheet(false)}
+                    >
+                        <IconRefresh class="size-5" />
+                        Generate Draft
+                    </button>
                 </div>
             {/if}
 
@@ -419,13 +683,17 @@
                     breakpoint={dashboardStore.breakpoint}
                 >
                     {#each activeTab.items as item, i (item.id)}
+                        {@const itemLayout =
+                            dashboardStore.breakpoint === "desktop"
+                                ? item.layout.desktop
+                                : item.layout.mobile}
                         <GridItem
                             itemId={item.id}
                             desktopLayout={item.layout.desktop}
                             mobileLayout={item.layout.mobile}
                             breakpoint={dashboardStore.breakpoint}
                             class={(item.cardType === "title" ? "z-10 " : "") +
-                                "group"}
+                                "group/grid-item"}
                             isInteractive={item.cardType === "tabs" &&
                                 dashboardEditorStore.isItemAncestorOfFocus(
                                     item.id,
@@ -433,13 +701,22 @@
                         >
                             <DashboardCardRenderer
                                 bind:item={activeTab.items[i]}
+                                layoutRows={itemLayout.rowSpan}
                                 ondelete={(id) =>
                                     dashboardEditorStore.deleteItem(id)}
                             />
                             {#snippet controls()}
+                                <GenerationStateBadge
+                                    state={item.generationState ??
+                                        (item.generatedBy
+                                            ? "generated"
+                                            : undefined)}
+                                    sourceReason={item.generatedBy?.reason}
+                                    class="absolute left-2 top-2 z-20 pointer-events-none"
+                                />
                                 {#if item.cardType === "tabs"}
                                     <button
-                                        class="absolute top-2 right-2 p-2 rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-md z-50 hover:brightness-110 pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity"
+                                        class="absolute top-2 right-2 p-2 rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-md z-50 hover:brightness-110 pointer-events-auto opacity-0 group-hover/grid-item:opacity-100 transition-opacity"
                                         onclick={(e) => {
                                             e.stopPropagation();
                                             const activeIdx =
@@ -498,13 +775,29 @@
     <GridConfigDialog bind:open={isGridConfigOpen} config={activeTab} />
 {/if}
 
-<CardLibrarySheet />
-<CardConfigSheet />
+{#if CardLibrarySheetComponent && cardEditorStore.mode === "library"}
+    <CardLibrarySheetComponent />
+{/if}
 
-{#if cardEditorStore.isIconPickerOpen}
-    <IconPicker
-        onselect={(icon) => cardEditorStore.handleIconSelect(icon)}
+{#if CardConfigSheetComponent && cardEditorStore.mode === "config"}
+    <CardConfigSheetComponent />
+{/if}
+
+{#if IconPickerComponent && cardEditorStore.isIconPickerOpen}
+    <IconPickerComponent
+        onselect={(icon: string) => cardEditorStore.handleIconSelect(icon)}
         onclose={() => (cardEditorStore.isIconPickerOpen = false)}
+    />
+{/if}
+
+{#if DashboardGenerationSheetComponent && isGenerationSheetOpen}
+    <DashboardGenerationSheetComponent
+        open={isGenerationSheetOpen}
+        targetDashboardId={currentDashboardId}
+        areaId={routeAreaId}
+        cleanGenerated={generationCleanGenerated}
+        onapply={applyGeneratedDashboard}
+        onclose={() => (isGenerationSheetOpen = false)}
     />
 {/if}
 

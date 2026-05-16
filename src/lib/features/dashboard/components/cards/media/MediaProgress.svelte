@@ -1,4 +1,5 @@
 <script>
+    import { browser } from "$app/environment";
     import { haStore } from "$lib/stores/ha.svelte";
     let { entityId, theme = "light", color = "" } = $props();
     let entity = $derived(haStore.getEntity(entityId));
@@ -11,6 +12,13 @@
     let mediaState = $derived(entity?.state);
 
     let currentPosition = $state(0);
+    /** @type {HTMLElement | undefined} */
+    let root = $state();
+    let isInViewport = $state(false);
+    let isDocumentVisible = $state(true);
+    let shouldTick = $derived(
+        mediaState === "playing" && isInViewport && isDocumentVisible,
+    );
     /** @type {ReturnType<typeof setInterval> | undefined} */
     let timer;
 
@@ -33,9 +41,51 @@
     }
 
     $effect(() => {
+        if (!browser) return;
+        isDocumentVisible = document.visibilityState === "visible";
+
+        function updateDocumentVisibility() {
+            isDocumentVisible = document.visibilityState === "visible";
+        }
+
+        document.addEventListener("visibilitychange", updateDocumentVisibility);
+
+        return () => {
+            document.removeEventListener(
+                "visibilitychange",
+                updateDocumentVisibility,
+            );
+        };
+    });
+
+    $effect(() => {
+        if (!browser) return;
+        if (!root) {
+            isInViewport = false;
+            return;
+        }
+
+        if (!("IntersectionObserver" in window)) {
+            isInViewport = true;
+            return;
+        }
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                isInViewport = !!entry?.isIntersecting;
+            },
+            { rootMargin: "80px" },
+        );
+
+        observer.observe(root);
+
+        return () => observer.disconnect();
+    });
+
+    $effect(() => {
         clearTimer();
 
-        if (mediaState === "playing") {
+        if (shouldTick) {
             updatePosition();
             timer = setInterval(updatePosition, 1000);
         } else {
@@ -75,7 +125,10 @@
 </script>
 
 {#if duration > 0}
-    <div class="flex flex-col gap-[clamp(0.25rem,1.4cqmin,0.5rem)] w-full">
+    <div
+        bind:this={root}
+        class="flex flex-col gap-[clamp(0.25rem,1.4cqmin,0.5rem)] w-full"
+    >
         <div class={`w-full h-[clamp(0.1875rem,1cqmin,0.375rem)] ${trackBg} rounded-full overflow-hidden`}>
             <div
                 class={`h-full ${progressBg} transition-all duration-300 ease-linear`}

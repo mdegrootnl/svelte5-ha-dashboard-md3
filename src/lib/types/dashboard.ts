@@ -33,6 +33,140 @@ export type DashboardCardType =
 
 export type SmartSourceConfig = "auto" | "area" | "floor" | "query" | "manual";
 
+export type RoomVisualKind =
+    | "bathroom"
+    | "bedroom"
+    | "child_boy_room"
+    | "child_girl_room"
+    | "child_room"
+    | "garage"
+    | "hallway"
+    | "kitchen"
+    | "laundry"
+    | "living_room"
+    | "office"
+    | "outdoor"
+    | "utility"
+    | "generic_room"
+    | "custom";
+
+export type RoomVisualAudience = "adult" | "boy" | "girl" | "child" | "family" | "neutral";
+export type NavigationImageSource = "ha_area_picture" | "generated_preview" | "unsplash" | "manual" | "none";
+
+export type DashboardImageProvider =
+    | "unsplash"
+    | "manual"
+    | "generated_preview"
+    | "ha_area_picture";
+
+export interface DashboardImageAttribution {
+    provider: DashboardImageProvider;
+    sourceName?: string;
+    sourceUrl?: string;
+    authorName?: string;
+    authorUrl?: string;
+    photoId?: string;
+    licenseUrl?: string;
+    downloadLocation?: string;
+}
+
+export type DashboardGenerationRecipe =
+    | "house"
+    | "room"
+    | "floor"
+    | "entity_type"
+    | "label"
+    | "maintenance";
+
+export type DashboardGenerationSourceType =
+    | "house"
+    | "area"
+    | "floor"
+    | "entity_type"
+    | "label"
+    | "maintenance"
+    | "dashboard";
+
+export type DashboardGenerationState = "generated" | "user_modified" | "pinned";
+
+export interface DashboardGenerationMetadata {
+    recipe: DashboardGenerationRecipe;
+    sourceType: DashboardGenerationSourceType;
+    sourceId: string;
+    generatedAt: string;
+    reason: string;
+    version: number;
+}
+
+export interface DashboardGenerationOptions {
+    recipe: DashboardGenerationRecipe;
+    targetDashboardId: string;
+    areaId?: string;
+    floorId?: string;
+    entityDomain?: string;
+    entityDeviceClass?: string;
+    labelId?: string;
+    includeLabels?: string[];
+    excludeLabels?: string[];
+    includeEntityIds?: string[];
+    excludeEntityIds?: string[];
+    applyMode: "replace_draft";
+}
+
+export interface DashboardGenerationEntityRef {
+    entityId: string;
+    reason: string;
+    cardId?: string;
+    importanceScore?: number;
+    importanceReasons?: string[];
+}
+
+export interface DashboardGenerationSummary {
+    recipe: DashboardGenerationRecipe;
+    title: string;
+    tabs: number;
+    cards: number;
+    included: number;
+    skipped: number;
+    relatedDashboards?: number;
+    relatedCards?: number;
+}
+
+export type DashboardGenerationQualityCode =
+    | "area_matched"
+    | "device_area_fallback"
+    | "name_inferred_area"
+    | "missing_area"
+    | "skipped_diagnostic"
+    | "skipped_low_importance"
+    | "skipped_unavailable"
+    | "used_ha_group"
+    | "duplicate_remote"
+    | "duplicate_media_player"
+    | "name_review"
+    | "missing_area_picture"
+    | "manual_review";
+
+export type DashboardGenerationQualitySeverity = "info" | "warning" | "suggestion";
+
+export interface DashboardGenerationQualityHint {
+    code: DashboardGenerationQualityCode;
+    severity: DashboardGenerationQualitySeverity;
+    message: string;
+    entityIds: string[];
+    suggestedAction?: string;
+}
+
+export interface DashboardGenerationResult {
+    config: RoomDashboardConfig;
+    relatedConfigs?: RoomDashboardConfig[];
+    summary: DashboardGenerationSummary;
+    includedEntities: DashboardGenerationEntityRef[];
+    skippedEntities: DashboardGenerationEntityRef[];
+    qualityHints: DashboardGenerationQualityHint[];
+    warnings: string[];
+}
+
 export interface CardAction {
     id: string;
     label?: string;
@@ -75,13 +209,33 @@ export interface RoomCardOptions {
     sections?: Array<"lights" | "climate" | "media" | "covers" | "sensors" | "health">;
 }
 
+export interface NavigationCardOptions {
+    source?: SmartSourceConfig;
+    areaId?: string;
+    visualKind?: RoomVisualKind;
+    visualAudience?: RoomVisualAudience;
+    visualPromptSeed?: string;
+    imageSource?: NavigationImageSource;
+}
+
 export interface CollectionCardOptions {
     source?: SmartSourceConfig;
-    mode?: "auto" | "lights_on" | "low_battery" | "unavailable" | "updates" | "custom";
+    mode?:
+        | "auto"
+        | "lights_on"
+        | "low_battery"
+        | "unavailable"
+        | "updates"
+        | "openings"
+        | "motion"
+        | "media_playing"
+        | "security"
+        | "custom";
     query?: EntityQueryConfig;
     entityIds?: string[];
     threshold?: number;
     showState?: boolean;
+    presentation?: "list" | "summary";
 }
 
 export interface EnergyCardOptions {
@@ -130,6 +284,7 @@ export interface DevicePanelCardOptions {
 
 export interface DashboardCardOptions {
     button?: ButtonCardOptions;
+    navigation?: NavigationCardOptions;
     room?: RoomCardOptions;
     collection?: CollectionCardOptions;
     energy?: EnergyCardOptions;
@@ -188,6 +343,9 @@ export interface DashboardItem {
     backgroundColor?: string;
     /** Typed card-specific configuration for newer card families */
     options?: DashboardCardOptions;
+    /** Metadata for cards created by controlled dashboard generation. */
+    generatedBy?: DashboardGenerationMetadata;
+    generationState?: DashboardGenerationState;
 
     /** Tab Card Properties */
     activeTabIndex?: number;
@@ -204,6 +362,7 @@ export interface DashboardItem {
     path?: string;
     iconType?: 'icon' | 'image';
     imageUrl?: string;
+    imageAttribution?: DashboardImageAttribution;
     /** Shortcut entities displayed as buttons on the right side */
     shortcuts?: NavigationCardShortcut[];
 }
@@ -249,6 +408,9 @@ export interface GridConfig {
     padding: number;
     /** Items placed in the grid */
     items: DashboardItem[];
+    /** Metadata for grids created by controlled dashboard generation. */
+    generatedBy?: DashboardGenerationMetadata;
+    generationState?: DashboardGenerationState;
     /** 
      * Row height in pixels for implicit rows.
      * Default: 80px
@@ -302,8 +464,9 @@ export interface HAFloor {
 export interface HAArea {
     area_id: string;
     name: string;
-    floor_id?: string;
-    icon?: string;
+    floor_id?: string | null;
+    icon?: string | null;
+    picture?: string | null;
 }
 
 /**

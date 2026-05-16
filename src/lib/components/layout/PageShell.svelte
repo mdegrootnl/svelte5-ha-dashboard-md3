@@ -24,17 +24,17 @@
 <ScrollArea.Root class="h-full w-full bg-m3-surface overflow-hidden">
     <ScrollArea.Viewport class="h-full w-full p-8 pb-32 md:pb-8">
         <div class="{maxWidth} mx-auto flex flex-col gap-8">
-            <header class="flex items-start justify-between">
+            <header class="flex items-start justify-between gap-4">
                 <div class="flex flex-col gap-1">
                     <div class="flex items-center gap-4">
                         {#if icon}
                             <div
-                                class="flex items-center justify-center text-m3-primary"
+                                class="flex size-10 shrink-0 items-center justify-center text-m3-primary"
                             >
                                 {@render icon()}
                             </div>
                         {/if}
-                        <h1 class="text-m3-display-small text-m3-on-surface">
+                        <h1 class="text-m3-display-small leading-tight text-m3-on-surface">
                             {title}
                         </h1>
                     </div>

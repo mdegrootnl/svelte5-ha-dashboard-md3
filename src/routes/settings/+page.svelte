@@ -1,15 +1,13 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import {
-        haStore,
-        maStore,
-        themeStore,
-        Button,
-        TextField,
-        Card,
-        PageShell,
-        Radio,
-    } from "$lib";
+    import { haStore } from "$lib/stores/ha.svelte";
+    import { maStore } from "$lib/features/music/stores/maStore.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
+    import Button from "$lib/components/md3/Button.svelte";
+    import TextField from "$lib/components/md3/TextField.svelte";
+    import Card from "$lib/components/md3/Card.svelte";
+    import PageShell from "$lib/components/layout/PageShell.svelte";
+    import Radio from "$lib/components/md3/Radio.svelte";
     import Link from "~icons/material-symbols/link";
     import LinkOff from "~icons/material-symbols/link-off";
     import CheckCircle from "~icons/material-symbols/check-circle";
@@ -24,7 +22,7 @@
     import Palette from "~icons/material-symbols/palette";
     import LockClock from "~icons/material-symbols/lock-clock";
     import ImagePicker from "$lib/components/settings/ImagePicker.svelte";
-    import { Switch } from "$lib";
+    import Switch from "$lib/components/md3/Switch.svelte";
     import { lockScreenStore } from "$lib/features/lockscreen/stores/lockscreen.svelte";
     import DashboardSettings from "$lib/components/settings/DashboardSettings.svelte";
     import DashboardIcon from "~icons/material-symbols/dashboard";

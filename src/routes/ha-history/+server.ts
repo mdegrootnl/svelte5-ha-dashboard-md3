@@ -1,14 +1,28 @@
 import type { RequestHandler } from './$types';
+import { dev } from '$app/environment';
 import dns from 'node:dns';
 import { promisify } from 'util';
 
 const lookup = promisify(dns.lookup);
+const DNS_CACHE_TTL = 5 * 60 * 1000;
+const dnsCache = new Map<string, { address: string; timestamp: number }>();
+
+async function resolveHost(host: string) {
+    if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)) return host;
+
+    const cached = dnsCache.get(host);
+    if (cached && Date.now() - cached.timestamp < DNS_CACHE_TTL) {
+        return cached.address;
+    }
+
+    const { address } = await lookup(host, { family: 4 });
+    dnsCache.set(host, { address, timestamp: Date.now() });
+    if (dev) console.debug(`[History Proxy] Resolved ${host} -> ${address}`);
+    return address;
+}
 
 export const GET: RequestHandler = async ({ url, request, fetch }) => {
     try {
-        // Extract query parameters
-        const searchParams = url.searchParams.toString();
-
         // Get headers
         const haUrl = request.headers.get('x-ha-url');
         const auth = request.headers.get('Authorization');
@@ -39,14 +53,9 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
         // Manually resolve hostname to IPv4 to bypass Docker .local issues
         let resolvedHost = originalHost;
         try {
-            // Only try to resolve if it's not already an IP
-            if (!/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(originalHost)) {
-                const { address } = await lookup(originalHost, { family: 4 });
-                resolvedHost = address;
-                console.log(`[History Proxy] Resolved ${originalHost} -> ${resolvedHost}`);
-            }
+            resolvedHost = await resolveHost(originalHost);
         } catch (dnsErr) {
-            console.warn(`[History Proxy] DNS lookup failed for ${originalHost}, using original.`, dnsErr);
+            if (dev) console.warn(`[History Proxy] DNS lookup failed for ${originalHost}, using original.`, dnsErr);
         }
 
         // Construct target URL using the RESOLVED IP but keeping the port/protocol

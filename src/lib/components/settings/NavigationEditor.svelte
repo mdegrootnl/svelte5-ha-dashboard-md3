@@ -1,6 +1,8 @@
 <script lang="ts">
     import { themeStore } from "$lib/stores/theme.svelte";
-    import { Button, TextField, IconButton } from "$lib";
+    import Button from "$lib/components/md3/Button.svelte";
+    import IconButton from "$lib/components/md3/IconButton.svelte";
+    import TextField from "$lib/components/md3/TextField.svelte";
     import IconPicker from "$lib/components/common/IconPicker.svelte";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import type { NavigationItem } from "$lib/types/config";

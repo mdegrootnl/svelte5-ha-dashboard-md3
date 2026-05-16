@@ -1,15 +1,9 @@
 <script lang="ts">
-    import {
-        type CardVariant,
-        haStore,
-        cardEditorStore,
-        executeCardAction,
-        supportsBrightness,
-        getDomain,
-        getEntityName,
-        calculatePercentage,
-        shouldThrottle,
-    } from "$lib";
+    import { haStore } from "$lib/stores/ha.svelte";
+    import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
+    import { executeCardAction } from "$lib/domain/cardActions";
+    import { getDomain, getEntityName, supportsBrightness } from "$lib/utils/entity";
+    import { calculatePercentage, shouldThrottle } from "$lib/utils/gestures";
     import IconEdit from "~icons/material-symbols/edit";
     import IconLightbulb from "~icons/material-symbols/lightbulb";
     import IconThermostat from "~icons/material-symbols/thermostat";
@@ -18,7 +12,7 @@
     import IconPlayCircle from "~icons/material-symbols/play-circle";
     import IconDevices from "~icons/material-symbols/devices";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
-    import type { ButtonCardOptions, CardAction } from "$lib/types";
+    import type { ButtonCardOptions, CardAction, CardVariant } from "$lib/types";
 
     interface Props {
         id?: string;
@@ -147,7 +141,7 @@
 
     // Base styles: themed card rounding, flexible height (min-h-20), transition
     const baseStyles =
-        "relative flex w-full h-full min-h-20 rounded-m3-card overflow-hidden transition-all duration-200 select-none group";
+        "relative flex w-full h-full min-h-20 rounded-m3-card overflow-hidden transition-all duration-200 select-none group/card";
 
     // Dynamic background and text colors
     let cardStyle = $derived.by(() => {
@@ -411,13 +405,13 @@
         <!-- Text Stack -->
         <div class="flex flex-col flex-1 justify-center min-w-0">
             <span
-                class="text-[clamp(11px,5cqmin,18px)] font-bold leading-tight truncate"
+                class="text-[clamp(0.95rem,max(7cqb,1.8cqi),1.35rem)] font-bold leading-tight truncate"
             >
                 {title}
             </span>
             {#if showState}
                 <span
-                    class="text-[clamp(10px,4cqmin,14px)] opacity-70 leading-tight truncate transition-opacity"
+                    class="text-[clamp(0.8125rem,max(5.5cqb,1.4cqi),1rem)] opacity-75 leading-tight truncate transition-opacity"
                 >
                     {#if isSlider && isActive}
                         {displayState === "On" || !displayState.includes("%")
@@ -436,7 +430,7 @@
             >
                 {#each actionButtons.slice(0, 3) as action (action.id)}
                     <button
-                        class="size-[clamp(1.75rem,12cqmin,2.75rem)] rounded-m3-full bg-m3-surface-container-high text-m3-on-surface flex items-center justify-center hover:bg-m3-surface-container active:scale-95 transition-transform"
+                        class="size-[clamp(2rem,max(12cqb,3cqi),3rem)] rounded-m3-full bg-m3-surface-container-high text-m3-on-surface flex items-center justify-center hover:bg-m3-surface-container active:scale-95 transition-transform"
                         onclick={(e) => runAction(action, e)}
                         onpointerdown={(e) => e.stopPropagation()}
                         title={action.label || action.id}
@@ -454,7 +448,7 @@
     <!-- Edit FAB (Visible on Hover) -->
     <!-- z-30 to be above the slider input -->
     <button
-        class="absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-30 hover:brightness-110 pointer-events-auto"
+        class="absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover/card:opacity-100 transition-opacity z-30 hover:brightness-110 pointer-events-auto"
         onclick={openConfig}
         onpointerdown={(e) => e.stopPropagation()}
         title="Edit Card"

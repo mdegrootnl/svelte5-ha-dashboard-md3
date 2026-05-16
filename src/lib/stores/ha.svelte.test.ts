@@ -14,6 +14,7 @@ vi.mock('home-assistant-js-websocket', () => ({
 
 describe('HAStore', () => {
     beforeEach(() => {
+        vi.unstubAllGlobals();
         vi.clearAllMocks();
         localStorage.clear();
         // Prevent constructor init from doing anything by default
@@ -80,6 +81,73 @@ describe('HAStore', () => {
         expect(store.getEntity('non.existent')).toBeUndefined();
     });
 
+    it('diffs incoming entity snapshots in place and tracks entityCount', () => {
+        const store = new HAStore();
+        const first = { entity_id: 'light.test', state: 'off', attributes: {} };
+        const second = { entity_id: 'sensor.temp', state: '20', attributes: {} };
+
+        (store as any).applyEntitySnapshot({
+            'light.test': first,
+            'sensor.temp': second,
+        });
+
+        const statesRef = store.states;
+        const versionAfterInitial = store.statesVersion;
+        expect(store.entityCount).toBe(2);
+        expect(store.getLiveEntity('light.test')?.state).toBe(first.state);
+
+        (store as any).applyEntitySnapshot({
+            'light.test': first,
+            'sensor.temp': second,
+        });
+
+        expect(store.states).toBe(statesRef);
+        expect(store.statesVersion).toBe(versionAfterInitial);
+
+        const changed = { entity_id: 'light.test', state: 'on', attributes: {} };
+        (store as any).applyEntitySnapshot({
+            'light.test': changed,
+        });
+
+        expect(store.states).toBe(statesRef);
+        expect(store.entityCount).toBe(1);
+        expect(store.getLiveEntity('sensor.temp')).toBeUndefined();
+        expect(store.getEntity('light.test')?.state).toBe('on');
+        expect(store.statesVersion).toBe(versionAfterInitial + 1);
+    });
+
+    it('returns compatibility snapshots without exposing live state mutation', () => {
+        const store = new HAStore();
+        const liveEntity = { entity_id: 'light.test', state: 'off', attributes: {} };
+        const overrideEntity = { entity_id: 'light.test', state: 'on', attributes: {} };
+        store.states = { 'light.test': liveEntity as any };
+        store.patchEntityOverrides({ 'light.test': overrideEntity as any });
+
+        const snapshot = store.getStatesSnapshot();
+        delete snapshot['light.test'];
+
+        expect(store.hasEntity('light.test')).toBe(true);
+        expect(store.getEntity('light.test')?.state).toBe('on');
+        expect(store.getLiveEntity('light.test')?.state).toBe('off');
+        expect(store.getEntityIdsSnapshot()).toEqual(['light.test']);
+    });
+
+    it('should prefer scoped entity overrides without mutating live states', () => {
+        const store = new HAStore();
+        const liveEntity = { entity_id: 'light.test', state: 'off', attributes: {} };
+        const overrideEntity = { entity_id: 'light.test', state: 'on', attributes: {} };
+        store.states = { 'light.test': liveEntity as any };
+
+        store.patchEntityOverrides({ 'light.test': overrideEntity as any });
+
+        expect(store.states['light.test'].state).toBe('off');
+        expect(store.getEntity('light.test')?.state).toBe('on');
+        expect(store.effectiveStates['light.test'].state).toBe('on');
+
+        store.clearEntityOverrides(['light.test']);
+        expect(store.getEntity('light.test')?.state).toBe('off');
+    });
+
     it('should disconnect and clear state', async () => {
         const store = new HAStore();
         const mockConnection = { close: vi.fn() };
@@ -114,5 +182,115 @@ describe('HAStore', () => {
         await store.callService('light', 'turn_on');
         expect(haWS.callService).not.toHaveBeenCalled();
     });
-});
 
+    it('rounds history cache keys and reuses fresh cached data', async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-05-15T10:10:00Z'));
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            json: vi.fn().mockResolvedValue([
+                [
+                    {
+                        entity_id: 'sensor.temp',
+                        state: '21',
+                        last_changed: '2026-05-15T10:00:00Z',
+                    },
+                ],
+            ]),
+        });
+        vi.stubGlobal('fetch', fetchMock);
+
+        const store = new HAStore();
+        store.auth = { accessToken: 'token', expired: false } as any;
+        store.url = 'http://homeassistant.local:8123';
+
+        const first = await store.getHistory(
+            ['sensor.temp'],
+            new Date('2026-05-15T10:02:30Z'),
+            new Date('2026-05-15T10:08:30Z'),
+        );
+        const second = await store.getHistory(
+            ['sensor.temp'],
+            new Date('2026-05-15T10:04:59Z'),
+            new Date('2026-05-15T10:09:59Z'),
+        );
+
+        expect(first.ok).toBe(true);
+        expect(second.ok).toBe(true);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        const url = String(fetchMock.mock.calls[0][0]);
+        expect(url).toContain('timestamp=2026-05-15T10%3A00%3A00.000Z');
+        expect(url).toContain('end_time=2026-05-15T10%3A05%3A00.000Z');
+
+        vi.useRealTimers();
+    });
+
+    it('deduplicates in-flight history requests and refetches after TTL', async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-05-15T10:10:00Z'));
+
+        let resolveJson!: (value: unknown) => void;
+        const jsonPromise = new Promise((resolve) => {
+            resolveJson = resolve;
+        });
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            json: vi.fn(() => jsonPromise),
+        });
+        vi.stubGlobal('fetch', fetchMock);
+
+        const store = new HAStore();
+        store.auth = { accessToken: 'token', expired: false } as any;
+        store.url = 'http://homeassistant.local:8123';
+
+        const endTime = new Date('2026-05-15T10:10:00Z');
+        const first = store.getHistory(['sensor.temp'], new Date('2026-05-15T10:00:00Z'), endTime);
+        const second = store.getHistory(['sensor.temp'], new Date('2026-05-15T10:00:30Z'), endTime);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+
+        resolveJson([
+            [
+                {
+                    entity_id: 'sensor.temp',
+                    state: '22',
+                    last_changed: '2026-05-15T10:00:00Z',
+                },
+            ],
+        ]);
+        await expect(Promise.all([first, second])).resolves.toEqual([
+            expect.objectContaining({ ok: true }),
+            expect.objectContaining({ ok: true }),
+        ]);
+
+        vi.setSystemTime(new Date('2026-05-15T10:16:00Z'));
+        fetchMock.mockResolvedValueOnce({
+            ok: true,
+            json: vi.fn().mockResolvedValue([[]]),
+        });
+        await store.getHistory(['sensor.temp'], new Date('2026-05-15T10:00:00Z'), endTime);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+
+        vi.useRealTimers();
+    });
+
+    it('preserves history error handling for failed responses', async () => {
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: false,
+            status: 500,
+            statusText: 'Server Error',
+            json: vi.fn().mockResolvedValue({ message: 'boom' }),
+        });
+        vi.stubGlobal('fetch', fetchMock);
+
+        const store = new HAStore();
+        store.auth = { accessToken: 'token', expired: false } as any;
+        store.url = 'http://homeassistant.local:8123';
+
+        const result = await store.getHistory(['sensor.temp'], new Date('2026-05-15T10:00:00Z'));
+
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+            expect(result.error.message).toContain('History fetch failed: 500 - boom');
+        }
+    });
+});

@@ -1,4 +1,5 @@
 import type { CardConfig } from '$lib/types';
+import { dashboardStore } from './dashboard.svelte';
 
 export class CardEditorStore {
     mode = $state<"none" | "library" | "config">("none");
@@ -62,7 +63,15 @@ export class CardEditorStore {
     }
 
     save(newConfig: CardConfig) {
+        const isExistingCard = Boolean(this.config.id || newConfig.id);
         this.config.onSave?.(newConfig);
+        if (isExistingCard && dashboardStore.config) {
+            const itemId = newConfig.id ?? this.config.id;
+            if (itemId) {
+                dashboardStore.markItemModified(itemId);
+            }
+            dashboardStore.setConfig(dashboardStore.config);
+        }
         this.close();
     }
 }

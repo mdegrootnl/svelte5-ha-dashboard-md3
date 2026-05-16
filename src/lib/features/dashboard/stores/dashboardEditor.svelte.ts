@@ -19,6 +19,7 @@ import {
     shiftLayoutRowsForRemove,
     normalizeGridSelection
 } from '../utils/gridEditUtils';
+import { normalizeDashboardItem } from '../utils/dashboardDefaults';
 
 /** Config object passed when creating a new dashboard item from editor selection */
 interface ItemCreationConfig {
@@ -37,6 +38,7 @@ interface ItemCreationConfig {
     path?: string;
     iconType?: 'icon' | 'image';
     imageUrl?: string;
+    imageAttribution?: DashboardItem['imageAttribution'];
     icon?: string;
     shortcuts?: { id: string; entityId: string; icon?: string; color?: string }[];
     options?: DashboardItem['options'];
@@ -241,7 +243,7 @@ export class DashboardEditorStore {
             layout.desktop.rowStart = desktopRow;
         }
 
-        const newItem: DashboardItem = {
+        const newItem = normalizeDashboardItem({
             id: generateUUID(),
             cardType,
             entityId: itemConfig.entityId || "",
@@ -263,13 +265,14 @@ export class DashboardEditorStore {
             icon: itemConfig.icon || "",
             shortcuts: itemConfig.shortcuts || [],
             options: itemConfig.options
-        };
+        });
 
         config.items.push(newItem);
 
         // CRITICAL: Resolve collisions so existing items bounce away
         this.resolveCollisions(newItem.id, breakpoint);
 
+        dashboardStore.markGridModified(config.id);
         dashboardStore.setConfig(root);
         this.clearGridSelection();
         this.selectItem(newItem.id);
@@ -477,6 +480,7 @@ export class DashboardEditorStore {
         this.resolveCollisions(itemId, breakpoint);
 
         // Save updated config
+        dashboardStore.markItemModified(itemId);
         dashboardStore.setConfig(root);
     }
 
@@ -558,6 +562,7 @@ export class DashboardEditorStore {
 
         const context = this.getActiveGrid();
         if (context) {
+            dashboardStore.markItemModified(this.resizeItemId);
             dashboardStore.setConfig(context.root);
         }
 
@@ -630,6 +635,7 @@ export class DashboardEditorStore {
             item.layout.mobile.rowSpan = newRowSpan;
         }
 
+        dashboardStore.markItemModified(itemId);
         dashboardStore.setConfig(root);
     }
 
@@ -644,6 +650,7 @@ export class DashboardEditorStore {
         const { root, tab: config } = context;
 
         config.items = config.items.filter(i => i.id !== this.selectedItemId);
+        dashboardStore.markGridModified(config.id);
         dashboardStore.setConfig(root);
         this.clearSelection();
     }
@@ -659,6 +666,7 @@ export class DashboardEditorStore {
         const columnCount = breakpoint === 'desktop' ? config.columns.desktop : config.columns.mobile;
         packItemsIntoGrid(config.items, columnCount, breakpoint);
 
+        dashboardStore.markGridItemsModified(config.id);
         dashboardStore.setConfig(root);
     }
 
@@ -679,6 +687,7 @@ export class DashboardEditorStore {
             this.selectedItemId = null;
         }
 
+        dashboardStore.markGridModified(config.id);
         dashboardStore.setConfig(root);
     }
 
@@ -693,6 +702,7 @@ export class DashboardEditorStore {
         const { root, tab: config } = context;
 
         Object.assign(config, updates);
+        dashboardStore.markGridModified(config.id);
         dashboardStore.setConfig(root);
     }
 
@@ -712,6 +722,7 @@ export class DashboardEditorStore {
             track.size = height;
         }
 
+        dashboardStore.markGridModified(config.id);
         dashboardStore.setConfig(root);
     }
 
@@ -756,6 +767,7 @@ export class DashboardEditorStore {
             shiftLayoutRowsForAdd(item.layout.mobile, rowIndex);
         }
 
+        dashboardStore.markGridModified(config.id);
         dashboardStore.setConfig(root);
     }
 
@@ -781,6 +793,7 @@ export class DashboardEditorStore {
             shiftLayoutRowsForRemove(item.layout.mobile, rowIndex);
         }
 
+        dashboardStore.markGridModified(config.id);
         dashboardStore.setConfig(root);
     }
 
@@ -807,6 +820,7 @@ export class DashboardEditorStore {
         const newItem = createNewItem(cardType, itemConfig, maxRow);
 
         config.items.push(newItem);
+        dashboardStore.markGridModified(config.id);
         dashboardStore.setConfig(root);
     }
 }

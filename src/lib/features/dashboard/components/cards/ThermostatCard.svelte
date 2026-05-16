@@ -1,10 +1,8 @@
 <script lang="ts">
-    import {
-        haStore,
-        cardEditorStore,
-        formatTemperature,
-        getEntityName,
-    } from "$lib";
+    import { dev } from "$app/environment";
+    import { haStore } from "$lib/stores/ha.svelte";
+    import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
+    import { formatTemperature, getEntityName } from "$lib/utils/entity";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import type {
         ClimateEntityAttributes,
@@ -30,6 +28,7 @@
         color?: string;
         backgroundColor?: string;
         icon?: string | any;
+        layoutRows?: number;
     }
 
     let {
@@ -44,6 +43,7 @@
         color = $bindable(),
         backgroundColor = $bindable(),
         icon: iconProp = $bindable(),
+        layoutRows,
     }: Props = $props();
 
     // -- Constants --
@@ -169,26 +169,16 @@
             ? [entityId, secondaryEntityId]
             : [entityId];
 
-        console.log(
-            "[Thermostat Debug] Triggering history fetch for:",
-            entityIds,
-        );
+        if (dev) console.debug("[Thermostat] Fetching history for:", entityIds);
         const result = await haStore.getHistory(entityIds, startTime);
 
         if (result.ok) {
             const historyData = result.value;
-            console.log(
-                "[Thermostat Debug] Received history data:",
-                historyData,
-            );
 
             if (historyData[0]) insideHistory = historyData[0];
             if (historyData[1]) outsideHistory = historyData[1];
         } else {
-            console.error(
-                "[Thermostat Debug] History fetch failed:",
-                result.error,
-            );
+            if (dev) console.error("[Thermostat] History fetch failed:", result.error);
         }
     }
 
@@ -272,18 +262,22 @@
     let clientHeight = $state(0);
     // 1 row (<130px): Compact Horizontal
     let isCompact = $derived(
-        clientHeight > 0 && clientHeight < CONSTANTS.LAYOUT.COMPACT_HEIGHT,
+        typeof layoutRows === "number"
+            ? layoutRows <= 1
+            : clientHeight > 0 && clientHeight < CONSTANTS.LAYOUT.COMPACT_HEIGHT,
     );
     // 3 rows (>=220px): Full with Graph. 2 rows: Vertical but no graph.
     // Default to expanded (isExpanded = true) when height is unknown (0) for tests/initial render
     let isExpanded = $derived(
-        clientHeight === 0 || clientHeight >= CONSTANTS.LAYOUT.EXPANDED_HEIGHT,
+        typeof layoutRows === "number"
+            ? layoutRows >= 3
+            : clientHeight === 0 || clientHeight >= CONSTANTS.LAYOUT.EXPANDED_HEIGHT,
     );
 </script>
 
 <!-- Card Container -->
 <div
-    class="relative flex flex-col w-full h-full rounded-m3-card bg-m3-surface-container overflow-hidden shadow-sm group {className} @container"
+    class="relative flex flex-col w-full h-full rounded-m3-card bg-m3-surface-container overflow-hidden shadow-sm group/card {className} @container"
     bind:clientHeight
     style={`container-type: size;${backgroundColor ? ` background-color: ${backgroundColor};` : ""}`}
 >
@@ -496,7 +490,7 @@
 
     <!-- Edit FAB (Visible on Hover) -->
     <button
-        class="absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:brightness-110 z-20"
+        class="absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover/card:opacity-100 transition-opacity hover:brightness-110 z-20"
         onclick={openConfig}
         title="Edit Card"
     >

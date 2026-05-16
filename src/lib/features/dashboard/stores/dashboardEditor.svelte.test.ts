@@ -7,7 +7,10 @@ import { createDefaultGridConfig, type RoomDashboardConfig } from '$lib/types/da
 vi.mock('./dashboard.svelte', () => ({
     dashboardStore: {
         config: null,
-        setConfig: vi.fn()
+        setConfig: vi.fn(),
+        markGridModified: vi.fn(),
+        markGridItemsModified: vi.fn(),
+        markItemModified: vi.fn()
     }
 }));
 

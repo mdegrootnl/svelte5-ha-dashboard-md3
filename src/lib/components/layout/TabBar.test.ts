@@ -8,7 +8,7 @@ const tabs = [
 ];
 
 describe('TabBar Component', () => {
-    it('uses the themed card radius for navigation pill surfaces', () => {
+    it('uses the themed tab pill radius for navigation pill surfaces', () => {
         const { container } = render(TabBar, {
             props: {
                 tabs,
@@ -19,14 +19,16 @@ describe('TabBar Component', () => {
 
         expect(
             container.querySelector(
-                '.bg-m3-surface-container-high.rounded-m3-card',
+                '.bg-m3-surface-container-high',
             ),
         ).toBeInTheDocument();
 
-        expect(screen.getByText('Overview').closest('button')).toHaveClass(
-            'rounded-m3-card',
+        expect(
+            screen.getByText('Overview').closest('button')?.getAttribute('style'),
+        ).toContain('var(--radius-m3-tab-pill)');
+        expect(screen.getByTitle('Add Tab').getAttribute('style')).toContain(
+            'var(--radius-m3-tab-pill)',
         );
-        expect(screen.getByTitle('Add Tab')).toHaveClass('rounded-m3-card');
     });
 
     it('selects tabs', async () => {

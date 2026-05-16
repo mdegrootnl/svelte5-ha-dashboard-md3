@@ -1,5 +1,7 @@
 <script lang="ts">
-    import { buildSmartCalendarOptions, cardEditorStore, haRegistryStore, haStore } from "$lib";
+    import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
+    import { inventoryStore } from "$lib/stores/inventory.svelte";
+    import { haStore } from "$lib/stores/ha.svelte";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import type { CalendarCardOptions } from "$lib/types";
     import IconEdit from "~icons/material-symbols/edit";
@@ -34,15 +36,7 @@
         return !!item;
     }
 
-    let context = $derived({
-        states: haStore.states,
-        entities: haRegistryStore.entityRegistry,
-        devices: haRegistryStore.deviceRegistry,
-        areas: haRegistryStore.areas,
-        floors: haRegistryStore.floors,
-    });
-
-    let smartOptions = $derived(buildSmartCalendarOptions(context, options, entityId));
+    let smartOptions = $derived(inventoryStore.smartCalendarOptions(options, entityId));
     let calendarIds = $derived(smartOptions.entityIds ?? []);
 
     let calendars = $derived(
@@ -84,7 +78,7 @@
 </script>
 
 <article
-    class="relative h-full w-full rounded-m3-card bg-m3-surface-container-highest text-m3-on-surface overflow-hidden group @container {className}"
+    class="relative h-full w-full rounded-m3-card bg-m3-surface-container-highest text-m3-on-surface overflow-hidden group/card @container {className}"
     style={`container-type: size;${backgroundColor ? ` background-color: ${backgroundColor};` : ""}`}
 >
     <div class="h-full flex flex-col p-[clamp(0.625rem,4cqmin,1.5rem)] gap-[clamp(0.375rem,3cqmin,1rem)]">
@@ -126,7 +120,7 @@
     </div>
 
     <button
-        class="absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-20 hover:brightness-110"
+        class="absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover/card:opacity-100 transition-opacity z-20 hover:brightness-110"
         onclick={openConfig}
         title="Edit Calendar Card"
     >

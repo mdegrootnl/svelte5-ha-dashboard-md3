@@ -9,8 +9,6 @@
         CalendarDate,
         DateFormatter,
         isSameDay,
-        toCalendarDate,
-        now,
     } from "@internationalized/date";
     import { untrack } from "svelte";
     import { haStore } from "$lib/stores/ha.svelte";

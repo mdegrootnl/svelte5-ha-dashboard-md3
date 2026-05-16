@@ -17,49 +17,11 @@
 
     interface Props {
         item: DashboardItem;
+        layoutRows?: number;
         ondelete?: (id: string) => void;
     }
 
-    let { item = $bindable(), ondelete }: Props = $props();
-
-    function applyRenderableDefaults() {
-        item.entityId ??= "";
-        item.name ??= "";
-        item.domainFilter ??= "";
-        item.secondaryEntityId ??= "";
-        item.secondaryName ??= "";
-
-        item.options ??= {};
-        if (item.cardType === "button") item.options.button ??= {};
-        if (item.cardType === "room") item.options.room ??= { source: "auto" };
-        if (item.cardType === "collection") item.options.collection ??= { mode: "auto", showState: true };
-        if (item.cardType === "energy") item.options.energy ??= { source: "auto" };
-        if (item.cardType === "calendar") item.options.calendar ??= { source: "auto", daysToShow: 7, maxEvents: 4 };
-        if (item.cardType === "weather") item.options.weather ??= { source: "auto" };
-        if (item.cardType === "remote") item.options.remote ??= { preset: "tv" };
-        if (item.cardType === "device_panel") item.options.device_panel ??= { preset: "auto" };
-        if (item.cardType === "title") {
-            item.subtitle ??= "";
-            item.alignment ??= "start";
-        }
-        if (item.cardType === "graph") {
-            item.hours_to_show ??= 24;
-            item.aggregate_func ??= "avg";
-            item.graphEntities ??= [];
-        }
-        if (item.cardType === "navigation") {
-            item.path ??= "";
-            item.iconType ??= "icon";
-            item.imageUrl ??= "";
-            item.shortcuts ??= [];
-        }
-    }
-
-    applyRenderableDefaults();
-
-    $effect(() => {
-        applyRenderableDefaults();
-    });
+    let { item = $bindable(), layoutRows, ondelete }: Props = $props();
 
     function remove() {
         ondelete?.(item.id);
@@ -87,6 +49,7 @@
         bind:color={item.color}
         bind:backgroundColor={item.backgroundColor}
         bind:icon={item.icon}
+        {layoutRows}
         ondelete={remove}
     />
 {:else if item.cardType === "title"}
@@ -110,6 +73,7 @@
         bind:color={item.color}
         bind:backgroundColor={item.backgroundColor}
         bind:icon={item.icon}
+        {layoutRows}
         ondelete={remove}
     />
 {:else if item.cardType === "tabs"}
@@ -126,16 +90,19 @@
         bind:backgroundColor={item.backgroundColor}
         bind:icon={item.icon}
         fetchHistory={item.fetchHistory !== false}
+        {layoutRows}
         ondelete={remove}
     />
 {:else if item.cardType === "navigation"}
     <NavigationCard
         id={item.id}
         bind:name={item.name}
+        bind:subtitle={item.subtitle}
         bind:path={item.path}
         bind:icon={item.icon}
         bind:iconType={item.iconType}
         bind:imageUrl={item.imageUrl}
+        bind:imageAttribution={item.imageAttribution}
         bind:color={item.color}
         bind:backgroundColor={item.backgroundColor}
         bind:shortcuts={item.shortcuts}

@@ -6,6 +6,7 @@
 import type { DashboardItem, Breakpoint, GridConfig, DashboardCardType } from '$lib/types/dashboard';
 import { createDefaultItemLayout } from '$lib/types/dashboard';
 import { generateUUID } from '$lib/utils/uuid';
+import { normalizeDashboardItem } from './dashboardDefaults';
 
 /**
  * Layout bounds for collision checking
@@ -240,7 +241,7 @@ export function createNewItem(
     layout.desktop.rowStart = rowStart;
     layout.mobile.rowStart = rowStart;
 
-    return {
+    return normalizeDashboardItem({
         id: generateUUID(),
         cardType,
         entityId: itemConfig.entityId || "",
@@ -259,8 +260,9 @@ export function createNewItem(
         path: itemConfig.path || "",
         iconType: itemConfig.iconType || "icon",
         imageUrl: itemConfig.imageUrl || "",
+        imageAttribution: itemConfig.imageAttribution,
         icon: itemConfig.icon || "",
         shortcuts: itemConfig.shortcuts || [],
         options: itemConfig.options
-    };
+    });
 }

@@ -4,6 +4,7 @@
         TabCardConfig,
     } from "$lib/types/dashboard";
     import DashboardCardRenderer from "./DashboardCardRenderer.svelte";
+    import GenerationStateBadge from "$lib/features/dashboard/components/GenerationStateBadge.svelte";
 
     import GridContainer from "$lib/components/layout/GridContainer.svelte";
     import GridItem from "$lib/components/layout/GridItem.svelte";
@@ -53,6 +54,12 @@
         }
     }
 
+    function persistRootConfig() {
+        if (dashboardStore.config && typeof dashboardStore.setConfig === "function") {
+            dashboardStore.setConfig(dashboardStore.config);
+        }
+    }
+
     function exitFocus(e: MouseEvent) {
         e.stopPropagation();
         dashboardEditorStore.exitGrid();
@@ -61,6 +68,7 @@
     function switchTab(index: number, e: MouseEvent) {
         e.stopPropagation(); // Prevent drag start if clicking tab header
         config.activeTabIndex = index;
+        persistRootConfig();
 
         // If we were focused on the previous tab, switch focus to new tab
         if (isFocused && tabs[index]) {
@@ -75,6 +83,7 @@
         if (!config.tabs) config.tabs = [];
         config.tabs.push(newTab);
         config.activeTabIndex = config.tabs.length - 1;
+        persistRootConfig();
     }
 
     // Accepts Event to handle both MouseEvent and KeyboardEvent
@@ -92,6 +101,7 @@
                 Math.min(currentActive, config.tabs.length - 1),
             );
         }
+        persistRootConfig();
     }
 
     // Rename Tab Logic
@@ -108,6 +118,7 @@
         // Directly mutate the specific tab's name
         config.tabs[activeIndex].name = newName;
         isRenameDialogOpen = false;
+        persistRootConfig();
     }
 
     function handleAddCard(e: MouseEvent) {
@@ -145,7 +156,7 @@
 </script>
 
 <div
-    class="flex flex-col h-full w-full relative group transition-all duration-200"
+    class="flex flex-col h-full w-full relative group/tab-card transition-all duration-200"
     class:bg-m3-surface-container-low={isGlobalEditing}
     class:rounded-m3-card={isGlobalEditing}
     class:border={isGlobalEditing}
@@ -165,11 +176,12 @@
                 role="tab"
                 aria-selected={activeIndex === i}
                 class="
-                    relative flex items-center gap-2 px-4 py-2 rounded-m3-card text-sm font-medium transition-all whitespace-nowrap border select-none
+                    relative flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all whitespace-nowrap border select-none
                     {activeIndex === i
                     ? 'bg-m3-primary text-m3-on-primary border-transparent shadow-md'
                     : 'bg-m3-surface-container-highest/50 border-transparent text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}
                 "
+                style:border-radius="var(--radius-m3-tab-pill)"
                 onclick={(e) => switchTab(i, e)}
             >
                 <DynamicIcon name={tab.icon || "grid_view"} class="size-4" />
@@ -205,7 +217,8 @@
 
         {#if isGlobalEditing}
             <button
-                class="flex items-center justify-center size-8 rounded-m3-card bg-m3-surface-container-highest/50 border border-transparent text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface transition-colors"
+                class="flex items-center justify-center size-8 bg-m3-surface-container-highest/50 border border-transparent text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface transition-colors"
+                style:border-radius="var(--radius-m3-tab-pill)"
                 onclick={addTab}
                 title="Add Tab"
             >
@@ -237,13 +250,17 @@
 
                 <GridContainer config={currentGrid} isNested={true}>
                     {#each currentGrid.items as item, i (item.id)}
+                        {@const itemLayout =
+                            breakpoint === "desktop"
+                                ? item.layout.desktop
+                                : item.layout.mobile}
                         <GridItem
                             itemId={item.id}
                             desktopLayout={item.layout.desktop}
                             mobileLayout={item.layout.mobile}
                             {breakpoint}
                             class={(item.cardType === "title" ? "z-10 " : "") +
-                                "group"}
+                                "group/grid-item"}
                             isInteractive={item.cardType === "tabs" &&
                                 dashboardEditorStore.isItemAncestorOfFocus(
                                     item.id,
@@ -251,13 +268,22 @@
                         >
                             <DashboardCardRenderer
                                 bind:item={currentGrid.items[i]}
+                                layoutRows={itemLayout.rowSpan}
                                 ondelete={(id) =>
                                     dashboardEditorStore.deleteItem(id)}
                             />
                             {#snippet controls()}
+                                <GenerationStateBadge
+                                    state={item.generationState ??
+                                        (item.generatedBy
+                                            ? "generated"
+                                            : undefined)}
+                                    sourceReason={item.generatedBy?.reason}
+                                    class="absolute left-2 top-2 z-20 pointer-events-none"
+                                />
                                 {#if item.cardType === "tabs"}
                                     <button
-                                        class="absolute top-2 right-2 p-2 rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-md z-50 hover:brightness-110 pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity"
+                                        class="absolute top-2 right-2 p-2 rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-md z-50 hover:brightness-110 pointer-events-auto opacity-0 group-hover/grid-item:opacity-100 transition-opacity"
                                         onclick={(e) => {
                                             e.stopPropagation();
                                             const activeIdx =

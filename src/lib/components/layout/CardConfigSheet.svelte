@@ -43,6 +43,7 @@
         CardSize,
         CardAction,
         CollectionCardOptions,
+        DashboardImageAttribution,
         DevicePanelCardOptions,
         EnergyCardOptions,
         EntityQueryConfig,
@@ -92,6 +93,7 @@
         path: string;
         iconType: "icon" | "image";
         imageUrl: string;
+        imageAttribution?: DashboardImageAttribution;
         icon: string;
         shortcuts: NavigationCardShortcut[];
         options: Record<string, any>;
@@ -112,6 +114,7 @@
         path: "",
         iconType: "icon",
         imageUrl: "",
+        imageAttribution: undefined,
         icon: "",
         shortcuts: [],
         options: {},
@@ -202,6 +205,7 @@
                 path: (config as any).path || "",
                 iconType: (config as any).iconType || "icon",
                 imageUrl: (config as any).imageUrl || "",
+                imageAttribution: (config as any).imageAttribution,
                 icon: (config as any).icon || "",
                 shortcuts: JSON.parse(
                     JSON.stringify((config as any).shortcuts || []),
@@ -275,7 +279,16 @@
         { value: "low_battery", label: "Battery" },
         { value: "unavailable", label: "Offline" },
         { value: "updates", label: "Updates" },
+        { value: "openings", label: "Openings" },
+        { value: "motion", label: "Motion" },
+        { value: "media_playing", label: "Media" },
+        { value: "security", label: "Security" },
         { value: "custom", label: "Custom" },
+    ] as const;
+
+    const collectionPresentationOptions = [
+        { value: "list", label: "List" },
+        { value: "summary", label: "Summary" },
     ] as const;
 
     const collectionDomainOptions = [
@@ -295,7 +308,11 @@
         "off",
         "open",
         "closed",
+        "unlocked",
         "playing",
+        "paused",
+        "home",
+        "triggered",
         "unavailable",
         "unknown",
     ];
@@ -471,6 +488,14 @@
         if (isRemoteCard && !options.remote) options.remote = { preset: "tv" };
         if (isDevicePanelCard && !options.device_panel) {
             options.device_panel = { preset: "auto" };
+        }
+        if (isNavigationCard) {
+            options.navigation ??= {};
+            if (tempConfig.iconType === "image" && tempConfig.imageAttribution?.provider === "unsplash") {
+                options.navigation.imageSource = "unsplash";
+            } else if (tempConfig.iconType === "image" && tempConfig.imageUrl && !options.navigation.imageSource) {
+                options.navigation.imageSource = "manual";
+            }
         }
         return options;
     }
@@ -934,10 +959,12 @@
                     {:else if isNavigationCard}
                         <NavigationCard
                             name={tempConfig.name}
+                            subtitle={tempConfig.subtitle}
                             path={tempConfig.path}
                             icon={tempConfig.icon}
                             iconType={tempConfig.iconType}
                             imageUrl={tempConfig.imageUrl}
+                            imageAttribution={tempConfig.imageAttribution}
                             color={tempConfig.color}
                             backgroundColor={tempConfig.backgroundColor}
                         />
@@ -1075,10 +1102,12 @@
                         <NavigationCard
                             id="preview"
                             name={tempConfig.name}
+                            subtitle={tempConfig.subtitle}
                             path={tempConfig.path}
                             icon={tempConfig.icon}
                             iconType={tempConfig.iconType}
                             imageUrl={tempConfig.imageUrl}
+                            imageAttribution={tempConfig.imageAttribution}
                             shortcuts={tempConfig.shortcuts}
                             color={tempConfig.color}
                             backgroundColor={tempConfig.backgroundColor}
@@ -1447,6 +1476,14 @@
                         class="w-full"
                     />
 
+                    <TextField
+                        variant="outlined"
+                        label="Subtitle"
+                        placeholder="2 attention · 1 control on"
+                        bind:value={tempConfig.subtitle}
+                        class="w-full"
+                    />
+
                     <RoutePicker
                         label="Route Path"
                         placeholder="/dashboard/living-room"
@@ -1485,6 +1522,9 @@
                             label="Card Image"
                             orientation="landscape"
                             bind:value={tempConfig.imageUrl}
+                            bind:attribution={tempConfig.imageAttribution}
+                            enableUnsplash
+                            searchHint={tempConfig.name || "modern home interior"}
                             onchange={() => {}}
                         />
                     {/if}
@@ -1922,6 +1962,41 @@
                                     ? "On"
                                     : "Off"}
                             </button>
+                        </div>
+
+                        <div class="flex flex-col gap-2">
+                            <span
+                                class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                                >Presentation</span
+                            >
+                            <div
+                                class="grid grid-cols-2 gap-1 rounded-m3-md bg-m3-surface-container-highest p-1"
+                            >
+                                {#each collectionPresentationOptions as presentationOption}
+                                    <button
+                                        type="button"
+                                        class="py-2 px-3 rounded-m3-sm text-m3-label-medium transition-all {(tempConfig
+                                            .options.collection
+                                            ?.presentation ?? 'list') ===
+                                        presentationOption.value
+                                            ? 'bg-m3-secondary-container text-m3-on-secondary-container'
+                                            : 'text-m3-on-surface-variant hover:bg-m3-on-surface/5'}"
+                                        onclick={() =>
+                                            updateCollectionOptions({
+                                                presentation:
+                                                    presentationOption.value,
+                                            })}
+                                    >
+                                        {presentationOption.label}
+                                    </button>
+                                {/each}
+                            </div>
+                            <p
+                                class="px-3 text-m3-body-small text-m3-on-surface-variant"
+                            >
+                                Summary is intended for generated attention
+                                cards and compact dashboard status strips.
+                            </p>
                         </div>
 
                         {#if tempConfig.options.collection?.mode === "low_battery"}

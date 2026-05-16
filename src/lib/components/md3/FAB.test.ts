@@ -37,7 +37,7 @@ describe('FAB Component', () => {
     });
 
     it('renders as extended FAB when label is provided', () => {
-        const label = createRawSnippet(() => ({ render: () => 'Extended' }));
+        const label = createRawSnippet(() => ({ render: () => '<span>Extended</span>' }));
         // @ts-ignore
         render(FAB, { props: { icon: mockIcon, label } });
 

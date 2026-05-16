@@ -6,6 +6,18 @@ import type {
     CollectionCardOptions,
     DashboardCardOptions,
     DashboardCardType,
+    DashboardGenerationEntityRef,
+    DashboardGenerationMetadata,
+    DashboardGenerationOptions,
+    DashboardGenerationQualityCode,
+    DashboardGenerationQualityHint,
+    DashboardGenerationQualitySeverity,
+    DashboardGenerationRecipe,
+    DashboardGenerationResult,
+    DashboardGenerationSourceType,
+    DashboardGenerationState,
+    DashboardGenerationSummary,
+    DashboardImageAttribution,
     DevicePanelCardOptions,
     EnergyCardOptions,
     NavigationCardShortcut,
@@ -18,6 +30,18 @@ export type {
     CalendarCardOptions,
     CollectionCardOptions,
     DashboardCardOptions,
+    DashboardGenerationEntityRef,
+    DashboardGenerationMetadata,
+    DashboardGenerationOptions,
+    DashboardGenerationQualityCode,
+    DashboardGenerationQualityHint,
+    DashboardGenerationQualitySeverity,
+    DashboardGenerationRecipe,
+    DashboardGenerationResult,
+    DashboardGenerationSourceType,
+    DashboardGenerationState,
+    DashboardGenerationSummary,
+    DashboardImageAttribution,
     DevicePanelCardOptions,
     EnergyCardOptions,
     EntityQueryConfig,
@@ -75,6 +99,7 @@ export interface BaseCardConfig {
     id?: string;
     entityId: string;
     name: string;
+    subtitle?: string;
     icon?: string;
     type?: DashboardCardType;
     onSave?: (config: CardConfig) => void;
@@ -144,6 +169,7 @@ export interface NavigationCardConfig extends BaseCardConfig {
     path: string;
     iconType: 'icon' | 'image';
     imageUrl?: string;
+    imageAttribution?: DashboardImageAttribution;
     shortcuts?: NavigationCardShortcut[];
     show?: {
         name?: boolean;

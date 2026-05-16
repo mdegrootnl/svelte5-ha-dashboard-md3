@@ -4,6 +4,7 @@
     "isDark": false,
     "navigationStyle": "standard",
     "cardRadius": 12,
+    "tabPillRadius": 32,
     "navigationItems": [
       {
         "id": "dashboard",

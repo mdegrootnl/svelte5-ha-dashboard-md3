@@ -38,6 +38,36 @@ export const DashboardCardTypeSchema = z.enum([
     "device_panel"
 ]);
 
+const DashboardGenerationRecipeSchema = z.enum([
+    "house",
+    "room",
+    "floor",
+    "entity_type",
+    "label",
+    "maintenance",
+]);
+
+const DashboardGenerationSourceTypeSchema = z.enum([
+    "house",
+    "area",
+    "floor",
+    "entity_type",
+    "label",
+    "maintenance",
+    "dashboard",
+]);
+
+const DashboardGenerationMetadataSchema = z.object({
+    recipe: DashboardGenerationRecipeSchema,
+    sourceType: DashboardGenerationSourceTypeSchema,
+    sourceId: z.string(),
+    generatedAt: z.string(),
+    reason: z.string(),
+    version: z.number(),
+}).passthrough();
+
+const DashboardGenerationStateSchema = z.enum(["generated", "user_modified", "pinned"]);
+
 const CardActionSchema = z.object({
     id: z.string(),
     label: z.string().optional(),
@@ -63,6 +93,36 @@ const EntityQueryConfigSchema = z.object({
 }).passthrough();
 
 const SmartSourceSchema = z.enum(["auto", "area", "floor", "query", "manual"]);
+const RoomVisualKindSchema = z.enum([
+    "bathroom",
+    "bedroom",
+    "child_boy_room",
+    "child_girl_room",
+    "child_room",
+    "garage",
+    "hallway",
+    "kitchen",
+    "laundry",
+    "living_room",
+    "office",
+    "outdoor",
+    "utility",
+    "generic_room",
+    "custom",
+]);
+const RoomVisualAudienceSchema = z.enum(["adult", "boy", "girl", "child", "family", "neutral"]);
+const NavigationImageSourceSchema = z.enum(["ha_area_picture", "generated_preview", "unsplash", "manual", "none"]);
+
+const DashboardImageAttributionSchema = z.object({
+    provider: z.enum(["unsplash", "manual", "generated_preview", "ha_area_picture"]),
+    sourceName: z.string().optional(),
+    sourceUrl: z.string().optional(),
+    authorName: z.string().optional(),
+    authorUrl: z.string().optional(),
+    photoId: z.string().optional(),
+    licenseUrl: z.string().optional(),
+    downloadLocation: z.string().optional(),
+}).passthrough();
 
 const DashboardCardOptionsSchema = z.object({
     button: z.object({
@@ -71,6 +131,14 @@ const DashboardCardOptionsSchema = z.object({
         showState: z.boolean().optional(),
         stateColor: z.boolean().optional(),
         actions: z.array(CardActionSchema).optional(),
+    }).passthrough().optional(),
+    navigation: z.object({
+        source: SmartSourceSchema.optional(),
+        areaId: z.string().optional(),
+        visualKind: RoomVisualKindSchema.optional(),
+        visualAudience: RoomVisualAudienceSchema.optional(),
+        visualPromptSeed: z.string().optional(),
+        imageSource: NavigationImageSourceSchema.optional(),
     }).passthrough().optional(),
     room: z.object({
         source: SmartSourceSchema.optional(),
@@ -83,11 +151,23 @@ const DashboardCardOptionsSchema = z.object({
     }).passthrough().optional(),
     collection: z.object({
         source: SmartSourceSchema.optional(),
-        mode: z.enum(["auto", "lights_on", "low_battery", "unavailable", "updates", "custom"]).optional(),
+        mode: z.enum([
+            "auto",
+            "lights_on",
+            "low_battery",
+            "unavailable",
+            "updates",
+            "openings",
+            "motion",
+            "media_playing",
+            "security",
+            "custom",
+        ]).optional(),
         query: EntityQueryConfigSchema.optional(),
         entityIds: z.array(z.string()).optional(),
         threshold: z.number().optional(),
         showState: z.boolean().optional(),
+        presentation: z.enum(["list", "summary"]).optional(),
     }).passthrough().optional(),
     energy: z.object({
         source: SmartSourceSchema.optional(),
@@ -158,6 +238,8 @@ export const DashboardItemSchema: z.ZodTypeAny = z.lazy(() => z.object({
     color: z.string().optional(),
     backgroundColor: z.string().optional(),
     options: DashboardCardOptionsSchema.optional(),
+    generatedBy: DashboardGenerationMetadataSchema.optional(),
+    generationState: DashboardGenerationStateSchema.optional(),
 
     activeTabIndex: z.number().optional(),
     tabs: z.array(GridConfigSchema).optional(),
@@ -170,6 +252,7 @@ export const DashboardItemSchema: z.ZodTypeAny = z.lazy(() => z.object({
     path: z.string().optional(),
     iconType: z.enum(["icon", "image"]).optional(),
     imageUrl: z.string().optional(),
+    imageAttribution: DashboardImageAttributionSchema.optional(),
     shortcuts: z.array(NavigationShortcutSchema).optional(),
 }).passthrough());
 
@@ -230,6 +313,8 @@ const createGridConfigSchema = () => z.object({
     rowHeight: z.number().optional().default(80),
     rowGap: z.number().optional(),
     columnGap: z.number().optional(),
+    generatedBy: DashboardGenerationMetadataSchema.optional(),
+    generationState: DashboardGenerationStateSchema.optional(),
 }).passthrough();
 
 export const GridConfigSchema: z.ZodTypeAny = z.lazy(() => createGridConfigSchema());
@@ -256,6 +341,7 @@ const ThemeConfigPartialSchema = z.object({
     isDark: z.boolean().optional(),
     navigationStyle: z.enum(['standard', 'modern']).optional(),
     cardRadius: z.number().min(0).max(32).optional(),
+    tabPillRadius: z.number().min(0).max(48).optional(),
     navigationItems: z.array(NavigationItemSchema).optional(),
 }).strict();
 
@@ -308,7 +394,8 @@ export const HAAreaSchema = z.object({
     area_id: z.string(),
     name: z.string(),
     floor_id: z.string().optional().nullable(),
-    icon: z.string().optional(),
+    icon: z.string().optional().nullable(),
+    picture: z.string().optional().nullable(),
 });
 
 /**

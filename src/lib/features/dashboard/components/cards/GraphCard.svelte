@@ -1,13 +1,9 @@
 <script lang="ts">
-    import {
-        haStore,
-        cardEditorStore,
-        getEntityName,
-        getDomain,
-        type HistoryDataPoint,
-        HistoryService,
-        type GraphCardEntity,
-    } from "$lib";
+    import { haStore } from "$lib/stores/ha.svelte";
+    import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
+    import { HistoryService } from "$lib/domain/historyService";
+    import { getDomain, getEntityName } from "$lib/utils/entity";
+    import type { GraphCardEntity, HistoryDataPoint } from "$lib/types";
     import IconEdit from "~icons/material-symbols/edit";
     import IconShowChart from "~icons/material-symbols/show-chart";
     import MiniChart from "$lib/components/viz/MiniChart.svelte";
@@ -43,6 +39,7 @@
         backgroundColor?: string;
         icon?: string | any;
         fetchHistory?: boolean;
+        layoutRows?: number;
     }
 
     let {
@@ -62,6 +59,7 @@
         backgroundColor = $bindable(),
         icon: iconProp = $bindable(),
         fetchHistory = true,
+        layoutRows,
     }: Props = $props();
 
     let entity = $derived(entityId ? haStore.getEntity(entityId) : null);
@@ -249,7 +247,7 @@
     }
 
     const baseStyles =
-        "relative flex flex-col w-full h-full rounded-m3-card bg-m3-surface-container-highest text-m3-on-surface overflow-hidden transition-all duration-200 group";
+        "relative flex flex-col w-full h-full rounded-m3-card bg-m3-surface-container-highest text-m3-on-surface overflow-hidden transition-all duration-200 group/card";
     // -- Responsive Layout --
     let clientHeight = $state(0);
     const LAYOUT = {
@@ -258,7 +256,9 @@
     };
     // Default to expanded for initial render/unknown size
     let isExpanded = $derived(
-        clientHeight === 0 || clientHeight >= LAYOUT.EXPANDED_HEIGHT,
+        typeof layoutRows === "number"
+            ? layoutRows >= 2
+            : clientHeight === 0 || clientHeight >= LAYOUT.EXPANDED_HEIGHT,
     );
 </script>
 
@@ -355,7 +355,7 @@
 
     <!-- Edit FAB -->
     <button
-        class="absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-20 hover:brightness-110"
+        class="absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover/card:opacity-100 transition-opacity z-20 hover:brightness-110"
         onclick={openConfig}
         title="Edit Card"
     >

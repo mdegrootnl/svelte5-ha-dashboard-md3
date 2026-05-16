@@ -74,7 +74,7 @@ export class HAAuthService {
             return { path: path.replace(baseUrl, '') || '/', shouldProxy: true };
         }
 
-        if (path.startsWith('/api/uploads/')) {
+        if (path.startsWith('/api/uploads/') || path.startsWith('/api/room-previews/')) {
             return { path, shouldProxy: false };
         }
 

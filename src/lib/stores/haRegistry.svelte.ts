@@ -11,6 +11,7 @@ export class HARegistryStore {
     entityRegistry = $state<HAEntityRegistryEntry[]>([]);
     deviceRegistry = $state<HADeviceRegistryEntry[]>([]);
     loading = $state(false);
+    version = $state(0);
 
     /**
      * Map of floor_id to area_ids.
@@ -44,6 +45,7 @@ export class HARegistryStore {
             this.floors = floors ?? [];
             this.entityRegistry = entityRegistry ?? [];
             this.deviceRegistry = deviceRegistry ?? [];
+            this.version += 1;
             logger.debug(`Registries loaded: ${this.areas.length} areas, ${this.floors.length} floors, ${this.entityRegistry.length} entities, ${this.deviceRegistry.length} devices.`);
         } catch (err) {
             logger.error("Failed to fetch registries:", err);
