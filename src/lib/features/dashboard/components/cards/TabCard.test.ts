@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import TabCardTestWrapper from './TabCardTestWrapper.svelte';
 import { dashboardEditorStore, haStore } from '$lib';
+import { dashboardStore } from '$lib/features/dashboard/stores/dashboard.svelte';
 import type { TabCardConfig } from '$lib/types/dashboard';
 
 // Mock the stores
@@ -91,6 +92,7 @@ describe('TabCard Component', () => {
         // Reset store mocks
         vi.mocked(dashboardEditorStore).isEditing = false;
         vi.mocked(dashboardEditorStore).focusedGridId = null;
+        vi.mocked(dashboardStore).breakpoint = 'desktop';
     });
 
     it('renders tabs with names and icons', () => {
@@ -160,6 +162,17 @@ describe('TabCard Component', () => {
         await waitFor(() => {
             expect(screen.getByText('Test Button')).toBeInTheDocument();
         });
+    });
+
+    it('uses the current breakpoint for the nested grid layout', () => {
+        vi.mocked(dashboardStore).breakpoint = 'mobile';
+        mockConfig.tabs![0].columns = { desktop: 12, mobile: 2 };
+
+        render(TabCardTestWrapper, { props: { config: mockConfig } });
+
+        expect(document.querySelector('.grid-container')?.getAttribute('style')).toContain(
+            'repeat(2, minmax(0, 1fr))',
+        );
     });
 
     it('shows edit controls in edit mode', () => {

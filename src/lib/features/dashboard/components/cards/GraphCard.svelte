@@ -3,7 +3,11 @@
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import { HistoryService } from "$lib/domain/historyService";
     import { getDomain, getEntityName } from "$lib/utils/entity";
-    import type { GraphCardEntity, HistoryDataPoint } from "$lib/types";
+    import type {
+        GraphCardEntity,
+        GraphChartType,
+        HistoryDataPoint,
+    } from "$lib/types";
     import IconEdit from "~icons/material-symbols/edit";
     import IconShowChart from "~icons/material-symbols/show-chart";
     import MiniChart from "$lib/components/viz/MiniChart.svelte";
@@ -24,6 +28,7 @@
         hours_to_show?: number;
         points_per_hour?: number;
         aggregate_func?: "avg" | "min" | "max" | "last";
+        chartType?: GraphChartType;
         show?: {
             graph?: boolean;
             icon?: boolean;
@@ -50,6 +55,7 @@
         hours_to_show = $bindable(24),
         points_per_hour = 0.5,
         aggregate_func = $bindable("avg"),
+        chartType = $bindable<GraphChartType>("area"),
         show = { graph: true, icon: true, name: true, state: true, fill: true },
         line_color,
         graphEntities = $bindable([]),
@@ -127,7 +133,20 @@
                     const base = 18 + seriesIndex * 12;
                     const wave = Math.sin(pointIndex * 0.65 + seriesIndex) * 2;
                     const trend = progress * (3 + seriesIndex);
-                    const value = Number((base + wave + trend).toFixed(1));
+                    const value = Number(
+                        (chartType === "bar"
+                            ? Math.max(
+                                  0,
+                                  2 +
+                                      Math.abs(wave) * (1.4 + seriesIndex) +
+                                      progress * 4,
+                              )
+                            : chartType === "step"
+                              ? base +
+                                Math.floor(progress * 5) * (1 + seriesIndex)
+                              : base + wave + trend
+                        ).toFixed(1),
+                    );
 
                     return {
                         timestamp,
@@ -147,6 +166,29 @@
         });
     }
 
+    function buildCurrentStateHistory(entityId: string): HistoryDataPoint[] {
+        const currentEntity = haStore.getEntity(entityId);
+        const value = Number.parseFloat(currentEntity?.state ?? "");
+        if (!Number.isFinite(value)) return [];
+
+        return [
+            {
+                timestamp: timeRange.start,
+                state: currentEntity?.state ?? String(value),
+                value,
+            },
+            {
+                timestamp: timeRange.end,
+                state: currentEntity?.state ?? String(value),
+                value,
+            },
+        ];
+    }
+
+    function hasNumericPoints(points: HistoryDataPoint[]) {
+        return points.some((point) => point.value !== null);
+    }
+
     // Fetch history data for all entities
     $effect(() => {
         const entitiesToFetch = [
@@ -163,6 +205,7 @@
                 entity_id: ge.entity_id,
                 name: ge.name,
                 color: ge.color,
+                chartType: ge.chartType,
             })),
         ];
 
@@ -181,7 +224,7 @@
         if (!haStore.connected || !haStore.auth)
             return;
 
-        async function fetchHistory() {
+        async function loadHistory() {
             isLoading = true;
             error = null;
 
@@ -197,15 +240,23 @@
                     Math.floor(hours_to_show * points_per_hour),
                 );
 
-                historyData = result.value.map((res, idx) => {
-                    const config = entitiesToFetch[idx];
+                const historyByEntityId = new Map(
+                    result.value.map((res) => [res.entityId, res]),
+                );
+
+                historyData = entitiesToFetch.map((config, idx) => {
+                    const res = historyByEntityId.get(config.entity_id);
+                    const points = HistoryService.aggregateHistory(
+                        res?.points || [],
+                        aggregate_func,
+                        targetCount,
+                    );
+
                     return {
                         entityId: config.entity_id,
-                        points: HistoryService.aggregateHistory(
-                            res.points || [],
-                            aggregate_func,
-                            targetCount,
-                        ),
+                        points: hasNumericPoints(points)
+                            ? points
+                            : buildCurrentStateHistory(config.entity_id),
                         color:
                             config.color ||
                             `var(--color-m3-graph-${(idx % 6) + 1})`,
@@ -217,7 +268,7 @@
             isLoading = false;
         }
 
-        fetchHistory();
+        loadHistory();
     });
 
     function openConfig(e: Event) {
@@ -226,7 +277,10 @@
             entityId,
             name,
             type: "graph",
+            hours_to_show,
+            aggregate_func,
             graphEntities,
+            chartType,
             color,
             backgroundColor,
             icon: typeof iconProp === "string" ? iconProp : "",
@@ -236,6 +290,7 @@
                     name = newConfig.name;
                     hours_to_show = newConfig.hours_to_show ?? 24;
                     aggregate_func = newConfig.aggregate_func ?? "avg";
+                    chartType = newConfig.chartType ?? "area";
                     graphEntities = newConfig.graphEntities || [];
                     color = newConfig.color;
                     backgroundColor = newConfig.backgroundColor;
@@ -260,6 +315,15 @@
             ? layoutRows >= 2
             : clientHeight === 0 || clientHeight >= LAYOUT.EXPANDED_HEIGHT,
     );
+
+    function getSeriesChartType(seriesEntityId: string): GraphChartType {
+        if (seriesEntityId === entityId) return chartType;
+        return (
+            graphEntities.find(
+                (graphEntity) => graphEntity.entity_id === seriesEntityId,
+            )?.chartType ?? chartType
+        );
+    }
 </script>
 
 <div
@@ -276,10 +340,14 @@
                 series={historyData.map((s) => ({
                     data: s.points,
                     color: s.color,
-                    isFilled: show.fill !== false,
+                    chartType: getSeriesChartType(s.entityId),
+                    isFilled:
+                        getSeriesChartType(s.entityId) === "area" &&
+                        show.fill !== false,
                 }))}
                 startTime={timeRange.start}
                 endTime={timeRange.end}
+                {chartType}
             />
         </div>
     {/if}
@@ -345,10 +413,14 @@
                 series={historyData.map((s) => ({
                     data: s.points,
                     color: s.color,
-                    isFilled: show.fill !== false,
+                    chartType: getSeriesChartType(s.entityId),
+                    isFilled:
+                        getSeriesChartType(s.entityId) === "area" &&
+                        show.fill !== false,
                 }))}
                 startTime={timeRange.start}
                 endTime={timeRange.end}
+                {chartType}
             />
         </div>
     {/if}

@@ -50,6 +50,7 @@ interface GeneratedCardInput {
     options?: DashboardCardOptions;
     hours_to_show?: number;
     aggregate_func?: DashboardItem['aggregate_func'];
+    chartType?: DashboardItem['chartType'];
     graphEntities?: DashboardItem['graphEntities'];
     tabs?: GridConfig[];
     activeTabIndex?: number;
@@ -82,7 +83,16 @@ const ACTIVE_STATES = new Set(['on', 'open', 'playing', 'home', 'active', 'locke
 const PROBLEM_STATES = new Set(['unavailable', 'unknown', 'unlocked', 'triggered', 'pending']);
 const USED_DOMAIN_LIMIT = 25;
 const ROOM_PATH_FALLBACK_FLOOR = 'unassigned';
-const GRAPH_DEVICE_CLASSES = new Set(['temperature', 'humidity', 'power', 'energy']);
+const GRAPH_DEVICE_CLASSES = new Set([
+    'temperature',
+    'humidity',
+    'pressure',
+    'illuminance',
+    'power',
+    'energy',
+    'precipitation',
+    'precipitation_intensity',
+]);
 const USEFUL_SENSOR_DEVICE_CLASSES = new Set([
     'temperature',
     'humidity',
@@ -767,6 +777,22 @@ function getEntityTypeIcon(domain?: string, deviceClass?: string) {
     }
 }
 
+function getGraphChartType(entity: ResolvedEntity): DashboardItem['chartType'] {
+    const deviceClass = entity.deviceClass ?? '';
+    const unit = (entity.unit ?? '').toLowerCase();
+
+    if (deviceClass === 'battery') return 'step';
+
+    if (
+        ['energy', 'power', 'precipitation', 'precipitation_intensity'].includes(deviceClass) ||
+        ['kwh', 'wh', 'w', 'kw', 'mm'].some((token) => unit.includes(token))
+    ) {
+        return 'bar';
+    }
+
+    return 'area';
+}
+
 function getLabelTitle(labelId?: string) {
     return labelId ? prettifyToken(labelId) : 'Label';
 }
@@ -1204,6 +1230,7 @@ function createCard(input: GeneratedCardInput, options: DashboardGenerationOptio
         activeTabIndex: input.activeTabIndex,
         hours_to_show: input.hours_to_show,
         aggregate_func: input.aggregate_func,
+        chartType: input.chartType,
         graphEntities: input.graphEntities,
         generatedBy: createMetadata(
             options,
@@ -2413,6 +2440,7 @@ function generateFloorDashboard(
                     color: getEntityAccent(sensor),
                     hours_to_show: 12,
                     aggregate_func: 'avg',
+                    chartType: getGraphChartType(sensor),
                     reason: `${floorName} ${sensor.deviceClass ?? 'sensor'} history`,
                     sourceType: 'floor',
                     sourceId: floorRouteId,
@@ -2567,7 +2595,7 @@ function createEntityTypeCardInput(
 
     if (
         entity.domain === 'sensor' &&
-        ['temperature', 'humidity', 'power', 'energy'].includes(entity.deviceClass ?? '')
+        GRAPH_DEVICE_CLASSES.has(entity.deviceClass ?? '')
     ) {
         return {
             ...base,
@@ -2576,6 +2604,7 @@ function createEntityTypeCardInput(
             mobileSpan: 4,
             hours_to_show: 12,
             aggregate_func: 'avg',
+            chartType: getGraphChartType(entity),
         };
     }
 
@@ -3547,6 +3576,7 @@ function generateRoomDashboard(
                     color: getEntityAccent(sensor),
                     hours_to_show: 12,
                     aggregate_func: 'avg',
+                    chartType: getGraphChartType(sensor),
                     reason: `${areaName} ${sensor.deviceClass ?? 'sensor'} history`,
                     sourceType: 'area',
                     sourceId: areaId,

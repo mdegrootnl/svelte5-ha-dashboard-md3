@@ -2,12 +2,14 @@
     import * as d3Shape from "d3-shape";
     import * as d3Scale from "d3-scale";
     import { perfCount, perfMeasure } from "$lib/utils/perf";
+    import type { GraphChartType } from "$lib/types/dashboard";
 
     interface ChartSeries {
         data: Array<{ timestamp: Date; value: number | null }>;
         color?: string;
         isFilled?: boolean;
         strokeWidth?: number;
+        chartType?: GraphChartType;
     }
 
     interface Props {
@@ -20,6 +22,7 @@
         strokeWidth?: number;
         startTime?: Date;
         endTime?: Date;
+        chartType?: GraphChartType;
     }
 
     let {
@@ -31,6 +34,7 @@
         strokeWidth = 2,
         startTime,
         endTime,
+        chartType = "area",
     }: Props = $props();
 
     function extendToEdges(
@@ -79,6 +83,7 @@
 
         return raw.map((s) => ({
             ...s,
+            chartType: s.chartType ?? chartType,
             data: extendToEdges(s.data),
         }));
     });
@@ -202,12 +207,17 @@
     const paths = $derived.by(() =>
         perfMeasure("chart.paths", () => activeSeries.map((s, idx) => {
             const currentHeight = trackedHeight || height;
+            const seriesChartType = s.chartType ?? chartType;
+            const curve =
+                seriesChartType === "step"
+                    ? d3Shape.curveStepAfter
+                    : d3Shape.curveMonotoneX;
             const line = d3Shape
                 .line<{ timestamp: Date; value: number | null }>()
                 .x((d) => x(d.timestamp))
                 .y((d) => y(d.value ?? 0))
                 .defined((d) => d.value !== null)
-                .curve(d3Shape.curveMonotoneX);
+                .curve(curve);
 
             const area = d3Shape
                 .area<{ timestamp: Date; value: number | null }>()
@@ -215,18 +225,61 @@
                 .y0(currentHeight)
                 .y1((d) => y(d.value ?? 0))
                 .defined((d) => d.value !== null)
-                .curve(d3Shape.curveMonotoneX);
+                .curve(curve);
 
             return {
                 id: `series-${idx}`,
                 linePath: line(s.data) || "",
                 areaPath: area(s.data) || "",
                 color: s.color || "var(--color-m3-primary)",
-                isFilled: s.isFilled !== false,
+                isFilled: seriesChartType === "area" && s.isFilled !== false,
                 strokeWidth: s.strokeWidth ?? strokeWidth,
+                chartType: seriesChartType,
                 gradientId: `${gradientId}-${idx}`,
             };
         })),
+    );
+
+    const barRects = $derived.by(() =>
+        perfMeasure("chart.bars", () => {
+            const currentHeight = trackedHeight || height;
+            const barSeries = activeSeries.filter(
+                (active) => active.chartType === "bar",
+            );
+            const seriesCount = Math.max(1, barSeries.length);
+            const maxPointCount = Math.max(
+                1,
+                ...barSeries.map((active) => active.data.length),
+            );
+            const groupWidth = Math.max(
+                4,
+                Math.min(36, (width / maxPointCount) * 0.72),
+            );
+            const barWidth = Math.max(2, groupWidth / seriesCount);
+
+            return barSeries.flatMap((active, seriesIndex) =>
+                active.data
+                    .filter((point) => point.value !== null)
+                    .map((point, pointIndex) => {
+                        const center = x(point.timestamp);
+                        const top = Math.max(
+                            0,
+                            Math.min(currentHeight, y(point.value ?? 0)),
+                        );
+                        return {
+                            id: `bar-${seriesIndex}-${pointIndex}`,
+                            x:
+                                center -
+                                groupWidth / 2 +
+                                seriesIndex * barWidth,
+                            y: top,
+                            width: Math.max(1, barWidth - 1),
+                            height: Math.max(1, currentHeight - top),
+                            color: active.color || "var(--color-m3-primary)",
+                        };
+                    }),
+            );
+        }),
     );
 </script>
 
@@ -257,7 +310,21 @@
                 {/each}
             </defs>
 
-            {#each paths as p}
+            {#if barRects.length > 0}
+                {#each barRects as bar}
+                    <rect
+                        x={bar.x}
+                        y={bar.y}
+                        width={bar.width}
+                        height={bar.height}
+                        rx="3"
+                        fill={bar.color}
+                        opacity="0.82"
+                    />
+                {/each}
+            {/if}
+
+            {#each paths.filter((p) => p.chartType !== "bar") as p}
                 {#if p.isFilled}
                     <path d={p.areaPath} fill="url(#{p.gradientId})" />
                 {/if}

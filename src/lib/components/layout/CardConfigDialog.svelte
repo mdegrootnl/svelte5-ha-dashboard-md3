@@ -16,7 +16,7 @@
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import { getDomain } from "$lib/utils/entity";
     import type { CardConfig } from "$lib/types";
-    import type { DashboardCardType } from "$lib/types/dashboard";
+    import type { DashboardCardType, GraphChartType } from "$lib/types/dashboard";
     import type { Component } from "svelte";
 
     // Flexible binding for local edits (includes thermostat-specific fields)
@@ -29,6 +29,7 @@
         subtitle: string;
         hours_to_show: number;
         aggregate_func: "avg" | "min" | "max" | "last";
+        chartType: GraphChartType;
     }>({
         entityId: "",
         name: "",
@@ -37,6 +38,7 @@
         subtitle: "",
         hours_to_show: 24,
         aggregate_func: "avg",
+        chartType: "area",
     });
 
     // Sync when opening
@@ -52,9 +54,20 @@
                 subtitle: (config as any).subtitle || "",
                 hours_to_show: (config as any).hours_to_show ?? 24,
                 aggregate_func: (config as any).aggregate_func ?? "avg",
+                chartType: (config as any).chartType ?? "area",
             };
         }
     });
+
+    const graphChartTypeOptions: Array<{
+        value: GraphChartType;
+        label: string;
+    }> = [
+        { value: "area", label: "Area" },
+        { value: "line", label: "Line" },
+        { value: "bar", label: "Bar" },
+        { value: "step", label: "Step" },
+    ];
 
     function isThermostatCard() {
         return cardEditorStore.config?.type === "thermostat";
@@ -244,6 +257,25 @@
                                     24)}
                             class="w-full"
                         />
+                        <div class="flex flex-col gap-1">
+                            <label
+                                class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                                for="dialog-chart-type"
+                            >
+                                Chart Type
+                            </label>
+                            <select
+                                id="dialog-chart-type"
+                                bind:value={tempConfig.chartType}
+                                class="w-full h-14 px-4 rounded-m3-sm bg-transparent border border-m3-outline text-m3-on-surface focus:border-m3-primary outline-none transition-colors"
+                            >
+                                {#each graphChartTypeOptions as option}
+                                    <option value={option.value}
+                                        >{option.label}</option
+                                    >
+                                {/each}
+                            </select>
+                        </div>
                         <div class="flex flex-col gap-1">
                             <label
                                 class="text-m3-label-medium text-m3-on-surface-variant ml-3"

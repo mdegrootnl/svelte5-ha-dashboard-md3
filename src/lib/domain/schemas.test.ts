@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AppConfigPartialSchema, DashboardItemSchema } from './schemas';
+import { AppConfigPartialSchema, DashboardItemSchema, GraphCardConfigSchema } from './schemas';
 import type { RoomDashboardConfig } from '$lib/types/dashboard';
 
 const baseItem = {
@@ -106,6 +106,33 @@ describe('DashboardItemSchema card options', () => {
 
         expect(parsed.options.navigation.visualKind).toBe('kitchen');
         expect(parsed.options.navigation.imageSource).toBe('ha_area_picture');
+    });
+
+    it('accepts graph chart types and keeps older graph items valid', () => {
+        const parsed = DashboardItemSchema.parse({
+            ...baseItem,
+            cardType: 'graph',
+            entityId: 'sensor.energy_today',
+            chartType: 'bar',
+            graphEntities: [
+                {
+                    entity_id: 'sensor.temperature',
+                    chartType: 'line',
+                },
+            ],
+        }) as typeof baseItem & { chartType: string; graphEntities: Array<{ chartType: string }> };
+
+        expect(parsed.chartType).toBe('bar');
+        expect(parsed.graphEntities[0].chartType).toBe('line');
+
+        const legacyParsed = DashboardItemSchema.parse({
+            ...baseItem,
+            cardType: 'graph',
+            entityId: 'sensor.temperature',
+        }) as typeof baseItem & { chartType?: string };
+
+        expect(legacyParsed.chartType).toBeUndefined();
+        expect(GraphCardConfigSchema.parse({}).chartType).toBe('area');
     });
 
     it('accepts generated navigation preview image sources', () => {

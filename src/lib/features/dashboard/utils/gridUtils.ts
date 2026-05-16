@@ -256,6 +256,8 @@ export function createNewItem(
         activeTabIndex: 0,
         hours_to_show: itemConfig.hours_to_show,
         aggregate_func: itemConfig.aggregate_func,
+        chartType: itemConfig.chartType,
+        graphEntities: itemConfig.graphEntities,
         // Navigation properties
         path: itemConfig.path || "",
         iconType: itemConfig.iconType || "icon",

@@ -217,10 +217,13 @@ const NavigationShortcutSchema = z.object({
     color: z.string().optional(),
 }).passthrough();
 
+const GraphChartTypeSchema = z.enum(["area", "line", "bar", "step"]);
+
 const GraphCardEntitySchema = z.object({
     entity_id: z.string(),
     name: z.string().optional(),
     color: z.string().optional(),
+    chartType: GraphChartTypeSchema.optional(),
 }).passthrough();
 
 export const DashboardItemSchema: z.ZodTypeAny = z.lazy(() => z.object({
@@ -246,6 +249,7 @@ export const DashboardItemSchema: z.ZodTypeAny = z.lazy(() => z.object({
 
     hours_to_show: z.number().optional(),
     aggregate_func: z.enum(['avg', 'min', 'max', 'last']).optional(),
+    chartType: GraphChartTypeSchema.optional(),
     graphEntities: z.array(GraphCardEntitySchema).optional(),
     fetchHistory: z.boolean().optional(),
 
@@ -265,6 +269,7 @@ export const GraphCardConfigSchema = z.object({
     hours_to_show: z.number().default(24),
     points_per_hour: z.number().default(0.5),
     aggregate_func: z.enum(['avg', 'min', 'max', 'last']).default('avg'),
+    chartType: GraphChartTypeSchema.default("area"),
     group_by: z.enum(['date', 'hour']).optional(),
     line_color: z.union([z.string(), z.array(z.string())]).optional(),
     show: z.object({

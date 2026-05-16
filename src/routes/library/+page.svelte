@@ -700,16 +700,17 @@
         <h2 class="text-m3-title-large text-m3-on-surface mb-4">
             Graph Cards
         </h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div class="flex flex-col gap-2">
                 <span class="text-m3-label-medium text-m3-on-surface-variant"
-                    >Temperature history</span
+                    >Area temperature</span
                 >
                 <div class="h-48">
                     <DeferredRender class="h-full">
                         <GraphCard
                             entityId="sensor.library_temperature"
                             name="Temperature"
+                            chartType="area"
                             hours_to_show={12}
                             points_per_hour={2}
                             aggregate_func="avg"
@@ -723,13 +724,14 @@
 
             <div class="flex flex-col gap-2">
                 <span class="text-m3-label-medium text-m3-on-surface-variant"
-                    >Multi entity</span
+                    >Line multi-sensor</span
                 >
                 <div class="h-48">
                     <DeferredRender class="h-full">
                         <GraphCard
                             entityId="sensor.library_temperature"
                             name="Room climate"
+                            chartType="line"
                             hours_to_show={24}
                             points_per_hour={1}
                             aggregate_func="avg"
@@ -750,25 +752,73 @@
 
             <div class="flex flex-col gap-2">
                 <span class="text-m3-label-medium text-m3-on-surface-variant"
-                    >Compact stat</span
+                    >Bar totals</span
                 >
-                <div class="h-28">
+                <div class="h-48">
                     <DeferredRender class="h-full">
                         <GraphCard
                             entityId="sensor.library_energy"
                             name="Energy Today"
-                            hours_to_show={6}
+                            chartType="bar"
+                            hours_to_show={24}
                             aggregate_func="last"
                             icon="bolt"
                             color="#eab308"
                             fetchHistory={false}
-                            show={{
-                                graph: false,
-                                icon: true,
-                                name: true,
-                                state: true,
-                                fill: false,
-                            }}
+                        />
+                    </DeferredRender>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <span class="text-m3-label-medium text-m3-on-surface-variant"
+                    >Step setpoint</span
+                >
+                <div class="h-48">
+                    <DeferredRender class="h-full">
+                        <GraphCard
+                            entityId="sensor.library_battery"
+                            name="Battery"
+                            chartType="step"
+                            hours_to_show={24}
+                            aggregate_func="last"
+                            icon="battery_alert"
+                            color="#22c55e"
+                            fetchHistory={false}
+                        />
+                    </DeferredRender>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <span class="text-m3-label-medium text-m3-on-surface-variant"
+                    >Mixed energy</span
+                >
+                <div class="h-48">
+                    <DeferredRender class="h-full">
+                        <GraphCard
+                            entityId="sensor.library_home_power"
+                            name="Power Mix"
+                            chartType="bar"
+                            hours_to_show={12}
+                            aggregate_func="avg"
+                            icon="monitoring"
+                            color="#eab308"
+                            fetchHistory={false}
+                            graphEntities={[
+                                {
+                                    entity_id: "sensor.library_solar_power",
+                                    name: "Solar",
+                                    chartType: "line",
+                                    color: "#22c55e",
+                                },
+                                {
+                                    entity_id: "sensor.library_grid_power",
+                                    name: "Grid",
+                                    chartType: "step",
+                                    color: "#38bdf8",
+                                },
+                            ]}
                         />
                     </DeferredRender>
                 </div>

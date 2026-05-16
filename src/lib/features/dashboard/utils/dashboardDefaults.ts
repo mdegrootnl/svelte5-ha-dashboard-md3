@@ -25,6 +25,7 @@ function ensureItemDefaults(item: DashboardItem): DashboardItem {
     if (item.cardType === "graph") {
         item.hours_to_show ??= 24;
         item.aggregate_func ??= "avg";
+        item.chartType ??= "area";
         item.graphEntities ??= [];
     }
 

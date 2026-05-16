@@ -35,6 +35,8 @@ interface ItemCreationConfig {
     tabs?: GridConfig[];
     hours_to_show?: number;
     aggregate_func?: 'avg' | 'min' | 'max' | 'last';
+    chartType?: DashboardItem['chartType'];
+    graphEntities?: DashboardItem['graphEntities'];
     path?: string;
     iconType?: 'icon' | 'image';
     imageUrl?: string;
@@ -258,6 +260,8 @@ export class DashboardEditorStore {
             activeTabIndex: 0,
             hours_to_show: itemConfig.hours_to_show,
             aggregate_func: itemConfig.aggregate_func,
+            chartType: itemConfig.chartType,
+            graphEntities: itemConfig.graphEntities,
             // Navigation properties
             path: itemConfig.path || "",
             iconType: itemConfig.iconType || "icon",
@@ -362,6 +366,29 @@ export class DashboardEditorStore {
         // Fallback if not found (e.g. invalid ID), reset focus
         this.focusedGridId = null;
         return { root, tab: activeRootTab };
+    }
+
+    /**
+     * Return the grid currently targeted by editing controls.
+     * When a nested tab card is focused this is the nested grid, otherwise it is
+     * the active root dashboard tab.
+     */
+    getActiveGridConfig(): GridConfig | null {
+        const root = dashboardStore.config;
+        if (!root) return null;
+
+        if (root.tabs.length === 0) {
+            return root;
+        }
+
+        const activeRootTab = root.tabs.find(t => t.id === root.activeTabId);
+        if (!activeRootTab) return null;
+
+        if (!this.focusedGridId) {
+            return activeRootTab;
+        }
+
+        return this.findGridRecursive(activeRootTab, this.focusedGridId) ?? activeRootTab;
     }
 
     /**

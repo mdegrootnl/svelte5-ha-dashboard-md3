@@ -20,6 +20,7 @@ import type {
     DashboardImageAttribution,
     DevicePanelCardOptions,
     EnergyCardOptions,
+    GraphChartType,
     NavigationCardShortcut,
     RemoteCardOptions,
     RoomCardOptions,
@@ -44,6 +45,7 @@ export type {
     DashboardImageAttribution,
     DevicePanelCardOptions,
     EnergyCardOptions,
+    GraphChartType,
     EntityQueryConfig,
     NavigationCardShortcut,
     RemoteCardOptions,
@@ -144,6 +146,7 @@ export interface GraphCardEntity {
     entity_id: string;
     name?: string;
     color?: string;
+    chartType?: GraphChartType;
 }
 
 export interface GraphCardConfig extends BaseCardConfig {
@@ -152,6 +155,7 @@ export interface GraphCardConfig extends BaseCardConfig {
     hours_to_show?: number;
     points_per_hour?: number;
     aggregate_func?: 'avg' | 'min' | 'max' | 'last';
+    chartType?: GraphChartType;
     group_by?: 'date' | 'hour';
     line_color?: string | string[];
     show?: {

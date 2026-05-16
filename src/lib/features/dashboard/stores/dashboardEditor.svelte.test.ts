@@ -19,6 +19,8 @@ describe('DashboardEditorStore', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        dashboardEditorStore.exitGrid();
+        dashboardEditorStore.exitEditMode();
 
         const gridConfig = createDefaultGridConfig();
         // Setup initial state: implicit rows
@@ -37,6 +39,54 @@ describe('DashboardEditorStore', () => {
         Object.defineProperty(dashboardStore, 'config', {
             get: () => mockRootConfig,
             configurable: true
+        });
+    });
+
+    describe('active grid focus', () => {
+        it('returns the nested grid as the editing target when a tab card is focused', () => {
+            const rootGrid = mockRootConfig.tabs[0];
+            rootGrid.id = 'root-grid';
+            rootGrid.columns = { desktop: 12, mobile: 4 };
+            mockRootConfig.activeTabId = rootGrid.id;
+
+            const nestedGrid = {
+                ...createDefaultGridConfig('Nested'),
+                id: 'nested-grid',
+                columns: { desktop: 6, mobile: 2 },
+                items: []
+            };
+
+            rootGrid.items = [
+                {
+                    id: 'tabs-card',
+                    cardType: 'tabs',
+                    name: 'Nested Tabs',
+                    entityId: '',
+                    domainFilter: '',
+                    layout: {
+                        desktop: { colStart: 1, colSpan: 12, rowStart: 1, rowSpan: 6 },
+                        mobile: { colStart: 1, colSpan: 4, rowStart: 1, rowSpan: 6 }
+                    },
+                    tabs: [nestedGrid],
+                    activeTabIndex: 0
+                } as any
+            ];
+
+            dashboardEditorStore.enterGrid('nested-grid');
+
+            expect(dashboardEditorStore.getActiveGridConfig()?.id).toBe('nested-grid');
+
+            dashboardEditorStore.updateGridConfig({
+                columns: { desktop: 4, mobile: 1 }
+            });
+
+            const updatedConfig = (dashboardStore.setConfig as any).mock.calls[0][0];
+            const updatedRootGrid = updatedConfig.tabs[0];
+            const updatedNestedGrid = updatedRootGrid.items[0].tabs[0];
+
+            expect(updatedRootGrid.columns.desktop).toBe(12);
+            expect(updatedNestedGrid.columns.desktop).toBe(4);
+            expect(dashboardStore.markGridModified).toHaveBeenCalledWith('nested-grid');
         });
     });
 

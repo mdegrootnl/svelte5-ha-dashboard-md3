@@ -85,6 +85,7 @@
         bind:name={item.name}
         bind:hours_to_show={item.hours_to_show}
         bind:aggregate_func={item.aggregate_func}
+        bind:chartType={item.chartType}
         bind:graphEntities={item.graphEntities}
         bind:color={item.color}
         bind:backgroundColor={item.backgroundColor}

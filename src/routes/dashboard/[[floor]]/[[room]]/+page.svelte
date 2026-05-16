@@ -134,6 +134,10 @@
         return found || roomConfig.tabs[0] || roomConfig;
     });
 
+    let gridSettingsTarget = $derived<GridConfig | null>(
+        dashboardEditorStore.getActiveGridConfig() ?? activeTab,
+    );
+
     // Load or create empty dashboard config
     $effect(() => {
         if (!dashboardStore.initialized) return;
@@ -771,8 +775,8 @@
 </PageShell>
 
 <!-- Grid Config Dialog -->
-{#if activeTab}
-    <GridConfigDialog bind:open={isGridConfigOpen} config={activeTab} />
+{#if gridSettingsTarget}
+    <GridConfigDialog bind:open={isGridConfigOpen} config={gridSettingsTarget} />
 {/if}
 
 {#if CardLibrarySheetComponent && cardEditorStore.mode === "library"}

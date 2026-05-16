@@ -31,6 +31,8 @@ export type DashboardCardType =
     | "remote"
     | "device_panel";
 
+export type GraphChartType = "area" | "line" | "bar" | "step";
+
 export type SmartSourceConfig = "auto" | "area" | "floor" | "query" | "manual";
 
 export type RoomVisualKind =
@@ -354,6 +356,7 @@ export interface DashboardItem {
     /** Graph Card Properties */
     hours_to_show?: number;
     aggregate_func?: "avg" | "min" | "max" | "last";
+    chartType?: GraphChartType;
     graphEntities?: GraphCardEntity[];
     /** Disable live HA history calls for static/demo graph surfaces. */
     fetchHistory?: boolean;

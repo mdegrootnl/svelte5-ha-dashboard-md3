@@ -248,7 +248,7 @@
                     />
                 {/if}
 
-                <GridContainer config={currentGrid} isNested={true}>
+                <GridContainer config={currentGrid} {breakpoint} isNested={true}>
                     {#each currentGrid.items as item, i (item.id)}
                         {@const itemLayout =
                             breakpoint === "desktop"

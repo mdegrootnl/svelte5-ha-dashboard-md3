@@ -48,6 +48,7 @@
         EnergyCardOptions,
         EntityQueryConfig,
         GraphCardEntity,
+        GraphChartType,
         NavigationCardShortcut,
         RemoteCardOptions,
         RoomCardOptions,
@@ -86,6 +87,7 @@
         alignment: "start" | "center" | "end";
         hours_to_show: number;
         aggregate_func: "avg" | "min" | "max" | "last";
+        chartType: GraphChartType;
         graphEntities: GraphCardEntity[];
         color: string;
         backgroundColor: string;
@@ -108,6 +110,7 @@
         alignment: "start",
         hours_to_show: 24,
         aggregate_func: "avg",
+        chartType: "area",
         graphEntities: [],
         color: "",
         backgroundColor: "",
@@ -197,6 +200,7 @@
                 alignment: (config as any).alignment || "start",
                 hours_to_show: (config as any).hours_to_show ?? 24,
                 aggregate_func: (config as any).aggregate_func ?? "avg",
+                chartType: (config as any).chartType ?? "area",
                 graphEntities: JSON.parse(
                     JSON.stringify((config as any).graphEntities || []),
                 ),
@@ -437,6 +441,16 @@
         "timer",
         "todo",
     ] as const;
+
+    const graphChartTypeOptions: Array<{
+        value: GraphChartType;
+        label: string;
+    }> = [
+        { value: "area", label: "Area" },
+        { value: "line", label: "Line" },
+        { value: "bar", label: "Bar" },
+        { value: "step", label: "Step" },
+    ];
 
     let areaOptions = $derived(haRegistryStore.areas);
     let floorOptions = $derived(haRegistryStore.floors);
@@ -1093,6 +1107,7 @@
                             name={tempConfig.name}
                             hours_to_show={tempConfig.hours_to_show}
                             aggregate_func={tempConfig.aggregate_func}
+                            chartType={tempConfig.chartType}
                             graphEntities={tempConfig.graphEntities}
                             color={tempConfig.color}
                             backgroundColor={tempConfig.backgroundColor}
@@ -2682,6 +2697,25 @@
                     <div class="flex flex-col gap-1">
                         <label
                             class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                            for="chart-type"
+                        >
+                            Chart Type
+                        </label>
+                        <select
+                            id="chart-type"
+                            bind:value={tempConfig.chartType}
+                            class="w-full h-14 px-4 rounded-m3-sm bg-transparent border border-m3-outline text-m3-on-surface focus:border-m3-primary outline-none transition-colors"
+                        >
+                            {#each graphChartTypeOptions as option}
+                                <option value={option.value}
+                                    >{option.label}</option
+                                >
+                            {/each}
+                        </select>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label
+                            class="text-m3-label-medium text-m3-on-surface-variant ml-3"
                             for="agg-func"
                         >
                             Aggregation Function
@@ -2737,6 +2771,36 @@
                                     bind:value={entity.entity_id}
                                     domainFilter="sensor"
                                 />
+
+                                <div class="flex flex-col gap-1">
+                                    <label
+                                        class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                                        for={`graph-entity-chart-type-${idx}`}
+                                    >
+                                        Chart Type
+                                    </label>
+                                    <select
+                                        id={`graph-entity-chart-type-${idx}`}
+                                        value={entity.chartType ?? ""}
+                                        onchange={(event) => {
+                                            const value = (
+                                                event.target as HTMLSelectElement
+                                            ).value as GraphChartType | "";
+                                            entity.chartType =
+                                                value === ""
+                                                    ? undefined
+                                                    : value;
+                                        }}
+                                        class="w-full h-12 px-3 rounded-m3-sm bg-transparent border border-m3-outline text-m3-on-surface focus:border-m3-primary outline-none transition-colors"
+                                    >
+                                        <option value="">Use card default</option>
+                                        {#each graphChartTypeOptions as option}
+                                            <option value={option.value}
+                                                >{option.label}</option
+                                            >
+                                        {/each}
+                                    </select>
+                                </div>
 
                                 <div class="flex gap-2">
                                     <div class="flex-1">
