@@ -1,4 +1,8 @@
 import type { DashboardItem, GridConfig, RoomDashboardConfig } from '$lib/types/dashboard';
+import {
+    ensureGridColumnProfiles,
+    ensureItemLayoutProfiles,
+} from '$lib/types/dashboard';
 
 function ensureItemDefaults(item: DashboardItem): DashboardItem {
     item.entityId ??= "";
@@ -6,6 +10,7 @@ function ensureItemDefaults(item: DashboardItem): DashboardItem {
     item.domainFilter ??= "";
     item.secondaryEntityId ??= "";
     item.secondaryName ??= "";
+    ensureItemLayoutProfiles(item);
 
     item.options ??= {};
     if (item.cardType === "button") item.options.button ??= {};
@@ -55,6 +60,7 @@ export function normalizeGridConfig(config: GridConfig): GridConfig {
     config.columns ??= { desktop: 12, mobile: 4 };
     config.columns.desktop ??= 12;
     config.columns.mobile ??= 4;
+    ensureGridColumnProfiles(config);
     config.rows ??= "implicit";
     config.gap ??= 16;
     config.padding ??= 16;

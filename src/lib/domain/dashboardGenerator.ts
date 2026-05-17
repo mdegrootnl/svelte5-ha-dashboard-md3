@@ -14,6 +14,10 @@ import {
 import {
     createDefaultGridConfig,
     createDefaultItemLayout,
+    createColumnProfilesFromColumns,
+    getGridColumnsForProfile,
+    getProfileSeedBreakpoint,
+    type ColumnProfiles,
     type DashboardCardType,
     type DashboardGenerationEntityRef,
     type DashboardGenerationMetadata,
@@ -24,6 +28,8 @@ import {
     type EntityQueryConfig,
     type GridConfig,
     type RoomDashboardConfig,
+    type ViewportProfile,
+    VIEWPORT_PROFILES,
 } from '$lib/types/dashboard';
 import type { DashboardItem, DashboardCardOptions } from '$lib/types/dashboard';
 import type { CollectionCardOptions } from '$lib/types/dashboard';
@@ -64,13 +70,10 @@ interface GeneratedCardInput {
     sourceId?: string;
 }
 
-interface PlacementState {
-    desktopCol: number;
-    desktopRow: number;
-    desktopRowSpan: number;
-    mobileCol: number;
-    mobileRow: number;
-    mobileRowSpan: number;
+interface ProfilePlacementState {
+    col: number;
+    row: number;
+    rowSpan: number;
 }
 
 interface PreparedInventory {
@@ -137,6 +140,14 @@ const ACCENT_SECONDARY = 'var(--color-m3-secondary)';
 const ACCENT_TERTIARY = 'var(--color-m3-tertiary)';
 const ACCENT_ERROR = 'var(--color-m3-error)';
 const ACCENT_NEUTRAL = 'var(--color-m3-outline)';
+const GRAPH_COLOR_TOKENS = [
+    'var(--color-m3-graph-1)',
+    'var(--color-m3-graph-2)',
+    'var(--color-m3-graph-3)',
+    'var(--color-m3-graph-4)',
+    'var(--color-m3-graph-5)',
+    'var(--color-m3-graph-6)',
+] as const;
 const HOUSE_ACTION_TERMS = [
     'all',
     'away',
@@ -196,6 +207,22 @@ const INFORMATIONAL_SWITCH_TERMS = [
     'sensor',
     'detector',
 ];
+const ROOM_OVERVIEW_TAB_COLUMNS = { desktop: 10, mobile: 2 } as const;
+const ROOM_OVERVIEW_TAB_COLUMN_PROFILES: ColumnProfiles = {
+    phonePortrait: 2,
+    phoneLandscape: 6,
+    tabletPortrait: 4,
+    tabletLandscape: 10,
+    desktopEdit: 10,
+};
+const MAINTENANCE_TAB_COLUMNS = { desktop: 11, mobile: 6 } as const;
+const MAINTENANCE_TAB_COLUMN_PROFILES: ColumnProfiles = {
+    phonePortrait: 2,
+    phoneLandscape: 6,
+    tabletPortrait: 4,
+    tabletLandscape: 8,
+    desktopEdit: 11,
+};
 
 type AttentionDefinition = {
     mode: NonNullable<CollectionCardOptions['mode']>;
@@ -207,6 +234,7 @@ type AttentionDefinition = {
     desktopSpan?: number;
     mobileSpan?: number;
     rowSpan?: number;
+    mobileRowSpan?: number;
     presentation?: CollectionCardOptions['presentation'];
     sourceType?: DashboardGenerationMetadata['sourceType'];
     sourceId?: string;
@@ -315,6 +343,21 @@ function createGeneratedTab(
     tab.generatedBy = createMetadata(options, reason, sourceType, sourceId);
     tab.generationState = 'generated';
     return tab;
+}
+
+function setGeneratedTabColumns(
+    grid: GridConfig,
+    columns: Partial<GridConfig['columns']>,
+    columnProfiles?: Partial<ColumnProfiles>,
+) {
+    grid.columns = {
+        desktop: columns.desktop ?? grid.columns.desktop,
+        mobile: columns.mobile ?? grid.columns.mobile,
+    };
+    grid.columnProfiles = {
+        ...createColumnProfilesFromColumns(grid.columns),
+        ...columnProfiles,
+    };
 }
 
 function entityAllowed(entity: ResolvedEntity, options: DashboardGenerationOptions) {
@@ -793,6 +836,10 @@ function getGraphChartType(entity: ResolvedEntity): DashboardItem['chartType'] {
     return 'area';
 }
 
+function getGraphSeriesColor(index: number) {
+    return GRAPH_COLOR_TOKENS[index % GRAPH_COLOR_TOKENS.length];
+}
+
 function getLabelTitle(labelId?: string) {
     return labelId ? prettifyToken(labelId) : 'Label';
 }
@@ -1144,53 +1191,63 @@ function dedupeGeneratedMediaPlayers(
 }
 
 function createPlacer() {
-    const state: PlacementState = {
-        desktopCol: 1,
-        desktopRow: 1,
-        desktopRowSpan: 0,
-        mobileCol: 1,
-        mobileRow: 1,
-        mobileRowSpan: 0,
-    };
+    const state = Object.fromEntries(
+        VIEWPORT_PROFILES.map((profile) => [
+            profile,
+            { col: 1, row: 1, rowSpan: 0 },
+        ]),
+    ) as Record<ViewportProfile, ProfilePlacementState>;
+
+    function clampSpan(span: number, columns: number) {
+        return Math.max(1, Math.min(span, columns));
+    }
+
+    function cloneLayout(layout: {
+        colStart: number;
+        colSpan: number;
+        rowStart: number;
+        rowSpan: number;
+    }) {
+        return {
+            colStart: layout.colStart,
+            colSpan: layout.colSpan,
+            rowStart: layout.rowStart,
+            rowSpan: layout.rowSpan,
+        };
+    }
 
     function place(grid: GridConfig, item: DashboardItem, cardSize: CardSize = 'standard') {
         const layout = createDefaultItemLayout(1, item.cardType, cardSize);
-        const desktopSpan = item.layout.desktop.colSpan;
-        const desktopRows = item.layout.desktop.rowSpan;
-        const mobileSpan = item.layout.mobile.colSpan;
-        const mobileRows = item.layout.mobile.rowSpan;
+        const layoutProfiles = {} as NonNullable<DashboardItem['layoutProfiles']>;
 
-        if (state.desktopCol + desktopSpan - 1 > 12) {
-            state.desktopRow += Math.max(state.desktopRowSpan, 1);
-            state.desktopCol = 1;
-            state.desktopRowSpan = 0;
+        for (const profile of VIEWPORT_PROFILES) {
+            const profileState = state[profile];
+            const columns = getGridColumnsForProfile(grid, profile);
+            const seed = getProfileSeedBreakpoint(profile);
+            const seedLayout = item.layout[seed];
+            const colSpan = clampSpan(seedLayout.colSpan, columns);
+            const rowSpan = seedLayout.rowSpan;
+
+            if (profileState.col + colSpan - 1 > columns) {
+                profileState.row += Math.max(profileState.rowSpan, 1);
+                profileState.col = 1;
+                profileState.rowSpan = 0;
+            }
+
+            layoutProfiles[profile] = {
+                colStart: profileState.col,
+                colSpan,
+                rowStart: profileState.row,
+                rowSpan,
+            };
+            profileState.col += colSpan;
+            profileState.rowSpan = Math.max(profileState.rowSpan, rowSpan);
         }
 
-        layout.desktop = {
-            colStart: state.desktopCol,
-            colSpan: desktopSpan,
-            rowStart: state.desktopRow,
-            rowSpan: desktopRows,
-        };
-        state.desktopCol += desktopSpan;
-        state.desktopRowSpan = Math.max(state.desktopRowSpan, desktopRows);
-
-        if (state.mobileCol + mobileSpan - 1 > 4) {
-            state.mobileRow += Math.max(state.mobileRowSpan, 1);
-            state.mobileCol = 1;
-            state.mobileRowSpan = 0;
-        }
-
-        layout.mobile = {
-            colStart: state.mobileCol,
-            colSpan: mobileSpan,
-            rowStart: state.mobileRow,
-            rowSpan: mobileRows,
-        };
-        state.mobileCol += mobileSpan;
-        state.mobileRowSpan = Math.max(state.mobileRowSpan, mobileRows);
-
+        layout.desktop = cloneLayout(layoutProfiles.desktopEdit);
+        layout.mobile = cloneLayout(layoutProfiles.phonePortrait);
         item.layout = layout;
+        item.layoutProfiles = layoutProfiles;
         grid.items.push(item);
     }
 
@@ -1339,7 +1396,8 @@ function addAttentionSection(
                 icon: definition.icon,
                 desktopSpan: definition.desktopSpan ?? 4,
                 mobileSpan: definition.mobileSpan ?? 4,
-                rowSpan: definition.rowSpan ?? 2,
+                rowSpan: definition.rowSpan ?? (definition.presentation === 'summary' ? 1 : 2),
+                mobileRowSpan: definition.mobileRowSpan ?? (definition.presentation === 'summary' ? 2 : undefined),
                 options: { collection },
                 color: getCollectionAccent(definition.mode),
                 reason: definition.reason,
@@ -1359,16 +1417,24 @@ function hasGeneratedContent(grid: GridConfig) {
     return grid.items.some((item) => item.cardType !== 'title');
 }
 
-function getGridMaxRow(grid: GridConfig, breakpoint: 'desktop' | 'mobile') {
+function getGridMaxRow(grid: GridConfig, breakpoint: 'desktop' | 'mobile' | ViewportProfile) {
     return grid.items.reduce((max, item) => {
-        const layout = item.layout[breakpoint];
+        const layout = breakpoint === 'desktop' || breakpoint === 'mobile'
+            ? item.layout[breakpoint]
+            : item.layoutProfiles?.[breakpoint] ?? item.layout[getProfileSeedBreakpoint(breakpoint)];
         return Math.max(max, layout.rowStart + layout.rowSpan - 1);
     }, 0);
 }
 
 function getTabSurfaceRowSpan(tabs: GridConfig[]) {
     const maxRows = tabs.reduce(
-        (max, tab) => Math.max(max, getGridMaxRow(tab, 'desktop'), getGridMaxRow(tab, 'mobile')),
+        (max, tab) =>
+            Math.max(
+                max,
+                getGridMaxRow(tab, 'desktop'),
+                getGridMaxRow(tab, 'mobile'),
+                ...VIEWPORT_PROFILES.map((profile) => getGridMaxRow(tab, profile)),
+            ),
         0,
     );
 
@@ -1778,6 +1844,8 @@ function generateHouseDashboard(
     const statisticsTab = createGeneratedTab('Statistics', 'monitoring', options, 'Generated house statistics tab', 'house', HOUSE_OVERVIEW_ID);
     const mediaTab = createGeneratedTab('Media', 'play_circle', options, 'Generated house media tab', 'house', HOUSE_OVERVIEW_ID);
     const maintenanceTab = createGeneratedTab('Maintenance', 'build', options, 'Generated house maintenance tab', 'house', HOUSE_OVERVIEW_ID);
+    setGeneratedTabColumns(homeTab, ROOM_OVERVIEW_TAB_COLUMNS, ROOM_OVERVIEW_TAB_COLUMN_PROFILES);
+    setGeneratedTabColumns(maintenanceTab, MAINTENANCE_TAB_COLUMNS, MAINTENANCE_TAB_COLUMN_PROFILES);
     const homePlacer = createPlacer();
     const statisticsPlacer = createPlacer();
     const mediaPlacer = createPlacer();
@@ -2179,6 +2247,8 @@ function generateFloorDashboard(
         'floor',
         floorRouteId,
     );
+    setGeneratedTabColumns(floorTab, ROOM_OVERVIEW_TAB_COLUMNS, ROOM_OVERVIEW_TAB_COLUMN_PROFILES);
+    setGeneratedTabColumns(maintenanceTab, MAINTENANCE_TAB_COLUMNS, MAINTENANCE_TAB_COLUMN_PROFILES);
     const floorPlacer = createPlacer();
     const statisticsPlacer = createPlacer();
     const mediaPlacer = createPlacer();
@@ -2425,7 +2495,7 @@ function generateFloorDashboard(
     }).filter((entity) => isUsableGeneratedEntity(entity) && isValidNumericSensor(entity))).slice(0, 4);
     if (floorGraphSensors.length > 0) {
         addTitle(statisticsTab, statisticsPlacer, 'Statistics', 'Key floor measurements and history', resolvedOptions, 'floor', floorRouteId);
-        for (const sensor of floorGraphSensors) {
+        for (const [sensorIndex, sensor] of floorGraphSensors.entries()) {
             addCard(
                 statisticsTab,
                 statisticsPlacer,
@@ -2437,7 +2507,7 @@ function generateFloorDashboard(
                     desktopSpan: 6,
                     mobileSpan: 4,
                     rowSpan: 2,
-                    color: getEntityAccent(sensor),
+                    color: getGraphSeriesColor(sensorIndex),
                     hours_to_show: 12,
                     aggregate_func: 'avg',
                     chartType: getGraphChartType(sensor),
@@ -2602,6 +2672,7 @@ function createEntityTypeCardInput(
             cardType: 'graph',
             desktopSpan: 6,
             mobileSpan: 4,
+            color: getGraphSeriesColor(0),
             hours_to_show: 12,
             aggregate_func: 'avg',
             chartType: getGraphChartType(entity),
@@ -2997,6 +3068,7 @@ function generateMaintenanceDashboard(
         'maintenance',
         'maintenance',
     );
+    setGeneratedTabColumns(maintenanceTab, MAINTENANCE_TAB_COLUMNS, MAINTENANCE_TAB_COLUMN_PROFILES);
     const placer = createPlacer();
 
     addTitle(
@@ -3164,6 +3236,8 @@ function generateRoomDashboard(
     const statisticsTab = createGeneratedTab('Statistics', 'monitoring', options, `Generated room statistics tab for ${areaName}`, 'area', areaId);
     const mediaTab = createGeneratedTab('Media', 'play_circle', options, `Generated room media tab for ${areaName}`, 'area', areaId);
     const maintenanceTab = createGeneratedTab('Maintenance', 'build', options, `Generated room maintenance tab for ${areaName}`, 'area', areaId);
+    setGeneratedTabColumns(roomTab, ROOM_OVERVIEW_TAB_COLUMNS, ROOM_OVERVIEW_TAB_COLUMN_PROFILES);
+    setGeneratedTabColumns(maintenanceTab, MAINTENANCE_TAB_COLUMNS, MAINTENANCE_TAB_COLUMN_PROFILES);
     const roomPlacer = createPlacer();
     const statisticsPlacer = createPlacer();
     const mediaPlacer = createPlacer();
@@ -3560,7 +3634,7 @@ function generateRoomDashboard(
             .filter((entity) => isValidNumericSensor(entity) && GRAPH_DEVICE_CLASSES.has(entity.deviceClass ?? ''))
             .slice(0, 2);
         const graphedEntityIds = new Set<string>();
-        for (const sensor of graphEntities) {
+        for (const [sensorIndex, sensor] of graphEntities.entries()) {
             graphedEntityIds.add(sensor.entityId);
             addCard(
                 statisticsTab,
@@ -3573,7 +3647,7 @@ function generateRoomDashboard(
                     desktopSpan: 6,
                     mobileSpan: 4,
                     rowSpan: 2,
-                    color: getEntityAccent(sensor),
+                    color: getGraphSeriesColor(sensorIndex),
                     hours_to_show: 12,
                     aggregate_func: 'avg',
                     chartType: getGraphChartType(sensor),

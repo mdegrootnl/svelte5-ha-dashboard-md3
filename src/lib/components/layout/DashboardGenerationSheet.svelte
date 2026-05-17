@@ -15,6 +15,10 @@
     import { dashboardStore, DashboardStore } from "$lib/features/dashboard/stores/dashboard.svelte";
     import { normalizeRoomDashboardConfig } from "$lib/features/dashboard/utils/dashboardDefaults";
     import { mergeGeneratedConfigWithExisting } from "$lib/features/dashboard/utils/generationMerge";
+    import {
+        getGridColumnsForProfile,
+        getItemLayoutForProfile,
+    } from "$lib/types/dashboard";
     import type {
         DashboardCardType,
         DashboardItem,
@@ -312,6 +316,10 @@
             ? getPreviewRootGrid(selectedPreviewConfig.config)
             : null,
     );
+    let activePreviewProfile = $derived(dashboardStore.viewportProfile);
+    let previewColumnCount = $derived(
+        previewTab ? getGridColumnsForProfile(previewTab, activePreviewProfile) : 1,
+    );
     let editingItem = $derived(
         editingItemId && selectedPreviewConfig
             ? findItemInConfig(selectedPreviewConfig.config, editingItemId)
@@ -496,6 +504,10 @@
 
     function getPreviewConfigId(config: RoomDashboardConfig) {
         return `related:${config.id}`;
+    }
+
+    function getPreviewGridMinWidth(columns: number) {
+        return `${Math.max(20, Math.min(72, columns * 6))}rem`;
     }
 
     function getGridCardCount(grid: GridConfig): number {
@@ -1369,6 +1381,17 @@
         };
     }
 
+    function cloneLayoutProfiles(item: DashboardItem) {
+        if (!item.layoutProfiles) return undefined;
+        return {
+            phonePortrait: { ...item.layoutProfiles.phonePortrait },
+            phoneLandscape: { ...item.layoutProfiles.phoneLandscape },
+            tabletPortrait: { ...item.layoutProfiles.tabletPortrait },
+            tabletLandscape: { ...item.layoutProfiles.tabletLandscape },
+            desktopEdit: { ...item.layoutProfiles.desktopEdit },
+        };
+    }
+
     function moveItemInPreviewConfig(
         config: RoomDashboardConfig,
         itemId: string,
@@ -1400,6 +1423,7 @@
             const items = itemsWithNestedTabs.map((item) => ({
                 ...item,
                 layout: cloneLayout(item.layout),
+                layoutProfiles: cloneLayoutProfiles(item),
             }));
             const currentItem = items[itemIndex];
             const targetItem = items[targetIndex];
@@ -2469,21 +2493,27 @@
             {#if previewTab && previewTab.items.length > 0}
                 <div class="rounded-m3-card border border-m3-outline-variant/50 bg-m3-surface-container-low p-3 overflow-auto max-h-[72vh]">
                     <div
-                        class="grid min-w-[48rem]"
+                        class="grid"
                         style:display="grid"
-                        style:grid-template-columns="repeat(12, minmax(0, 1fr))"
+                        style:grid-template-columns={`repeat(${previewColumnCount}, minmax(0, 1fr))`}
+                        style:min-width={getPreviewGridMinWidth(previewColumnCount)}
                         style:gap="{previewTab.gap}px"
                         style:padding="{previewTab.padding}px"
                         style:grid-auto-rows="{previewTab.rowHeight ?? 80}px"
                     >
                         {#each previewTab.items as item, index (item.id)}
                             {@const activeNestedTab = getActiveNestedPreviewTab(item)}
+                            {@const itemLayout = getItemLayoutForProfile(item, activePreviewProfile)}
                             <div
                                 class="relative group/preview-card"
-                                style:grid-column={`${item.layout.desktop.colStart} / span ${item.layout.desktop.colSpan}`}
-                                style:grid-row={`${item.layout.desktop.rowStart} / span ${item.layout.desktop.rowSpan}`}
+                                style:grid-column={`${itemLayout.colStart} / span ${itemLayout.colSpan}`}
+                                style:grid-row={`${itemLayout.rowStart} / span ${itemLayout.rowSpan}`}
                             >
                                 {#if item.cardType === "tabs" && activeNestedTab}
+                                    {@const nestedColumnCount = getGridColumnsForProfile(
+                                        activeNestedTab,
+                                        activePreviewProfile,
+                                    )}
                                     <div class="flex h-full w-full flex-col overflow-hidden rounded-m3-card bg-m3-surface-container">
                                         <div
                                             class="flex w-full items-center justify-center gap-2 overflow-x-auto px-3 py-3"
@@ -2514,13 +2544,17 @@
                                             <div
                                                 class="grid min-h-full"
                                                 style:display="grid"
-                                                style:grid-template-columns="repeat(12, minmax(0, 1fr))"
+                                                style:grid-template-columns={`repeat(${nestedColumnCount}, minmax(0, 1fr))`}
+                                                style:min-width={getPreviewGridMinWidth(nestedColumnCount)}
                                                 style:gap="{activeNestedTab.gap}px"
                                                 style:padding="{activeNestedTab.padding}px"
                                                 style:grid-auto-rows="{activeNestedTab.rowHeight ?? 80}px"
                                             >
                                                 {#each activeNestedTab.items as nestedItem, nestedIndex (nestedItem.id)}
-                                                    {@const nestedLayout = nestedItem.layout.desktop}
+                                                    {@const nestedLayout = getItemLayoutForProfile(
+                                                        nestedItem,
+                                                        activePreviewProfile,
+                                                    )}
                                                     <div
                                                         class="relative group/nested-preview-card"
                                                         style:grid-column={`${nestedLayout.colStart} / span ${nestedLayout.colSpan}`}
@@ -2550,7 +2584,7 @@
                                     <div class="h-full w-full pointer-events-none">
                                         <DashboardCardRenderer
                                             bind:item={previewTab.items[index]}
-                                            layoutRows={item.layout.desktop.rowSpan}
+                                            layoutRows={itemLayout.rowSpan}
                                         />
                                     </div>
                                 {/if}

@@ -34,9 +34,9 @@
         class: className = "",
     }: Props = $props();
 
-    let title = $derived(name || modeLabel(options?.mode));
     let presentation = $derived(options?.presentation ?? "list");
     let isSummary = $derived(presentation === "summary");
+    let title = $derived(name || (isSummary ? summaryModeLabel(options?.mode) : modeLabel(options?.mode)));
     let accentColor = $derived(color || modeAccent(options?.mode));
     let resolvedEntities = $derived.by(() => {
         if (options?.entityIds && options.entityIds.length > 0) {
@@ -84,6 +84,31 @@
                 return "Collection";
             default:
                 return "Smart Collection";
+        }
+    }
+
+    function summaryModeLabel(mode = "auto") {
+        switch (mode) {
+            case "lights_on":
+                return "Active";
+            case "low_battery":
+                return "Batteries";
+            case "unavailable":
+                return "Offline";
+            case "updates":
+                return "Updates";
+            case "openings":
+                return "Open";
+            case "motion":
+                return "Motion";
+            case "media_playing":
+                return "Media";
+            case "security":
+                return "Security";
+            case "custom":
+                return "Collection";
+            default:
+                return "Smart";
         }
     }
 
@@ -165,24 +190,24 @@
     style={`container-type: size;${backgroundColor ? ` background-color: ${backgroundColor};` : ""}`}
 >
     {#if isSummary}
-        <div class="flex h-full items-center gap-[clamp(0.625rem,4cqmin,1.25rem)] p-[clamp(0.625rem,4cqmin,1.25rem)]">
+        <div class="collection-summary">
             <div
-                class="flex size-[clamp(2.75rem,24cqmin,4.5rem)] shrink-0 items-center justify-center rounded-m3-full"
+                class="collection-summary__icon flex shrink-0 items-center justify-center rounded-m3-full"
                 style:background-color={`color-mix(in srgb, ${summaryAccentColor} 18%, transparent)`}
                 style:color={summaryAccentColor}
             >
                 <DynamicIcon name={icon || "filter_alt"} class="size-[54%]" />
             </div>
-            <div class="min-w-0 flex-1">
-                <h3 class="truncate text-[clamp(0.95rem,max(6.5cqb,1.8cqi),1.25rem)] font-bold leading-tight">
+            <div class="collection-summary__body min-w-0 flex-1">
+                <h3 class="collection-summary__title">
                     {title}
                 </h3>
-                <p class="truncate text-[clamp(0.8125rem,max(4.8cqb,1.2cqi),0.95rem)] text-m3-on-surface-variant">
+                <p class="collection-summary__detail text-m3-on-surface-variant">
                     {summaryDetail}
                 </p>
             </div>
             <div
-                class="shrink-0 rounded-m3-full px-[clamp(0.5rem,3cqmin,0.875rem)] py-[clamp(0.25rem,1.5cqmin,0.5rem)] text-[clamp(0.8125rem,max(5cqb,1.2cqi),1rem)] font-semibold"
+                class="collection-summary__status shrink-0 rounded-m3-full font-semibold"
                 style:background-color={`color-mix(in srgb, ${summaryAccentColor} 14%, transparent)`}
                 style:color={summaryAccentColor}
             >
@@ -242,3 +267,133 @@
         <IconEdit class="size-[clamp(0.875rem,3.5cqmin,1.25rem)]" />
     </button>
 </article>
+
+<style>
+    .collection-summary {
+        display: flex;
+        height: 100%;
+        min-width: 0;
+        align-items: center;
+        gap: clamp(0.625rem, 4cqi, 1.25rem);
+        padding: clamp(0.75rem, 4cqi, 1.25rem);
+    }
+
+    .collection-summary__icon {
+        width: clamp(3rem, 18cqi, 4.5rem);
+        height: clamp(3rem, 18cqi, 4.5rem);
+    }
+
+    .collection-summary__body {
+        display: flex;
+        min-height: 0;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .collection-summary__title {
+        overflow: hidden;
+        font-size: clamp(1rem, 4.2cqi, 1.25rem);
+        font-weight: 700;
+        line-height: 1.12;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .collection-summary__detail {
+        overflow: hidden;
+        font-size: clamp(0.8125rem, 3.2cqi, 0.95rem);
+        line-height: 1.25;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .collection-summary__status {
+        padding: clamp(0.25rem, 1.5cqi, 0.5rem) clamp(0.5rem, 3cqi, 0.875rem);
+        font-size: clamp(0.8125rem, 2.8cqi, 1rem);
+        line-height: 1.1;
+        white-space: nowrap;
+    }
+
+    @container (max-width: 260px) {
+        .collection-summary {
+            position: relative;
+            align-items: flex-start;
+            flex-direction: column;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.625rem;
+        }
+
+        .collection-summary__icon {
+            width: 3rem;
+            height: 3rem;
+        }
+
+        .collection-summary__body {
+            width: 100%;
+        }
+
+        .collection-summary__status {
+            position: absolute;
+            top: 0.625rem;
+            right: 0.625rem;
+        }
+    }
+
+    @container (max-width: 220px) {
+        .collection-summary__title {
+            display: -webkit-box;
+            overflow: hidden;
+            white-space: normal;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+        }
+
+        .collection-summary__detail {
+            display: none;
+        }
+    }
+
+    @container (max-height: 96px) {
+        .collection-summary {
+            position: static;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            gap: clamp(0.625rem, 3cqi, 1rem);
+            padding: clamp(0.625rem, 3cqi, 1rem);
+        }
+
+        .collection-summary__icon {
+            width: clamp(2.75rem, 12cqi, 3.5rem);
+            height: clamp(2.75rem, 12cqi, 3.5rem);
+        }
+
+        .collection-summary__body {
+            width: auto;
+        }
+
+        .collection-summary__title {
+            display: block;
+            overflow: hidden;
+            font-size: clamp(1rem, 3.4cqi, 1.125rem);
+            line-height: 1.15;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            -webkit-line-clamp: unset;
+            line-clamp: unset;
+        }
+
+        .collection-summary__detail {
+            display: none;
+        }
+
+        .collection-summary__status {
+            position: static;
+            margin-left: auto;
+            padding: 0.25rem 0.625rem;
+            font-size: clamp(0.8125rem, 2.5cqi, 0.9375rem);
+        }
+    }
+</style>

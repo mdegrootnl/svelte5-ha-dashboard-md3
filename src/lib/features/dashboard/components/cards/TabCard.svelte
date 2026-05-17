@@ -19,7 +19,10 @@
     import IconClose from "~icons/material-symbols/close";
     import IconSettings from "~icons/material-symbols/settings";
     import IconGridView from "~icons/material-symbols/grid-view";
-    import { createDefaultGridConfig } from "$lib/types/dashboard";
+    import {
+        createDefaultGridConfig,
+        getItemLayoutForProfile,
+    } from "$lib/types/dashboard";
     import { fade } from "svelte/transition";
     import TextInputDialog from "$lib/components/common/TextInputDialog.svelte";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
@@ -153,6 +156,7 @@
 
     // Derived for grid rendering
     let breakpoint = $derived(dashboardStore.breakpoint);
+    let activeProfile = $derived(dashboardStore.viewportProfile);
 </script>
 
 <div
@@ -244,21 +248,29 @@
                     <GridOverlay
                         config={currentGrid}
                         {breakpoint}
+                        profile={activeProfile}
                         visible={isFocused}
                     />
                 {/if}
 
-                <GridContainer config={currentGrid} {breakpoint} isNested={true}>
+                <GridContainer
+                    config={currentGrid}
+                    {breakpoint}
+                    profile={activeProfile}
+                    isNested={true}
+                >
                     {#each currentGrid.items as item, i (item.id)}
-                        {@const itemLayout =
-                            breakpoint === "desktop"
-                                ? item.layout.desktop
-                                : item.layout.mobile}
+                        {@const itemLayout = getItemLayoutForProfile(
+                            item,
+                            activeProfile,
+                        )}
                         <GridItem
                             itemId={item.id}
                             desktopLayout={item.layout.desktop}
                             mobileLayout={item.layout.mobile}
                             {breakpoint}
+                            profile={activeProfile}
+                            profileLayout={itemLayout}
                             class={(item.cardType === "title" ? "z-10 " : "") +
                                 "group/grid-item"}
                             isInteractive={item.cardType === "tabs" &&

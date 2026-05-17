@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { ItemLayout, Breakpoint } from "$lib/types/dashboard";
+    import type { ItemLayout, Breakpoint, ViewportProfile } from "$lib/types/dashboard";
     import type { Snippet } from "svelte";
     import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
     import IconDragIndicator from "~icons/material-symbols/drag-indicator";
@@ -13,6 +13,10 @@
         mobileLayout: ItemLayout;
         /** Current breakpoint */
         breakpoint?: Breakpoint;
+        /** Current viewport profile */
+        profile?: ViewportProfile;
+        /** Layout resolved for the current viewport profile */
+        profileLayout?: ItemLayout;
         /** Content to render */
         children: Snippet;
         /** Additional CSS classes */
@@ -29,6 +33,8 @@
         desktopLayout,
         mobileLayout,
         breakpoint = "desktop",
+        profile,
+        profileLayout,
         children,
         class: className = "",
         isInteractive = false,
@@ -37,8 +43,10 @@
 
     // Get current layout based on breakpoint
     let currentLayout = $derived(
-        breakpoint === "desktop" ? desktopLayout : mobileLayout,
+        profileLayout ?? (breakpoint === "desktop" ? desktopLayout : mobileLayout),
     );
+
+    let layoutTarget = $derived(profile ?? breakpoint);
 
     // Grid positioning styles
     let gridColumn = $derived(
@@ -83,7 +91,7 @@
             dashboardEditorStore.updateDragPosition(
                 e.clientX,
                 e.clientY,
-                breakpoint,
+                layoutTarget,
             );
         }
     }
@@ -95,7 +103,7 @@
             dashboardEditorStore.dragItemId === itemId
         ) {
             (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-            dashboardEditorStore.endDrag(breakpoint);
+            dashboardEditorStore.endDrag(layoutTarget);
         }
     }
 
@@ -117,7 +125,7 @@
             dashboardEditorStore.isResizing &&
             dashboardEditorStore.resizeItemId === itemId
         ) {
-            dashboardEditorStore.updateResize(e.clientX, e.clientY, breakpoint);
+            dashboardEditorStore.updateResize(e.clientX, e.clientY, layoutTarget);
         }
     }
 
@@ -128,7 +136,7 @@
             dashboardEditorStore.resizeItemId === itemId
         ) {
             (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-            dashboardEditorStore.endResize(breakpoint);
+            dashboardEditorStore.endResize(layoutTarget);
         }
     }
 </script>

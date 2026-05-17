@@ -22,10 +22,10 @@
 </script>
 
 <ScrollArea.Root class="h-full w-full bg-m3-surface overflow-hidden">
-    <ScrollArea.Viewport class="h-full w-full p-8 pb-32 md:pb-8">
+    <ScrollArea.Viewport class="h-full w-full p-4 pb-32 sm:p-6 xl:p-8 xl:pb-8">
         <div class="{maxWidth} mx-auto flex flex-col gap-8">
-            <header class="flex items-start justify-between gap-4">
-                <div class="flex flex-col gap-1">
+            <header class="flex flex-wrap items-start justify-between gap-4">
+                <div class="flex min-w-0 flex-col gap-1">
                     <div class="flex items-center gap-4">
                         {#if icon}
                             <div
@@ -34,7 +34,7 @@
                                 {@render icon()}
                             </div>
                         {/if}
-                        <h1 class="text-m3-display-small leading-tight text-m3-on-surface">
+                        <h1 class="min-w-0 text-m3-display-small leading-tight text-m3-on-surface">
                             {title}
                         </h1>
                     </div>
@@ -47,7 +47,7 @@
                     {/if}
                 </div>
                 {#if actions}
-                    <div class="flex items-center gap-2">
+                    <div class="flex min-w-0 flex-wrap items-center justify-end gap-2">
                         {@render actions()}
                     </div>
                 {/if}

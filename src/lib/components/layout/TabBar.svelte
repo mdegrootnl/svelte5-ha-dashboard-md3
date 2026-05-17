@@ -53,16 +53,16 @@
     }
 </script>
 
-<div class="flex items-center gap-2 w-full py-2">
+<div class="flex min-w-0 items-center gap-2 w-full py-2">
     <div
-        class="flex flex-1 items-center bg-m3-surface-container-high h-[60px] overflow-hidden"
+        class="flex h-[60px] flex-1 items-center gap-1 overflow-x-auto overflow-y-hidden bg-m3-surface-container-high p-1"
         style:border-radius="var(--radius-m3-tab-pill)"
     >
         {#each tabs as tab (tab.id)}
             {@const isActive = tab.id === activeTabId}
             <button
                 class="
-                    relative flex flex-1 items-center justify-center gap-2 px-4 h-full transition-all whitespace-nowrap
+                    relative flex h-full min-w-[3.75rem] flex-none items-center justify-center gap-2 whitespace-nowrap px-3 transition-all sm:min-w-[8rem] sm:flex-1 sm:px-4
                     {isActive
                     ? 'bg-m3-secondary-container text-m3-on-secondary-container shadow-sm'
                     : 'text-m3-on-surface-variant hover:text-m3-on-surface hover:bg-m3-on-surface/5'}
@@ -71,12 +71,12 @@
                 onclick={() => handleSelect(tab.id)}
             >
                 <!-- Tab Icon -->
-                <DynamicIcon name={tab.icon || "home"} class="text-xl" />
+                <DynamicIcon name={tab.icon || "home"} class="size-5 shrink-0" />
 
-                <!-- Tab Name (hidden on mobile, icons only) -->
+                <!-- Tab Name -->
                 {#if isEditing && isActive}
                     <span
-                        class="hidden md:inline text-m3-label-large font-medium cursor-pointer hover:underline"
+                        class="hidden truncate text-m3-label-large font-medium cursor-pointer hover:underline sm:inline"
                         role="button"
                         tabindex="0"
                         onclick={(e) => {
@@ -99,7 +99,7 @@
                     >
                 {:else}
                     <span
-                        class="hidden md:inline text-m3-label-large font-medium"
+                        class="hidden truncate text-m3-label-large font-medium sm:inline"
                         >{tab.name}</span
                     >
                 {/if}

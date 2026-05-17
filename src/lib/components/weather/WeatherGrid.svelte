@@ -7,7 +7,7 @@
     import PressureWidget from "./widgets/PressureWidget.svelte";
 </script>
 
-<div class="grid grid-cols-2 gap-3 md:gap-4 h-full">
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 h-full">
     <SunWidget />
     <UVWidget />
     <AQIWidget />

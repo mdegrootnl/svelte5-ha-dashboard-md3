@@ -1,12 +1,14 @@
 import { browser } from '$app/environment';
 import {
     type Breakpoint,
+    type ViewportProfile,
     type DashboardGenerationState,
     type DashboardPage,
     type GridConfig,
     type RoomDashboardConfig,
     createDefaultGridConfig,
-    type HAArea
+    type HAArea,
+    profileToLegacyBreakpoint,
 } from '$lib/types/dashboard';
 import { haStore, HAStore } from '$lib/stores/ha.svelte';
 import { haRegistryStore } from '$lib/stores/haRegistry.svelte';
@@ -206,6 +208,12 @@ export class DashboardStore {
 
     // Current breakpoint
     breakpoint = $state<Breakpoint>("desktop");
+
+    // Current resolved viewport profile. `breakpoint` remains as a legacy
+    // compatibility field for older renderer/editor paths.
+    viewportProfile = $state<ViewportProfile>("desktopEdit");
+
+    viewportProfileOverride = $state<ViewportProfile | "auto">("auto");
 
     // Track if store has been initialized with server data
     initialized = $state(false);
@@ -496,6 +504,32 @@ export class DashboardStore {
      */
     setBreakpoint(bp: Breakpoint) {
         this.breakpoint = bp;
+    }
+
+    /**
+     * Update the resolved viewport profile and keep the legacy breakpoint in sync.
+     */
+    setViewportProfile(profile: ViewportProfile) {
+        this.viewportProfile = profile;
+        this.breakpoint = profileToLegacyBreakpoint(profile);
+    }
+
+    /**
+     * Update auto-detected profile unless the user has overridden it in edit mode.
+     */
+    setAutoViewportProfile(profile: ViewportProfile) {
+        if (this.viewportProfileOverride !== "auto") return;
+        this.setViewportProfile(profile);
+    }
+
+    /**
+     * Override the active layout profile while editing, or return to auto mode.
+     */
+    setViewportProfileOverride(profile: ViewportProfile | "auto") {
+        this.viewportProfileOverride = profile;
+        if (profile !== "auto") {
+            this.setViewportProfile(profile);
+        }
     }
 
     // --- Tab Management ---

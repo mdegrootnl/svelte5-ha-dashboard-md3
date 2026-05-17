@@ -18,6 +18,30 @@ export const ResponsiveLayoutSchema = z.object({
     mobile: ItemLayoutSchema,
 });
 
+export const ViewportProfileSchema = z.enum([
+    "phonePortrait",
+    "phoneLandscape",
+    "tabletPortrait",
+    "tabletLandscape",
+    "desktopEdit",
+]);
+
+export const LayoutProfilesSchema = z.object({
+    phonePortrait: ItemLayoutSchema,
+    phoneLandscape: ItemLayoutSchema,
+    tabletPortrait: ItemLayoutSchema,
+    tabletLandscape: ItemLayoutSchema,
+    desktopEdit: ItemLayoutSchema,
+});
+
+export const ColumnProfilesSchema = z.object({
+    phonePortrait: z.number().default(2),
+    phoneLandscape: z.number().default(6),
+    tabletPortrait: z.number().default(4),
+    tabletLandscape: z.number().default(8),
+    desktopEdit: z.number().default(12),
+});
+
 /**
  * Schema for a single dashboard item.
  */
@@ -233,6 +257,7 @@ export const DashboardItemSchema: z.ZodTypeAny = z.lazy(() => z.object({
     icon: z.string().optional(),
     cardType: DashboardCardTypeSchema,
     layout: ResponsiveLayoutSchema,
+    layoutProfiles: LayoutProfilesSchema.optional(),
     secondaryEntityId: z.string().default(""),
     secondaryName: z.string().default(""),
     domainFilter: z.string().default(""),
@@ -311,6 +336,7 @@ const createGridConfigSchema = () => z.object({
         desktop: z.number().default(12),
         mobile: z.number().default(4),
     }),
+    columnProfiles: ColumnProfilesSchema.optional(),
     rows: z.union([z.literal("implicit"), z.array(GridTrackSchema)]),
     gap: z.number().default(16),
     padding: z.number().default(16),

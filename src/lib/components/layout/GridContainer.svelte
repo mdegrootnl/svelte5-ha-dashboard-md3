@@ -3,6 +3,11 @@
         GridConfig,
         Breakpoint,
         GridTrack,
+        ViewportProfile,
+    } from "$lib/types/dashboard";
+    import {
+        getGridColumnsForProfile,
+        getItemLayoutForProfile,
     } from "$lib/types/dashboard";
     import type { Snippet } from "svelte";
 
@@ -11,6 +16,7 @@
     interface Props {
         config: GridConfig;
         breakpoint?: Breakpoint;
+        profile?: ViewportProfile;
         children: Snippet;
         class?: string;
         isNested?: boolean;
@@ -19,6 +25,7 @@
     let {
         config,
         breakpoint = "desktop",
+        profile,
         children,
         class: className = "",
         isNested = false,
@@ -31,13 +38,15 @@
      * Uses minmax(0, 1fr) for "auto" to prevent content from forcing track wider
      */
     let gridTemplateCols = $derived.by(() => {
-        const colCount = !config.columns
-            ? breakpoint === "desktop"
-                ? 12
-                : 4
-            : breakpoint === "desktop"
-              ? config.columns.desktop
-              : config.columns.mobile;
+        const colCount = profile
+            ? getGridColumnsForProfile(config, profile)
+            : !config.columns
+              ? breakpoint === "desktop"
+                  ? 12
+                  : 4
+              : breakpoint === "desktop"
+                ? config.columns.desktop
+                : config.columns.mobile;
 
         // Uniform columns: repeat(N, minmax(0, 1fr))
         return `repeat(${colCount}, minmax(0, 1fr))`;
@@ -76,10 +85,11 @@
                     !dashboardEditorStore.focusedGridId && !isNested;
 
                 if (isFocused || isRootAndDefault) {
-                    const colCount =
-                        breakpoint === "desktop"
-                            ? config.columns.desktop
-                            : config.columns.mobile;
+                    const colCount = profile
+                        ? getGridColumnsForProfile(config, profile)
+                        : breakpoint === "desktop"
+                          ? config.columns.desktop
+                          : config.columns.mobile;
                     dashboardEditorStore.updateGridDimensions(
                         entry.target.getBoundingClientRect(),
                         colCount,
@@ -113,9 +123,11 @@
     );
     let draggingLayout = $derived(
         draggingItem
-            ? breakpoint === "desktop"
-                ? draggingItem.layout.desktop
-                : draggingItem.layout.mobile
+            ? profile
+                ? getItemLayoutForProfile(draggingItem, profile)
+                : breakpoint === "desktop"
+                  ? draggingItem.layout.desktop
+                  : draggingItem.layout.mobile
             : null,
     );
 </script>

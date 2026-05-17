@@ -1,4 +1,8 @@
-import type { DashboardItem, GridConfig, RoomDashboardConfig } from '$lib/types/dashboard';
+import type { DashboardItem, GridConfig, RoomDashboardConfig, ViewportProfile } from '$lib/types/dashboard';
+import {
+    VIEWPORT_PROFILES,
+    getItemLayoutForProfile,
+} from '$lib/types/dashboard';
 import { normalizeRoomDashboardConfig } from './dashboardDefaults';
 
 export interface GenerationMergeSummary {
@@ -26,9 +30,23 @@ function getMaxRow(items: DashboardItem[], breakpoint: 'desktop' | 'mobile') {
     }, 0);
 }
 
+function getMaxProfileRow(items: DashboardItem[], profile: ViewportProfile) {
+    return items.reduce((max, item) => {
+        const layout = getItemLayoutForProfile(item, profile);
+        return Math.max(max, layout.rowStart + layout.rowSpan - 1);
+    }, 0);
+}
+
 function getMinRow(items: DashboardItem[], breakpoint: 'desktop' | 'mobile') {
     return items.reduce((min, item) => {
         const layout = item.layout[breakpoint];
+        return Math.min(min, layout.rowStart);
+    }, Number.POSITIVE_INFINITY);
+}
+
+function getMinProfileRow(items: DashboardItem[], profile: ViewportProfile) {
+    return items.reduce((min, item) => {
+        const layout = getItemLayoutForProfile(item, profile);
         return Math.min(min, layout.rowStart);
     }, Number.POSITIVE_INFINITY);
 }
@@ -89,10 +107,23 @@ function appendPreservedItems(target: GridConfig, items: DashboardItem[]) {
         0,
         getMaxRow(target.items, 'mobile') + 1 - getMinRow(preservedItems, 'mobile'),
     );
+    const profileOffsets = Object.fromEntries(
+        VIEWPORT_PROFILES.map((profile) => [
+            profile,
+            Math.max(
+                0,
+                getMaxProfileRow(target.items, profile) + 1 -
+                    getMinProfileRow(preservedItems, profile),
+            ),
+        ]),
+    ) as Record<ViewportProfile, number>;
 
     for (const item of preservedItems) {
         item.layout.desktop.rowStart += desktopOffset;
         item.layout.mobile.rowStart += mobileOffset;
+        for (const profile of VIEWPORT_PROFILES) {
+            getItemLayoutForProfile(item, profile).rowStart += profileOffsets[profile];
+        }
     }
 
     target.items.push(...preservedItems);

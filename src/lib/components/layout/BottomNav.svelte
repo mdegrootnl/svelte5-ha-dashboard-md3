@@ -7,7 +7,8 @@
 </script>
 
 <nav
-    class="flex items-center justify-around w-full h-20 bg-m3-surface-container border-t border-m3-outline-variant px-2"
+    class="flex h-20 w-full items-center gap-1 overflow-x-auto overscroll-x-contain bg-m3-surface-container border-t border-m3-outline-variant px-2"
+    aria-label="Primary navigation"
 >
     {#each themeStore.navigationItems as link (link.id)}
         {@const isActive =
@@ -16,7 +17,7 @@
 
         <a
             href={link.href}
-            class="flex flex-col items-center gap-1 group no-underline text-center flex-1"
+            class="group flex min-w-[4.5rem] flex-1 flex-col items-center gap-1 no-underline text-center"
             aria-current={isActive ? "page" : undefined}
         >
             <div
@@ -29,14 +30,14 @@
             >
                 <DynamicIcon
                     name={link.icon}
-                    class="transition-colors text-2xl {isActive
+                    class="size-6 shrink-0 transition-colors {isActive
                         ? 'text-m3-on-secondary-container'
                         : 'text-m3-on-surface-variant'}"
                 />
             </div>
 
             <span
-                class="text-m3-label-small font-medium transition-colors {isActive
+                class="max-w-[4.25rem] truncate text-m3-label-small font-medium transition-colors {isActive
                     ? 'text-m3-on-surface'
                     : 'text-m3-on-surface-variant'}"
             >

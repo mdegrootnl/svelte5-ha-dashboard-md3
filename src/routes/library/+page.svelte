@@ -715,7 +715,7 @@
                             points_per_hour={2}
                             aggregate_func="avg"
                             icon="device_thermostat"
-                            color="#ef4444"
+                            color="var(--color-m3-graph-1)"
                             fetchHistory={false}
                         />
                     </DeferredRender>
@@ -736,13 +736,13 @@
                             points_per_hour={1}
                             aggregate_func="avg"
                             icon="monitoring"
-                            color="#ef4444"
+                            color="var(--color-m3-graph-1)"
                             fetchHistory={false}
                             graphEntities={[
                                 {
                                     entity_id: "sensor.library_humidity",
                                     name: "Humidity",
-                                    color: "#0ea5e9",
+                                    color: "var(--color-m3-graph-2)",
                                 },
                             ]}
                         />
@@ -763,7 +763,7 @@
                             hours_to_show={24}
                             aggregate_func="last"
                             icon="bolt"
-                            color="#eab308"
+                            color="var(--color-m3-graph-3)"
                             fetchHistory={false}
                         />
                     </DeferredRender>
@@ -783,7 +783,7 @@
                             hours_to_show={24}
                             aggregate_func="last"
                             icon="battery_alert"
-                            color="#22c55e"
+                            color="var(--color-m3-graph-4)"
                             fetchHistory={false}
                         />
                     </DeferredRender>
@@ -803,20 +803,20 @@
                             hours_to_show={12}
                             aggregate_func="avg"
                             icon="monitoring"
-                            color="#eab308"
+                            color="var(--color-m3-graph-3)"
                             fetchHistory={false}
                             graphEntities={[
                                 {
                                     entity_id: "sensor.library_solar_power",
                                     name: "Solar",
                                     chartType: "line",
-                                    color: "#22c55e",
+                                    color: "var(--color-m3-graph-2)",
                                 },
                                 {
                                     entity_id: "sensor.library_grid_power",
                                     name: "Grid",
                                     chartType: "step",
-                                    color: "#38bdf8",
+                                    color: "var(--color-m3-graph-5)",
                                 },
                             ]}
                         />
@@ -1197,7 +1197,7 @@
                                 hours_to_show={12}
                                 aggregate_func="avg"
                                 icon="device_thermostat"
-                                color="#ef4444"
+                                color="var(--color-m3-graph-1)"
                                 fetchHistory={false}
                             />
                         </div>

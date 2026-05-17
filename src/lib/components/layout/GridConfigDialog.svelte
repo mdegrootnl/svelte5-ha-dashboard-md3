@@ -6,9 +6,16 @@
     import IconGridView from "~icons/material-symbols/grid-view";
     import IconLink from "~icons/material-symbols/link";
     import IconLinkOff from "~icons/material-symbols/link-off";
+    import { dashboardStore } from "$lib/features/dashboard/stores/dashboard.svelte";
     import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
     import SideSheet from "./SideSheet.svelte";
-    import type { GridConfig, GridTrack } from "$lib/types/dashboard";
+    import {
+        ensureGridColumnProfiles,
+        getGridColumnsForProfile,
+        profileToLegacyBreakpoint,
+        type GridConfig,
+        type GridTrack,
+    } from "$lib/types/dashboard";
 
     interface Props {
         open: boolean;
@@ -31,6 +38,7 @@
     let verticalGap = $state(16);
     let gapsLinked = $state(true);
     let padding = $state(16);
+    let activeProfile = $derived(dashboardStore.viewportProfile);
 
     // Derive warning for rows that are too short
     let rowHeightWarnings = $derived(() => {
@@ -59,7 +67,7 @@
     $effect(() => {
         // Only sync when transitioning from closed to open
         if (open && !previousOpen && config) {
-            columns = config.columns.desktop;
+            columns = getGridColumnsForProfile(config, activeProfile);
             rows = config.rows === "implicit" ? 0 : config.rows.length;
             rowHeight = config.rowHeight ?? 80;
 
@@ -84,6 +92,7 @@
                 rows > 0
                     ? `${config.columns.desktop}×${rows}`
                     : `${config.columns.desktop}`;
+            dimensionInput = rows > 0 ? `${columns}x${rows}` : `${columns}`;
         }
         previousOpen = open;
     });
@@ -167,10 +176,14 @@
             }));
         }
 
+        const nextColumns = { ...config.columns };
+        nextColumns[profileToLegacyBreakpoint(activeProfile)] = columns;
+
         dashboardEditorStore.updateGridConfig({
-            columns: {
-                desktop: columns,
-                mobile: Math.min(4, columns),
+            columns: nextColumns,
+            columnProfiles: {
+                ...ensureGridColumnProfiles(config),
+                [activeProfile]: columns,
             },
             rows: rowsConfig,
             rowHeight,

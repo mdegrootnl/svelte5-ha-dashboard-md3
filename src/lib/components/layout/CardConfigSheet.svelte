@@ -452,6 +452,34 @@
         { value: "step", label: "Step" },
     ];
 
+    type ColorOption = {
+        value: string;
+        label: string;
+        description?: string;
+    };
+
+    const semanticForegroundColorOptions: ColorOption[] = [
+        { value: "var(--color-m3-primary)", label: "Primary" },
+        { value: "var(--color-m3-secondary)", label: "Secondary" },
+        { value: "var(--color-m3-tertiary)", label: "Tertiary" },
+        { value: "var(--color-m3-error)", label: "Error" },
+    ];
+
+    const graphColorOptions: ColorOption[] = Array.from(
+        { length: 6 },
+        (_, index) => ({
+            value: `var(--color-m3-graph-${index + 1})`,
+            label: `Graph ${index + 1}`,
+            description: "Theme generated",
+        }),
+    );
+
+    let foregroundColorOptions = $derived(
+        isGraphCard
+            ? graphColorOptions
+            : [...semanticForegroundColorOptions, ...graphColorOptions],
+    );
+
     let areaOptions = $derived(haRegistryStore.areas);
     let floorOptions = $derived(haRegistryStore.floors);
 
@@ -1148,24 +1176,26 @@
                 <div class="flex flex-col gap-1.5">
                     <span
                         class="text-[10px] text-m3-on-surface-variant uppercase tracking-wider font-bold opacity-70"
-                        >Foreground & Icon</span
+                        >{isGraphCard ? "Graph & Icon" : "Foreground & Icon"}</span
                     >
                     <div
                         class="grid grid-cols-7 gap-1.5 p-1.5 rounded-xl bg-m3-surface-container-high border border-m3-outline-variant/20"
                     >
-                        {#each ["var(--color-m3-primary)", "var(--color-m3-secondary)", "var(--color-m3-tertiary)", "var(--color-m3-error)", "var(--color-m3-graph-1)", "var(--color-m3-graph-2)", "var(--color-m3-graph-3)", "var(--color-m3-graph-4)", "var(--color-m3-graph-5)", "var(--color-m3-graph-6)"] as colorVar}
+                        {#each foregroundColorOptions as option}
                             <button
                                 class="size-6 rounded-full border-2 transition-all hover:scale-110 active:scale-95 shadow-sm"
-                                style:background-color={colorVar}
+                                style:background-color={option.value}
                                 style:border-color={tempConfig.color ===
-                                colorVar
+                                option.value
                                     ? "white"
                                     : "transparent"}
-                                onclick={() => (tempConfig.color = colorVar)}
-                                title={colorVar
-                                    .replace("var(--color-m3-", "")
-                                    .replace(")", "")}
-                                aria-label={colorVar}
+                                onclick={() => (tempConfig.color = option.value)}
+                                title={option.description
+                                    ? `${option.label} (${option.description})`
+                                    : option.label}
+                                aria-label={option.description
+                                    ? `${option.label}, ${option.description}`
+                                    : option.label}
                             ></button>
                         {/each}
                         <button
@@ -2820,19 +2850,19 @@
                                         <div
                                             class="grid grid-cols-4 gap-1 p-1 rounded-lg bg-m3-surface-container-high border border-m3-outline-variant/20"
                                         >
-                                            {#each Array(6) as _, i}
-                                                {@const colorVar = `var(--color-m3-graph-${i + 1})`}
+                                            {#each graphColorOptions as option}
                                                 <button
                                                     class="size-5 rounded-full border-2 transition-transform hover:scale-110 active:scale-95"
-                                                    style:background-color={colorVar}
+                                                    style:background-color={option.value}
                                                     style:border-color={entity.color ===
-                                                    colorVar
+                                                    option.value
                                                         ? "white"
                                                         : "transparent"}
                                                     onclick={() =>
                                                         (entity.color =
-                                                            colorVar)}
-                                                    title={`Color ${i + 1}`}
+                                                            option.value)}
+                                                    title={`${option.label} (${option.description})`}
+                                                    aria-label={`${option.label}, ${option.description}`}
                                                 ></button>
                                             {/each}
                                             <button

@@ -4,15 +4,35 @@ import type {
     DashboardItem,
     GridConfig,
     Breakpoint,
+    ViewportProfile,
     DashboardCardType,
     RoomDashboardConfig,
     ItemLayout,
     GridTrack
 } from '$lib/types/dashboard';
-import { createDefaultItemLayout } from '$lib/types/dashboard';
+import {
+    VIEWPORT_PROFILES,
+    createDefaultItemLayout,
+    ensureItemLayoutProfiles,
+    getGridColumnsForProfile,
+    getItemLayoutForProfile,
+    profileToLegacyBreakpoint,
+    setItemLayoutForProfile,
+    syncLegacyLayoutFromProfile,
+} from '$lib/types/dashboard';
 import { dashboardStore } from './dashboard.svelte';
 import { generateUUID } from '$lib/utils/uuid';
-import { layoutsOverlap, getItemLayout, resolveLayoutCollisions, packItemsIntoGrid, getMaxRow, ensureExplicitRows, createNewItem } from '../utils/gridUtils';
+import {
+    type LayoutTarget,
+    createNewItem,
+    ensureExplicitRows,
+    getItemLayout,
+    getMaxRow,
+    isViewportProfile,
+    layoutsOverlap,
+    packItemsIntoGrid,
+    resolveLayoutCollisions,
+} from '../utils/gridUtils';
 import { findGridById, gridContainsGridId, isGridDescendantOfItem } from '../utils/gridNavigation';
 import {
     shiftLayoutRowsForAdd,
@@ -68,6 +88,20 @@ function normalizeCardType(type: string | undefined): DashboardCardType {
             return type;
         default:
             return "button";
+    }
+}
+
+function getGridColumnCount(config: GridConfig, target: LayoutTarget) {
+    return isViewportProfile(target)
+        ? getGridColumnsForProfile(config, target)
+        : target === 'desktop'
+          ? config.columns.desktop
+          : config.columns.mobile;
+}
+
+function syncLayoutTarget(item: DashboardItem, target: LayoutTarget) {
+    if (isViewportProfile(target)) {
+        syncLegacyLayoutFromProfile(item, target);
     }
 }
 
@@ -207,7 +241,7 @@ export class DashboardEditorStore {
      * Create item from current selection
      * Note: This will be called by UI to trigger the actual item creation
      */
-    createItemFromSelection(itemConfig: ItemCreationConfig, breakpoint: Breakpoint) {
+    createItemFromSelection(itemConfig: ItemCreationConfig, breakpoint: LayoutTarget) {
         if (!this.gridSelection) return;
 
         const dims = this.getSelectionDimensions();
@@ -226,8 +260,12 @@ export class DashboardEditorStore {
         // Create base layout
         const layout = createDefaultItemLayout(1, cardType, itemConfig.cardSize || 'standard');
 
-        // Override with selection dimensions for the current breakpoint
-        if (breakpoint === 'desktop') {
+        const legacyTarget = isViewportProfile(breakpoint)
+            ? profileToLegacyBreakpoint(breakpoint)
+            : breakpoint;
+
+        // Override with selection dimensions for the current layout target.
+        if (legacyTarget === 'desktop') {
             layout.desktop = {
                 colStart: dims.col,
                 colSpan: dims.colSpan,
@@ -270,6 +308,15 @@ export class DashboardEditorStore {
             shortcuts: itemConfig.shortcuts || [],
             options: itemConfig.options
         });
+
+        if (isViewportProfile(breakpoint)) {
+            setItemLayoutForProfile(newItem, breakpoint, {
+                colStart: dims.col,
+                colSpan: dims.colSpan,
+                rowStart: dims.row,
+                rowSpan: dims.rowSpan,
+            });
+        }
 
         config.items.push(newItem);
 
@@ -426,7 +473,7 @@ export class DashboardEditorStore {
     /**
      * Update drag position (calculates target grid cell)
      */
-    updateDragPosition(clientX: number, clientY: number, breakpoint: Breakpoint) {
+    updateDragPosition(clientX: number, clientY: number, breakpoint: LayoutTarget) {
         if (!this.isDragging || !this.dragItemId) return;
 
         // Use fresh rect to account for scroll
@@ -440,8 +487,8 @@ export class DashboardEditorStore {
         const item = config.items.find(i => i.id === this.dragItemId);
         if (!item) return;
 
-        const layout = breakpoint === 'desktop' ? item.layout.desktop : item.layout.mobile;
-        const columnCount = breakpoint === 'desktop' ? config.columns.desktop : config.columns.mobile;
+        const layout = getItemLayout(item, breakpoint);
+        const columnCount = getGridColumnCount(config, breakpoint);
 
         // Calculate relative position in grid
         const relX = clientX - rect.left;
@@ -464,7 +511,7 @@ export class DashboardEditorStore {
     /**
      * End drag and apply position
      */
-    endDrag(breakpoint: Breakpoint) {
+    endDrag(breakpoint: LayoutTarget) {
         if (!this.isDragging || !this.dragItemId || !this.dragGhostPosition) {
             this.cancelDrag();
             return;
@@ -486,7 +533,7 @@ export class DashboardEditorStore {
     /**
      * Move an item to new grid position
      */
-    moveItem(itemId: string, newCol: number, newRow: number, breakpoint: Breakpoint) {
+    moveItem(itemId: string, newCol: number, newRow: number, breakpoint: LayoutTarget) {
         const context = this.getActiveGrid();
         if (!context) return;
         const { root, tab: config } = context;
@@ -494,14 +541,10 @@ export class DashboardEditorStore {
         const item = config.items.find(i => i.id === itemId);
         if (!item) return;
 
-        // Update the appropriate layout
-        if (breakpoint === 'desktop') {
-            item.layout.desktop.colStart = newCol;
-            item.layout.desktop.rowStart = newRow;
-        } else {
-            item.layout.mobile.colStart = newCol;
-            item.layout.mobile.rowStart = newRow;
-        }
+        const layout = getItemLayout(item, breakpoint);
+        layout.colStart = newCol;
+        layout.rowStart = newRow;
+        syncLayoutTarget(item, breakpoint);
 
         // Resolve any collisions caused by the move
         this.resolveCollisions(itemId, breakpoint);
@@ -525,7 +568,7 @@ export class DashboardEditorStore {
     /**
      * Update resize preview
      */
-    updateResize(clientX: number, clientY: number, breakpoint: Breakpoint) {
+    updateResize(clientX: number, clientY: number, breakpoint: LayoutTarget) {
         if (!this.isResizing || !this.resizeItemId) return;
 
         // Use fresh rect to account for scroll
@@ -539,8 +582,8 @@ export class DashboardEditorStore {
         const item = config.items.find(i => i.id === this.resizeItemId);
         if (!item) return;
 
-        const layout = breakpoint === 'desktop' ? item.layout.desktop : item.layout.mobile;
-        const columnCount = breakpoint === 'desktop' ? config.columns.desktop : config.columns.mobile;
+        const layout = getItemLayout(item, breakpoint);
+        const columnCount = getGridColumnCount(config, breakpoint);
 
         // Calculate relative position
         const relX = clientX - rect.left;
@@ -555,11 +598,8 @@ export class DashboardEditorStore {
                 endCol - layout.colStart + 1
             ));
 
-            if (breakpoint === 'desktop') {
-                item.layout.desktop.colSpan = newColSpan;
-            } else {
-                item.layout.mobile.colSpan = newColSpan;
-            }
+            layout.colSpan = newColSpan;
+            syncLayoutTarget(item, breakpoint);
         }
 
         if (this.resizeDirection === 'bottom' || this.resizeDirection === 'corner') {
@@ -567,18 +607,15 @@ export class DashboardEditorStore {
             let newRowSpan = Math.max(1, endRow - layout.rowStart + 1);
 
 
-            if (breakpoint === 'desktop') {
-                item.layout.desktop.rowSpan = newRowSpan;
-            } else {
-                item.layout.mobile.rowSpan = newRowSpan;
-            }
+            layout.rowSpan = newRowSpan;
+            syncLayoutTarget(item, breakpoint);
         }
     }
 
     /**
      * End resize and save - resolves collisions by pushing overlapping items down
      */
-    endResize(breakpoint: Breakpoint) {
+    endResize(breakpoint: LayoutTarget) {
         if (!this.resizeItemId) {
             this.cancelResize();
             return;
@@ -620,7 +657,7 @@ export class DashboardEditorStore {
     /**
      * Resolve collisions by pushing overlapping items down
      */
-    resolveCollisions(movedItemId: string, breakpoint: Breakpoint) {
+    resolveCollisions(movedItemId: string, breakpoint: LayoutTarget) {
         const context = this.getActiveGrid();
         if (!context) return;
         const { tab: config } = context;
@@ -640,7 +677,7 @@ export class DashboardEditorStore {
     /**
      * Resize an item's span
      */
-    resizeItem(itemId: string, newColSpan: number, newRowSpan: number, breakpoint: Breakpoint) {
+    resizeItem(itemId: string, newColSpan: number, newRowSpan: number, breakpoint: LayoutTarget) {
         const context = this.getActiveGrid();
         if (!context) return;
         const { root, tab: config } = context;
@@ -648,19 +685,15 @@ export class DashboardEditorStore {
         const item = config.items.find(i => i.id === itemId);
         if (!item) return;
 
-        const columnCount = breakpoint === 'desktop' ? config.columns.desktop : config.columns.mobile;
-        const layout = breakpoint === 'desktop' ? item.layout.desktop : item.layout.mobile;
+        const columnCount = getGridColumnCount(config, breakpoint);
+        const layout = getItemLayout(item, breakpoint);
 
         // Ensure span doesn't exceed grid bounds
         const maxColSpan = columnCount - layout.colStart + 1;
 
-        if (breakpoint === 'desktop') {
-            item.layout.desktop.colSpan = Math.min(newColSpan, maxColSpan);
-            item.layout.desktop.rowSpan = newRowSpan;
-        } else {
-            item.layout.mobile.colSpan = Math.min(newColSpan, maxColSpan);
-            item.layout.mobile.rowSpan = newRowSpan;
-        }
+        layout.colSpan = Math.min(newColSpan, maxColSpan);
+        layout.rowSpan = newRowSpan;
+        syncLayoutTarget(item, breakpoint);
 
         dashboardStore.markItemModified(itemId);
         dashboardStore.setConfig(root);
@@ -685,12 +718,12 @@ export class DashboardEditorStore {
     /**
      * Auto-arrange items to fill gaps (simple pack from top-left)
      */
-    autoArrange(breakpoint: Breakpoint) {
+    autoArrange(breakpoint: LayoutTarget) {
         const context = this.getActiveGrid();
         if (!context) return;
         const { root, tab: config } = context;
 
-        const columnCount = breakpoint === 'desktop' ? config.columns.desktop : config.columns.mobile;
+        const columnCount = getGridColumnCount(config, breakpoint);
         packItemsIntoGrid(config.items, columnCount, breakpoint);
 
         dashboardStore.markGridItemsModified(config.id);
@@ -722,7 +755,7 @@ export class DashboardEditorStore {
      * Update grid configuration (dimensions, gaps, padding, row height)
      */
     updateGridConfig(updates: Partial<Pick<GridConfig,
-        'columns' | 'gap' | 'padding' | 'rowHeight' | 'rowGap' | 'columnGap' | 'rows'
+        'columns' | 'columnProfiles' | 'gap' | 'padding' | 'rowHeight' | 'rowGap' | 'columnGap' | 'rows'
     >>) {
         const context = this.getActiveGrid();
         if (!context) return;
@@ -790,8 +823,12 @@ export class DashboardEditorStore {
 
         // Shift items
         for (const item of config.items) {
+            ensureItemLayoutProfiles(item);
             shiftLayoutRowsForAdd(item.layout.desktop, rowIndex);
             shiftLayoutRowsForAdd(item.layout.mobile, rowIndex);
+            for (const profile of VIEWPORT_PROFILES) {
+                shiftLayoutRowsForAdd(getItemLayoutForProfile(item, profile), rowIndex);
+            }
         }
 
         dashboardStore.markGridModified(config.id);
@@ -816,8 +853,12 @@ export class DashboardEditorStore {
 
         // Shift items
         for (const item of config.items) {
+            ensureItemLayoutProfiles(item);
             shiftLayoutRowsForRemove(item.layout.desktop, rowIndex);
             shiftLayoutRowsForRemove(item.layout.mobile, rowIndex);
+            for (const profile of VIEWPORT_PROFILES) {
+                shiftLayoutRowsForRemove(getItemLayoutForProfile(item, profile), rowIndex);
+            }
         }
 
         dashboardStore.markGridModified(config.id);
@@ -830,7 +871,7 @@ export class DashboardEditorStore {
      * or suggests changing the layout if we want non-uniform columns.
      * For now, we'll use this to update the uniform column count if the user tries to "resize"
      */
-    setColumnWidth(colIndex: number, width: number, breakpoint: Breakpoint) {
+    setColumnWidth(colIndex: number, width: number, breakpoint: LayoutTarget) {
         // Implementation for non-uniform columns would go here.
         // For now, let's keep it simple and maybe just log or handle uniform updates.
         console.log(`Setting column ${colIndex} width to ${width}px for ${breakpoint}`);

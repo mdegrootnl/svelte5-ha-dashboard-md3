@@ -15,8 +15,13 @@
         GridConfig,
         RoomDashboardConfig,
         TabCardConfig,
+        ViewportProfile,
     } from "$lib/types/dashboard";
-    import { createDefaultGridConfig } from "$lib/types/dashboard";
+    import {
+        createDefaultGridConfig,
+        getItemLayoutForProfile,
+        resolveViewportProfile,
+    } from "$lib/types/dashboard";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import DashboardCardRenderer from "$lib/features/dashboard/components/cards/DashboardCardRenderer.svelte";
     import GenerationStateBadge from "$lib/features/dashboard/components/GenerationStateBadge.svelte";
@@ -27,7 +32,6 @@
     import IconRefresh from "~icons/material-symbols/refresh";
     import IconEdit from "~icons/material-symbols/edit";
     import IconCheck from "~icons/material-symbols/check";
-    import IconAutoFix from "~icons/material-symbols/auto-fix-high";
     import IconDelete from "~icons/material-symbols/delete";
     import IconGridView from "~icons/material-symbols/grid-view";
     import IconAdd from "~icons/material-symbols/add";
@@ -61,19 +65,42 @@
     let isGenerationSheetOpen = $state(false);
     let generationCleanGenerated = $state(false);
 
-    // Responsive breakpoint detection
-    function updateBreakpoint() {
+    const viewportProfileOptions: Array<{
+        value: ViewportProfile | "auto";
+        label: string;
+    }> = [
+        { value: "auto", label: "Auto" },
+        { value: "phonePortrait", label: "Phone P" },
+        { value: "phoneLandscape", label: "Phone L" },
+        { value: "tabletPortrait", label: "Tablet P" },
+        { value: "tabletLandscape", label: "Tablet L" },
+        { value: "desktopEdit", label: "Desktop" },
+    ];
+
+    // Responsive viewport profile detection
+    function updateViewportProfile() {
         if (browser) {
-            dashboardStore.setBreakpoint(
-                window.innerWidth < 768 ? "mobile" : "desktop",
+            dashboardStore.setAutoViewportProfile(
+                resolveViewportProfile({
+                    width: window.innerWidth,
+                    height: window.innerHeight,
+                    coarsePointer: window.matchMedia("(pointer: coarse)").matches,
+                }),
             );
+        }
+    }
+
+    function setViewportProfileOverride(profile: ViewportProfile | "auto") {
+        dashboardStore.setViewportProfileOverride(profile);
+        if (profile === "auto") {
+            updateViewportProfile();
         }
     }
 
     // Initialize on mount
     $effect(() => {
         if (browser) {
-            updateBreakpoint();
+            updateViewportProfile();
         }
     });
 
@@ -168,6 +195,7 @@
 
     // Derive info
     let isEditing = $derived(dashboardEditorStore.isEditing);
+    let activeProfile = $derived(dashboardStore.viewportProfile);
     let selectedItemId = $derived(dashboardEditorStore.selectedItemId);
     let currentDashboardId = $derived(
         DashboardStore.deriveConfigId(floor || undefined, room || undefined),
@@ -299,7 +327,7 @@
     ) {
         dashboardStore.setConfigs([config, ...relatedConfigs], config.id);
         roomConfig = config;
-        dashboardEditorStore.enterEditMode();
+        dashboardEditorStore.exitEditMode();
         isGenerationSheetOpen = false;
     }
 
@@ -319,20 +347,6 @@
     // Toggle edit mode
     function toggleEditMode() {
         dashboardEditorStore.toggleEditMode();
-    }
-
-    // Auto-arrange items (ACTIVE TAB)
-    function autoArrange() {
-        // We need to pass the active tab GridConfig to autoArrange?
-        // Or updated DashboardEditorStore handles it?
-        // Assuming EditorStore needs update.
-        // For now, call store method.
-        // dashboardEditorStore.autoArrange(dashboardStore.breakpoint);
-        // Wait, autoArrange likely modifies the store.config.items directly.
-        // If store.config is RoomConfig, this will fail.
-        // Disabling for now until Store is fixed or passing activeTab.
-        // I will assume I fix EditorStore to look at activeTab.
-        dashboardEditorStore.autoArrange(dashboardStore.breakpoint);
     }
 
     // Delete selected item
@@ -364,13 +378,13 @@
             dashboardEditorStore.updateDragPosition(
                 e.clientX,
                 e.clientY,
-                dashboardStore.breakpoint,
+                activeProfile,
             );
         } else if (dashboardEditorStore.isResizing) {
             dashboardEditorStore.updateResize(
                 e.clientX,
                 e.clientY,
-                dashboardStore.breakpoint,
+                activeProfile,
             );
         }
     }
@@ -378,9 +392,9 @@
     // Handle global pointer up for drag/resize
     function handlePointerUp(e: PointerEvent) {
         if (dashboardEditorStore.isDragging) {
-            dashboardEditorStore.endDrag(dashboardStore.breakpoint);
+            dashboardEditorStore.endDrag(activeProfile);
         } else if (dashboardEditorStore.isResizing) {
-            dashboardEditorStore.endResize(dashboardStore.breakpoint);
+            dashboardEditorStore.endResize(activeProfile);
         }
     }
 
@@ -437,7 +451,8 @@
 </script>
 
 <svelte:window
-    onresize={updateBreakpoint}
+    onresize={updateViewportProfile}
+    onorientationchange={updateViewportProfile}
     onpointermove={handlePointerMove}
     onpointerup={handlePointerUp}
 />
@@ -487,6 +502,28 @@
                     <span class="hidden md:inline">Clean</span>
                 </button>
 
+                <div
+                    class="flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-m3-surface-container-high p-1"
+                    aria-label="Preview viewport profile"
+                >
+                    {#each viewportProfileOptions as option}
+                        <button
+                            type="button"
+                            onclick={() => setViewportProfileOverride(option.value)}
+                            class={`h-8 rounded-full px-3 text-m3-label-medium transition-colors whitespace-nowrap ${
+                                dashboardStore.viewportProfileOverride === option.value ||
+                                (dashboardStore.viewportProfileOverride === "auto" &&
+                                    option.value === "auto")
+                                    ? "bg-m3-primary text-m3-on-primary"
+                                    : "text-m3-on-surface-variant hover:bg-m3-surface-container-highest"
+                            }`}
+                            title={`Preview ${option.label} layout`}
+                        >
+                            {option.label}
+                        </button>
+                    {/each}
+                </div>
+
                 <button
                     onclick={openCardLibrary}
                     class="inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full bg-m3-primary text-m3-on-primary text-m3-label-large font-medium hover:brightness-95 transition-colors shadow-m3-elevation-1"
@@ -528,15 +565,6 @@
                         <IconDelete class="size-5" />
                     </button>
                 {/if}
-
-                <button
-                    onclick={autoArrange}
-                    class="inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full bg-m3-tertiary-container text-m3-on-tertiary-container text-m3-label-large font-medium hover:brightness-95 transition-colors"
-                    title="Auto-arrange cards"
-                >
-                    <IconAutoFix class="size-5" />
-                    <span class="hidden md:inline">Auto</span>
-                </button>
 
                 <button
                     onclick={() => (isGridConfigOpen = true)}
@@ -678,6 +706,7 @@
                     <GridOverlay
                         config={activeTab}
                         breakpoint={dashboardStore.breakpoint}
+                        profile={activeProfile}
                         visible={isEditing}
                     />
                 {/if}
@@ -685,17 +714,20 @@
                 <GridContainer
                     config={activeTab}
                     breakpoint={dashboardStore.breakpoint}
+                    profile={activeProfile}
                 >
                     {#each activeTab.items as item, i (item.id)}
-                        {@const itemLayout =
-                            dashboardStore.breakpoint === "desktop"
-                                ? item.layout.desktop
-                                : item.layout.mobile}
+                        {@const itemLayout = getItemLayoutForProfile(
+                            item,
+                            activeProfile,
+                        )}
                         <GridItem
                             itemId={item.id}
                             desktopLayout={item.layout.desktop}
                             mobileLayout={item.layout.mobile}
                             breakpoint={dashboardStore.breakpoint}
+                            profile={activeProfile}
+                            profileLayout={itemLayout}
                             class={(item.cardType === "title" ? "z-10 " : "") +
                                 "group/grid-item"}
                             isInteractive={item.cardType === "tabs" &&

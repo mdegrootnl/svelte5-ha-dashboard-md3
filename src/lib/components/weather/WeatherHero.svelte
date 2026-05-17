@@ -99,7 +99,7 @@
     let videoUrl = $derived(`/weather-videos/${videoName}.mp4`);
 </script>
 
-<div class="col-span-1 md:col-span-2">
+<div class="w-full">
     <Card
         variant="filled"
         class="relative overflow-hidden transition-all duration-300 hover:shadow-lg !p-0 aspect-video group/card"

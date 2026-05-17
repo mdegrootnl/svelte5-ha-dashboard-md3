@@ -3,6 +3,11 @@
         GridConfig,
         Breakpoint,
         GridTrack,
+        ViewportProfile,
+    } from "$lib/types/dashboard";
+    import {
+        getGridColumnsForProfile,
+        getItemLayoutForProfile,
     } from "$lib/types/dashboard";
     import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
@@ -14,23 +19,26 @@
     interface Props {
         config: GridConfig;
         breakpoint: Breakpoint;
+        profile?: ViewportProfile;
         visible?: boolean;
     }
 
-    let { config, breakpoint, visible = true }: Props = $props();
+    let { config, breakpoint, profile, visible = true }: Props = $props();
 
     let overlayEl = $state<HTMLElement | null>(null);
     let overlayWidth = $state(0);
 
     // Calculate column count based on breakpoint
     let columnCount = $derived(
-        !config.columns
-            ? breakpoint === "desktop"
-                ? 12
-                : 4
-            : breakpoint === "desktop"
-              ? config.columns.desktop
-              : config.columns.mobile,
+        profile
+            ? getGridColumnsForProfile(config, profile)
+            : !config.columns
+              ? breakpoint === "desktop"
+                  ? 12
+                  : 4
+              : breakpoint === "desktop"
+                ? config.columns.desktop
+                : config.columns.mobile,
     );
 
     // Calculate actual column width in pixels
@@ -51,9 +59,11 @@
     );
     let draggingLayout = $derived(
         draggingItem
-            ? breakpoint === "desktop"
-                ? draggingItem.layout.desktop
-                : draggingItem.layout.mobile
+            ? profile
+                ? getItemLayoutForProfile(draggingItem, profile)
+                : breakpoint === "desktop"
+                  ? draggingItem.layout.desktop
+                  : draggingItem.layout.mobile
             : null,
     );
 
@@ -66,10 +76,11 @@
         } else {
             // For implicit, ensure we cover at least the existing items
             const maxItemRow = config.items.reduce((max, item) => {
-                const layout =
-                    breakpoint === "desktop"
-                        ? item.layout.desktop
-                        : item.layout.mobile;
+                const layout = profile
+                    ? getItemLayoutForProfile(item, profile)
+                    : breakpoint === "desktop"
+                      ? item.layout.desktop
+                      : item.layout.mobile;
                 return Math.max(max, layout.rowStart + layout.rowSpan - 1);
             }, 6);
             count = maxItemRow;
@@ -124,10 +135,11 @@
         if (!config.items) return occupied;
 
         for (const item of config.items) {
-            const layout =
-                breakpoint === "desktop"
-                    ? item.layout.desktop
-                    : item.layout.mobile;
+            const layout = profile
+                ? getItemLayoutForProfile(item, profile)
+                : breakpoint === "desktop"
+                  ? item.layout.desktop
+                  : item.layout.mobile;
             for (let r = 0; r < layout.rowSpan; r++) {
                 for (let c = 0; c < layout.colSpan; c++) {
                     occupied.add(
@@ -213,7 +225,7 @@
             onSave: (config) => {
                 dashboardEditorStore.createItemFromSelection(
                     config,
-                    breakpoint,
+                    profile ?? breakpoint,
                 );
             },
         };

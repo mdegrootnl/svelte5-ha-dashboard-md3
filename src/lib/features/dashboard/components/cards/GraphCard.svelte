@@ -107,6 +107,12 @@
         const start = new Date(end.getTime() - hours * 60 * 60 * 1000);
         return { start, end };
     });
+    let primaryGraphColor = $derived.by(() => {
+        if (color) return color;
+        if (typeof line_color === "string" && line_color) return line_color;
+        if (Array.isArray(line_color) && line_color[0]) return line_color[0];
+        return "var(--color-m3-graph-1)";
+    });
 
     let historyData = $state<
         Array<{ entityId: string; points: HistoryDataPoint[]; color?: string }>
@@ -197,7 +203,7 @@
                       {
                           entity_id: entityId,
                           name,
-                          color: color || (line_color as string),
+                          color: primaryGraphColor,
                       },
                   ]
                 : []),
@@ -359,10 +365,8 @@
                 {#if show.icon !== false}
                     <div
                         class="flex items-center justify-center size-[clamp(2.5rem,22cqmin,4.75rem)] rounded-full shrink-0"
-                        style:background-color={color
-                            ? `color-mix(in srgb, ${color} 10%, transparent)`
-                            : "var(--color-m3-primary-container)"}
-                        style:color={color || "var(--color-m3-primary)"}
+                        style:background-color={`color-mix(in srgb, ${primaryGraphColor} 10%, transparent)`}
+                        style:color={primaryGraphColor}
                     >
                         {#if iconProp}
                             <DynamicIcon name={iconProp} class="size-[58%]" />

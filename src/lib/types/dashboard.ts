@@ -316,6 +316,152 @@ export interface ResponsiveLayout {
 }
 
 /**
+ * Runtime dashboard viewport profiles. Phones and tablets are first-class
+ * display targets; desktop is kept as the configuration/editing profile.
+ */
+export type ViewportProfile =
+    | "phonePortrait"
+    | "phoneLandscape"
+    | "tabletPortrait"
+    | "tabletLandscape"
+    | "desktopEdit";
+
+export const VIEWPORT_PROFILES: ViewportProfile[] = [
+    "phonePortrait",
+    "phoneLandscape",
+    "tabletPortrait",
+    "tabletLandscape",
+    "desktopEdit",
+];
+
+export type LayoutProfiles = Record<ViewportProfile, ItemLayout>;
+export type ColumnProfiles = Record<ViewportProfile, number>;
+
+export interface ViewportProfileInput {
+    width: number;
+    height: number;
+    coarsePointer?: boolean;
+}
+
+function cloneItemLayout(layout: ItemLayout): ItemLayout {
+    return {
+        colStart: layout.colStart,
+        colSpan: layout.colSpan,
+        rowStart: layout.rowStart,
+        rowSpan: layout.rowSpan,
+    };
+}
+
+export function profileToLegacyBreakpoint(profile: ViewportProfile): Breakpoint {
+    return profile === "desktopEdit" ? "desktop" : "mobile";
+}
+
+export function getProfileSeedBreakpoint(profile: ViewportProfile): Breakpoint {
+    return profile === "desktopEdit" || profile === "tabletLandscape"
+        ? "desktop"
+        : "mobile";
+}
+
+export function resolveViewportProfile(input: ViewportProfileInput): ViewportProfile {
+    const width = Math.max(1, input.width);
+    const height = Math.max(1, input.height);
+    const isLandscape = width >= height;
+    const shortSide = Math.min(width, height);
+    const coarsePointer = input.coarsePointer ?? false;
+
+    if (!coarsePointer && width >= 1280 && shortSide >= 720) {
+        return "desktopEdit";
+    }
+
+    if (shortSide < 600) {
+        return isLandscape ? "phoneLandscape" : "phonePortrait";
+    }
+
+    if (coarsePointer || width < 1280) {
+        return isLandscape ? "tabletLandscape" : "tabletPortrait";
+    }
+
+    return "desktopEdit";
+}
+
+export function createLayoutProfilesFromResponsiveLayout(
+    layout: ResponsiveLayout,
+): LayoutProfiles {
+    return {
+        phonePortrait: cloneItemLayout(layout.mobile),
+        phoneLandscape: cloneItemLayout(layout.mobile),
+        tabletPortrait: cloneItemLayout(layout.mobile),
+        tabletLandscape: cloneItemLayout(layout.desktop),
+        desktopEdit: cloneItemLayout(layout.desktop),
+    };
+}
+
+export function createColumnProfilesFromColumns(columns: {
+    desktop: number;
+    mobile: number;
+}): ColumnProfiles {
+    return {
+        phonePortrait: columns.mobile,
+        phoneLandscape: columns.mobile,
+        tabletPortrait: columns.mobile,
+        tabletLandscape: columns.desktop,
+        desktopEdit: columns.desktop,
+    };
+}
+
+export function ensureItemLayoutProfiles(item: DashboardItem): LayoutProfiles {
+    item.layoutProfiles ??= createLayoutProfilesFromResponsiveLayout(item.layout);
+    return item.layoutProfiles;
+}
+
+export function ensureGridColumnProfiles(grid: GridConfig): ColumnProfiles {
+    grid.columnProfiles ??= createColumnProfilesFromColumns(grid.columns);
+    return grid.columnProfiles;
+}
+
+export function getItemLayoutForProfile(
+    item: DashboardItem,
+    profile: ViewportProfile,
+): ItemLayout {
+    return item.layoutProfiles?.[profile] ?? item.layout[getProfileSeedBreakpoint(profile)];
+}
+
+export function syncLegacyLayoutFromProfile(
+    item: DashboardItem,
+    profile: ViewportProfile,
+) {
+    const layout = getItemLayoutForProfile(item, profile);
+    const breakpoint = profileToLegacyBreakpoint(profile);
+    item.layout[breakpoint] = cloneItemLayout(layout);
+}
+
+export function setItemLayoutForProfile(
+    item: DashboardItem,
+    profile: ViewportProfile,
+    layout: ItemLayout,
+) {
+    ensureItemLayoutProfiles(item)[profile] = cloneItemLayout(layout);
+    syncLegacyLayoutFromProfile(item, profile);
+}
+
+export function getGridColumnsForProfile(
+    grid: GridConfig,
+    profile: ViewportProfile,
+): number {
+    const fallbackProfiles = createColumnProfilesFromColumns(grid.columns);
+    return Math.max(1, grid.columnProfiles?.[profile] ?? fallbackProfiles[profile] ?? grid.columns.mobile ?? 4);
+}
+
+export function setGridColumnsForProfile(
+    grid: GridConfig,
+    profile: ViewportProfile,
+    columns: number,
+) {
+    ensureGridColumnProfiles(grid)[profile] = Math.max(1, Math.round(columns));
+    grid.columns[profileToLegacyBreakpoint(profile)] = Math.max(1, Math.round(columns));
+}
+
+/**
  * A single item in the dashboard grid
  */
 export interface DashboardItem {
@@ -330,6 +476,8 @@ export interface DashboardItem {
     cardType: DashboardCardType;
     /** Responsive position and span configuration */
     layout: ResponsiveLayout;
+    /** Profile-specific position and span configuration. Derived from layout when absent. */
+    layoutProfiles?: LayoutProfiles;
     /** Secondary entity ID (empty string if not set) */
     secondaryEntityId: string;
     /** Secondary entity display name (empty string if not set) */
@@ -403,6 +551,8 @@ export interface GridConfig {
         desktop: number;
         mobile: number;
     };
+    /** Profile-specific column counts. Derived from columns when absent. */
+    columnProfiles?: ColumnProfiles;
     /** Row configuration: "implicit" for auto rows, or explicit GridTrack[] */
     rows: "implicit" | GridTrack[];
     /** Gap between grid items in pixels (used for both directions if rowGap/columnGap not set) */
@@ -491,14 +641,16 @@ export type Breakpoint = "desktop" | "mobile";
  * Default grid configuration factory
  */
 export function createDefaultGridConfig(name: string = "Dashboard", icon: string = "home"): GridConfig {
+    const columns = {
+        desktop: 12,
+        mobile: 4
+    };
     return {
         id: generateUUID(),
         name,
         icon,
-        columns: {
-            desktop: 12,
-            mobile: 4
-        },
+        columns,
+        columnProfiles: createColumnProfilesFromColumns(columns),
         rows: "implicit",
         gap: 16,
         padding: 16,
@@ -547,7 +699,7 @@ export function createDefaultItemLayout(
         cardType === "device_panel"
     ) ? 2 : (cardSize === 'condensed' ? 1 : cardSize === 'standard' ? 2 : 3);
 
-    return {
+    const layout = {
         desktop: {
             colStart,
             colSpan: desktopSpan,
@@ -561,4 +713,5 @@ export function createDefaultItemLayout(
             rowSpan
         }
     };
+    return layout;
 }

@@ -10,6 +10,7 @@
 
 <nav
     class="relative z-50 flex flex-col items-center py-8 w-20 bg-m3-surface border-r border-m3-outline-variant h-full gap-4"
+    aria-label="Primary navigation"
 >
     {#each themeStore.navigationItems as link (link.id)}
         {@const isActive =

@@ -86,10 +86,10 @@
 
 <LockScreen />
 
-<div class="flex flex-col md:flex-row h-screen bg-m3-surface overflow-hidden">
+<div class="flex flex-col xl:flex-row h-screen bg-m3-surface overflow-hidden">
 	<!-- Standard Navigation Rail (Desktop Only) -->
 	{#if themeStore.navigationStyle === "standard"}
-		<div class="hidden md:block h-full">
+		<div class="hidden xl:block h-full">
 			<NavigationRail />
 		</div>
 	{/if}
@@ -101,14 +101,14 @@
 
 	<main
 		class="flex-1 overflow-hidden bg-m3-surface transition-all duration-300
-        {themeStore.navigationStyle === 'modern' ? 'md:pl-28' : ''}"
+        {themeStore.navigationStyle === 'modern' ? 'xl:pl-28' : ''}"
 	>
 		{@render children()}
 	</main>
 
 	<!-- Standard Bottom Nav (Mobile Only) -->
 	{#if themeStore.navigationStyle === "standard"}
-		<div class="md:hidden fixed bottom-0 left-0 right-0 z-50">
+		<div class="xl:hidden fixed bottom-0 left-0 right-0 z-50">
 			<BottomNav />
 		</div>
 	{/if}

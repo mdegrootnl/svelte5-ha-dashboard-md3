@@ -3,8 +3,20 @@
  * Pure functions for grid layout calculations and collision detection
  */
 
-import type { DashboardItem, Breakpoint, GridConfig, DashboardCardType } from '$lib/types/dashboard';
-import { createDefaultItemLayout } from '$lib/types/dashboard';
+import type {
+    DashboardItem,
+    Breakpoint,
+    GridConfig,
+    DashboardCardType,
+    ViewportProfile,
+} from '$lib/types/dashboard';
+import {
+    VIEWPORT_PROFILES,
+    createDefaultItemLayout,
+    ensureItemLayoutProfiles,
+    getItemLayoutForProfile,
+    syncLegacyLayoutFromProfile,
+} from '$lib/types/dashboard';
 import { generateUUID } from '$lib/utils/uuid';
 import { normalizeDashboardItem } from './dashboardDefaults';
 
@@ -16,6 +28,18 @@ export interface LayoutBounds {
     colSpan: number;
     rowStart: number;
     rowSpan: number;
+}
+
+export type LayoutTarget = Breakpoint | ViewportProfile;
+
+export function isViewportProfile(target: LayoutTarget | 'all'): target is ViewportProfile {
+    return target !== 'all' && (VIEWPORT_PROFILES as string[]).includes(target);
+}
+
+function syncLayoutTarget(item: DashboardItem, target: LayoutTarget) {
+    if (isViewportProfile(target)) {
+        syncLegacyLayoutFromProfile(item, target);
+    }
 }
 
 /**
@@ -39,8 +63,12 @@ export function layoutsOverlap(a: LayoutBounds, b: LayoutBounds): boolean {
 /**
  * Get the layout for an item based on breakpoint
  */
-export function getItemLayout(item: DashboardItem, breakpoint: Breakpoint): LayoutBounds {
-    return breakpoint === 'desktop' ? item.layout.desktop : item.layout.mobile;
+export function getItemLayout(item: DashboardItem, target: LayoutTarget): LayoutBounds {
+    return isViewportProfile(target)
+        ? getItemLayoutForProfile(item, target)
+        : target === 'desktop'
+          ? item.layout.desktop
+          : item.layout.mobile;
 }
 
 /**
@@ -49,7 +77,7 @@ export function getItemLayout(item: DashboardItem, breakpoint: Breakpoint): Layo
 export function findOverlappingItems(
     items: DashboardItem[],
     targetItemId: string,
-    breakpoint: Breakpoint
+    breakpoint: LayoutTarget
 ): DashboardItem[] {
     const targetItem = items.find(i => i.id === targetItemId);
     if (!targetItem) return [];
@@ -69,7 +97,7 @@ export function findOverlappingItems(
 export function resolveLayoutCollisions(
     items: DashboardItem[],
     movedItemId: string,
-    breakpoint: Breakpoint
+    breakpoint: LayoutTarget
 ): void {
     const movedItem = items.find(i => i.id === movedItemId);
     if (!movedItem) return;
@@ -88,11 +116,8 @@ export function resolveLayoutCollisions(
 
         // Only push down if the item starts before or at where the moved item ends
         if (layout.rowStart < movedRowEnd) {
-            if (breakpoint === 'desktop') {
-                item.layout.desktop.rowStart = movedRowEnd;
-            } else {
-                item.layout.mobile.rowStart = movedRowEnd;
-            }
+            layout.rowStart = movedRowEnd;
+            syncLayoutTarget(item, breakpoint);
         }
     }
 
@@ -109,7 +134,7 @@ export function resolveLayoutCollisions(
 export function packItemsIntoGrid(
     items: DashboardItem[],
     columnCount: number,
-    breakpoint: Breakpoint
+    breakpoint: LayoutTarget
 ): void {
     // Sort items by current position
     const sortedItems = [...items].sort((a, b) => {
@@ -155,26 +180,24 @@ export function packItemsIntoGrid(
         const layout = getItemLayout(item, breakpoint);
         const pos = getNextPosition(layout.colSpan);
 
-        if (breakpoint === 'desktop') {
-            item.layout.desktop.colStart = pos.col;
-            item.layout.desktop.rowStart = pos.row;
-        } else {
-            item.layout.mobile.colStart = pos.col;
-            item.layout.mobile.rowStart = pos.row;
-        }
+        layout.colStart = pos.col;
+        layout.rowStart = pos.row;
+        syncLayoutTarget(item, breakpoint);
     }
 }
 
 /**
  * Calculate maximum row used by items
  */
-export function getMaxRow(items: DashboardItem[], breakpoint: Breakpoint | 'all'): number {
+export function getMaxRow(items: DashboardItem[], breakpoint: LayoutTarget | 'all'): number {
     let maxRow = 1;
     for (const item of items) {
         if (breakpoint === 'all') {
-            const desktopEnd = item.layout.desktop.rowStart + item.layout.desktop.rowSpan;
-            const mobileEnd = item.layout.mobile.rowStart + item.layout.mobile.rowSpan;
-            maxRow = Math.max(maxRow, desktopEnd, mobileEnd);
+            const legacyLayouts = [item.layout.desktop, item.layout.mobile];
+            const profileLayouts = Object.values(ensureItemLayoutProfiles(item));
+            for (const layout of [...legacyLayouts, ...profileLayouts]) {
+                maxRow = Math.max(maxRow, layout.rowStart + layout.rowSpan);
+            }
         } else {
             const layout = getItemLayout(item, breakpoint);
             maxRow = Math.max(maxRow, layout.rowStart + layout.rowSpan);
