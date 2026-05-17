@@ -7,6 +7,11 @@
     import { getDomain, getEntityName } from "$lib/utils/entity";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import type { RoomCardOptions } from "$lib/types";
+    import type { DashboardCardSurfaceStyle } from "$lib/types/dashboard";
+    import {
+        getCardSurfaceClasses,
+        getCardSurfaceStyle,
+    } from "$lib/features/dashboard/utils/cardSurface";
     import IconEdit from "~icons/material-symbols/edit";
 
     interface Props {
@@ -16,6 +21,7 @@
         icon?: string;
         color?: string;
         backgroundColor?: string;
+        surfaceStyle?: DashboardCardSurfaceStyle;
         options?: RoomCardOptions;
         ondelete?: () => void;
         class?: string;
@@ -28,6 +34,7 @@
         icon = $bindable("meeting_room"),
         color = $bindable(),
         backgroundColor = $bindable(),
+        surfaceStyle = "md3",
         options = $bindable({ source: "auto" }),
         ondelete,
         class: className = "",
@@ -151,8 +158,8 @@
 </script>
 
 <article
-    class="relative h-full w-full rounded-m3-card bg-m3-surface-container-highest text-m3-on-surface overflow-hidden group/card @container {className}"
-    style={`container-type: size;${backgroundColor ? ` background-color: ${backgroundColor};` : ""}`}
+    class="relative h-full w-full rounded-m3-card text-m3-on-surface overflow-hidden group/card @container {getCardSurfaceClasses(surfaceStyle)} {className}"
+    style={`container-type: size;${getCardSurfaceStyle(surfaceStyle, backgroundColor)}`}
 >
     <div class="flex h-full flex-col gap-[clamp(0.375rem,4cqmin,1.25rem)] p-[clamp(0.625rem,5cqmin,1.75rem)]">
         <div class="flex items-start justify-between gap-[clamp(0.375rem,3cqmin,1rem)]">

@@ -9,7 +9,7 @@
 </script>
 
 <nav
-    class="relative z-50 flex flex-col items-center py-8 w-20 bg-m3-surface border-r border-m3-outline-variant h-full gap-4"
+    class="relative z-50 flex flex-col items-center py-8 w-20 bg-m3-surface/82 border-r border-m3-outline-variant h-full gap-4 backdrop-blur-md"
     aria-label="Primary navigation"
 >
     {#each themeStore.navigationItems as link (link.id)}

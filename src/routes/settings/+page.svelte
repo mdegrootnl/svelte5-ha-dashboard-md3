@@ -32,6 +32,14 @@
     let token = ""; // Local variable for internal use if needed, but removing from state
     let loading = $state(false);
     let error = $state<string | null>(null);
+    let imageProviderStatus = $state({
+        unsplash: { configured: false, source: "none" },
+        pexels: { configured: false, source: "none" },
+    } as Record<"unsplash" | "pexels", { configured: boolean; source: "runtime" | "env" | "none" }>);
+    let unsplashAccessKey = $state("");
+    let pexelsApiKey = $state("");
+    let imageProviderSaving = $state(false);
+    let imageProviderMessage = $state("");
 
     onMount(async () => {
         const lastUrl = await haStore.getLastUsedUrl();
@@ -67,6 +75,8 @@
                 }
             }
         }
+
+        await loadImageProviderStatus();
     });
 
     // Input validation patterns
@@ -142,6 +152,86 @@
         error = null;
     }
 
+    async function loadImageProviderStatus() {
+        try {
+            const response = await fetch("/api/image-providers/settings");
+            const data = await response.json().catch(() => ({}));
+            if (response.ok && data.providers) {
+                imageProviderStatus = data.providers;
+            }
+        } catch (err) {
+            console.warn("Image provider settings unavailable", err);
+        }
+    }
+
+    function formatProviderStatus(provider: "unsplash" | "pexels") {
+        const status = imageProviderStatus[provider];
+        if (!status.configured) return "Not configured";
+        return status.source === "runtime" ? "Configured in Settings" : "Configured by environment";
+    }
+
+    async function saveImageProviderKeys() {
+        const payload: Record<string, string> = {};
+        if (unsplashAccessKey.trim()) payload.unsplashAccessKey = unsplashAccessKey.trim();
+        if (pexelsApiKey.trim()) payload.pexelsApiKey = pexelsApiKey.trim();
+
+        if (!Object.keys(payload).length) {
+            imageProviderMessage = "Enter a key before saving.";
+            return;
+        }
+
+        imageProviderSaving = true;
+        imageProviderMessage = "";
+        try {
+            const response = await fetch("/api/image-providers/settings", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                imageProviderMessage = data.error || "Failed to save provider keys.";
+                return;
+            }
+            imageProviderStatus = data.providers;
+            unsplashAccessKey = "";
+            pexelsApiKey = "";
+            imageProviderMessage = "Image provider keys saved.";
+        } catch {
+            imageProviderMessage = "Image provider settings are unavailable.";
+        } finally {
+            imageProviderSaving = false;
+        }
+    }
+
+    async function clearRuntimeImageProviderKeys() {
+        imageProviderSaving = true;
+        imageProviderMessage = "";
+        try {
+            const response = await fetch("/api/image-providers/settings", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({
+                    unsplashAccessKey: null,
+                    pexelsApiKey: null,
+                }),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                imageProviderMessage = data.error || "Failed to clear provider keys.";
+                return;
+            }
+            imageProviderStatus = data.providers;
+            unsplashAccessKey = "";
+            pexelsApiKey = "";
+            imageProviderMessage = "Runtime image provider keys cleared.";
+        } catch {
+            imageProviderMessage = "Image provider settings are unavailable.";
+        } finally {
+            imageProviderSaving = false;
+        }
+    }
+
     // Determine if we should show the login form
     const showLoginForm = $derived(
         haStore.connectionState === "disconnected" ||
@@ -151,7 +241,7 @@
     // Settings Tabs
     const tabs = [
         { id: "connections", name: "Connections", icon: "link" },
-        { id: "navigation", name: "Navigation", icon: "menu" },
+        { id: "navigation", name: "Navigation", icon: "menu_open" },
         { id: "dashboards", name: "Dashboards", icon: "dashboard" },
         { id: "lockscreen", name: "Lockscreen", icon: "lock_clock" },
     ];
@@ -546,6 +636,79 @@
                                 </Button>
                             </div>
                         {/if}
+                    </div>
+                </Card>
+            </section>
+
+            <!-- Image Providers Section -->
+            <section>
+                <Card variant="outlined" class="w-full">
+                    <div class="p-6 flex flex-col gap-5">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="w-10 h-10 rounded-lg bg-m3-primary/10 flex items-center justify-center"
+                            >
+                                <Key class="w-6 h-6 text-m3-primary" />
+                            </div>
+                            <div class="flex-1">
+                                <h2
+                                    class="text-m3-title-large text-m3-on-surface"
+                                >
+                                    Image Providers
+                                </h2>
+                                <p
+                                    class="text-m3-body-medium text-m3-on-surface-variant"
+                                >
+                                    Store provider keys on this server without
+                                    editing production environment files.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="flex flex-col gap-2">
+                                <TextField
+                                    label="Unsplash Access Key"
+                                    type="password"
+                                    placeholder="Paste a new key"
+                                    bind:value={unsplashAccessKey}
+                                    supportingText={formatProviderStatus("unsplash")}
+                                />
+                            </div>
+                            <div class="flex flex-col gap-2">
+                                <TextField
+                                    label="Pexels API Key"
+                                    type="password"
+                                    placeholder="Paste a new key"
+                                    bind:value={pexelsApiKey}
+                                    supportingText={formatProviderStatus("pexels")}
+                                />
+                            </div>
+                        </div>
+
+                        {#if imageProviderMessage}
+                            <p class="text-m3-body-small text-m3-on-surface-variant">
+                                {imageProviderMessage}
+                            </p>
+                        {/if}
+
+                        <div class="flex flex-wrap justify-end gap-2">
+                            <Button
+                                variant="outlined"
+                                onclick={clearRuntimeImageProviderKeys}
+                                disabled={imageProviderSaving}
+                            >
+                                Clear Runtime Keys
+                            </Button>
+                            <Button
+                                variant="filled"
+                                onclick={saveImageProviderKeys}
+                                disabled={imageProviderSaving}
+                                icon={Key}
+                            >
+                                {imageProviderSaving ? "Saving..." : "Save Keys"}
+                            </Button>
+                        </div>
                     </div>
                 </Card>
             </section>

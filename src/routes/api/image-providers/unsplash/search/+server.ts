@@ -1,6 +1,6 @@
-import { env } from '$env/dynamic/private';
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { ImageProviderSettingsService } from '$lib/server/imageProviderSettings';
 
 const UNSPLASH_API_URL = 'https://api.unsplash.com/search/photos';
 const APPLICATION_NAME = 'ha_dashboard';
@@ -43,7 +43,7 @@ function withUtm(url: string | null | undefined): string | undefined {
 }
 
 export const GET: RequestHandler = async ({ url, fetch }) => {
-    const accessKey = env.UNSPLASH_ACCESS_KEY?.trim();
+    const accessKey = await ImageProviderSettingsService.getUnsplashAccessKey();
     if (!accessKey) {
         return json({ error: 'Unsplash API key is not configured.' }, { status: 503 });
     }

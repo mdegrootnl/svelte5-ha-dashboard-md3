@@ -69,6 +69,34 @@ describe('DashboardStore', () => {
         expect(fetch).not.toHaveBeenCalled();
     });
 
+    it('normalizes generated weather cards to a readable minimum height', () => {
+        const store = new DashboardStore({} as any);
+        const config = createRoomConfig();
+        config.tabs[0].items.push({
+            id: 'weather-1',
+            cardType: 'weather',
+            entityId: 'weather.home',
+            name: 'Weather',
+            domainFilter: '',
+            secondaryEntityId: '',
+            secondaryName: '',
+            generationState: 'generated',
+            layout: {
+                desktop: { colStart: 1, colSpan: 4, rowStart: 1, rowSpan: 2 },
+                mobile: { colStart: 1, colSpan: 4, rowStart: 1, rowSpan: 2 },
+            },
+        } as any);
+
+        store.init({ [config.id]: config }, []);
+        const loaded = store.loadConfig(config.id);
+        const item = loaded?.tabs[0].items[0];
+
+        expect(item?.layout.desktop.rowSpan).toBe(3);
+        expect(item?.layout.mobile.rowSpan).toBe(3);
+        expect(item?.layoutProfiles?.phonePortrait.rowSpan).toBe(3);
+        expect(localStorage.getItem('dashboard-config')).toBeNull();
+    });
+
     it('persists explicit setConfig mutations once', () => {
         const store = new DashboardStore({} as any);
         const config = createRoomConfig();

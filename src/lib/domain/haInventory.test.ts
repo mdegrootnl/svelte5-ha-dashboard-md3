@@ -4,6 +4,7 @@ import {
     buildSmartDevicePanelOptions,
     buildSmartEnergyOptions,
     buildSmartRemoteOptions,
+    buildSmartWeatherOptions,
     createInventoryIndex,
     createCollectionQuery,
     filterLowBattery,
@@ -336,6 +337,51 @@ describe('haInventory', () => {
 
         expect(options.solarPowerEntityId).toBe('sensor.solar_power');
         expect(options.homePowerEntityId).toBe('sensor.home_power');
+        expect(options.mode).toBe('overview');
+        expect(options.historyRange).toBeUndefined();
+        expect(options.hoursToShow).toBe(24);
+    });
+
+    it('prefers usable weather providers and skips unusable helper sensors', () => {
+        const weatherContext: InventoryContext = {
+            ...context,
+            states: {
+                ...context.states,
+                'weather.broken': entity('weather.broken', 'unavailable', {
+                    friendly_name: 'Broken Weather',
+                }),
+                'weather.home': entity('weather.home', 'cloudy', {
+                    friendly_name: 'Home Weather',
+                    temperature: 15,
+                    humidity: 77,
+                    wind_speed: 12,
+                    wind_speed_unit: 'km/h',
+                }),
+                'sensor.home_humidity': entity('sensor.home_humidity', 'unknown', {
+                    friendly_name: 'Home Humidity',
+                    device_class: 'humidity',
+                    unit_of_measurement: '%',
+                }),
+                'sensor.home_wind': entity('sensor.home_wind', 'unavailable', {
+                    friendly_name: 'Home Wind',
+                    device_class: 'wind_speed',
+                    unit_of_measurement: 'km/h',
+                }),
+            },
+            entities: [
+                ...context.entities,
+                registry('weather.broken', 'Broken Weather'),
+                registry('weather.home', 'Home Weather'),
+                registry('sensor.home_humidity', 'Home Humidity'),
+                registry('sensor.home_wind', 'Home Wind'),
+            ],
+        };
+
+        const options = buildSmartWeatherOptions(weatherContext);
+
+        expect(options.weatherEntityId).toBe('weather.home');
+        expect(options.humidityEntityId).toBeUndefined();
+        expect(options.windEntityId).toBeUndefined();
     });
 
     it('builds smart calendar defaults without requiring manual entity ids', () => {
@@ -393,6 +439,7 @@ describe('haInventory', () => {
         expect(buildSmartEnergyOptions(index)).toEqual(buildSmartEnergyOptions(context));
         expect(buildSmartCalendarOptions(index)).toEqual(buildSmartCalendarOptions(context));
         expect(buildSmartRemoteOptions(index)).toEqual(buildSmartRemoteOptions(context));
+        expect(buildSmartWeatherOptions(index)).toEqual(buildSmartWeatherOptions(context));
         expect(buildSmartDevicePanelOptions(index, { preset: 'cover' })).toEqual(
             buildSmartDevicePanelOptions(context, { preset: 'cover' }),
         );

@@ -532,14 +532,62 @@ function findFirstEntityId(context: InventorySource, terms: string[], domains?: 
     return asInventoryIndex(context).findFirstEntityId(terms, domains, deviceClasses);
 }
 
+function hasUsableEntityState(entity: ResolvedEntity) {
+    const state = entity.state.trim().toLowerCase();
+    return state.length > 0 && !BAD_STATES.has(state);
+}
+
+function findFirstUsableEntityId(context: InventorySource, terms: string[], domains?: string[], deviceClasses?: string[]) {
+    const index = asInventoryIndex(context);
+    const candidates = index.query({ domains, deviceClasses, includeDiagnostic: true, limit: 100 });
+    const normalizedTerms = terms.map((term) => term.toLowerCase());
+
+    return candidates.find((entity) => {
+        if (!hasUsableEntityState(entity)) return false;
+        const haystack = `${entity.entityId} ${entity.name} ${entity.deviceClass ?? ''}`.toLowerCase();
+        return normalizedTerms.some((term) => haystack.includes(term));
+    })?.entityId;
+}
+
 function fallbackIfDomain(entityId: string | undefined, domains: string[]) {
     if (!entityId) return undefined;
     return domains.includes(getDomain(entityId)) ? entityId : undefined;
 }
 
+function isUsableWeatherAttribute(value: unknown) {
+    if (value === null || value === undefined) return false;
+    const normalized = String(value).trim().toLowerCase();
+    return normalized.length > 0 && !BAD_STATES.has(normalized);
+}
+
+function scoreWeatherEntity(index: InventoryIndex, entity: ResolvedEntity) {
+    const state = index.states[entity.entityId];
+    let score = hasUsableEntityState(entity) ? 0 : -50;
+
+    if (isUsableWeatherAttribute(state?.attributes.temperature)) score += 10;
+    if (isUsableWeatherAttribute(state?.attributes.humidity)) score += 4;
+    if (isUsableWeatherAttribute(state?.attributes.wind_speed)) score += 3;
+    if (entity.entityId.includes('home') || entity.name.toLowerCase().includes('home')) score += 1;
+
+    return score;
+}
+
+function findBestWeatherEntityId(context: InventorySource) {
+    const index = asInventoryIndex(context);
+    const candidates = index.query({ domains: ['weather'], includeDiagnostic: true, limit: 100 });
+    if (candidates.length === 0) return undefined;
+
+    return [...candidates].sort((a, b) => {
+        const scoreDelta = scoreWeatherEntity(index, b) - scoreWeatherEntity(index, a);
+        if (scoreDelta !== 0) return scoreDelta;
+        return a.name.localeCompare(b.name);
+    })[0]?.entityId;
+}
+
 export function buildSmartEnergyOptions(context: InventorySource, current: EnergyCardOptions = {}): EnergyCardOptions {
     return {
         source: current.source ?? 'auto',
+        mode: current.mode ?? 'overview',
         gridImportEntityId: current.gridImportEntityId ?? findFirstEntityId(context, ['grid import', 'net afname', 'import'], ['sensor'], ['power', 'energy']),
         gridExportEntityId: current.gridExportEntityId ?? findFirstEntityId(context, ['grid export', 'net teruglevering', 'export'], ['sensor'], ['power', 'energy']),
         solarPowerEntityId: current.solarPowerEntityId ?? findFirstEntityId(context, ['solar', 'pv', 'fronius', 'zonne'], ['sensor'], ['power']),
@@ -548,17 +596,20 @@ export function buildSmartEnergyOptions(context: InventorySource, current: Energ
         todayEnergyEntityId: current.todayEnergyEntityId ?? findFirstEntityId(context, ['today', 'daily', 'dag'], ['sensor'], ['energy']),
         gasEntityId: current.gasEntityId ?? findFirstEntityId(context, ['gas'], ['sensor'], ['gas', 'energy']),
         waterEntityId: current.waterEntityId ?? findFirstEntityId(context, ['water'], ['sensor'], ['water']),
+        deviceEntityIds: current.deviceEntityIds,
+        historyRange: current.historyRange,
+        hoursToShow: current.hoursToShow ?? 24,
     };
 }
 
 export function buildSmartWeatherOptions(context: InventorySource, current: WeatherCardOptions = {}): WeatherCardOptions {
     return {
         source: current.source ?? 'auto',
-        weatherEntityId: current.weatherEntityId ?? findFirstEntityId(context, ['weather.'], ['weather']),
-        temperatureEntityId: current.temperatureEntityId ?? findFirstEntityId(context, ['outdoor', 'outside', 'buiten'], ['sensor'], ['temperature']),
-        humidityEntityId: current.humidityEntityId ?? findFirstEntityId(context, ['humidity', 'vocht'], ['sensor'], ['humidity']),
-        rainEntityId: current.rainEntityId ?? findFirstEntityId(context, ['rain', 'regen', 'precipitation'], ['sensor'], ['precipitation']),
-        windEntityId: current.windEntityId ?? findFirstEntityId(context, ['wind'], ['sensor'], ['wind_speed']),
+        weatherEntityId: current.weatherEntityId ?? findBestWeatherEntityId(context),
+        temperatureEntityId: current.temperatureEntityId ?? findFirstUsableEntityId(context, ['outdoor', 'outside', 'buiten'], ['sensor'], ['temperature']),
+        humidityEntityId: current.humidityEntityId ?? findFirstUsableEntityId(context, ['humidity', 'vocht'], ['sensor'], ['humidity']),
+        rainEntityId: current.rainEntityId ?? findFirstUsableEntityId(context, ['rain', 'regen', 'precipitation'], ['sensor'], ['precipitation']),
+        windEntityId: current.windEntityId ?? findFirstUsableEntityId(context, ['wind'], ['sensor'], ['wind_speed']),
     };
 }
 

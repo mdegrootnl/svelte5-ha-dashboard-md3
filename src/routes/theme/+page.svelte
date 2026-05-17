@@ -40,6 +40,23 @@
         { label: "Soft", value: 12 },
         { label: "Pill", value: 32 },
     ];
+    const surfaceStyleOptions = [
+        {
+            value: "md3",
+            label: "MD3",
+            description: "Solid token surfaces",
+        },
+        {
+            value: "glass",
+            label: "Glass",
+            description: "Translucent blur over images",
+        },
+        {
+            value: "soft",
+            label: "Soft",
+            description: "Raised tactile shadows",
+        },
+    ] as const;
 
     async function handleImageUpload(e: Event) {
         const input = e.target as HTMLInputElement;
@@ -198,6 +215,49 @@
                 checked={themeStore.isDark}
                 onchange={() => themeStore.toggleDark()}
             />
+        </section>
+
+        <!-- Card Surface Style -->
+        <section class="flex flex-col gap-3">
+            <span class="text-m3-label-large text-m3-on-surface"
+                >Card Surface</span
+            >
+            <div class="grid grid-cols-3 gap-2">
+                {#each surfaceStyleOptions as option}
+                    <button
+                        type="button"
+                        class="h-9 rounded-m3-full px-3 text-m3-label-medium transition-colors {themeStore.cardSurfaceStyle ===
+                        option.value
+                            ? 'bg-m3-primary-container text-m3-on-primary-container'
+                            : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}"
+                        onclick={() =>
+                            themeStore.setCardSurfaceStyle(option.value)}
+                    >
+                        {option.label}
+                    </button>
+                {/each}
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+                {#each surfaceStyleOptions as option}
+                    <button
+                        type="button"
+                        class="dashboard-card-surface dashboard-card-surface-{option.value} flex min-h-24 flex-col justify-end rounded-m3-card p-3 text-left transition-transform hover:-translate-y-0.5 {themeStore.cardSurfaceStyle ===
+                        option.value
+                            ? 'ring-2 ring-m3-primary'
+                            : ''}"
+                        onclick={() =>
+                            themeStore.setCardSurfaceStyle(option.value)}
+                        use:tooltip={option.description}
+                    >
+                        <span class="text-m3-label-large text-m3-on-surface">
+                            {option.label}
+                        </span>
+                        <span
+                            class="mt-1 h-2 w-12 rounded-m3-full bg-m3-primary"
+                        ></span>
+                    </button>
+                {/each}
+            </div>
         </section>
 
         <!-- Card Shape -->

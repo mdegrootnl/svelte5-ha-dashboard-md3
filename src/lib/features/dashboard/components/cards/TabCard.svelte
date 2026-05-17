@@ -1,5 +1,6 @@
 <script lang="ts">
     import type {
+        DashboardCardSurfaceStyle,
         GridConfig,
         TabCardConfig,
     } from "$lib/types/dashboard";
@@ -10,6 +11,7 @@
     import GridItem from "$lib/components/layout/GridItem.svelte";
     import GridOverlay from "$lib/components/layout/GridOverlay.svelte";
     import GridConfigDialog from "$lib/components/layout/GridConfigDialog.svelte";
+    import DashboardBackgroundLayer from "$lib/components/layout/DashboardBackgroundLayer.svelte";
     import { dashboardStore } from "$lib/features/dashboard/stores/dashboard.svelte";
     import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
@@ -26,12 +28,17 @@
     import { fade } from "svelte/transition";
     import TextInputDialog from "$lib/components/common/TextInputDialog.svelte";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
+    import {
+        resolveCardSurfaceStyle,
+    } from "$lib/features/dashboard/utils/cardSurface";
 
     interface Props {
         config: TabCardConfig;
+        surfaceStyle?: DashboardCardSurfaceStyle;
     }
 
-    let { config = $bindable() }: Props = $props();
+    let { config = $bindable(), surfaceStyle = "md3" }: Props = $props();
 
     // Local state for active tab (with fallback)
     let activeIndex = $derived(config.activeTabIndex ?? 0);
@@ -157,16 +164,25 @@
     // Derived for grid rendering
     let breakpoint = $derived(dashboardStore.breakpoint);
     let activeProfile = $derived(dashboardStore.viewportProfile);
+    let nestedSurfaceStyle = $derived(
+        resolveCardSurfaceStyle(
+            themeStore.cardSurfaceStyle || surfaceStyle,
+            currentGrid?.cardSurfaceStyle,
+        ),
+    );
 </script>
 
 <div
-    class="flex flex-col h-full w-full relative group/tab-card transition-all duration-200"
+    class="flex flex-col h-full w-full relative group/tab-card overflow-hidden transition-all duration-200"
     class:bg-m3-surface-container-low={isGlobalEditing}
-    class:rounded-m3-card={isGlobalEditing}
     class:border={isGlobalEditing}
     class:border-m3-outline-variant={isGlobalEditing}
     class:border-dashed={isGlobalEditing}
 >
+    <DashboardBackgroundLayer
+        background={currentGrid?.background}
+        class="flex min-h-0 flex-1 flex-col"
+    >
     <!-- Tab Bar (Floating Pills) -->
     <div
         class="flex items-center justify-center gap-2 w-full overflow-x-auto no-scrollbar py-2"
@@ -281,6 +297,7 @@
                             <DashboardCardRenderer
                                 bind:item={currentGrid.items[i]}
                                 layoutRows={itemLayout.rowSpan}
+                                surfaceStyle={nestedSurfaceStyle}
                                 ondelete={(id) =>
                                     dashboardEditorStore.deleteItem(id)}
                             />
@@ -375,6 +392,7 @@
             </div>
         {/if}
     </div>
+    </DashboardBackgroundLayer>
 </div>
 
 <!-- Rename Dialog -->

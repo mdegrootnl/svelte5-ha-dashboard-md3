@@ -8,6 +8,11 @@
         GraphChartType,
         HistoryDataPoint,
     } from "$lib/types";
+    import type { DashboardCardSurfaceStyle } from "$lib/types/dashboard";
+    import {
+        getCardSurfaceClasses,
+        getCardSurfaceStyle,
+    } from "$lib/features/dashboard/utils/cardSurface";
     import IconEdit from "~icons/material-symbols/edit";
     import IconShowChart from "~icons/material-symbols/show-chart";
     import MiniChart from "$lib/components/viz/MiniChart.svelte";
@@ -42,6 +47,7 @@
         class?: string;
         color?: string;
         backgroundColor?: string;
+        surfaceStyle?: DashboardCardSurfaceStyle;
         icon?: string | any;
         fetchHistory?: boolean;
         layoutRows?: number;
@@ -63,6 +69,7 @@
         class: className = "",
         color = $bindable(),
         backgroundColor = $bindable(),
+        surfaceStyle = "md3",
         icon: iconProp = $bindable(),
         fetchHistory = true,
         layoutRows,
@@ -308,7 +315,7 @@
     }
 
     const baseStyles =
-        "relative flex flex-col w-full h-full rounded-m3-card bg-m3-surface-container-highest text-m3-on-surface overflow-hidden transition-all duration-200 group/card";
+        "relative flex flex-col w-full h-full rounded-m3-card text-m3-on-surface overflow-hidden transition-all duration-200 group/card";
     // -- Responsive Layout --
     let clientHeight = $state(0);
     const LAYOUT = {
@@ -333,9 +340,9 @@
 </script>
 
 <div
-    class="{baseStyles} {className} @container"
+    class="{baseStyles} {getCardSurfaceClasses(surfaceStyle)} {className} @container"
     bind:clientHeight
-    style={`container-type: size;${backgroundColor ? ` background-color: ${backgroundColor};` : ""}`}
+    style={`container-type: size;${getCardSurfaceStyle(surfaceStyle, backgroundColor)}`}
 >
     <!-- Background Graph (Visible when NOT expanded) -->
     {#if !isExpanded && show.graph !== false}

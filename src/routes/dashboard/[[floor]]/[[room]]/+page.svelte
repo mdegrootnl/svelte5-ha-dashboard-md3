@@ -2,7 +2,9 @@
     import { page } from "$app/stores";
     import { browser } from "$app/environment";
     import { haStore } from "$lib/stores/ha.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
     import PageShell from "$lib/components/layout/PageShell.svelte";
+    import DashboardBackgroundLayer from "$lib/components/layout/DashboardBackgroundLayer.svelte";
     import GridContainer from "$lib/components/layout/GridContainer.svelte";
     import GridItem from "$lib/components/layout/GridItem.svelte";
     import GridOverlay from "$lib/components/layout/GridOverlay.svelte";
@@ -38,6 +40,7 @@
     import IconTab from "~icons/material-symbols/tab-outline";
     import IconPushPin from "~icons/material-symbols/push-pin";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
+    import { resolveCardSurfaceStyle } from "$lib/features/dashboard/utils/cardSurface";
 
     let { data } = $props();
 
@@ -160,6 +163,16 @@
         );
         return found || roomConfig.tabs[0] || roomConfig;
     });
+    let activeViewBackground = $derived(activeTab?.background);
+    let activeViewHasBackground = $derived(
+        Boolean(activeViewBackground?.enabled && activeViewBackground.imageUrl),
+    );
+    let activeCardSurfaceStyle = $derived(
+        resolveCardSurfaceStyle(
+            themeStore.cardSurfaceStyle,
+            activeTab?.cardSurfaceStyle,
+        ),
+    );
 
     let gridSettingsTarget = $derived<GridConfig | null>(
         dashboardEditorStore.getActiveGridConfig() ?? activeTab,
@@ -461,10 +474,16 @@
     <title>Home Dashboard - Home Assistant</title>
 </svelte:head>
 
+<DashboardBackgroundLayer
+    background={activeViewBackground}
+    variant="viewport"
+    class="h-full w-full"
+>
 <PageShell
     title={pageTitle}
     description={haStore.connected ? undefined : "Configure connection in Settings"}
     maxWidth="6xl"
+    backgroundActive={activeViewHasBackground}
 >
     {#snippet icon()}
         <div class="flex size-10 items-center justify-center text-m3-primary">
@@ -636,7 +655,7 @@
     {/snippet}
 
     {#if roomConfig && activeTab}
-        <section class="relative flex flex-col gap-4">
+        <section class="relative flex min-h-[500px] flex-col gap-4">
             <!-- Tab Bar -->
             {#if roomConfig.tabs.length > 1 || isEditing}
                 <TabBar
@@ -738,6 +757,7 @@
                             <DashboardCardRenderer
                                 bind:item={activeTab.items[i]}
                                 layoutRows={itemLayout.rowSpan}
+                                surfaceStyle={activeCardSurfaceStyle}
                                 ondelete={(id) =>
                                     dashboardEditorStore.deleteItem(id)}
                             />
@@ -805,6 +825,7 @@
         </section>
     {/if}
 </PageShell>
+</DashboardBackgroundLayer>
 
 <!-- Grid Config Dialog -->
 {#if gridSettingsTarget}

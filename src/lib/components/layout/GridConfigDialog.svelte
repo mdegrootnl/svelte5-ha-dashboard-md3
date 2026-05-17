@@ -3,16 +3,30 @@
     import Button from "$lib/components/md3/Button.svelte";
     import Chip from "$lib/components/md3/Chip.svelte";
     import Switch from "$lib/components/md3/Switch.svelte";
+    import AuthenticatedImage from "$lib/components/common/AuthenticatedImage.svelte";
+    import ImagePicker from "$lib/components/settings/ImagePicker.svelte";
     import IconGridView from "~icons/material-symbols/grid-view";
     import IconLink from "~icons/material-symbols/link";
     import IconLinkOff from "~icons/material-symbols/link-off";
     import { dashboardStore } from "$lib/features/dashboard/stores/dashboard.svelte";
     import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
+    import { haStore } from "$lib/stores/ha.svelte";
+    import { haRegistryStore } from "$lib/stores/haRegistry.svelte";
+    import {
+        createGeneratedPreviewBackgroundForGrid,
+        createHaAreaPictureBackgroundForGrid,
+        findAreaForGridBackground,
+    } from "$lib/domain/dashboardBackground";
+    import { normalizeGridCardSurfaceStyle } from "$lib/features/dashboard/utils/cardSurface";
+    import { extractAccentColorFromImageUrl } from "$lib/utils/imageAccent";
     import SideSheet from "./SideSheet.svelte";
     import {
         ensureGridColumnProfiles,
         getGridColumnsForProfile,
         profileToLegacyBreakpoint,
+        type DashboardBackgroundSource,
+        type DashboardGridCardSurfaceStyle,
+        type DashboardImageAttribution,
         type GridConfig,
         type GridTrack,
     } from "$lib/types/dashboard";
@@ -38,7 +52,90 @@
     let verticalGap = $state(16);
     let gapsLinked = $state(true);
     let padding = $state(16);
+    let cardSurfaceStyle = $state<DashboardGridCardSurfaceStyle>("theme");
+    let backgroundEnabled = $state(false);
+    let backgroundSource = $state<DashboardBackgroundSource>("none");
+    let backgroundImageUrl = $state("");
+    let backgroundAttribution = $state<DashboardImageAttribution | undefined>();
+    let backgroundAccentColor = $state<string | undefined>();
+    let backgroundObjectPosition = $state<"center" | "top" | "bottom">("center");
+    let backgroundScrimOpacity = $state(0.38);
+    let backgroundSourceMessage = $state("");
+    let lastExtractedBackgroundUrl = $state("");
     let activeProfile = $derived(dashboardStore.viewportProfile);
+
+    const backgroundSourceOptions: Array<{
+        value: DashboardBackgroundSource;
+        label: string;
+    }> = [
+        { value: "manual", label: "Upload / URL" },
+        { value: "unsplash", label: "Unsplash" },
+        { value: "pexels", label: "Pexels" },
+        { value: "generated_preview", label: "Generated" },
+        { value: "ha_area_picture", label: "HA Area" },
+    ];
+
+    const objectPositionOptions: Array<{
+        value: "center" | "top" | "bottom";
+        label: string;
+    }> = [
+        { value: "center", label: "Center" },
+        { value: "top", label: "Top" },
+        { value: "bottom", label: "Bottom" },
+    ];
+
+    const cardSurfaceStyleOptions: Array<{
+        value: DashboardGridCardSurfaceStyle;
+        label: string;
+        description: string;
+    }> = [
+        {
+            value: "theme",
+            label: "Use theme",
+            description: "Follow the global card surface setting.",
+        },
+        {
+            value: "md3",
+            label: "MD3",
+            description: "Solid Material surfaces.",
+        },
+        {
+            value: "glass",
+            label: "Glass",
+            description: "Translucent blur over backgrounds.",
+        },
+        {
+            value: "soft",
+            label: "Soft",
+            description: "Raised tactile shadows with strong borders.",
+        },
+    ];
+
+    function getPreviewBackgroundTreatment(opacity: number) {
+        const clamped = Math.max(0, Math.min(0.95, opacity));
+        const top = Math.round(Math.min(0.86, clamped + 0.12) * 100);
+        const topMid = Math.round(clamped * 38);
+        const side = Math.round(Math.min(0.78, clamped + 0.04) * 100);
+        const bottom = Math.round(clamped * 48);
+        const global = Math.round(clamped * 34);
+        const accent = Math.round(clamped * 10);
+        const accentColor = backgroundAccentColor || "var(--color-m3-primary)";
+
+        return `background:
+            linear-gradient(180deg,
+                color-mix(in srgb, var(--color-m3-scrim) ${top}%, transparent) 0%,
+                color-mix(in srgb, var(--color-m3-scrim) ${topMid}%, transparent) 22%,
+                transparent 48%,
+                color-mix(in srgb, var(--color-m3-scrim) ${bottom}%, transparent) 100%
+            ),
+            linear-gradient(90deg,
+                color-mix(in srgb, var(--color-m3-scrim) ${side}%, transparent) 0%,
+                color-mix(in srgb, var(--color-m3-surface) ${Math.round(side * 0.32)}%, transparent) 18%,
+                transparent 58%
+            ),
+            color-mix(in srgb, ${accentColor} ${accent}%, transparent),
+            color-mix(in srgb, var(--color-m3-scrim) ${global}%, transparent);`;
+    }
 
     // Derive warning for rows that are too short
     let rowHeightWarnings = $derived(() => {
@@ -88,6 +185,21 @@
                 (config.columnGap ?? config.gap) ===
                 (config.rowGap ?? config.gap);
             padding = config.padding;
+            cardSurfaceStyle = normalizeGridCardSurfaceStyle(
+                config.cardSurfaceStyle,
+            );
+            backgroundEnabled = Boolean(config.background?.enabled);
+            backgroundSource = config.background?.source ?? "none";
+            if (backgroundEnabled && backgroundSource === "none") {
+                backgroundSource = "manual";
+            }
+            backgroundImageUrl = config.background?.imageUrl ?? "";
+            backgroundAttribution = config.background?.imageAttribution;
+            backgroundAccentColor = config.background?.accentColor;
+            backgroundObjectPosition = config.background?.objectPosition ?? "center";
+            backgroundScrimOpacity = config.background?.scrimOpacity ?? 0.38;
+            backgroundSourceMessage = "";
+            lastExtractedBackgroundUrl = "";
             dimensionInput =
                 rows > 0
                     ? `${config.columns.desktop}×${rows}`
@@ -96,6 +208,16 @@
         }
         previousOpen = open;
     });
+
+    $effect(() => {
+        if (backgroundEnabled && backgroundSource === "none") {
+            backgroundSource = "manual";
+        }
+    });
+
+    let resolvedBackgroundArea = $derived(
+        findAreaForGridBackground(config, haRegistryStore.areas),
+    );
 
     // Parse dimension input like "12x6" or "12×6" or just "12"
     function parseDimensionInput(
@@ -191,6 +313,19 @@
             columnGap: horizontalGap,
             rowGap: verticalGap,
             padding,
+            cardSurfaceStyle:
+                cardSurfaceStyle === "theme" ? undefined : cardSurfaceStyle,
+            background: backgroundEnabled
+                ? {
+                      enabled: true,
+                      source: backgroundSource === "none" ? "manual" : backgroundSource,
+                      imageUrl: backgroundImageUrl,
+                      imageAttribution: backgroundAttribution,
+                      accentColor: backgroundAccentColor,
+                      objectPosition: backgroundObjectPosition,
+                      scrimOpacity: backgroundScrimOpacity,
+                  }
+                : undefined,
         });
 
         handleClose();
@@ -206,7 +341,97 @@
         verticalGap = 16;
         gapsLinked = true;
         padding = 16;
+        cardSurfaceStyle = "theme";
+        backgroundEnabled = false;
+        backgroundSource = "none";
+        backgroundImageUrl = "";
+        backgroundAttribution = undefined;
+        backgroundAccentColor = undefined;
+        backgroundObjectPosition = "center";
+        backgroundScrimOpacity = 0.38;
+        backgroundSourceMessage = "";
+        lastExtractedBackgroundUrl = "";
         dimensionInput = "12";
+    }
+
+    function handleBackgroundImageChange() {
+        if (backgroundAttribution?.provider === "unsplash" || backgroundAttribution?.provider === "pexels") {
+            backgroundSource = backgroundAttribution.provider;
+        } else if (backgroundImageUrl) {
+            backgroundSource = "manual";
+        }
+        backgroundSourceMessage = "";
+    }
+
+    function applyBackgroundConfig(background: NonNullable<GridConfig["background"]>) {
+        backgroundEnabled = true;
+        backgroundSource = background.source;
+        backgroundImageUrl = background.imageUrl ?? "";
+        backgroundAttribution = background.imageAttribution;
+        backgroundAccentColor = background.accentColor;
+        backgroundObjectPosition = background.objectPosition ?? "center";
+        backgroundScrimOpacity = background.scrimOpacity ?? 0.38;
+        if (
+            backgroundImageUrl &&
+            (background.source === "generated_preview" ||
+                background.source === "ha_area_picture")
+        ) {
+            void extractBackgroundAccent(backgroundImageUrl);
+        }
+    }
+
+    async function extractBackgroundAccent(url: string) {
+        if (!url || url === lastExtractedBackgroundUrl) return;
+        lastExtractedBackgroundUrl = url;
+
+        const extractedAccent = await extractAccentColorFromImageUrl(url, {
+            resolveUrl: (source) => haStore.fetchProxiedBlobUrl(source),
+        });
+        if (extractedAccent && backgroundImageUrl === url) {
+            backgroundAccentColor = extractedAccent;
+        }
+    }
+
+    function handleBackgroundSourceSelect(source: DashboardBackgroundSource) {
+        backgroundSource = source;
+        backgroundSourceMessage = "";
+        if (!config) return;
+
+        if (source === "generated_preview") {
+            applyBackgroundConfig(
+                createGeneratedPreviewBackgroundForGrid(config, haRegistryStore.areas),
+            );
+            return;
+        }
+
+        if (source === "ha_area_picture") {
+            const areaBackground = createHaAreaPictureBackgroundForGrid(
+                config,
+                haRegistryStore.areas,
+            );
+            if (areaBackground) {
+                applyBackgroundConfig(areaBackground);
+                return;
+            }
+
+            const areaName = resolvedBackgroundArea?.name ?? config.name;
+            backgroundImageUrl = "";
+            backgroundAttribution = undefined;
+            backgroundAccentColor = undefined;
+            backgroundSourceMessage = resolvedBackgroundArea
+                ? `${areaName} has no Home Assistant area picture yet.`
+                : "No matching Home Assistant area was found for this dashboard.";
+            return;
+        }
+
+        if (
+            source === "manual" &&
+            (backgroundAttribution?.provider === "generated_preview" ||
+                backgroundAttribution?.provider === "ha_area_picture")
+        ) {
+            backgroundAttribution = undefined;
+            backgroundAccentColor = undefined;
+        }
     }
 
     function handleClose() {
@@ -222,7 +447,7 @@
     }
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} />
 
 <SideSheet
     bind:open
@@ -524,6 +749,212 @@
                 {padding}px
             </span>
         </div>
+    </section>
+
+    <!-- Card Surface Section -->
+    <section>
+        <h3 class="text-m3-title-small text-m3-on-surface mb-4">
+            Card Surface
+        </h3>
+        <p class="text-m3-body-small text-m3-on-surface-variant mb-4">
+            Override the global card surface style for this dashboard tab.
+        </p>
+
+        <div class="grid grid-cols-1 gap-2">
+            {#each cardSurfaceStyleOptions as option}
+                <button
+                    type="button"
+                    class="flex items-start justify-between gap-3 rounded-m3-card border px-4 py-3 text-left transition-colors {cardSurfaceStyle ===
+                    option.value
+                        ? 'border-transparent bg-m3-secondary-container text-m3-on-secondary-container'
+                        : 'border-m3-outline-variant bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}"
+                    onclick={() => (cardSurfaceStyle = option.value)}
+                >
+                    <span class="flex flex-col gap-1">
+                        <span class="text-m3-label-large">{option.label}</span>
+                        <span class="text-m3-body-small opacity-80">
+                            {option.description}
+                        </span>
+                    </span>
+                </button>
+            {/each}
+        </div>
+    </section>
+
+    <!-- Background Section -->
+    <section>
+        <div class="mb-4 flex items-start justify-between gap-4">
+            <div>
+                <h3 class="text-m3-title-small text-m3-on-surface">
+                    Background
+                </h3>
+                <p class="text-m3-body-small text-m3-on-surface-variant">
+                    Optional tab background. The theme remains leading and cards
+                    stay opaque for readability.
+                </p>
+            </div>
+            <Switch bind:checked={backgroundEnabled} />
+        </div>
+
+        {#if backgroundEnabled}
+            <div class="flex flex-col gap-4">
+                <div>
+                    <span
+                        class="mb-2 block text-m3-label-small text-m3-on-surface-variant"
+                    >
+                        Source
+                    </span>
+                    <div class="flex flex-wrap gap-2">
+                        {#each backgroundSourceOptions as option}
+                            <button
+                                type="button"
+                                class="rounded-m3-full px-3 py-2 text-m3-label-medium transition-colors {backgroundSource ===
+                                option.value
+                                    ? 'bg-m3-secondary-container text-m3-on-secondary-container'
+                                    : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}"
+                                onclick={() =>
+                                    handleBackgroundSourceSelect(option.value)}
+                            >
+                                {option.label}
+                            </button>
+                        {/each}
+                    </div>
+                    {#if backgroundSourceMessage}
+                        <p
+                            class="mt-2 text-m3-body-small text-m3-on-surface-variant"
+                        >
+                            {backgroundSourceMessage}
+                        </p>
+                    {/if}
+                </div>
+
+                {#if backgroundSource === "manual" || backgroundSource === "unsplash" || backgroundSource === "pexels"}
+                    <ImagePicker
+                        label="Background Image"
+                        orientation="landscape"
+                        bind:value={backgroundImageUrl}
+                        bind:attribution={backgroundAttribution}
+                        bind:accentColor={backgroundAccentColor}
+                        enableUnsplash={backgroundSource === "unsplash"}
+                        enablePexels={backgroundSource === "pexels"}
+                        searchHint={resolvedBackgroundArea?.name
+                            ? `${resolvedBackgroundArea.name} interior`
+                            : config?.name
+                              ? `${config.name} interior`
+                              : "modern home interior"}
+                        onchange={handleBackgroundImageChange}
+                    />
+                {:else}
+                    <div
+                        class="rounded-m3-card border border-m3-outline-variant bg-m3-surface-container-high p-4"
+                    >
+                        <div class="text-m3-label-large text-m3-on-surface">
+                            {backgroundSource === "ha_area_picture"
+                                ? "Home Assistant area picture"
+                                : "Generated preview image"}
+                        </div>
+                        <p
+                            class="mt-1 text-m3-body-small text-m3-on-surface-variant"
+                        >
+                            {backgroundImageUrl
+                                ? "This source is resolved automatically from the dashboard context."
+                                : "Choose this source to resolve an image automatically."}
+                        </p>
+                    </div>
+                {/if}
+
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                        <span
+                            class="mb-2 block text-m3-label-small text-m3-on-surface-variant"
+                        >
+                            Position
+                        </span>
+                        <div class="flex flex-wrap gap-2">
+                            {#each objectPositionOptions as option}
+                                <button
+                                    type="button"
+                                    class="rounded-m3-full px-3 py-2 text-m3-label-medium transition-colors {backgroundObjectPosition ===
+                                    option.value
+                                        ? 'bg-m3-secondary-container text-m3-on-secondary-container'
+                                        : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}"
+                                    onclick={() =>
+                                        (backgroundObjectPosition =
+                                            option.value)}
+                                >
+                                    {option.label}
+                                </button>
+                            {/each}
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="mb-2 flex items-center justify-between">
+                            <span
+                                class="text-m3-label-small text-m3-on-surface-variant"
+                            >
+                                Scrim Strength
+                            </span>
+                            <span
+                                class="text-m3-label-small text-m3-on-surface-variant tabular-nums"
+                            >
+                                {Math.round(backgroundScrimOpacity * 100)}%
+                            </span>
+                        </div>
+                        <input
+                            type="range"
+                            min="0.18"
+                            max="0.82"
+                            step="0.02"
+                            bind:value={backgroundScrimOpacity}
+                            class="h-2 w-full cursor-pointer appearance-none rounded-full bg-m3-surface-container-highest accent-m3-primary"
+                        />
+                    </div>
+                </div>
+
+                <div
+                    class="overflow-hidden rounded-m3-card border border-m3-outline-variant bg-m3-surface-container-high"
+                >
+                    {#if backgroundImageUrl}
+                        <div
+                            class="relative aspect-video bg-m3-surface-container-low"
+                        >
+                            <AuthenticatedImage
+                                src={backgroundImageUrl}
+                                alt="Background preview"
+                                class="h-full w-full object-cover"
+                                style={`object-position: ${backgroundObjectPosition};`}
+                            />
+                            <div
+                                class="absolute inset-0"
+                                style={getPreviewBackgroundTreatment(
+                                    backgroundScrimOpacity,
+                                )}
+                            ></div>
+                            <div
+                                class="absolute bottom-3 left-3 rounded-m3-card bg-m3-surface-container-highest px-4 py-3 text-m3-on-surface shadow-m3-elevation-2"
+                            >
+                                <div class="text-m3-title-small">
+                                    {config?.name ?? "Dashboard"}
+                                </div>
+                                <div
+                                    class="text-m3-body-small text-m3-on-surface-variant"
+                                >
+                                    Readability preview
+                                </div>
+                            </div>
+                        </div>
+                    {:else}
+                        <p
+                            class="p-4 text-m3-body-small text-m3-on-surface-variant"
+                        >
+                            Select, upload, or paste an image URL to preview the
+                            background.
+                        </p>
+                    {/if}
+                </div>
+            </div>
+        {/if}
     </section>
 
     {#snippet actions()}

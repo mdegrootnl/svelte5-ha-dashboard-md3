@@ -295,6 +295,22 @@
         { value: "summary", label: "Summary" },
     ] as const;
 
+    const energyModeOptions = [
+        { value: "overview", label: "Overview" },
+        { value: "flow", label: "Flow" },
+        { value: "balance", label: "Balance" },
+        { value: "sources", label: "Sources" },
+        { value: "devices", label: "Devices" },
+    ] as const;
+
+    const energyHistoryRangeOptions = [
+        { value: "last24h", label: "24h" },
+        { value: "today", label: "Today" },
+        { value: "7d", label: "7 days" },
+        { value: "30d", label: "30 days" },
+        { value: "12m", label: "12 months" },
+    ] as const;
+
     const collectionDomainOptions = [
         "light",
         "switch",
@@ -321,7 +337,10 @@
         "unknown",
     ];
 
-    type EnergyEntityKey = Exclude<keyof EnergyCardOptions, "source">;
+    type EnergyEntityKey = Exclude<
+        keyof EnergyCardOptions,
+        "source" | "mode" | "historyRange" | "deviceEntityIds" | "hoursToShow"
+    >;
     type WeatherEntityKey = Exclude<keyof WeatherCardOptions, "source">;
     type ActionOwner = "button" | "remote" | "device_panel";
 
@@ -533,8 +552,12 @@
         }
         if (isNavigationCard) {
             options.navigation ??= {};
-            if (tempConfig.iconType === "image" && tempConfig.imageAttribution?.provider === "unsplash") {
-                options.navigation.imageSource = "unsplash";
+            if (
+                tempConfig.iconType === "image" &&
+                (tempConfig.imageAttribution?.provider === "unsplash" ||
+                    tempConfig.imageAttribution?.provider === "pexels")
+            ) {
+                options.navigation.imageSource = tempConfig.imageAttribution.provider;
             } else if (tempConfig.iconType === "image" && tempConfig.imageUrl && !options.navigation.imageSource) {
                 options.navigation.imageSource = "manual";
             }
@@ -692,6 +715,33 @@
         updateEnergyOptions({
             source: "manual",
             [key]: value || undefined,
+        });
+    }
+
+    function setEnergyDeviceEntity(index: number, value: string) {
+        const current = ensureEnergyOptions();
+        const deviceEntityIds = [...(current.deviceEntityIds ?? [])];
+        deviceEntityIds[index] = value;
+        updateEnergyOptions({
+            source: "manual",
+            deviceEntityIds,
+        });
+    }
+
+    function addEnergyDeviceEntity() {
+        const current = ensureEnergyOptions();
+        updateEnergyOptions({
+            source: "manual",
+            deviceEntityIds: [...(current.deviceEntityIds ?? []), ""],
+        });
+    }
+
+    function removeEnergyDeviceEntity(index: number) {
+        const current = ensureEnergyOptions();
+        updateEnergyOptions({
+            deviceEntityIds: (current.deviceEntityIds ?? []).filter(
+                (_, i) => i !== index,
+            ),
         });
     }
 
@@ -1569,6 +1619,7 @@
                             bind:value={tempConfig.imageUrl}
                             bind:attribution={tempConfig.imageAttribution}
                             enableUnsplash
+                            enablePexels
                             searchHint={tempConfig.name || "modern home interior"}
                             onchange={() => {}}
                         />
@@ -2185,7 +2236,141 @@
                     {/if}
 
                     {#if isEnergyCard}
-                        <div class="flex flex-col gap-3">
+                        <div class="flex flex-col gap-4">
+                            <div class="flex flex-col gap-2">
+                                <span
+                                    class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                                    >Energy Mode</span
+                                >
+                                <div
+                                    class="grid grid-cols-2 gap-1 rounded-m3-md bg-m3-surface-container-highest p-1"
+                                >
+                                    {#each energyModeOptions as modeOption}
+                                        <button
+                                            type="button"
+                                            class="py-2 px-3 rounded-m3-sm text-m3-label-medium transition-all {(tempConfig
+                                                .options.energy?.mode ??
+                                                'overview') ===
+                                            modeOption.value
+                                                ? 'bg-m3-secondary-container text-m3-on-secondary-container'
+                                                : 'text-m3-on-surface-variant hover:bg-m3-on-surface/5'}"
+                                            onclick={() =>
+                                                updateEnergyOptions({
+                                                    mode: modeOption.value,
+                                                })}
+                                        >
+                                            {modeOption.label}
+                                        </button>
+                                    {/each}
+                                </div>
+                            </div>
+
+                            {#if (tempConfig.options.energy?.mode ?? "overview") === "sources"}
+                                <div class="flex flex-col gap-2">
+                                    <span
+                                        class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                                        >History Range</span
+                                    >
+                                    <div
+                                        class="grid grid-cols-2 gap-1 rounded-m3-md bg-m3-surface-container-highest p-1"
+                                    >
+                                        {#each energyHistoryRangeOptions as rangeOption}
+                                            <button
+                                                type="button"
+                                                class="py-2 px-3 rounded-m3-sm text-m3-label-medium transition-all {(tempConfig
+                                                    .options.energy
+                                                    ?.historyRange ??
+                                                    'last24h') ===
+                                                rangeOption.value
+                                                    ? 'bg-m3-secondary-container text-m3-on-secondary-container'
+                                                    : 'text-m3-on-surface-variant hover:bg-m3-on-surface/5'}"
+                                                onclick={() =>
+                                                    updateEnergyOptions({
+                                                        historyRange:
+                                                            rangeOption.value,
+                                                    })}
+                                            >
+                                                {rangeOption.label}
+                                            </button>
+                                        {/each}
+                                    </div>
+                                </div>
+
+                                {#if (tempConfig.options.energy?.historyRange ?? "last24h") === "last24h"}
+                                    <TextField
+                                        variant="outlined"
+                                        label="Hours to Show"
+                                        type="number"
+                                        value={(tempConfig.options.energy?.hoursToShow ?? 24).toString()}
+                                        oninput={(e: Event) =>
+                                            updateEnergyOptions({
+                                                hoursToShow: Math.max(
+                                                    1,
+                                                    parseInt(
+                                                        (
+                                                            e.target as HTMLInputElement
+                                                        ).value,
+                                                    ) || 24,
+                                                ),
+                                            })}
+                                    />
+                                {/if}
+                            {/if}
+
+                            {#if (tempConfig.options.energy?.mode ?? "overview") === "devices"}
+                                <div class="flex flex-col gap-3">
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <span
+                                            class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                                            >Pinned Device Sensors</span
+                                        >
+                                        <Button
+                                            variant="tonal"
+                                            onclick={addEnergyDeviceEntity}
+                                            icon={IconAdd}
+                                        >
+                                            Add
+                                        </Button>
+                                    </div>
+                                    {#each tempConfig.options.energy?.deviceEntityIds ?? [] as entityId, idx}
+                                        <div class="flex items-start gap-2">
+                                            <EntityPicker
+                                                label="Device Energy Sensor"
+                                                placeholder="sensor.appliance_energy"
+                                                value={entityId}
+                                                domainFilter="sensor"
+                                                onchange={(value) =>
+                                                    setEnergyDeviceEntity(
+                                                        idx,
+                                                        value,
+                                                    )}
+                                                class="flex-1"
+                                            />
+                                            <IconButton
+                                                onclick={() =>
+                                                    removeEnergyDeviceEntity(
+                                                        idx,
+                                                    )}
+                                                title="Remove"
+                                                icon={IconDelete}
+                                                class="text-m3-error mt-2"
+                                            />
+                                        </div>
+                                    {/each}
+                                    {#if (tempConfig.options.energy?.deviceEntityIds ?? []).length === 0}
+                                        <p
+                                            class="px-3 text-m3-body-small text-m3-on-surface-variant"
+                                        >
+                                            Leave empty to auto-discover
+                                            energy and power sensors from the
+                                            inventory.
+                                        </p>
+                                    {/if}
+                                </div>
+                            {/if}
+
                             <span
                                 class="text-m3-label-medium text-m3-on-surface-variant ml-3"
                                 >Energy Entities</span

@@ -121,7 +121,7 @@
                 <div
                     class="w-10 h-10 rounded-full bg-m3-secondary-container text-m3-on-secondary-container flex items-center justify-center shrink-0"
                 >
-                    <DynamicIcon name={item.icon} class="text-xl" />
+                    <DynamicIcon name={item.icon} class="size-5" />
                 </div>
 
                 <div class="flex-1 min-w-0">
@@ -182,7 +182,7 @@
                         class="w-14 h-14 rounded-lg border border-m3-outline flex items-center justify-center hover:bg-m3-surface-container-highest transition-colors mb-1"
                         title="Pick Icon"
                     >
-                        <DynamicIcon name={editingItem.icon} class="text-2xl" />
+                        <DynamicIcon name={editingItem.icon} class="size-7" />
                     </button>
                 </div>
                 <p class="text-m3-body-small text-m3-on-surface-variant">

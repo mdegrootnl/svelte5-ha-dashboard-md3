@@ -25,6 +25,7 @@ vite.config.ts.timestamp-*
 
 # Local runtime data
 data/config.json
+data/image-provider-secrets.json
 data/uploads/
 
 # Scratch/imported asset dumps

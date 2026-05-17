@@ -151,6 +151,17 @@ function createGeneratedDashboardWithEditedCard(id = 'dashboard_home'): RoomDash
 describe('DashboardGenerationSheet', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        Object.defineProperty(window, 'innerWidth', {
+            configurable: true,
+            writable: true,
+            value: 1280,
+        });
+        Object.defineProperty(window, 'innerHeight', {
+            configurable: true,
+            writable: true,
+            value: 800,
+        });
+        window.dispatchEvent(new Event('resize'));
         dashboardStore.config = null;
         dashboardStore.savedConfigs = {};
         haStore.states = {
@@ -355,6 +366,39 @@ describe('DashboardGenerationSheet', () => {
         await waitFor(() => {
             expect(screen.getByText(/^Room$/)).toBeInTheDocument();
             expect(screen.getByText(/^Maintenance$/)).toBeInTheDocument();
+        });
+    });
+
+    it('switches setup, preview, and review panels on compact viewports', async () => {
+        window.innerWidth = 390;
+        window.innerHeight = 844;
+        window.dispatchEvent(new Event('resize'));
+
+        render(DashboardGenerationSheet, {
+            props: {
+                open: true,
+                targetDashboardId: 'dashboard_home',
+            },
+        });
+
+        await waitFor(() => {
+            expect(screen.getByRole('tab', { name: 'Preview' })).toHaveAttribute(
+                'aria-selected',
+                'true',
+            );
+        });
+        expect(screen.getByText('Draft only')).toBeInTheDocument();
+
+        await fireEvent.click(screen.getByRole('tab', { name: 'Setup' }));
+        await waitFor(() => {
+            expect(screen.getByText('Recipe')).toBeInTheDocument();
+            expect(screen.getByText('Card Families')).toBeInTheDocument();
+        });
+
+        await fireEvent.click(screen.getByRole('tab', { name: 'Review' }));
+        await waitFor(() => {
+            expect(screen.getByText('Inventory Quality')).toBeInTheDocument();
+            expect(screen.getByText('Entity Review')).toBeInTheDocument();
         });
     });
 

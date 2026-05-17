@@ -1,6 +1,6 @@
-import { env } from '$env/dynamic/private';
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { ImageProviderSettingsService } from '$lib/server/imageProviderSettings';
 
 function isUnsplashDownloadLocation(value: unknown): value is string {
     if (typeof value !== 'string') return false;
@@ -15,7 +15,7 @@ function isUnsplashDownloadLocation(value: unknown): value is string {
 }
 
 export const POST: RequestHandler = async ({ request, fetch }) => {
-    const accessKey = env.UNSPLASH_ACCESS_KEY?.trim();
+    const accessKey = await ImageProviderSettingsService.getUnsplashAccessKey();
     if (!accessKey) {
         return json({ error: 'Unsplash API key is not configured.' }, { status: 503 });
     }

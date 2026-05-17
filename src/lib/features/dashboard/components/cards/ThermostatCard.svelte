@@ -9,6 +9,11 @@
         HistoryData,
         ThermostatCardConfig,
     } from "$lib/types";
+    import type { DashboardCardSurfaceStyle } from "$lib/types/dashboard";
+    import {
+        getCardSurfaceClasses,
+        getCardSurfaceStyle,
+    } from "$lib/features/dashboard/utils/cardSurface";
     import HistoryGraph from "./thermostat/HistoryGraph.svelte";
     import IconFire from "~icons/material-symbols/local-fire-department";
     import IconSnowflake from "~icons/material-symbols/ac-unit";
@@ -27,6 +32,7 @@
         class?: string;
         color?: string;
         backgroundColor?: string;
+        surfaceStyle?: DashboardCardSurfaceStyle;
         icon?: string | any;
         layoutRows?: number;
     }
@@ -42,6 +48,7 @@
         class: className = "",
         color = $bindable(),
         backgroundColor = $bindable(),
+        surfaceStyle = "md3",
         icon: iconProp = $bindable(),
         layoutRows,
     }: Props = $props();
@@ -277,9 +284,9 @@
 
 <!-- Card Container -->
 <div
-    class="relative flex flex-col w-full h-full rounded-m3-card bg-m3-surface-container overflow-hidden shadow-sm group/card {className} @container"
+    class="relative flex flex-col w-full h-full rounded-m3-card overflow-hidden group/card {getCardSurfaceClasses(surfaceStyle)} {className} @container"
     bind:clientHeight
-    style={`container-type: size;${backgroundColor ? ` background-color: ${backgroundColor};` : ""}`}
+    style={`container-type: size;${getCardSurfaceStyle(surfaceStyle, backgroundColor)}`}
 >
     <!-- Background Graph (Visible when NOT expanded) -->
     {#if !isExpanded}

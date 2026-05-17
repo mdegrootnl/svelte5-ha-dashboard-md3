@@ -1,5 +1,9 @@
 <script lang="ts">
-    import type { DashboardItem, TabCardConfig } from "$lib/types/dashboard";
+    import type {
+        DashboardCardSurfaceStyle,
+        DashboardItem,
+        TabCardConfig,
+    } from "$lib/types/dashboard";
     import ButtonCard from "./ButtonCard.svelte";
     import CalendarAgendaCard from "./CalendarAgendaCard.svelte";
     import DevicePanelCard from "./DevicePanelCard.svelte";
@@ -18,10 +22,16 @@
     interface Props {
         item: DashboardItem;
         layoutRows?: number;
+        surfaceStyle?: DashboardCardSurfaceStyle;
         ondelete?: (id: string) => void;
     }
 
-    let { item = $bindable(), layoutRows, ondelete }: Props = $props();
+    let {
+        item = $bindable(),
+        layoutRows,
+        surfaceStyle = "md3",
+        ondelete,
+    }: Props = $props();
 
     function remove() {
         ondelete?.(item.id);
@@ -38,6 +48,7 @@
         bind:backgroundColor={item.backgroundColor}
         bind:icon={item.icon}
         bind:options={item.options.button}
+        {surfaceStyle}
         ondelete={remove}
     />
 {:else if item.cardType === "media"}
@@ -50,6 +61,7 @@
         bind:backgroundColor={item.backgroundColor}
         bind:icon={item.icon}
         {layoutRows}
+        {surfaceStyle}
         ondelete={remove}
     />
 {:else if item.cardType === "title"}
@@ -74,10 +86,11 @@
         bind:backgroundColor={item.backgroundColor}
         bind:icon={item.icon}
         {layoutRows}
+        {surfaceStyle}
         ondelete={remove}
     />
 {:else if item.cardType === "tabs"}
-    <TabCard bind:config={item as TabCardConfig} />
+    <TabCard bind:config={item as TabCardConfig} {surfaceStyle} />
 {:else if item.cardType === "graph"}
     <GraphCard
         id={item.id}
@@ -92,6 +105,7 @@
         bind:icon={item.icon}
         fetchHistory={item.fetchHistory !== false}
         {layoutRows}
+        {surfaceStyle}
         ondelete={remove}
     />
 {:else if item.cardType === "navigation"}
@@ -108,6 +122,7 @@
         bind:backgroundColor={item.backgroundColor}
         bind:shortcuts={item.shortcuts}
         bind:entityId={item.entityId}
+        {surfaceStyle}
         ondelete={remove}
     />
 {:else if item.cardType === "room" && item.options}
@@ -119,6 +134,7 @@
         bind:color={item.color}
         bind:backgroundColor={item.backgroundColor}
         bind:options={item.options.room}
+        {surfaceStyle}
         ondelete={remove}
     />
 {:else if item.cardType === "collection" && item.options}
@@ -130,6 +146,7 @@
         bind:color={item.color}
         bind:backgroundColor={item.backgroundColor}
         bind:options={item.options.collection}
+        {surfaceStyle}
         ondelete={remove}
     />
 {:else if item.cardType === "energy" && item.options}
@@ -141,6 +158,8 @@
         bind:color={item.color}
         bind:backgroundColor={item.backgroundColor}
         bind:options={item.options.energy}
+        {layoutRows}
+        {surfaceStyle}
         ondelete={remove}
     />
 {:else if item.cardType === "calendar" && item.options}
@@ -152,6 +171,7 @@
         bind:color={item.color}
         bind:backgroundColor={item.backgroundColor}
         bind:options={item.options.calendar}
+        {surfaceStyle}
         ondelete={remove}
     />
 {:else if item.cardType === "weather" && item.options}
@@ -163,6 +183,7 @@
         bind:color={item.color}
         bind:backgroundColor={item.backgroundColor}
         bind:options={item.options.weather}
+        {surfaceStyle}
         ondelete={remove}
     />
 {:else if item.cardType === "remote" && item.options}
@@ -174,6 +195,7 @@
         bind:color={item.color}
         bind:backgroundColor={item.backgroundColor}
         bind:options={item.options.remote}
+        {surfaceStyle}
         ondelete={remove}
     />
 {:else if item.cardType === "device_panel" && item.options}
@@ -185,6 +207,7 @@
         bind:color={item.color}
         bind:backgroundColor={item.backgroundColor}
         bind:options={item.options.device_panel}
+        {surfaceStyle}
         ondelete={remove}
     />
 {/if}

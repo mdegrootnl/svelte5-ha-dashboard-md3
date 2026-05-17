@@ -55,6 +55,7 @@
 
     type LibrarySection =
         | "media"
+        | "surface"
         | "button"
         | "thermostat"
         | "title"
@@ -65,6 +66,7 @@
 
     const librarySections: Array<{ id: LibrarySection; label: string }> = [
         { id: "media", label: "Media" },
+        { id: "surface", label: "Surfaces" },
         { id: "button", label: "Buttons" },
         { id: "thermostat", label: "Climate" },
         { id: "title", label: "Titles" },
@@ -75,6 +77,27 @@
     ];
 
     let activeSection = $state<LibrarySection>("media");
+
+    const surfaceExamples = [
+        {
+            value: "md3",
+            label: "MD3",
+            description: "Solid token surface",
+            frameClass: "bg-m3-surface-container-low",
+        },
+        {
+            value: "glass",
+            label: "Glass",
+            description: "Translucent surface over imagery",
+            frameClass: "bg-cover bg-center",
+        },
+        {
+            value: "soft",
+            label: "Soft",
+            description: "Tactile shadow surface",
+            frameClass: "bg-m3-surface-container-low",
+        },
+    ] as const;
 
     function restoreOriginalStates() {
         haStore.clearEntityOverrides(mockEntityIds);
@@ -540,6 +563,85 @@
                 </div>
             </div>
         </div>
+        </section>
+    {/if}
+
+    {#if activeSection === "surface"}
+        <section>
+            <h2 class="text-m3-title-large text-m3-on-surface mb-2">
+                Card Surface Styles
+            </h2>
+            <p class="mb-4 max-w-3xl text-m3-body-medium text-m3-on-surface-variant">
+                Alternate root surface treatments. Colors, text, icons, state,
+                and shape still come from the MD3 theme.
+            </p>
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                {#each surfaceExamples as surface}
+                    <div class="flex flex-col gap-3">
+                        <div>
+                            <h3 class="text-m3-title-medium text-m3-on-surface">
+                                {surface.label}
+                            </h3>
+                            <p class="text-m3-body-small text-m3-on-surface-variant">
+                                {surface.description}
+                            </p>
+                        </div>
+                        <div
+                            class="rounded-m3-card border border-m3-outline-variant/40 p-4 {surface.frameClass}"
+                            style:background-image={surface.value === "glass"
+                                ? "url('https://images.unsplash.com/photo-1556911220-bff31c812dba?q=80&w=900&auto=format&fit=crop')"
+                                : ""}
+                        >
+                            <div class="grid grid-cols-1 gap-4">
+                                <DeferredRender class="h-28">
+                                    <ButtonCard
+                                        title="Kitchen"
+                                        state="On - 75%"
+                                        icon={Lightbulb}
+                                        variant="slider"
+                                        isActive={true}
+                                        value={75}
+                                        entityId=""
+                                        name=""
+                                        domainFilter="light"
+                                        surfaceStyle={surface.value}
+                                    />
+                                </DeferredRender>
+                                <DeferredRender class="h-28">
+                                    <EntityCollectionCard
+                                        name="Openings"
+                                        icon="sensor_door"
+                                        color="var(--color-m3-tertiary)"
+                                        surfaceStyle={surface.value}
+                                        options={{
+                                            mode: "openings",
+                                            showState: true,
+                                            presentation: "summary",
+                                        }}
+                                    />
+                                </DeferredRender>
+                                <DeferredRender class="h-32">
+                                    <NavigationCard
+                                        name="Living Room"
+                                        path="/dashboard/ground-floor/living-room"
+                                        icon="weekend"
+                                        color="var(--color-m3-primary)"
+                                        surfaceStyle={surface.value}
+                                        shortcuts={[
+                                            {
+                                                id: "surface-light",
+                                                entityId: "light.library_table",
+                                                icon: "table_lamp",
+                                                color: "var(--color-m3-primary)",
+                                            },
+                                        ]}
+                                    />
+                                </DeferredRender>
+                            </div>
+                        </div>
+                    </div>
+                {/each}
+            </div>
         </section>
     {/if}
 
@@ -1015,23 +1117,50 @@
 
             <div class="flex flex-col gap-2">
                 <span class="text-m3-label-medium text-m3-on-surface-variant"
-                    >Energy flow - inspired by Power Flow Plus</span
+                    >Energy console - inspired by HA Energy and Power Flow Plus</span
                 >
-                <div class="h-48">
-                    <DeferredRender class="h-full">
-                        <EnergyFlowCard
-                            name="Home Energy"
-                            icon="electric_bolt"
-                            color="#eab308"
-                            options={{
-                                source: "manual",
-                                solarPowerEntityId: "sensor.library_solar_power",
-                                homePowerEntityId: "sensor.library_home_power",
-                                gridImportEntityId: "sensor.library_grid_power",
-                                todayEnergyEntityId: "sensor.library_energy",
-                            }}
-                        />
-                    </DeferredRender>
+                <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    {#each [
+                        { mode: "overview", title: "Overview" },
+                        { mode: "balance", title: "Balance" },
+                        { mode: "sources", title: "Sources - 7 days", historyRange: "7d" },
+                        { mode: "sources", title: "Sources - 12 months", historyRange: "12m" },
+                        { mode: "devices", title: "Devices" },
+                    ] as example}
+                        <div class="h-56">
+                            <DeferredRender class="h-full">
+                                <EnergyFlowCard
+                                    name={example.title}
+                                    icon="electric_bolt"
+                                    color="#eab308"
+                                    options={{
+                                        source: "manual",
+                                        mode: example.mode as
+                                            | "overview"
+                                            | "flow"
+                                            | "balance"
+                                            | "sources"
+                                            | "devices",
+                                        historyRange: example.historyRange as
+                                            | "7d"
+                                            | "12m"
+                                            | undefined,
+                                        solarPowerEntityId:
+                                            "sensor.library_solar_power",
+                                        homePowerEntityId:
+                                            "sensor.library_home_power",
+                                        gridImportEntityId:
+                                            "sensor.library_grid_power",
+                                        todayEnergyEntityId:
+                                            "sensor.library_energy",
+                                        deviceEntityIds: [
+                                            "sensor.library_energy",
+                                        ],
+                                    }}
+                                />
+                            </DeferredRender>
+                        </div>
+                    {/each}
                 </div>
             </div>
 

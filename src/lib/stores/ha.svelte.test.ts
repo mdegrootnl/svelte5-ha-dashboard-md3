@@ -293,4 +293,51 @@ describe('HAStore', () => {
             expect(result.error.message).toContain('History fetch failed: 500 - boom');
         }
     });
+
+    it('fetches and caches recorder statistics over websocket', async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-05-15T10:30:00Z'));
+        const sendMessagePromise = vi.fn().mockResolvedValue({
+            'sensor.solar_power': [
+                {
+                    start: '2026-05-15T09:00:00Z',
+                    mean: 1200,
+                },
+                {
+                    start: '2026-05-15T10:00:00Z',
+                    state: '1800',
+                },
+            ],
+        });
+
+        const store = new HAStore();
+        store.connection = { sendMessagePromise } as any;
+
+        const first = await store.getStatistics(
+            ['sensor.solar_power'],
+            new Date('2026-05-15T09:10:00Z'),
+            new Date('2026-05-15T10:25:00Z'),
+        );
+        const second = await store.getStatistics(
+            ['sensor.solar_power'],
+            new Date('2026-05-15T09:15:00Z'),
+            new Date('2026-05-15T10:45:00Z'),
+        );
+
+        expect(first.ok).toBe(true);
+        expect(second.ok).toBe(true);
+        expect(sendMessagePromise).toHaveBeenCalledTimes(1);
+        expect(sendMessagePromise).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: 'recorder/statistics_during_period',
+                statistic_ids: ['sensor.solar_power'],
+                period: 'hour',
+            }),
+        );
+        if (first.ok) {
+            expect(first.value[0].points.map((point) => point.value)).toEqual([1200, 1800]);
+        }
+
+        vi.useRealTimers();
+    });
 });

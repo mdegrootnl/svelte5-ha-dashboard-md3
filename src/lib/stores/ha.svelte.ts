@@ -53,6 +53,8 @@ export class HAStore {
     // History cache: key is "entityIds:startTime", value is HistoryData[]
     private historyCache = new Map<string, { data: HistoryData[], timestamp: number }>();
     private historyInflight = new Map<string, Promise<Result<HistoryData[], Error>>>();
+    private statisticsCache = new Map<string, { data: HistoryData[], timestamp: number }>();
+    private statisticsInflight = new Map<string, Promise<Result<HistoryData[], Error>>>();
 
     constructor() {
         if (browser) {
@@ -445,6 +447,130 @@ export class HAStore {
         }
     }
 
+    /**
+     * Fetch long-term recorder statistics through the Home Assistant WebSocket API.
+     * Falls back at the card level to history when a HA instance does not expose stats.
+     */
+    async getStatistics(
+        entityIds: string[],
+        startTime: Date,
+        endTime: Date = new Date(),
+        period: '5minute' | 'hour' | 'day' | 'month' = 'hour',
+    ): Promise<Result<HistoryData[], Error>> {
+        if (!this.connection) return err(new Error("No connection"));
+
+        const validEntityIds = entityIds.filter(id => /^[a-z_]+\.[a-z0-9_]+$/.test(id));
+        if (validEntityIds.length === 0) return ok([]);
+
+        const roundedStart = this.roundStatisticsDate(startTime, period);
+        const roundedEnd = this.roundStatisticsDate(endTime, period);
+        const sortedEntityIds = [...validEntityIds].sort();
+        const cacheKey = `${period}:${sortedEntityIds.join(',')}:${roundedStart.toISOString()}:${roundedEnd.toISOString()}`;
+        const cached = this.statisticsCache.get(cacheKey);
+        const CACHE_TTL = 10 * 60 * 1000;
+
+        if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
+            perfCount('ha.statisticsCacheHits');
+            return ok(cached.data);
+        }
+
+        const inflight = this.statisticsInflight.get(cacheKey);
+        if (inflight) {
+            perfCount('ha.statisticsInflightHits');
+            return inflight;
+        }
+
+        const request = this.fetchStatisticsUncached(
+            sortedEntityIds,
+            roundedStart,
+            roundedEnd,
+            period,
+            cacheKey,
+        );
+        this.statisticsInflight.set(cacheKey, request);
+        return request.finally(() => this.statisticsInflight.delete(cacheKey));
+    }
+
+    private roundStatisticsDate(date: Date, period: '5minute' | 'hour' | 'day' | 'month') {
+        if (period === '5minute') return this.roundHistoryDate(date);
+        const next = new Date(date);
+        next.setMinutes(0, 0, 0);
+        if (period === 'day') next.setHours(0, 0, 0, 0);
+        if (period === 'month') {
+            next.setDate(1);
+            next.setHours(0, 0, 0, 0);
+        }
+        return next;
+    }
+
+    private async fetchStatisticsUncached(
+        statisticIds: string[],
+        startTime: Date,
+        endTime: Date,
+        period: '5minute' | 'hour' | 'day' | 'month',
+        cacheKey: string,
+    ): Promise<Result<HistoryData[], Error>> {
+        try {
+            if (!this.connection) return err(new Error("No connection"));
+            perfCount('ha.statisticsFetches');
+
+            const rawData = await this.connection.sendMessagePromise({
+                type: 'recorder/statistics_during_period',
+                start_time: startTime.toISOString(),
+                end_time: endTime.toISOString(),
+                statistic_ids: statisticIds,
+                period,
+                types: ['mean', 'state', 'sum'],
+            });
+
+            const statisticsData = this.transformStatisticsResponse(rawData, statisticIds);
+            this.statisticsCache.set(cacheKey, { data: statisticsData, timestamp: Date.now() });
+            return ok(statisticsData);
+        } catch (e: unknown) {
+            const error = e instanceof Error ? e : new Error(String(e));
+            logger.warn('Failed to fetch recorder statistics:', error);
+            return err(error);
+        }
+    }
+
+    private transformStatisticsResponse(rawData: unknown, statisticIds: string[]): HistoryData[] {
+        const record = rawData && typeof rawData === 'object'
+            ? rawData as Record<string, Array<Record<string, unknown>>>
+            : {};
+
+        return statisticIds.map((entityId) => {
+            const rows = Array.isArray(record[entityId]) ? record[entityId] : [];
+            const points = rows.map((row) => {
+                const timestampValue =
+                    row.start ??
+                    row.start_time ??
+                    row.end ??
+                    row.end_time ??
+                    row.created;
+                const rawValue = row.mean ?? row.state ?? row.sum;
+                const numericValue =
+                    typeof rawValue === 'number'
+                        ? rawValue
+                        : typeof rawValue === 'string'
+                            ? Number(rawValue)
+                            : Number.NaN;
+                const timestamp = new Date(String(timestampValue ?? ''));
+                const value = Number.isFinite(numericValue) ? numericValue : null;
+
+                return {
+                    timestamp,
+                    state: value === null ? 'unknown' : String(value),
+                    value,
+                };
+            }).filter((point) => Number.isFinite(point.timestamp.getTime()));
+
+            return {
+                entityId,
+                points,
+            };
+        });
+    }
+
 
     /**
      * Get a proxied URL for a Home Assistant resource (images, media, etc.)
@@ -468,6 +594,8 @@ export class HAStore {
     clearHistoryCache() {
         this.historyCache.clear();
         this.historyInflight.clear();
+        this.statisticsCache.clear();
+        this.statisticsInflight.clear();
     }
 }
 

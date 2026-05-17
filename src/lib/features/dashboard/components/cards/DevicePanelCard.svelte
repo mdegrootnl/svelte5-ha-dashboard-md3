@@ -6,6 +6,11 @@
     import { getDomain } from "$lib/utils/entity";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import type { CardAction, DevicePanelCardOptions } from "$lib/types";
+    import type { DashboardCardSurfaceStyle } from "$lib/types/dashboard";
+    import {
+        getCardSurfaceClasses,
+        getCardSurfaceStyle,
+    } from "$lib/features/dashboard/utils/cardSurface";
     import IconEdit from "~icons/material-symbols/edit";
 
     interface Props {
@@ -15,6 +20,7 @@
         icon?: string;
         color?: string;
         backgroundColor?: string;
+        surfaceStyle?: DashboardCardSurfaceStyle;
         options?: DevicePanelCardOptions;
         ondelete?: () => void;
         class?: string;
@@ -27,6 +33,7 @@
         icon = $bindable("developer_board"),
         color = $bindable(),
         backgroundColor = $bindable(),
+        surfaceStyle = "md3",
         options = $bindable({ preset: "auto" }),
         ondelete,
         class: className = "",
@@ -125,8 +132,8 @@
 </script>
 
 <article
-    class="relative h-full w-full rounded-m3-card bg-m3-surface-container-highest text-m3-on-surface overflow-hidden group/card @container {className}"
-    style={`container-type: size;${backgroundColor ? ` background-color: ${backgroundColor};` : ""}`}
+    class="relative h-full w-full rounded-m3-card text-m3-on-surface overflow-hidden group/card @container {getCardSurfaceClasses(surfaceStyle)} {className}"
+    style={`container-type: size;${getCardSurfaceStyle(surfaceStyle, backgroundColor)}`}
 >
     <div class="h-full flex flex-col p-[clamp(0.625rem,4cqmin,1.5rem)] gap-[clamp(0.375rem,3cqmin,1rem)]">
         <header class="flex items-center gap-[clamp(0.375rem,3cqmin,1rem)]">

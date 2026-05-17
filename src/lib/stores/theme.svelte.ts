@@ -9,6 +9,8 @@ import {
 } from '@material/material-color-utilities';
 import { browser } from '$app/environment';
 import { type ThemeConfig, type NavigationItem, DEFAULT_CONFIG } from '$lib/types/config';
+import type { DashboardCardSurfaceStyle } from '$lib/types/dashboard';
+import { normalizeCardSurfaceStyle } from '$lib/features/dashboard/utils/cardSurface';
 import { createLogger } from '$lib/utils/logger';
 
 const logger = createLogger('ThemeStore');
@@ -27,6 +29,10 @@ export class ThemeStore {
     cardRadius = $state(DEFAULT_CONFIG.theme.cardRadius);
     // Tab navigation pill corner radius in px
     tabPillRadius = $state(DEFAULT_CONFIG.theme.tabPillRadius);
+    // Dashboard card surface treatment
+    cardSurfaceStyle = $state<DashboardCardSurfaceStyle>(
+        DEFAULT_CONFIG.theme.cardSurfaceStyle ?? 'md3',
+    );
     // Navigation items
     navigationItems = $state<NavigationItem[]>(DEFAULT_CONFIG.theme.navigationItems);
 
@@ -60,6 +66,7 @@ export class ThemeStore {
         this.navigationStyle = config.navigationStyle ?? 'standard';
         this.cardRadius = this.normalizeCardRadius(config.cardRadius);
         this.tabPillRadius = this.normalizeTabPillRadius(config.tabPillRadius);
+        this.cardSurfaceStyle = normalizeCardSurfaceStyle(config.cardSurfaceStyle);
 
         // Load items or fall back to filtered defaults (in case of deep merge issues)
         if (config.navigationItems && Array.isArray(config.navigationItems) && config.navigationItems.length > 0) {
@@ -98,6 +105,7 @@ export class ThemeStore {
             navigationStyle: this.navigationStyle,
             cardRadius: this.cardRadius,
             tabPillRadius: this.tabPillRadius,
+            cardSurfaceStyle: this.cardSurfaceStyle,
             navigationItems: this.navigationItems
         };
 
@@ -138,6 +146,7 @@ export class ThemeStore {
                 navigationStyle: this.navigationStyle,
                 cardRadius: this.cardRadius,
                 tabPillRadius: this.tabPillRadius,
+                cardSurfaceStyle: this.cardSurfaceStyle,
                 navigationItems: this.navigationItems
             }
         };
@@ -172,6 +181,7 @@ export class ThemeStore {
                         navigationStyle: this.navigationStyle,
                         cardRadius: this.cardRadius,
                         tabPillRadius: this.tabPillRadius,
+                        cardSurfaceStyle: this.cardSurfaceStyle,
                         navigationItems: this.navigationItems
                     }
                 };
@@ -220,6 +230,12 @@ export class ThemeStore {
 
     setTabPillRadius(radius: number) {
         this.tabPillRadius = this.normalizeTabPillRadius(radius);
+        this.saveToLocalStorage();
+        this.scheduleSyncToServer();
+    }
+
+    setCardSurfaceStyle(style: DashboardCardSurfaceStyle) {
+        this.cardSurfaceStyle = normalizeCardSurfaceStyle(style);
         this.saveToLocalStorage();
         this.scheduleSyncToServer();
     }

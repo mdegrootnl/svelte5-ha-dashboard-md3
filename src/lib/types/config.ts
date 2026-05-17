@@ -1,4 +1,4 @@
-import type { RoomDashboardConfig, DashboardPage } from './dashboard';
+import type { DashboardCardSurfaceStyle, RoomDashboardConfig, DashboardPage } from './dashboard';
 import type { MAMediaItem } from './musicAssistant';
 
 export interface NavigationItem {
@@ -15,6 +15,7 @@ export interface ThemeConfig {
     navigationItems: NavigationItem[];
     cardRadius: number;
     tabPillRadius: number;
+    cardSurfaceStyle?: DashboardCardSurfaceStyle;
 }
 
 export interface MusicLibraryConfig {
@@ -45,6 +46,7 @@ export const DEFAULT_CONFIG: AppConfig = {
         navigationStyle: 'standard',
         cardRadius: 12,
         tabPillRadius: 32,
+        cardSurfaceStyle: 'md3',
         navigationItems: [
             { id: 'home', label: 'Home', icon: 'home', href: '/' },
             { id: 'dashboard', label: 'Home Dashboard', icon: 'home', href: '/dashboard' },

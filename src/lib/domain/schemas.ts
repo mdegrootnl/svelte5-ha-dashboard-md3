@@ -62,6 +62,9 @@ export const DashboardCardTypeSchema = z.enum([
     "device_panel"
 ]);
 
+const DashboardCardSurfaceStyleSchema = z.enum(["md3", "glass", "soft"]);
+const DashboardGridCardSurfaceStyleSchema = z.enum(["theme", "md3", "glass", "soft"]);
+
 const DashboardGenerationRecipeSchema = z.enum([
     "house",
     "room",
@@ -135,10 +138,11 @@ const RoomVisualKindSchema = z.enum([
     "custom",
 ]);
 const RoomVisualAudienceSchema = z.enum(["adult", "boy", "girl", "child", "family", "neutral"]);
-const NavigationImageSourceSchema = z.enum(["ha_area_picture", "generated_preview", "unsplash", "manual", "none"]);
+const NavigationImageSourceSchema = z.enum(["ha_area_picture", "generated_preview", "unsplash", "pexels", "manual", "none"]);
+const DashboardBackgroundSourceSchema = z.enum(["none", "generated_preview", "ha_area_picture", "unsplash", "pexels", "manual"]);
 
 const DashboardImageAttributionSchema = z.object({
-    provider: z.enum(["unsplash", "manual", "generated_preview", "ha_area_picture"]),
+    provider: z.enum(["unsplash", "pexels", "manual", "generated_preview", "ha_area_picture"]),
     sourceName: z.string().optional(),
     sourceUrl: z.string().optional(),
     authorName: z.string().optional(),
@@ -146,6 +150,16 @@ const DashboardImageAttributionSchema = z.object({
     photoId: z.string().optional(),
     licenseUrl: z.string().optional(),
     downloadLocation: z.string().optional(),
+}).passthrough();
+
+const DashboardBackgroundConfigSchema = z.object({
+    enabled: z.boolean(),
+    source: DashboardBackgroundSourceSchema,
+    imageUrl: z.string().optional(),
+    imageAttribution: DashboardImageAttributionSchema.optional(),
+    accentColor: z.string().optional(),
+    objectPosition: z.enum(["center", "top", "bottom"]).optional(),
+    scrimOpacity: z.number().min(0).max(0.95).optional(),
 }).passthrough();
 
 const DashboardCardOptionsSchema = z.object({
@@ -195,6 +209,8 @@ const DashboardCardOptionsSchema = z.object({
     }).passthrough().optional(),
     energy: z.object({
         source: SmartSourceSchema.optional(),
+        mode: z.enum(["overview", "flow", "balance", "sources", "devices"]).optional(),
+        historyRange: z.enum(["last24h", "today", "7d", "30d", "12m"]).optional(),
         gridImportEntityId: z.string().optional(),
         gridExportEntityId: z.string().optional(),
         solarPowerEntityId: z.string().optional(),
@@ -203,6 +219,8 @@ const DashboardCardOptionsSchema = z.object({
         todayEnergyEntityId: z.string().optional(),
         gasEntityId: z.string().optional(),
         waterEntityId: z.string().optional(),
+        deviceEntityIds: z.array(z.string()).optional(),
+        hoursToShow: z.number().min(1).optional(),
     }).passthrough().optional(),
     calendar: z.object({
         source: SmartSourceSchema.optional(),
@@ -341,6 +359,8 @@ const createGridConfigSchema = () => z.object({
     gap: z.number().default(16),
     padding: z.number().default(16),
     items: z.array(DashboardItemSchema),
+    background: DashboardBackgroundConfigSchema.optional(),
+    cardSurfaceStyle: DashboardGridCardSurfaceStyleSchema.optional(),
     rowHeight: z.number().optional().default(80),
     rowGap: z.number().optional(),
     columnGap: z.number().optional(),
@@ -373,6 +393,7 @@ const ThemeConfigPartialSchema = z.object({
     navigationStyle: z.enum(['standard', 'modern']).optional(),
     cardRadius: z.number().min(0).max(32).optional(),
     tabPillRadius: z.number().min(0).max(48).optional(),
+    cardSurfaceStyle: DashboardCardSurfaceStyleSchema.optional(),
     navigationItems: z.array(NavigationItemSchema).optional(),
 }).strict();
 

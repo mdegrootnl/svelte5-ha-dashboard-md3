@@ -645,13 +645,64 @@ export class DashboardStore {
     updatePage(id: string, updates: Partial<DashboardPage>) {
         const index = this.pages.findIndex(p => p.id === id);
         if (index !== -1) {
-            this.pages[index] = { ...this.pages[index], ...updates };
+            const previousPage = this.pages[index];
+            const previousConfigId = DashboardStore.deriveConfigIdFromPath(previousPage.path);
+            const nextPage = { ...previousPage, ...updates };
+            const nextConfigId = DashboardStore.deriveConfigIdFromPath(nextPage.path);
+
+            if (previousConfigId !== nextConfigId && this.savedConfigs[previousConfigId]) {
+                const movedConfig = normalizeRoomDashboardConfig({
+                    ...this.savedConfigs[previousConfigId],
+                    id: nextConfigId,
+                    name: updates.name ?? this.savedConfigs[previousConfigId].name,
+                    icon: updates.icon ?? this.savedConfigs[previousConfigId].icon,
+                });
+
+                if (!this.savedConfigs[nextConfigId]) {
+                    this.savedConfigs[nextConfigId] = movedConfig;
+                    delete this.savedConfigs[previousConfigId];
+                }
+
+                if (this.config?.id === previousConfigId) {
+                    this.config = this.savedConfigs[nextConfigId] ?? movedConfig;
+                }
+            }
+
+            if (this.savedConfigs[nextConfigId]) {
+                this.savedConfigs[nextConfigId].name = updates.name ?? this.savedConfigs[nextConfigId].name;
+                this.savedConfigs[nextConfigId].icon = updates.icon ?? this.savedConfigs[nextConfigId].icon;
+            }
+
+            this.pages[index] = nextPage;
             this.persistChanges();
         }
     }
 
-    deletePage(id: string) {
+    deletePage(id: string, deleteConfig = false) {
+        const page = this.pages.find(p => p.id === id);
+        if (deleteConfig && page) {
+            const configId = DashboardStore.deriveConfigIdFromPath(page.path);
+            delete this.savedConfigs[configId];
+            if (this.config?.id === configId) {
+                this.config = null;
+            }
+        }
+
         this.pages = this.pages.filter(p => p.id !== id);
+        this.persistChanges();
+    }
+
+    updateDashboardMetadata(id: string, updates: Pick<Partial<RoomDashboardConfig>, 'name' | 'icon'>) {
+        const config = this.savedConfigs[id];
+        if (!config) return;
+
+        config.name = updates.name ?? config.name;
+        config.icon = updates.icon ?? config.icon;
+
+        if (this.config?.id === id) {
+            this.config = config;
+        }
+
         this.persistChanges();
     }
 }

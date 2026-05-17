@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AppConfigPartialSchema, DashboardItemSchema, GraphCardConfigSchema } from './schemas';
+import { AppConfigPartialSchema, DashboardItemSchema, GraphCardConfigSchema, GridConfigSchema } from './schemas';
 import type { RoomDashboardConfig } from '$lib/types/dashboard';
 
 const baseItem = {
@@ -23,13 +23,29 @@ describe('DashboardItemSchema card options', () => {
             options: {
                 energy: {
                     source: 'auto',
+                    mode: 'sources',
+                    historyRange: '30d',
                     solarPowerEntityId: 'sensor.solar_power',
+                    deviceEntityIds: ['sensor.dishwasher_energy'],
+                    hoursToShow: 48,
                 },
             },
-        }) as typeof baseItem & { options: { energy: { solarPowerEntityId: string } } };
+        }) as typeof baseItem & {
+            options: {
+                energy: {
+                    solarPowerEntityId: string;
+                    mode: string;
+                    historyRange: string;
+                    hoursToShow: number;
+                };
+            };
+        };
 
         expect(parsed.cardType).toBe('energy');
         expect(parsed.options.energy.solarPowerEntityId).toBe('sensor.solar_power');
+        expect(parsed.options.energy.mode).toBe('sources');
+        expect(parsed.options.energy.historyRange).toBe('30d');
+        expect(parsed.options.energy.hoursToShow).toBe(48);
     });
 
     it('rejects invalid smart source values', () => {
@@ -135,6 +151,37 @@ describe('DashboardItemSchema card options', () => {
         expect(GraphCardConfigSchema.parse({}).chartType).toBe('area');
     });
 
+    it('accepts card surface style config and rejects invalid values', () => {
+        expect(
+            AppConfigPartialSchema.parse({
+                theme: {
+                    cardSurfaceStyle: 'glass',
+                },
+            }).theme?.cardSurfaceStyle,
+        ).toBe('glass');
+
+        const parsedGrid = GridConfigSchema.parse({
+            id: 'grid-1',
+            name: 'Kitchen',
+            columns: { desktop: 12, mobile: 4 },
+            rows: 'implicit',
+            gap: 16,
+            padding: 16,
+            items: [],
+            cardSurfaceStyle: 'soft',
+        }) as { cardSurfaceStyle?: string };
+
+        expect(parsedGrid.cardSurfaceStyle).toBe('soft');
+
+        expect(() =>
+            AppConfigPartialSchema.parse({
+                theme: {
+                    cardSurfaceStyle: 'neon',
+                },
+            }),
+        ).toThrow();
+    });
+
     it('accepts generated navigation preview image sources', () => {
         const parsed = DashboardItemSchema.parse({
             ...baseItem,
@@ -200,6 +247,44 @@ describe('DashboardItemSchema card options', () => {
         expect(parsed.imageAttribution.provider).toBe('unsplash');
         expect(parsed.imageAttribution.authorName).toBe('Ada Lovelace');
         expect(parsed.options.navigation.imageSource).toBe('unsplash');
+    });
+
+    it('accepts credited Pexels navigation images', () => {
+        const parsed = DashboardItemSchema.parse({
+            ...baseItem,
+            cardType: 'navigation',
+            path: '/dashboard/ground/kitchen',
+            iconType: 'image',
+            imageUrl: 'https://images.pexels.com/photos/kitchen.jpeg',
+            imageAttribution: {
+                provider: 'pexels',
+                sourceName: 'Pexels',
+                sourceUrl: 'https://www.pexels.com/photo/kitchen/',
+                authorName: 'Ada Lovelace',
+                authorUrl: 'https://www.pexels.com/@ada',
+                photoId: '123',
+                licenseUrl: 'https://www.pexels.com/license/',
+            },
+            options: {
+                navigation: {
+                    imageSource: 'pexels',
+                },
+            },
+        }) as typeof baseItem & {
+            imageAttribution: {
+                provider: string;
+                authorName: string;
+            };
+            options: {
+                navigation: {
+                    imageSource: string;
+                };
+            };
+        };
+
+        expect(parsed.imageAttribution.provider).toBe('pexels');
+        expect(parsed.imageAttribution.authorName).toBe('Ada Lovelace');
+        expect(parsed.options.navigation.imageSource).toBe('pexels');
     });
 
     it('accepts smart card entity mappings and custom actions', () => {
@@ -353,5 +438,51 @@ describe('AppConfigPartialSchema theme options', () => {
         const dashboards = parsed.dashboards as Record<string, RoomDashboardConfig> | undefined;
 
         expect(dashboards?.dashboard_home.tabs[0].items[0].generationState).toBe('generated');
+    });
+
+    it('persists grid background image config through app config validation', () => {
+        const tab = {
+            id: 'tab-1',
+            name: 'Overview',
+            icon: 'home',
+            columns: { desktop: 12, mobile: 4 },
+            rows: 'implicit',
+            gap: 16,
+            padding: 16,
+            rowHeight: 80,
+            items: [],
+            background: {
+                enabled: true,
+                source: 'pexels',
+                imageUrl: 'https://images.pexels.com/photos/home.jpeg',
+                accentColor: '#91a87c',
+                objectPosition: 'center',
+                scrimOpacity: 0.58,
+                imageAttribution: {
+                    provider: 'pexels',
+                    sourceName: 'Pexels',
+                    sourceUrl: 'https://www.pexels.com/photo/home/',
+                    authorName: 'Ada Lovelace',
+                    photoId: '123',
+                    licenseUrl: 'https://www.pexels.com/license/',
+                },
+            },
+        };
+
+        const parsed = AppConfigPartialSchema.parse({
+            dashboards: {
+                dashboard_home: {
+                    ...tab,
+                    id: 'dashboard_home',
+                    tabs: [tab],
+                    activeTabId: 'tab-1',
+                },
+            },
+        });
+
+        const dashboards = parsed.dashboards as Record<string, RoomDashboardConfig> | undefined;
+
+        expect(dashboards?.dashboard_home.tabs[0].background?.source).toBe('pexels');
+        expect(dashboards?.dashboard_home.tabs[0].background?.imageAttribution?.provider).toBe('pexels');
     });
 });

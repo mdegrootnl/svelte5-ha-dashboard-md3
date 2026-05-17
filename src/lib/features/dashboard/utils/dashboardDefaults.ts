@@ -3,6 +3,17 @@ import {
     ensureGridColumnProfiles,
     ensureItemLayoutProfiles,
 } from '$lib/types/dashboard';
+import { normalizeGridCardSurfaceStyle } from './cardSurface';
+
+function ensureMinimumRowSpan(item: DashboardItem, minRowSpan: number) {
+    item.layout.desktop.rowSpan = Math.max(item.layout.desktop.rowSpan, minRowSpan);
+    item.layout.mobile.rowSpan = Math.max(item.layout.mobile.rowSpan, minRowSpan);
+
+    const profiles = ensureItemLayoutProfiles(item);
+    for (const layout of Object.values(profiles)) {
+        layout.rowSpan = Math.max(layout.rowSpan, minRowSpan);
+    }
+}
 
 function ensureItemDefaults(item: DashboardItem): DashboardItem {
     item.entityId ??= "";
@@ -21,6 +32,10 @@ function ensureItemDefaults(item: DashboardItem): DashboardItem {
     if (item.cardType === "weather") item.options.weather ??= { source: "auto" };
     if (item.cardType === "remote") item.options.remote ??= { preset: "tv" };
     if (item.cardType === "device_panel") item.options.device_panel ??= { preset: "auto" };
+
+    if (item.cardType === "weather" && item.generationState === "generated") {
+        ensureMinimumRowSpan(item, 3);
+    }
 
     if (item.cardType === "title") {
         item.subtitle ??= "";
@@ -66,6 +81,15 @@ export function normalizeGridConfig(config: GridConfig): GridConfig {
     config.padding ??= 16;
     config.rowHeight ??= 80;
     config.items ??= [];
+    if (config.background) {
+        config.background.enabled ??= false;
+        config.background.source ??= "none";
+        config.background.objectPosition ??= "center";
+        config.background.scrimOpacity ??= 0.38;
+    }
+    if (config.cardSurfaceStyle) {
+        config.cardSurfaceStyle = normalizeGridCardSurfaceStyle(config.cardSurfaceStyle);
+    }
 
     for (const item of config.items) {
         normalizeDashboardItem(item);

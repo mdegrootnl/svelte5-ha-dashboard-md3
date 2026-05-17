@@ -3,9 +3,14 @@
     import { haStore } from "$lib/stores/ha.svelte";
     import { getDomain } from "$lib/utils/entity";
     import type {
+        DashboardCardSurfaceStyle,
         DashboardImageAttribution,
         NavigationCardShortcut,
     } from "$lib/types/dashboard";
+    import {
+        getCardSurfaceClasses,
+        getCardSurfaceStyle,
+    } from "$lib/features/dashboard/utils/cardSurface";
     import IconEdit from "~icons/material-symbols/edit";
     import IconInfo from "~icons/material-symbols/info";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
@@ -22,6 +27,7 @@
         imageAttribution?: DashboardImageAttribution;
         color?: string;
         backgroundColor?: string;
+        surfaceStyle?: DashboardCardSurfaceStyle;
         shortcuts?: NavigationCardShortcut[];
         entityId?: string;
         ondelete?: () => void;
@@ -39,6 +45,7 @@
         imageAttribution = $bindable(),
         color = $bindable(),
         backgroundColor = $bindable(),
+        surfaceStyle = "md3",
         shortcuts = $bindable(),
         entityId = $bindable(""),
         ondelete,
@@ -47,17 +54,14 @@
 
     // Base styles
     const baseStyles =
-        "relative flex w-full h-full min-h-20 rounded-m3-card overflow-hidden transition-all duration-200 select-none group/card border border-transparent hover:border-m3-outline-variant/50";
+        "relative flex w-full h-full min-h-20 rounded-m3-card overflow-hidden transition-all duration-200 select-none group/card hover:border-m3-outline-variant/50";
     const summarySeparatorPattern = /\s+(?:-|\u00b7|\u00c2\u00b7)\s+/;
 
     // Dynamic background and text colors
     let cardStyle = $derived.by(() => {
         let styles = "";
         if (backgroundColor) {
-            styles += `background-color: ${backgroundColor}; `;
-        } else {
-            styles +=
-                "background-color: var(--color-m3-surface-container-highest); ";
+            styles += getCardSurfaceStyle(surfaceStyle, backgroundColor);
         }
         styles += "color: var(--color-m3-on-surface); ";
         return styles;
@@ -236,7 +240,7 @@
     }
 </script>
 
-<a href={path} class="{baseStyles} {className} @container" style="container-type: size; {cardStyle}">
+<a href={path} class="{baseStyles} {getCardSurfaceClasses(surfaceStyle)} {className} @container" style="container-type: size; {cardStyle}">
     {#if iconType === "image" && imageUrl}
         <!-- Full-bleed Image Mode -->
         <AuthenticatedImage

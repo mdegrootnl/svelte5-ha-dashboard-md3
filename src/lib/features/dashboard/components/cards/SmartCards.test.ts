@@ -45,10 +45,23 @@ describe('smart dashboard cards', () => {
                 device_class: 'power',
                 unit_of_measurement: 'W',
             }),
+            'sensor.dishwasher_energy': state('sensor.dishwasher_energy', '2.4', {
+                friendly_name: 'Dishwasher Energy',
+                device_class: 'energy',
+                unit_of_measurement: 'kWh',
+            }),
             'weather.home': state('weather.home', 'cloudy', {
                 friendly_name: 'Home Weather',
                 temperature: 16,
                 temperature_unit: 'C',
+                humidity: 77,
+                wind_speed: 14,
+                wind_speed_unit: 'km/h',
+            }),
+            'sensor.home_humidity': state('sensor.home_humidity', 'unknown', {
+                friendly_name: 'Home Humidity',
+                device_class: 'humidity',
+                unit_of_measurement: '%',
             }),
             'calendar.family': state('calendar.family', 'on', {
                 friendly_name: 'Family',
@@ -70,6 +83,8 @@ describe('smart dashboard cards', () => {
             }),
         } as any;
         haStore.entityCount = Object.keys(haStore.states).length;
+        haStore.connected = false;
+        haStore.auth = null;
         haStore.statesVersion += 1;
         haRegistryStore.version += 1;
     });
@@ -166,17 +181,19 @@ describe('smart dashboard cards', () => {
                 },
             },
         });
-        expect(screen.getByText('1800W')).toBeInTheDocument();
-        expect(screen.getByText('900W')).toBeInTheDocument();
+        expect(screen.getByText(/1[,.]8 kW/)).toBeInTheDocument();
+        expect(screen.getByText('900 W')).toBeInTheDocument();
 
         render(WeatherOverviewCard, {
             props: {
                 name: 'Outside',
-                options: { source: 'manual', weatherEntityId: 'weather.home' },
+                options: { source: 'manual', weatherEntityId: 'weather.home', humidityEntityId: 'sensor.home_humidity' },
             },
         });
         expect(screen.getByText('Outside')).toBeInTheDocument();
         expect(screen.getByText('cloudy')).toBeInTheDocument();
+        expect(screen.getAllByText('77%').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('14km/h').length).toBeGreaterThan(0);
 
         render(CalendarAgendaCard, {
             props: {
@@ -185,6 +202,77 @@ describe('smart dashboard cards', () => {
             },
         });
         expect(screen.getByText('Football training')).toBeInTheDocument();
+    });
+
+    it('renders energy balance and device modes', () => {
+        render(EnergyFlowCard, {
+            props: {
+                name: 'Energy Balance',
+                options: {
+                    source: 'manual',
+                    mode: 'balance',
+                    solarPowerEntityId: 'sensor.solar_power',
+                    homePowerEntityId: 'sensor.home_power',
+                },
+            },
+        });
+        expect(screen.getByText('Grid Balance')).toBeInTheDocument();
+        expect(screen.getByText('Solar Self-use')).toBeInTheDocument();
+
+        render(EnergyFlowCard, {
+            props: {
+                name: 'Energy Devices',
+                options: {
+                    source: 'manual',
+                    mode: 'devices',
+                    deviceEntityIds: ['sensor.dishwasher_energy'],
+                },
+            },
+        });
+        expect(screen.getByText('Top Consumers')).toBeInTheDocument();
+        expect(screen.getByText('Dishwasher Energy')).toBeInTheDocument();
+    });
+
+    it('uses daily recorder statistics for aggregate energy source ranges', async () => {
+        const statisticsSpy = vi.spyOn(haStore, 'getStatistics').mockResolvedValue({
+            ok: true,
+            value: [
+                {
+                    entityId: 'sensor.solar_power',
+                    points: [
+                        {
+                            timestamp: new Date('2026-05-14T00:00:00Z'),
+                            state: '1200',
+                            value: 1200,
+                        },
+                    ],
+                },
+            ],
+        });
+        vi.spyOn(haStore, 'getHistory').mockResolvedValue({ ok: true, value: [] });
+        haStore.connected = true;
+        haStore.auth = { accessToken: 'token' } as any;
+
+        render(EnergyFlowCard, {
+            props: {
+                name: 'Sources',
+                options: {
+                    source: 'manual',
+                    mode: 'sources',
+                    historyRange: '7d',
+                    solarPowerEntityId: 'sensor.solar_power',
+                },
+            },
+        });
+
+        await vi.waitFor(() =>
+            expect(statisticsSpy).toHaveBeenCalledWith(
+                expect.arrayContaining(['sensor.solar_power']),
+                expect.any(Date),
+                expect.any(Date),
+                'day',
+            ),
+        );
     });
 
     it('auto-discovers calendar, remote, and device entities from HA state', () => {

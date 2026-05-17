@@ -25,6 +25,7 @@ import {
     type DashboardGenerationQualityHint,
     type DashboardGenerationRecipe,
     type DashboardGenerationResult,
+    type DashboardBackgroundConfig,
     type EntityQueryConfig,
     type GridConfig,
     type RoomDashboardConfig,
@@ -897,6 +898,86 @@ function getAreaNavigationVisual(area: { area_id?: string; name: string; icon?: 
             imageSource: areaPictureUrl ? ('ha_area_picture' as const) : ('generated_preview' as const),
         },
     };
+}
+
+function getGeneratedPreviewBackground(kind: 'home' | 'floor') {
+    return `/api/room-previews/${kind}?audience=neutral`;
+}
+
+const DEFAULT_GENERATED_BACKGROUND_SCRIM = 0.38;
+
+function getAreaBackground(area?: { area_id?: string; name: string; icon?: string | null; picture?: string | null }): DashboardBackgroundConfig | undefined {
+    if (!area) return undefined;
+    const visual = getAreaNavigationVisual(area);
+    return {
+        enabled: true,
+        source: visual.options.imageSource,
+        imageUrl: visual.imageUrl,
+        accentColor: 'var(--color-m3-primary)',
+        objectPosition: 'center',
+        scrimOpacity: DEFAULT_GENERATED_BACKGROUND_SCRIM,
+        imageAttribution: {
+            provider: visual.options.imageSource,
+            sourceName: visual.options.imageSource === 'ha_area_picture' ? 'Home Assistant area picture' : 'Generated preview',
+        },
+    };
+}
+
+function getHouseBackground(): DashboardBackgroundConfig {
+    return {
+        enabled: true,
+        source: 'generated_preview',
+        imageUrl: getGeneratedPreviewBackground('home'),
+        accentColor: 'var(--color-m3-primary)',
+        objectPosition: 'center',
+        scrimOpacity: DEFAULT_GENERATED_BACKGROUND_SCRIM,
+        imageAttribution: {
+            provider: 'generated_preview',
+            sourceName: 'Generated home preview',
+        },
+    };
+}
+
+function getFloorBackground(): DashboardBackgroundConfig {
+    return {
+        enabled: true,
+        source: 'generated_preview',
+        imageUrl: getGeneratedPreviewBackground('floor'),
+        accentColor: 'var(--color-m3-secondary)',
+        objectPosition: 'center',
+        scrimOpacity: DEFAULT_GENERATED_BACKGROUND_SCRIM,
+        imageAttribution: {
+            provider: 'generated_preview',
+            sourceName: 'Generated floor preview',
+        },
+    };
+}
+
+function applyGeneratedRootBackground(
+    config: RoomDashboardConfig,
+    context: InventoryContext,
+    options: DashboardGenerationOptions,
+) {
+    if (!options.useBackgroundImages) return;
+
+    const rootTab = config.tabs[0];
+    if (!rootTab) return;
+
+    if (options.recipe === 'room') {
+        rootTab.background = getAreaBackground(
+            context.areas?.find((area) => area.area_id === options.areaId),
+        );
+        return;
+    }
+
+    if (options.recipe === 'floor') {
+        rootTab.background = getFloorBackground();
+        return;
+    }
+
+    if (options.recipe === 'house') {
+        rootTab.background = getHouseBackground();
+    }
 }
 
 function buildAreaPictureHints(
@@ -2081,6 +2162,11 @@ function generateHouseDashboard(
     }
 
     const energyOptions = buildSmartEnergyOptions(inventory.index);
+    const statisticsEnergyOptions = {
+        ...energyOptions,
+        mode: 'sources' as const,
+        historyRange: '7d' as const,
+    };
     if (hasAnyEntity(energyOptions, [
         'gridImportEntityId',
         'gridExportEntityId',
@@ -2099,9 +2185,10 @@ function generateHouseDashboard(
                 cardType: 'energy',
                 name: 'Energy',
                 icon: 'electric_bolt',
-                desktopSpan: 4,
+                desktopSpan: 6,
                 mobileSpan: 4,
-                options: { energy: energyOptions },
+                rowSpan: 3,
+                options: { energy: statisticsEnergyOptions },
                 reason: 'Energy entities discovered from HA state and names',
             },
             options,
@@ -2173,6 +2260,7 @@ function generateHouseDashboard(
         sourceType: 'house',
         sourceId: HOUSE_OVERVIEW_ID,
     });
+    applyGeneratedRootBackground(config, context, options);
     const skippedEntities = buildSkippedEntities(inventory, includedEntities);
     const explainedIncludedEntities = enrichEntityRefs(includedEntities, inventory);
     const explainedSkippedEntities = enrichEntityRefs(skippedEntities, inventory);
@@ -2567,6 +2655,7 @@ function generateFloorDashboard(
         sourceType: 'floor',
         sourceId: floorRouteId,
     });
+    applyGeneratedRootBackground(config, context, resolvedOptions);
     const skippedEntities = buildSkippedEntitiesForAreas(inventory, includedEntities, floorAreaIds);
     const explainedIncludedEntities = enrichEntityRefs(includedEntities, inventory);
     const explainedSkippedEntities = enrichEntityRefs(skippedEntities, inventory);
@@ -3741,6 +3830,7 @@ function generateRoomDashboard(
         sourceType: 'area',
         sourceId: areaId,
     });
+    applyGeneratedRootBackground(config, context, options);
     const skippedEntities = buildSkippedEntities(inventory, includedEntities, areaId);
     const explainedIncludedEntities = enrichEntityRefs(includedEntities, inventory, areaId);
     const explainedSkippedEntities = enrichEntityRefs(skippedEntities, inventory, areaId);

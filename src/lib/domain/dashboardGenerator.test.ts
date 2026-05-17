@@ -232,6 +232,9 @@ describe('dashboardGenerator', () => {
         expect(itemNames).not.toContain('TV Off');
         expect(itemNames).not.toContain('Random Helper');
         expect(statisticsItems.map((item) => item.name)).toContain('Context');
+        const weatherItem = statisticsItems.find((item) => item.cardType === 'weather');
+        expect(weatherItem?.layout.desktop.rowSpan).toBe(3);
+        expect(weatherItem?.layout.mobile.rowSpan).toBe(3);
         const quickActions = homeItems.filter(
             (item) => item.cardType === 'button' && item.generatedBy?.sourceType === 'house',
         );
@@ -312,6 +315,59 @@ describe('dashboardGenerator', () => {
             result.qualityHints.find((hint) => hint.code === 'missing_area_picture')?.message,
         ).toContain('Living Room');
         expect(allItems.every((item) => item.generatedBy?.recipe === 'house')).toBe(true);
+    });
+
+    it('keeps generated dashboard backgrounds disabled by default', () => {
+        const result = generateDashboard(richContext, {
+            recipe: 'house',
+            targetDashboardId: 'dashboard_home',
+            applyMode: 'replace_draft',
+        });
+
+        expect(result.config.tabs[0].background).toBeUndefined();
+    });
+
+    it('adds generated home backgrounds when background generation is enabled', () => {
+        const result = generateDashboard(richContext, {
+            recipe: 'house',
+            targetDashboardId: 'dashboard_home',
+            useBackgroundImages: true,
+            applyMode: 'replace_draft',
+        });
+
+        expect(result.config.tabs[0].background).toMatchObject({
+            enabled: true,
+            source: 'generated_preview',
+            imageUrl: '/api/room-previews/home?audience=neutral',
+        });
+    });
+
+    it('adds room backgrounds preferring HA area pictures over generated previews', () => {
+        const kitchen = generateDashboard(richContext, {
+            recipe: 'room',
+            targetDashboardId: 'dashboard_ground_kitchen',
+            areaId: 'kitchen',
+            useBackgroundImages: true,
+            applyMode: 'replace_draft',
+        });
+        const livingRoom = generateDashboard(richContext, {
+            recipe: 'room',
+            targetDashboardId: 'dashboard_ground_living_room',
+            areaId: 'living_room',
+            useBackgroundImages: true,
+            applyMode: 'replace_draft',
+        });
+
+        expect(kitchen.config.tabs[0].background).toMatchObject({
+            enabled: true,
+            source: 'ha_area_picture',
+            imageUrl: '/api/image/serve/kitchen-preview/512x512',
+        });
+        expect(livingRoom.config.tabs[0].background).toMatchObject({
+            enabled: true,
+            source: 'generated_preview',
+            imageUrl: '/api/room-previews/living_room?audience=family',
+        });
     });
 
     it('does not create global smart cards when backing entities are missing', () => {

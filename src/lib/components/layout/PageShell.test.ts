@@ -49,4 +49,11 @@ describe('PageShell Component', () => {
 
         expect(container.querySelector('.max-w-7xl')).toBeInTheDocument();
     });
+
+    it('can leave the page surface transparent for a viewport background', () => {
+        const children = createRawSnippet(() => ({ render: () => '<span>Content</span>' }));
+        const { container } = render(PageShell, { props: { title: 'Page', children, backgroundActive: true } });
+
+        expect(container.firstElementChild).toHaveClass('bg-transparent');
+    });
 });

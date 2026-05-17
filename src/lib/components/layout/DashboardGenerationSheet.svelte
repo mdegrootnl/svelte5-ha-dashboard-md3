@@ -1,7 +1,8 @@
 <script lang="ts">
-    import SideSheet from "./SideSheet.svelte";
+    import { Dialog } from "bits-ui";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import TextField from "$lib/components/md3/TextField.svelte";
+    import DashboardBackgroundLayer from "$lib/components/layout/DashboardBackgroundLayer.svelte";
     import DashboardCardRenderer from "$lib/features/dashboard/components/cards/DashboardCardRenderer.svelte";
     import GenerationStateBadge from "$lib/features/dashboard/components/GenerationStateBadge.svelte";
     import { generateDashboard } from "$lib/domain/dashboardGenerator";
@@ -12,9 +13,12 @@
     } from "$lib/domain/haInventory";
     import { haRegistryStore } from "$lib/stores/haRegistry.svelte";
     import { haStore } from "$lib/stores/ha.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
     import { dashboardStore, DashboardStore } from "$lib/features/dashboard/stores/dashboard.svelte";
     import { normalizeRoomDashboardConfig } from "$lib/features/dashboard/utils/dashboardDefaults";
     import { mergeGeneratedConfigWithExisting } from "$lib/features/dashboard/utils/generationMerge";
+    import { resolveCardSurfaceStyle } from "$lib/features/dashboard/utils/cardSurface";
+    import { extractAccentColorFromImageUrl } from "$lib/utils/imageAccent";
     import {
         getGridColumnsForProfile,
         getItemLayoutForProfile,
@@ -115,6 +119,10 @@
     let editPath = $state("");
     let cleanGeneratedBeforeApply = $state(false);
     let cleanApplyConfirmationPending = $state(false);
+    let useBackgroundImages = $state(false);
+    let extractedPreviewBackgroundUrls = $state<Record<string, string>>({});
+    let workspaceStage = $state<"setup" | "review" | "preview">("preview");
+    let isWorkspaceWide = $state(true);
 
     interface EntityReviewRow {
         entityId: string;
@@ -239,6 +247,15 @@
         },
     ];
 
+    const workspaceStageChoices: Array<{
+        id: "setup" | "review" | "preview";
+        label: string;
+    }> = [
+        { id: "setup", label: "Setup" },
+        { id: "preview", label: "Preview" },
+        { id: "review", label: "Review" },
+    ];
+
     let areaChoices = $derived(
         [...haRegistryStore.areas].sort((a, b) => a.name.localeCompare(b.name)),
     );
@@ -320,6 +337,9 @@
     let previewColumnCount = $derived(
         previewTab ? getGridColumnsForProfile(previewTab, activePreviewProfile) : 1,
     );
+    let activePreviewCardSurfaceStyle = $derived(
+        resolveCardSurfaceStyle(themeStore.cardSurfaceStyle, previewTab?.cardSurfaceStyle),
+    );
     let editingItem = $derived(
         editingItemId && selectedPreviewConfig
             ? findItemInConfig(selectedPreviewConfig.config, editingItemId)
@@ -366,6 +386,22 @@
     );
 
     $effect(() => {
+        if (typeof window === "undefined") return;
+
+        const updateWorkspaceWidth = () => {
+            const isLandscape = window.innerWidth >= window.innerHeight;
+            isWorkspaceWide = window.innerWidth >= 1280 || (window.innerWidth >= 1024 && isLandscape);
+        };
+
+        updateWorkspaceWidth();
+        window.addEventListener("resize", updateWorkspaceWidth);
+
+        return () => {
+            window.removeEventListener("resize", updateWorkspaceWidth);
+        };
+    });
+
+    $effect(() => {
         if (!open) {
             initializedForOpen = false;
             draft = null;
@@ -383,6 +419,9 @@
             selectedLabelId = "";
             cleanGeneratedBeforeApply = false;
             cleanApplyConfirmationPending = false;
+            useBackgroundImages = false;
+            extractedPreviewBackgroundUrls = {};
+            workspaceStage = "preview";
             closePreviewItemEditor();
             return;
         }
@@ -399,6 +438,7 @@
             selectedLabelId = selectedLabelId || labelChoices[0]?.id || "";
             cleanGeneratedBeforeApply = cleanGenerated;
             cleanApplyConfirmationPending = false;
+            workspaceStage = "preview";
             recipe = routeArea ? "room" : "house";
             refreshInventorySnapshot();
             initializedForOpen = true;
@@ -444,6 +484,7 @@
                 excludeLabels,
                 includeEntityIds,
                 excludeEntityIds,
+                useBackgroundImages,
                 applyMode: "replace_draft",
             },
         );
@@ -491,9 +532,51 @@
 
         cardFamilyCounts = countGeneratedCardFamilies(generatedDraft);
         cleanApplyConfirmationPending = false;
+        extractedPreviewBackgroundUrls = {};
         draft = applyCardTypeExclusions(generatedDraft);
         selectedPreviewConfigId = ROOT_PREVIEW_ID;
         closePreviewItemEditor();
+    });
+
+    $effect(() => {
+        if (!open || !useBackgroundImages || !previewTab?.background?.enabled) return;
+
+        const background = previewTab.background;
+        const imageUrl = background.imageUrl;
+        if (!imageUrl) return;
+        if (background.imageAttribution?.provider === "unsplash" || background.imageAttribution?.provider === "pexels") {
+            return;
+        }
+        if (background.accentColor && !background.accentColor.startsWith("var(")) {
+            return;
+        }
+
+        const extractionKey = `${previewTab.id}:${imageUrl}`;
+        if (extractedPreviewBackgroundUrls[extractionKey]) return;
+
+        extractedPreviewBackgroundUrls = {
+            ...extractedPreviewBackgroundUrls,
+            [extractionKey]: "pending",
+        };
+
+        let cancelled = false;
+
+        extractAccentColorFromImageUrl(imageUrl, {
+            resolveUrl: (source) => haStore.fetchProxiedBlobUrl(source),
+        }).then((accentColor) => {
+            if (cancelled || !accentColor) return;
+            if (previewTab?.background?.imageUrl !== imageUrl) return;
+
+            previewTab.background.accentColor = accentColor;
+            extractedPreviewBackgroundUrls = {
+                ...extractedPreviewBackgroundUrls,
+                [extractionKey]: accentColor,
+            };
+        });
+
+        return () => {
+            cancelled = true;
+        };
     });
 
     $effect(() => {
@@ -1238,6 +1321,12 @@
         onclose?.();
     }
 
+    function handleDialogOpenChange(nextOpen: boolean) {
+        if (!nextOpen && open) {
+            handleClose();
+        }
+    }
+
     function handleApply() {
         if (!draft) return;
         if (cleanGeneratedBeforeApply && !cleanApplyConfirmationPending) {
@@ -1642,767 +1731,826 @@
     }
 </script>
 
-<SideSheet
-    {open}
-    title="Generate Dashboard"
-    subtitle="Preview first, then apply when it looks right."
-    icon={IconAutoAwesome}
-    maxWidth="max-w-5xl"
-    onclose={handleClose}
->
-    <div class="grid grid-cols-1 xl:grid-cols-[20rem_minmax(0,1fr)] gap-6">
-        <aside class="flex flex-col gap-5">
-            <section class="flex flex-col gap-2">
-                <h3 class="text-m3-title-small text-m3-on-surface">
-                    Recipe
-                </h3>
-                <div class="grid grid-cols-1 gap-2">
-                    {#each recipeChoices as choice}
+{#snippet workspaceActions()}
+    <button
+        type="button"
+        class="inline-flex h-11 items-center justify-center gap-2 rounded-m3-full px-4 text-m3-label-large text-m3-on-surface-variant transition-colors hover:bg-m3-surface-container-high hover:text-m3-on-surface"
+        onclick={handleClose}
+    >
+        <IconClose class="size-5" />
+        Cancel
+    </button>
+    <button
+        type="button"
+        class="inline-flex h-11 items-center justify-center gap-2 rounded-m3-full bg-m3-primary px-5 text-m3-label-large text-m3-on-primary shadow-m3-elevation-1 transition-colors hover:brightness-95 disabled:opacity-50"
+        disabled={!draft || visibleCardCount === 0}
+        onclick={handleApply}
+    >
+        <IconCheck class="size-5" />
+        {cleanGeneratedBeforeApply && cleanApplyConfirmationPending
+            ? "Confirm Clean Apply"
+            : "Apply Draft"}
+    </button>
+{/snippet}
+
+{#snippet workspaceStageTabs()}
+    <div
+        class="flex gap-2 overflow-x-auto rounded-m3-full bg-m3-surface-container-high p-1 xl:hidden"
+        role="tablist"
+        aria-label="Generator workspace sections"
+    >
+        {#each workspaceStageChoices as choice}
+            <button
+                type="button"
+                role="tab"
+                aria-selected={workspaceStage === choice.id}
+                class="min-w-24 rounded-m3-full px-4 py-2 text-m3-label-large transition-colors {workspaceStage ===
+                choice.id
+                    ? 'bg-m3-primary text-m3-on-primary'
+                    : 'text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}"
+                onclick={() => (workspaceStage = choice.id)}
+            >
+                {choice.label}
+            </button>
+        {/each}
+    </div>
+{/snippet}
+
+{#snippet setupPanel()}
+    <section class="flex flex-col gap-2">
+        <h3 class="text-m3-title-small text-m3-on-surface">
+            Recipe
+        </h3>
+        <div class="grid grid-cols-1 gap-2">
+            {#each recipeChoices as choice}
+                <button
+                    type="button"
+                    class="flex items-start gap-3 rounded-m3-card border p-4 text-left transition-colors {recipe ===
+                    choice.id
+                        ? 'border-m3-primary bg-m3-primary-container text-m3-on-primary-container'
+                        : 'border-m3-outline-variant bg-m3-surface-container-high text-m3-on-surface hover:bg-m3-surface-container-highest'}"
+                    onclick={() => (recipe = choice.id)}
+                >
+                    <choice.icon class="size-6 shrink-0" />
+                    <span class="flex flex-col gap-1">
+                        <span class="text-m3-title-small">
+                            {choice.label}
+                        </span>
+                        <span class="text-m3-body-small opacity-80">
+                            {choice.description}
+                        </span>
+                    </span>
+                </button>
+            {/each}
+        </div>
+    </section>
+
+    {#if recipe === "room"}
+        <section class="flex flex-col gap-2">
+            <h3 class="text-m3-title-small text-m3-on-surface">
+                Area
+            </h3>
+            {#if areaChoices.length > 0}
+                <div class="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto pr-1">
+                    {#each areaChoices as area}
                         <button
                             type="button"
-                            class="flex items-start gap-3 rounded-m3-card border p-4 text-left transition-colors {recipe ===
-                            choice.id
-                                ? 'border-m3-primary bg-m3-primary-container text-m3-on-primary-container'
-                                : 'border-m3-outline-variant bg-m3-surface-container-high text-m3-on-surface hover:bg-m3-surface-container-highest'}"
-                            onclick={() => (recipe = choice.id)}
+                            class="rounded-m3-card px-3 py-2 text-left text-m3-label-large transition-colors {selectedAreaId ===
+                            area.area_id
+                                ? 'bg-m3-secondary-container text-m3-on-secondary-container'
+                                : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}"
+                            onclick={() => (selectedAreaId = area.area_id)}
                         >
-                            <choice.icon class="size-6 shrink-0" />
-                            <span class="flex flex-col gap-1">
-                                <span class="text-m3-title-small">
-                                    {choice.label}
+                            {area.name}
+                        </button>
+                    {/each}
+                </div>
+            {:else}
+                <p class="rounded-m3-card bg-m3-error-container px-3 py-2 text-m3-body-small text-m3-on-error-container">
+                    No Home Assistant areas are available yet.
+                </p>
+            {/if}
+        </section>
+    {/if}
+
+    {#if recipe === "floor"}
+        <section class="flex flex-col gap-2">
+            <h3 class="text-m3-title-small text-m3-on-surface">
+                Floor
+            </h3>
+            {#if floorChoices.length > 0}
+                <div class="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto pr-1">
+                    {#each floorChoices as floor}
+                        <button
+                            type="button"
+                            class="rounded-m3-card px-3 py-2 text-left text-m3-label-large transition-colors {selectedFloorId ===
+                            floor.floor_id
+                                ? 'bg-m3-secondary-container text-m3-on-secondary-container'
+                                : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}"
+                            onclick={() => (selectedFloorId = floor.floor_id)}
+                        >
+                            {floor.name}
+                        </button>
+                    {/each}
+                </div>
+            {:else}
+                <p class="rounded-m3-card bg-m3-error-container px-3 py-2 text-m3-body-small text-m3-on-error-container">
+                    No Home Assistant floors are available yet.
+                </p>
+            {/if}
+        </section>
+    {/if}
+
+    {#if recipe === "entity_type"}
+        <section class="flex flex-col gap-2">
+            <h3 class="text-m3-title-small text-m3-on-surface">
+                Entity Type
+            </h3>
+            {#if entityTypeChoices.length > 0}
+                <div class="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto pr-1">
+                    {#each entityTypeChoices as choice}
+                        <button
+                            type="button"
+                            class="rounded-m3-card px-3 py-2 text-left transition-colors {selectedEntityTypeId ===
+                            choice.id
+                                ? 'bg-m3-secondary-container text-m3-on-secondary-container'
+                                : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}"
+                            onclick={() => (selectedEntityTypeId = choice.id)}
+                        >
+                            <span class="block text-m3-label-large">
+                                {choice.label}
+                            </span>
+                            <span class="block text-m3-body-small opacity-75">
+                                {choice.description}
+                            </span>
+                        </button>
+                    {/each}
+                </div>
+            {:else}
+                <p class="rounded-m3-card bg-m3-error-container px-3 py-2 text-m3-body-small text-m3-on-error-container">
+                    No Home Assistant entities are available yet.
+                </p>
+            {/if}
+        </section>
+    {/if}
+
+    {#if recipe === "label"}
+        <section class="flex flex-col gap-2">
+            <h3 class="text-m3-title-small text-m3-on-surface">
+                Label
+            </h3>
+            {#if labelChoices.length > 0}
+                <div class="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto pr-1">
+                    {#each labelChoices as choice}
+                        <button
+                            type="button"
+                            class="rounded-m3-card px-3 py-2 text-left transition-colors {selectedLabelId ===
+                            choice.id
+                                ? 'bg-m3-secondary-container text-m3-on-secondary-container'
+                                : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}"
+                            onclick={() => (selectedLabelId = choice.id)}
+                        >
+                            <span class="block text-m3-label-large">
+                                {choice.label}
+                            </span>
+                            <span class="block text-m3-body-small opacity-75">
+                                {choice.description}
+                            </span>
+                        </button>
+                    {/each}
+                </div>
+            {:else}
+                <p class="rounded-m3-card bg-m3-error-container px-3 py-2 text-m3-body-small text-m3-on-error-container">
+                    No Home Assistant labels are available yet.
+                </p>
+            {/if}
+        </section>
+    {/if}
+
+    {#if draft}
+        <section class="grid grid-cols-3 gap-2">
+            <div class="rounded-m3-card bg-m3-surface-container-high p-3">
+                <div class="text-m3-label-small text-m3-on-surface-variant">
+                    Cards
+                </div>
+                <div class="text-m3-title-large text-m3-on-surface">
+                    {visibleCardCount}
+                </div>
+            </div>
+            <div class="rounded-m3-card bg-m3-surface-container-high p-3">
+                <div class="text-m3-label-small text-m3-on-surface-variant">
+                    Entities
+                </div>
+                <div class="text-m3-title-large text-m3-on-surface">
+                    {draft.summary.included}
+                </div>
+            </div>
+            <div class="rounded-m3-card bg-m3-surface-container-high p-3">
+                <div class="text-m3-label-small text-m3-on-surface-variant">
+                    Rooms
+                </div>
+                <div class="text-m3-title-large text-m3-on-surface">
+                    {relatedDashboardCount}
+                </div>
+            </div>
+        </section>
+
+        <section class="flex flex-col gap-3">
+            <div>
+                <h3 class="text-m3-title-small text-m3-on-surface">
+                    Visual Treatment
+                </h3>
+                <p class="text-m3-body-small text-m3-on-surface-variant">
+                    Optional. Adds generated or HA area images behind
+                    generated dashboard tabs.
+                </p>
+            </div>
+            <button
+                type="button"
+                aria-pressed={useBackgroundImages}
+                class="rounded-m3-card p-3 text-left transition-colors {useBackgroundImages
+                    ? 'bg-m3-secondary-container text-m3-on-secondary-container'
+                    : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}"
+                onclick={() =>
+                    (useBackgroundImages = !useBackgroundImages)}
+            >
+                <span class="block text-m3-label-large">
+                    Use Background Images
+                </span>
+                <span class="block text-m3-body-small opacity-75">
+                    Keeps MD3 cards readable with a theme scrim and local
+                    accent. You can edit or remove backgrounds later in
+                    grid settings.
+                </span>
+            </button>
+        </section>
+
+        <section class="flex flex-col gap-3">
+            <div>
+                <h3 class="text-m3-title-small text-m3-on-surface">
+                    Regeneration Mode
+                </h3>
+                <p class="text-m3-body-small text-m3-on-surface-variant">
+                    Choose whether edited generated cards are kept when this draft is applied.
+                </p>
+            </div>
+            <div class="grid grid-cols-1 gap-2">
+                <button
+                    type="button"
+                    aria-pressed={!cleanGeneratedBeforeApply}
+                    class="rounded-m3-card p-3 text-left transition-colors {!cleanGeneratedBeforeApply
+                        ? 'bg-m3-secondary-container text-m3-on-secondary-container'
+                        : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}"
+                    onclick={() => {
+                        cleanGeneratedBeforeApply = false;
+                        cleanApplyConfirmationPending = false;
+                    }}
+                >
+                    <span class="block text-m3-label-large">
+                        Preserve Edits
+                    </span>
+                    <span class="block text-m3-body-small opacity-75">
+                        Keep manual, pinned, and edited generated cards.
+                    </span>
+                </button>
+                <button
+                    type="button"
+                    aria-pressed={cleanGeneratedBeforeApply}
+                    class="rounded-m3-card p-3 text-left transition-colors {cleanGeneratedBeforeApply
+                        ? 'bg-m3-error-container text-m3-on-error-container'
+                        : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}"
+                    onclick={() => {
+                        cleanGeneratedBeforeApply = true;
+                        cleanApplyConfirmationPending = false;
+                    }}
+                >
+                    <span class="block text-m3-label-large">
+                        Clean Generated
+                    </span>
+                    <span class="block text-m3-body-small opacity-75">
+                        Replace edited generated cards. Manual and pinned content stays.
+                    </span>
+                </button>
+            </div>
+            {#if cleanApplyConfirmationPending}
+                <p class="rounded-m3-card bg-m3-error-container px-3 py-2 text-m3-body-small text-m3-on-error-container">
+                    Clean regeneration will replace edited generated
+                    cards in this scope. Press Confirm Clean Apply to
+                    continue, or switch back to Preserve Edits.
+                </p>
+            {/if}
+        </section>
+
+        {#if cardFamilyRows.length > 0}
+            <section class="flex flex-col gap-3">
+                <div>
+                    <h3 class="text-m3-title-small text-m3-on-surface">
+                        Card Families
+                    </h3>
+                    <p class="text-m3-body-small text-m3-on-surface-variant">
+                        Toggle generated families before applying the draft.
+                    </p>
+                </div>
+                <div class="grid grid-cols-1 gap-2">
+                    {#each cardFamilyRows as family}
+                        <button
+                            type="button"
+                            aria-pressed={!family.disabled}
+                            aria-label={`${family.disabled ? "Enable" : "Disable"} ${family.label} cards`}
+                            class="flex items-center justify-between gap-3 rounded-m3-card p-3 text-left transition-colors {family.disabled
+                                ? 'bg-m3-surface-container-high text-m3-on-surface-variant'
+                                : 'bg-m3-secondary-container text-m3-on-secondary-container'}"
+                            onclick={() => toggleCardFamily(family.cardType)}
+                        >
+                            <span class="min-w-0">
+                                <span class="block truncate text-m3-label-large">
+                                    {family.label}
                                 </span>
-                                <span class="text-m3-body-small opacity-80">
-                                    {choice.description}
+                                <span class="block text-m3-body-small opacity-75">
+                                    {family.count} generated {family.count === 1 ? "card" : "cards"}
+                                </span>
+                            </span>
+                            <span class="rounded-m3-full bg-m3-surface-container-highest px-2 py-0.5 text-m3-label-small">
+                                {family.disabled ? "Off" : "On"}
+                            </span>
+                        </button>
+                    {/each}
+                </div>
+            </section>
+        {/if}
+
+        {#if availableLabels.length > 0}
+            <section class="flex flex-col gap-3">
+                <div>
+                    <h3 class="text-m3-title-small text-m3-on-surface">
+                        Label Filters
+                    </h3>
+                    <p class="text-m3-body-small text-m3-on-surface-variant">
+                        Optional. Area, domain, device class, state, and name still drive generation.
+                    </p>
+                </div>
+                <div class="flex flex-col gap-2">
+                    {#each availableLabels as label}
+                        <div class="flex items-center gap-2 rounded-m3-card bg-m3-surface-container-high p-2">
+                            <span class="min-w-0 flex-1 truncate text-m3-label-large text-m3-on-surface">
+                                {label}
+                            </span>
+                            <button
+                                type="button"
+                                class="rounded-m3-full px-3 py-1 text-m3-label-small transition-colors {includeLabels.includes(
+                                    label,
+                                )
+                                    ? 'bg-m3-primary text-m3-on-primary'
+                                    : 'bg-m3-surface-container-highest text-m3-on-surface-variant hover:text-m3-on-surface'}"
+                                onclick={() => toggleLabelFilter("include", label)}
+                            >
+                                Include
+                            </button>
+                            <button
+                                type="button"
+                                class="rounded-m3-full px-3 py-1 text-m3-label-small transition-colors {excludeLabels.includes(
+                                    label,
+                                )
+                                    ? 'bg-m3-error-container text-m3-on-error-container'
+                                    : 'bg-m3-surface-container-highest text-m3-on-surface-variant hover:text-m3-on-surface'}"
+                                onclick={() => toggleLabelFilter("exclude", label)}
+                            >
+                                Exclude
+                            </button>
+                        </div>
+                    {/each}
+                </div>
+            </section>
+        {/if}
+    {/if}
+{/snippet}
+
+{#snippet reviewPanel()}
+    {#if draft}
+        {#if editingItem}
+            <section class="rounded-m3-card border border-m3-outline-variant bg-m3-surface-container-high p-4">
+                <div class="mb-4 flex items-start justify-between gap-4">
+                    <div>
+                        <h4 class="text-m3-title-small text-m3-on-surface">
+                            Edit Draft Details
+                        </h4>
+                        <p class="text-m3-body-small text-m3-on-surface-variant">
+                            Changes are kept in this preview until you apply
+                            the draft.
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        class="rounded-m3-full p-2 text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface"
+                        aria-label="Close draft details editor"
+                        onclick={closePreviewItemEditor}
+                    >
+                        <IconClose class="size-5" />
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 gap-3">
+                    <TextField
+                        variant="outlined"
+                        label="Card name"
+                        placeholder="Card name"
+                        bind:value={editName}
+                    />
+                    <TextField
+                        variant="outlined"
+                        label="Icon"
+                        placeholder="material symbol name"
+                        bind:value={editIcon}
+                    />
+                    {#if editingItem.cardType === "title"}
+                        <TextField
+                            variant="outlined"
+                            label="Subtitle"
+                            placeholder="Optional subtitle"
+                            bind:value={editSubtitle}
+                        />
+                    {/if}
+                    {#if editingItem.cardType === "navigation"}
+                        <TextField
+                            variant="outlined"
+                            label="Route path"
+                            placeholder="/dashboard/floor/room"
+                            bind:value={editPath}
+                        />
+                    {/if}
+                </div>
+
+                <div class="mt-4 flex flex-wrap justify-end gap-2">
+                    <button
+                        type="button"
+                        class="inline-flex h-10 items-center justify-center rounded-m3-full px-4 text-m3-label-large text-m3-on-surface-variant hover:bg-m3-surface-container-highest"
+                        onclick={closePreviewItemEditor}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        class="inline-flex h-10 items-center justify-center gap-2 rounded-m3-full bg-m3-primary px-5 text-m3-label-large text-m3-on-primary hover:brightness-95"
+                        onclick={savePreviewItemEdits}
+                    >
+                        <IconCheck class="size-5" />
+                        Save Draft Changes
+                    </button>
+                </div>
+            </section>
+        {/if}
+
+        <section class="flex flex-col gap-3">
+            <div>
+                <h3 class="text-m3-title-small text-m3-on-surface">
+                    Inventory Quality
+                </h3>
+                <p class="text-m3-body-small text-m3-on-surface-variant">
+                    Room source coverage across {inventoryQuality.total}
+                    loaded entities.
+                </p>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                {#each inventoryQuality.metrics as metric}
+                    <div
+                        class="rounded-m3-card p-3 {metric.tone ===
+                        'warning'
+                            ? 'bg-m3-tertiary-container text-m3-on-tertiary-container'
+                            : 'bg-m3-surface-container-high text-m3-on-surface'}"
+                    >
+                        <div class="text-m3-label-small opacity-75">
+                            {metric.label}
+                        </div>
+                        <div class="text-m3-title-medium">
+                            {metric.value}
+                        </div>
+                    </div>
+                {/each}
+            </div>
+            {#if inventoryQuality.nameInference > 0 || inventoryQuality.unassigned > 0}
+                <p class="rounded-m3-card bg-m3-surface-container-high px-3 py-2 text-m3-body-small text-m3-on-surface-variant">
+                    Name inference is useful for weak HA labels, but
+                    these matches should be reviewed before applying.
+                </p>
+            {/if}
+        </section>
+
+        {#if includeEntityIds.length > 0}
+            <section class="flex flex-col gap-3">
+                <div>
+                    <h3 class="text-m3-title-small text-m3-on-surface">
+                        Included in Draft
+                    </h3>
+                    <p class="text-m3-body-small text-m3-on-surface-variant">
+                        These entities are pinned into the generated draft until restored.
+                    </p>
+                </div>
+                <div class="flex flex-col gap-2">
+                    {#each includeEntityIds as entityId}
+                        <div class="flex items-center gap-2 rounded-m3-card bg-m3-surface-container-high p-2">
+                            <span class="min-w-0 flex-1 truncate text-m3-label-large text-m3-on-surface">
+                                {entityId}
+                            </span>
+                            <button
+                                type="button"
+                                class="rounded-m3-full bg-m3-surface-container-highest px-3 py-1 text-m3-label-small text-m3-on-surface-variant transition-colors hover:text-m3-on-surface"
+                                aria-label={`Restore ${entityId} to automatic generation`}
+                                onclick={() => restoreIncludedEntity(entityId)}
+                            >
+                                Restore
+                            </button>
+                        </div>
+                    {/each}
+                </div>
+            </section>
+        {/if}
+
+        {#if excludeEntityIds.length > 0}
+            <section class="flex flex-col gap-3">
+                <div>
+                    <h3 class="text-m3-title-small text-m3-on-surface">
+                        Excluded from Draft
+                    </h3>
+                    <p class="text-m3-body-small text-m3-on-surface-variant">
+                        These entities are ignored until restored or the workspace is closed.
+                    </p>
+                </div>
+                <div class="flex flex-col gap-2">
+                    {#each excludeEntityIds as entityId}
+                        <div class="flex items-center gap-2 rounded-m3-card bg-m3-surface-container-high p-2">
+                            <span class="min-w-0 flex-1 truncate text-m3-label-large text-m3-on-surface">
+                                {entityId}
+                            </span>
+                            <button
+                                type="button"
+                                class="rounded-m3-full bg-m3-surface-container-highest px-3 py-1 text-m3-label-small text-m3-on-surface-variant transition-colors hover:text-m3-on-surface"
+                                aria-label={`Restore ${entityId} to draft`}
+                                onclick={() => restoreExcludedEntity(entityId)}
+                            >
+                                Restore
+                            </button>
+                        </div>
+                    {/each}
+                </div>
+            </section>
+        {/if}
+
+        {#if draft.warnings.length > 0}
+            <section class="flex flex-col gap-2">
+                <h3 class="text-m3-title-small text-m3-on-surface">
+                    Warnings
+                </h3>
+                {#each draft.warnings as warning}
+                    <p class="rounded-m3-card bg-m3-tertiary-container px-3 py-2 text-m3-body-small text-m3-on-tertiary-container">
+                        {warning}
+                    </p>
+                {/each}
+            </section>
+        {/if}
+
+        {#if qualityHintGroups.length > 0}
+            <section class="flex flex-col gap-2">
+                <div>
+                    <h3 class="text-m3-title-small text-m3-on-surface">
+                        Quality Hints
+                    </h3>
+                    <p class="text-m3-body-small text-m3-on-surface-variant">
+                        Generation confidence and cleanup opportunities.
+                    </p>
+                </div>
+                <div class="flex flex-col gap-2">
+                    {#each qualityHintGroups as group}
+                        <div class="rounded-m3-card bg-m3-surface-container-high p-2">
+                            <div class="mb-2 flex items-start justify-between gap-2 px-1">
+                                <div>
+                                    <h4 class="text-m3-label-large text-m3-on-surface">
+                                        {group.label}
+                                    </h4>
+                                    <p class="text-m3-body-small text-m3-on-surface-variant">
+                                        {group.description}
+                                    </p>
+                                </div>
+                                <span
+                                    class="rounded-m3-full bg-m3-surface-container-highest px-2 py-0.5 text-m3-label-small text-m3-on-surface-variant"
+                                    aria-label={`${group.label}: ${group.entityCount} affected entities`}
+                                >
+                                    {group.entityCount}
+                                </span>
+                            </div>
+                            <div class="flex flex-col gap-2">
+                                {#each group.hints as hint}
+                                    {@const reviewTarget = getQualityHintReviewTarget(hint.code)}
+                                    <article class="rounded-m3-card p-3 {getQualityHintClass(hint.severity)}">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <h5 class="text-m3-label-large">
+                                                {getQualityHintLabel(hint.code)}
+                                            </h5>
+                                            <span class="rounded-m3-full bg-m3-surface-container/60 px-2 py-0.5 text-m3-label-small">
+                                                {hint.entityIds.length}
+                                            </span>
+                                        </div>
+                                        <p class="mt-1 text-m3-body-small">
+                                            {hint.message}
+                                        </p>
+                                        {#if hint.suggestedAction}
+                                            <p class="mt-1 text-m3-body-small opacity-80">
+                                                {hint.suggestedAction}
+                                            </p>
+                                        {/if}
+                                        <button
+                                            type="button"
+                                            class="mt-3 rounded-m3-full bg-m3-surface-container-high px-3 py-1.5 text-m3-label-small text-m3-on-surface transition-colors hover:brightness-95"
+                                            aria-label={`Review ${getQualityHintLabel(hint.code)} entities`}
+                                            onclick={() => reviewQualityHint(hint.code)}
+                                        >
+                                            {reviewTarget.label}
+                                        </button>
+                                    </article>
+                                {/each}
+                            </div>
+                        </div>
+                    {/each}
+                </div>
+            </section>
+        {/if}
+
+        <section class="flex min-h-0 flex-col gap-3">
+            <div>
+                <h3 class="text-m3-title-small text-m3-on-surface">
+                    Entity Review
+                </h3>
+                <p class="text-m3-body-small text-m3-on-surface-variant">
+                    Why the generator used or skipped entities.
+                </p>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <button
+                    type="button"
+                    class="rounded-m3-full px-3 py-2 text-m3-label-medium transition-colors {entityReviewMode ===
+                    'included'
+                        ? 'bg-m3-primary text-m3-on-primary'
+                        : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:text-m3-on-surface'}"
+                    onclick={() => (entityReviewMode = "included")}
+                >
+                    Included {includedEntityRows.length}
+                </button>
+                <button
+                    type="button"
+                    class="rounded-m3-full px-3 py-2 text-m3-label-medium transition-colors {entityReviewMode ===
+                    'skipped'
+                        ? 'bg-m3-primary text-m3-on-primary'
+                        : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:text-m3-on-surface'}"
+                    onclick={() => (entityReviewMode = "skipped")}
+                >
+                    Skipped {skippedEntityRows.length}
+                </button>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                {#each entityReviewSourceChoices as choice}
+                    <button
+                        type="button"
+                        class="rounded-m3-full px-3 py-1 text-m3-label-small transition-colors {entityReviewSourceFilter ===
+                        choice.id
+                            ? choice.tone === 'warning'
+                                ? 'bg-m3-tertiary-container text-m3-on-tertiary-container'
+                                : 'bg-m3-primary text-m3-on-primary'
+                            : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:text-m3-on-surface'}"
+                        aria-label={`Show ${choice.label} entities`}
+                        aria-pressed={entityReviewSourceFilter === choice.id}
+                        onclick={() => (entityReviewSourceFilter = choice.id)}
+                    >
+                        {choice.label} {choice.count}
+                    </button>
+                {/each}
+            </div>
+            <div class="max-h-72 overflow-y-auto rounded-m3-card bg-m3-surface-container-high p-2">
+                {#if activeEntityRows.length > 0}
+                    <div class="flex flex-col gap-2">
+                        {#each activeEntityRows as row}
+                            <div class="rounded-m3-card bg-m3-surface-container-highest p-3">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="min-w-0 truncate text-m3-label-large text-m3-on-surface">
+                                        {row.entityId}
+                                    </span>
+                                    {#if row.count > 1}
+                                        <span class="rounded-m3-full bg-m3-surface-container px-2 py-0.5 text-m3-label-small text-m3-on-surface-variant">
+                                            {row.count} uses
+                                        </span>
+                                    {/if}
+                                </div>
+                                {#if row.areaSourceLabel}
+                                    <div class="mt-2 flex flex-wrap gap-1">
+                                        <span
+                                            class="rounded-m3-full px-2 py-0.5 text-m3-label-small {row.areaSourceTone ===
+                                            'warning'
+                                                ? 'bg-m3-tertiary-container text-m3-on-tertiary-container'
+                                                : 'bg-m3-surface-container text-m3-on-surface-variant'}"
+                                        >
+                                            {row.areaSourceLabel}
+                                        </span>
+                                    </div>
+                                {/if}
+                                {#if typeof row.importanceScore === "number" || row.importanceReasons.length > 0}
+                                    <div class="mt-2 flex flex-wrap gap-1">
+                                        {#if typeof row.importanceScore === "number"}
+                                            <span class="rounded-m3-full bg-m3-surface-container px-2 py-0.5 text-m3-label-small text-m3-on-surface-variant">
+                                                Score {row.importanceScore}
+                                            </span>
+                                        {/if}
+                                        {#each row.importanceReasons.slice(0, 3) as reason}
+                                            <span class="rounded-m3-full bg-m3-secondary-container px-2 py-0.5 text-m3-label-small text-m3-on-secondary-container">
+                                                {prettifyToken(reason)}
+                                            </span>
+                                        {/each}
+                                    </div>
+                                {/if}
+                                <p class="mt-1 line-clamp-2 text-m3-body-small text-m3-on-surface-variant">
+                                    {row.reasons.join("; ")}
+                                </p>
+                                {#if entityReviewMode === "included"}
+                                    <button
+                                        type="button"
+                                        class="mt-2 rounded-m3-full bg-m3-error-container px-3 py-1 text-m3-label-small text-m3-on-error-container transition-colors hover:brightness-95"
+                                        aria-label={`Exclude ${row.entityId} from draft`}
+                                        onclick={() => excludeEntityFromDraft(row.entityId)}
+                                    >
+                                        Exclude
+                                    </button>
+                                {:else}
+                                    <button
+                                        type="button"
+                                        class="mt-2 rounded-m3-full bg-m3-primary px-3 py-1 text-m3-label-small text-m3-on-primary transition-colors hover:brightness-95"
+                                        aria-label={`Include ${row.entityId} in draft`}
+                                        onclick={() => includeEntityInDraft(row.entityId)}
+                                    >
+                                        Include
+                                    </button>
+                                {/if}
+                            </div>
+                        {/each}
+                    </div>
+                {:else}
+                    <p class="px-2 py-4 text-center text-m3-body-small text-m3-on-surface-variant">
+                        No {entityReviewMode} {getEntityReviewSourceLabel(
+                            entityReviewSourceFilter,
+                        ).toLowerCase()} entities for this draft.
+                    </p>
+                {/if}
+            </div>
+        </section>
+    {/if}
+{/snippet}
+
+{#snippet previewPanel()}
+    <section class="min-h-0 min-w-0 flex flex-1 flex-col gap-3 overflow-hidden">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <h3 class="text-m3-title-medium text-m3-on-surface">
+                    {selectedPreviewTitle}
+                </h3>
+                <p class="text-m3-body-small text-m3-on-surface-variant">
+                    {selectedPreviewDescription}. Remove anything you do not want before applying.
+                </p>
+            </div>
+            <span class="rounded-m3-full bg-m3-surface-container-high px-3 py-1 text-m3-label-small text-m3-on-surface-variant">
+                Draft only
+            </span>
+        </div>
+
+        {#if previewConfigs.length > 1}
+            <section class="flex flex-col gap-2">
+                <h3 class="text-m3-title-small text-m3-on-surface">
+                    Preview
+                </h3>
+                <div class="flex gap-2 overflow-x-auto pb-1">
+                    {#each previewConfigs as previewChoice}
+                        <button
+                            type="button"
+                            aria-label={`Preview ${previewChoice.label}`}
+                            class="flex min-w-48 items-center gap-3 rounded-m3-card px-3 py-2 text-left transition-colors {selectedPreviewConfigId ===
+                            previewChoice.id
+                                ? 'bg-m3-secondary-container text-m3-on-secondary-container'
+                                : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}"
+                            onclick={() => (selectedPreviewConfigId = previewChoice.id)}
+                        >
+                            {#if previewChoice.kind === "root"}
+                                <IconHome class="size-5 shrink-0" />
+                            {:else}
+                                <IconRoom class="size-5 shrink-0" />
+                            {/if}
+                            <span class="min-w-0 flex-1">
+                                <span class="block truncate text-m3-label-large">
+                                    {previewChoice.label}
+                                </span>
+                                <span class="block truncate text-m3-body-small opacity-75">
+                                    {previewChoice.description} - {getConfigCardCount(previewChoice.config)} cards
                                 </span>
                             </span>
                         </button>
                     {/each}
                 </div>
             </section>
-
-            {#if recipe === "room"}
-                <section class="flex flex-col gap-2">
-                    <h3 class="text-m3-title-small text-m3-on-surface">
-                        Area
-                    </h3>
-                    {#if areaChoices.length > 0}
-                        <div class="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto pr-1">
-                            {#each areaChoices as area}
-                                <button
-                                    type="button"
-                                    class="rounded-m3-card px-3 py-2 text-left text-m3-label-large transition-colors {selectedAreaId ===
-                                    area.area_id
-                                        ? 'bg-m3-secondary-container text-m3-on-secondary-container'
-                                        : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}"
-                                    onclick={() => (selectedAreaId = area.area_id)}
-                                >
-                                    {area.name}
-                                </button>
-                            {/each}
-                        </div>
-                    {:else}
-                        <p class="rounded-m3-card bg-m3-error-container px-3 py-2 text-m3-body-small text-m3-on-error-container">
-                            No Home Assistant areas are available yet.
-                        </p>
-                    {/if}
-                </section>
-            {/if}
-
-            {#if recipe === "floor"}
-                <section class="flex flex-col gap-2">
-                    <h3 class="text-m3-title-small text-m3-on-surface">
-                        Floor
-                    </h3>
-                    {#if floorChoices.length > 0}
-                        <div class="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto pr-1">
-                            {#each floorChoices as floor}
-                                <button
-                                    type="button"
-                                    class="rounded-m3-card px-3 py-2 text-left text-m3-label-large transition-colors {selectedFloorId ===
-                                    floor.floor_id
-                                        ? 'bg-m3-secondary-container text-m3-on-secondary-container'
-                                        : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}"
-                                    onclick={() => (selectedFloorId = floor.floor_id)}
-                                >
-                                    {floor.name}
-                                </button>
-                            {/each}
-                        </div>
-                    {:else}
-                        <p class="rounded-m3-card bg-m3-error-container px-3 py-2 text-m3-body-small text-m3-on-error-container">
-                            No Home Assistant floors are available yet.
-                        </p>
-                    {/if}
-                </section>
-            {/if}
-
-            {#if recipe === "entity_type"}
-                <section class="flex flex-col gap-2">
-                    <h3 class="text-m3-title-small text-m3-on-surface">
-                        Entity Type
-                    </h3>
-                    {#if entityTypeChoices.length > 0}
-                        <div class="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto pr-1">
-                            {#each entityTypeChoices as choice}
-                                <button
-                                    type="button"
-                                    class="rounded-m3-card px-3 py-2 text-left transition-colors {selectedEntityTypeId ===
-                                    choice.id
-                                        ? 'bg-m3-secondary-container text-m3-on-secondary-container'
-                                        : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}"
-                                    onclick={() => (selectedEntityTypeId = choice.id)}
-                                >
-                                    <span class="block text-m3-label-large">
-                                        {choice.label}
-                                    </span>
-                                    <span class="block text-m3-body-small opacity-75">
-                                        {choice.description}
-                                    </span>
-                                </button>
-                            {/each}
-                        </div>
-                    {:else}
-                        <p class="rounded-m3-card bg-m3-error-container px-3 py-2 text-m3-body-small text-m3-on-error-container">
-                            No Home Assistant entities are available yet.
-                        </p>
-                    {/if}
-                </section>
-            {/if}
-
-            {#if recipe === "label"}
-                <section class="flex flex-col gap-2">
-                    <h3 class="text-m3-title-small text-m3-on-surface">
-                        Label
-                    </h3>
-                    {#if labelChoices.length > 0}
-                        <div class="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto pr-1">
-                            {#each labelChoices as choice}
-                                <button
-                                    type="button"
-                                    class="rounded-m3-card px-3 py-2 text-left transition-colors {selectedLabelId ===
-                                    choice.id
-                                        ? 'bg-m3-secondary-container text-m3-on-secondary-container'
-                                        : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}"
-                                    onclick={() => (selectedLabelId = choice.id)}
-                                >
-                                    <span class="block text-m3-label-large">
-                                        {choice.label}
-                                    </span>
-                                    <span class="block text-m3-body-small opacity-75">
-                                        {choice.description}
-                                    </span>
-                                </button>
-                            {/each}
-                        </div>
-                    {:else}
-                        <p class="rounded-m3-card bg-m3-error-container px-3 py-2 text-m3-body-small text-m3-on-error-container">
-                            No Home Assistant labels are available yet.
-                        </p>
-                    {/if}
-                </section>
-            {/if}
-
-            {#if draft}
-                <section class="grid grid-cols-3 gap-2">
-                    <div class="rounded-m3-card bg-m3-surface-container-high p-3">
-                        <div class="text-m3-label-small text-m3-on-surface-variant">
-                            Cards
-                        </div>
-                        <div class="text-m3-title-large text-m3-on-surface">
-                            {visibleCardCount}
-                        </div>
-                    </div>
-                    <div class="rounded-m3-card bg-m3-surface-container-high p-3">
-                        <div class="text-m3-label-small text-m3-on-surface-variant">
-                            Entities
-                        </div>
-                        <div class="text-m3-title-large text-m3-on-surface">
-                            {draft.summary.included}
-                        </div>
-                    </div>
-                    <div class="rounded-m3-card bg-m3-surface-container-high p-3">
-                        <div class="text-m3-label-small text-m3-on-surface-variant">
-                            Rooms
-                        </div>
-                        <div class="text-m3-title-large text-m3-on-surface">
-                            {relatedDashboardCount}
-                        </div>
-                    </div>
-                </section>
-
-                <section class="flex flex-col gap-3">
-                    <div>
-                        <h3 class="text-m3-title-small text-m3-on-surface">
-                            Regeneration Mode
-                        </h3>
-                        <p class="text-m3-body-small text-m3-on-surface-variant">
-                            Choose whether edited generated cards are kept when this draft is applied.
-                        </p>
-                    </div>
-                    <div class="grid grid-cols-1 gap-2">
-                        <button
-                            type="button"
-                            aria-pressed={!cleanGeneratedBeforeApply}
-                            class="rounded-m3-card p-3 text-left transition-colors {!cleanGeneratedBeforeApply
-                                ? 'bg-m3-secondary-container text-m3-on-secondary-container'
-                                : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}"
-                            onclick={() => {
-                                cleanGeneratedBeforeApply = false;
-                                cleanApplyConfirmationPending = false;
-                            }}
-                        >
-                            <span class="block text-m3-label-large">
-                                Preserve Edits
-                            </span>
-                            <span class="block text-m3-body-small opacity-75">
-                                Keep manual, pinned, and edited generated cards.
-                            </span>
-                        </button>
-                        <button
-                            type="button"
-                            aria-pressed={cleanGeneratedBeforeApply}
-                            class="rounded-m3-card p-3 text-left transition-colors {cleanGeneratedBeforeApply
-                                ? 'bg-m3-error-container text-m3-on-error-container'
-                                : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}"
-                            onclick={() => {
-                                cleanGeneratedBeforeApply = true;
-                                cleanApplyConfirmationPending = false;
-                            }}
-                        >
-                            <span class="block text-m3-label-large">
-                                Clean Generated
-                            </span>
-                            <span class="block text-m3-body-small opacity-75">
-                                Replace edited generated cards. Manual and pinned content stays.
-                            </span>
-                        </button>
-                    </div>
-                    {#if cleanApplyConfirmationPending}
-                        <p class="rounded-m3-card bg-m3-error-container px-3 py-2 text-m3-body-small text-m3-on-error-container">
-                            Clean regeneration will replace edited generated
-                            cards in this scope. Press Confirm Clean Apply to
-                            continue, or switch back to Preserve Edits.
-                        </p>
-                    {/if}
-                </section>
-
-                <section class="flex flex-col gap-3">
-                    <div>
-                        <h3 class="text-m3-title-small text-m3-on-surface">
-                            Inventory Quality
-                        </h3>
-                        <p class="text-m3-body-small text-m3-on-surface-variant">
-                            Room source coverage across {inventoryQuality.total}
-                            loaded entities.
-                        </p>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        {#each inventoryQuality.metrics as metric}
-                            <div
-                                class="rounded-m3-card p-3 {metric.tone ===
-                                'warning'
-                                    ? 'bg-m3-tertiary-container text-m3-on-tertiary-container'
-                                    : 'bg-m3-surface-container-high text-m3-on-surface'}"
-                            >
-                                <div class="text-m3-label-small opacity-75">
-                                    {metric.label}
-                                </div>
-                                <div class="text-m3-title-medium">
-                                    {metric.value}
-                                </div>
-                            </div>
-                        {/each}
-                    </div>
-                    {#if inventoryQuality.nameInference > 0 || inventoryQuality.unassigned > 0}
-                        <p class="rounded-m3-card bg-m3-surface-container-high px-3 py-2 text-m3-body-small text-m3-on-surface-variant">
-                            Name inference is useful for weak HA labels, but
-                            these matches should be reviewed before applying.
-                        </p>
-                    {/if}
-                </section>
-
-                {#if cardFamilyRows.length > 0}
-                    <section class="flex flex-col gap-3">
-                        <div>
-                            <h3 class="text-m3-title-small text-m3-on-surface">
-                                Card Families
-                            </h3>
-                            <p class="text-m3-body-small text-m3-on-surface-variant">
-                                Toggle generated families before applying the draft.
-                            </p>
-                        </div>
-                        <div class="grid grid-cols-1 gap-2">
-                            {#each cardFamilyRows as family}
-                                <button
-                                    type="button"
-                                    aria-pressed={!family.disabled}
-                                    aria-label={`${family.disabled ? "Enable" : "Disable"} ${family.label} cards`}
-                                    class="flex items-center justify-between gap-3 rounded-m3-card p-3 text-left transition-colors {family.disabled
-                                        ? 'bg-m3-surface-container-high text-m3-on-surface-variant'
-                                        : 'bg-m3-secondary-container text-m3-on-secondary-container'}"
-                                    onclick={() => toggleCardFamily(family.cardType)}
-                                >
-                                    <span class="min-w-0">
-                                        <span class="block truncate text-m3-label-large">
-                                            {family.label}
-                                        </span>
-                                        <span class="block text-m3-body-small opacity-75">
-                                            {family.count} generated {family.count === 1 ? "card" : "cards"}
-                                        </span>
-                                    </span>
-                                    <span class="rounded-m3-full bg-m3-surface-container-highest px-2 py-0.5 text-m3-label-small">
-                                        {family.disabled ? "Off" : "On"}
-                                    </span>
-                                </button>
-                            {/each}
-                        </div>
-                    </section>
-                {/if}
-
-                {#if previewConfigs.length > 1}
-                    <section class="flex flex-col gap-2">
-                        <h3 class="text-m3-title-small text-m3-on-surface">
-                            Preview
-                        </h3>
-                        <div class="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto pr-1">
-                            {#each previewConfigs as previewChoice}
-                                <button
-                                    type="button"
-                                    aria-label={`Preview ${previewChoice.label}`}
-                                    class="flex items-center gap-3 rounded-m3-card px-3 py-2 text-left transition-colors {selectedPreviewConfigId ===
-                                    previewChoice.id
-                                        ? 'bg-m3-secondary-container text-m3-on-secondary-container'
-                                        : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}"
-                                    onclick={() => (selectedPreviewConfigId = previewChoice.id)}
-                                >
-                                    {#if previewChoice.kind === "root"}
-                                        <IconHome class="size-5 shrink-0" />
-                                    {:else}
-                                        <IconRoom class="size-5 shrink-0" />
-                                    {/if}
-                                    <span class="min-w-0 flex-1">
-                                        <span class="block truncate text-m3-label-large">
-                                            {previewChoice.label}
-                                        </span>
-                                        <span class="block truncate text-m3-body-small opacity-75">
-                                            {previewChoice.description} - {getConfigCardCount(previewChoice.config)} cards
-                                        </span>
-                                    </span>
-                                </button>
-                            {/each}
-                        </div>
-                    </section>
-                {/if}
-
-                {#if availableLabels.length > 0}
-                    <section class="flex flex-col gap-3">
-                        <div>
-                            <h3 class="text-m3-title-small text-m3-on-surface">
-                                Label Filters
-                            </h3>
-                            <p class="text-m3-body-small text-m3-on-surface-variant">
-                                Optional. Area, domain, device class, state, and name still drive generation.
-                            </p>
-                        </div>
-                        <div class="flex flex-col gap-2">
-                            {#each availableLabels as label}
-                                <div class="flex items-center gap-2 rounded-m3-card bg-m3-surface-container-high p-2">
-                                    <span class="min-w-0 flex-1 truncate text-m3-label-large text-m3-on-surface">
-                                        {label}
-                                    </span>
-                                    <button
-                                        type="button"
-                                        class="rounded-m3-full px-3 py-1 text-m3-label-small transition-colors {includeLabels.includes(
-                                            label,
-                                        )
-                                            ? 'bg-m3-primary text-m3-on-primary'
-                                            : 'bg-m3-surface-container-highest text-m3-on-surface-variant hover:text-m3-on-surface'}"
-                                        onclick={() => toggleLabelFilter("include", label)}
-                                    >
-                                        Include
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="rounded-m3-full px-3 py-1 text-m3-label-small transition-colors {excludeLabels.includes(
-                                            label,
-                                        )
-                                            ? 'bg-m3-error-container text-m3-on-error-container'
-                                            : 'bg-m3-surface-container-highest text-m3-on-surface-variant hover:text-m3-on-surface'}"
-                                        onclick={() => toggleLabelFilter("exclude", label)}
-                                    >
-                                        Exclude
-                                    </button>
-                                </div>
-                            {/each}
-                        </div>
-                    </section>
-                {/if}
-
-                {#if includeEntityIds.length > 0}
-                    <section class="flex flex-col gap-3">
-                        <div>
-                            <h3 class="text-m3-title-small text-m3-on-surface">
-                                Included in Draft
-                            </h3>
-                            <p class="text-m3-body-small text-m3-on-surface-variant">
-                                These entities are pinned into the generated draft until restored.
-                            </p>
-                        </div>
-                        <div class="flex flex-col gap-2">
-                            {#each includeEntityIds as entityId}
-                                <div class="flex items-center gap-2 rounded-m3-card bg-m3-surface-container-high p-2">
-                                    <span class="min-w-0 flex-1 truncate text-m3-label-large text-m3-on-surface">
-                                        {entityId}
-                                    </span>
-                                    <button
-                                        type="button"
-                                        class="rounded-m3-full bg-m3-surface-container-highest px-3 py-1 text-m3-label-small text-m3-on-surface-variant transition-colors hover:text-m3-on-surface"
-                                        aria-label={`Restore ${entityId} to automatic generation`}
-                                        onclick={() => restoreIncludedEntity(entityId)}
-                                    >
-                                        Restore
-                                    </button>
-                                </div>
-                            {/each}
-                        </div>
-                    </section>
-                {/if}
-
-                {#if excludeEntityIds.length > 0}
-                    <section class="flex flex-col gap-3">
-                        <div>
-                            <h3 class="text-m3-title-small text-m3-on-surface">
-                                Excluded from Draft
-                            </h3>
-                            <p class="text-m3-body-small text-m3-on-surface-variant">
-                                These entities are ignored until restored or the sheet is closed.
-                            </p>
-                        </div>
-                        <div class="flex flex-col gap-2">
-                            {#each excludeEntityIds as entityId}
-                                <div class="flex items-center gap-2 rounded-m3-card bg-m3-surface-container-high p-2">
-                                    <span class="min-w-0 flex-1 truncate text-m3-label-large text-m3-on-surface">
-                                        {entityId}
-                                    </span>
-                                    <button
-                                        type="button"
-                                        class="rounded-m3-full bg-m3-surface-container-highest px-3 py-1 text-m3-label-small text-m3-on-surface-variant transition-colors hover:text-m3-on-surface"
-                                        aria-label={`Restore ${entityId} to draft`}
-                                        onclick={() => restoreExcludedEntity(entityId)}
-                                    >
-                                        Restore
-                                    </button>
-                                </div>
-                            {/each}
-                        </div>
-                    </section>
-                {/if}
-
-                {#if draft.warnings.length > 0}
-                    <section class="flex flex-col gap-2">
-                        <h3 class="text-m3-title-small text-m3-on-surface">
-                            Warnings
-                        </h3>
-                        {#each draft.warnings as warning}
-                            <p class="rounded-m3-card bg-m3-tertiary-container px-3 py-2 text-m3-body-small text-m3-on-tertiary-container">
-                                {warning}
-                            </p>
-                        {/each}
-                    </section>
-                {/if}
-
-                {#if qualityHintGroups.length > 0}
-                    <section class="flex flex-col gap-2">
-                        <div>
-                            <h3 class="text-m3-title-small text-m3-on-surface">
-                                Quality Hints
-                            </h3>
-                            <p class="text-m3-body-small text-m3-on-surface-variant">
-                                Generation confidence and cleanup opportunities.
-                            </p>
-                        </div>
-                        <div class="flex flex-col gap-2">
-                            {#each qualityHintGroups as group}
-                                <div class="rounded-m3-card bg-m3-surface-container-high p-2">
-                                    <div class="mb-2 flex items-start justify-between gap-2 px-1">
-                                        <div>
-                                            <h4 class="text-m3-label-large text-m3-on-surface">
-                                                {group.label}
-                                            </h4>
-                                            <p class="text-m3-body-small text-m3-on-surface-variant">
-                                                {group.description}
-                                            </p>
-                                        </div>
-                                        <span
-                                            class="rounded-m3-full bg-m3-surface-container-highest px-2 py-0.5 text-m3-label-small text-m3-on-surface-variant"
-                                            aria-label={`${group.label}: ${group.entityCount} affected entities`}
-                                        >
-                                            {group.entityCount}
-                                        </span>
-                                    </div>
-                                    <div class="flex flex-col gap-2">
-                                        {#each group.hints as hint}
-                                            {@const reviewTarget = getQualityHintReviewTarget(hint.code)}
-                                            <article class="rounded-m3-card p-3 {getQualityHintClass(hint.severity)}">
-                                                <div class="flex items-center justify-between gap-2">
-                                                    <h5 class="text-m3-label-large">
-                                                        {getQualityHintLabel(hint.code)}
-                                                    </h5>
-                                                    <span class="rounded-m3-full bg-m3-surface-container/60 px-2 py-0.5 text-m3-label-small">
-                                                        {hint.entityIds.length}
-                                                    </span>
-                                                </div>
-                                                <p class="mt-1 text-m3-body-small">
-                                                    {hint.message}
-                                                </p>
-                                                {#if hint.suggestedAction}
-                                                    <p class="mt-1 text-m3-body-small opacity-80">
-                                                        {hint.suggestedAction}
-                                                    </p>
-                                                {/if}
-                                                <button
-                                                    type="button"
-                                                    class="mt-3 rounded-m3-full bg-m3-surface-container-high px-3 py-1.5 text-m3-label-small text-m3-on-surface transition-colors hover:brightness-95"
-                                                    aria-label={`Review ${getQualityHintLabel(hint.code)} entities`}
-                                                    onclick={() => reviewQualityHint(hint.code)}
-                                                >
-                                                    {reviewTarget.label}
-                                                </button>
-                                            </article>
-                                        {/each}
-                                    </div>
-                                </div>
-                            {/each}
-                        </div>
-                    </section>
-                {/if}
-
-                <section class="flex min-h-0 flex-col gap-3">
-                    <div>
-                        <h3 class="text-m3-title-small text-m3-on-surface">
-                            Entity Review
-                        </h3>
-                        <p class="text-m3-body-small text-m3-on-surface-variant">
-                            Why the generator used or skipped entities.
-                        </p>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button
-                            type="button"
-                            class="rounded-m3-full px-3 py-2 text-m3-label-medium transition-colors {entityReviewMode ===
-                            'included'
-                                ? 'bg-m3-primary text-m3-on-primary'
-                                : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:text-m3-on-surface'}"
-                            onclick={() => (entityReviewMode = "included")}
-                        >
-                            Included {includedEntityRows.length}
-                        </button>
-                        <button
-                            type="button"
-                            class="rounded-m3-full px-3 py-2 text-m3-label-medium transition-colors {entityReviewMode ===
-                            'skipped'
-                                ? 'bg-m3-primary text-m3-on-primary'
-                                : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:text-m3-on-surface'}"
-                            onclick={() => (entityReviewMode = "skipped")}
-                        >
-                            Skipped {skippedEntityRows.length}
-                        </button>
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                        {#each entityReviewSourceChoices as choice}
-                            <button
-                                type="button"
-                                class="rounded-m3-full px-3 py-1 text-m3-label-small transition-colors {entityReviewSourceFilter ===
-                                choice.id
-                                    ? choice.tone === 'warning'
-                                        ? 'bg-m3-tertiary-container text-m3-on-tertiary-container'
-                                        : 'bg-m3-primary text-m3-on-primary'
-                                    : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:text-m3-on-surface'}"
-                                aria-label={`Show ${choice.label} entities`}
-                                aria-pressed={entityReviewSourceFilter === choice.id}
-                                onclick={() => (entityReviewSourceFilter = choice.id)}
-                            >
-                                {choice.label} {choice.count}
-                            </button>
-                        {/each}
-                    </div>
-                    <div class="max-h-64 overflow-y-auto rounded-m3-card bg-m3-surface-container-high p-2">
-                        {#if activeEntityRows.length > 0}
-                            <div class="flex flex-col gap-2">
-                                {#each activeEntityRows as row}
-                                    <div class="rounded-m3-card bg-m3-surface-container-highest p-3">
-                                        <div class="flex items-center justify-between gap-2">
-                                            <span class="min-w-0 truncate text-m3-label-large text-m3-on-surface">
-                                                {row.entityId}
-                                            </span>
-                                            {#if row.count > 1}
-                                                <span class="rounded-m3-full bg-m3-surface-container px-2 py-0.5 text-m3-label-small text-m3-on-surface-variant">
-                                                    {row.count} uses
-                                                </span>
-                                            {/if}
-                                        </div>
-                                        {#if row.areaSourceLabel}
-                                            <div class="mt-2 flex flex-wrap gap-1">
-                                                <span
-                                                    class="rounded-m3-full px-2 py-0.5 text-m3-label-small {row.areaSourceTone ===
-                                                    'warning'
-                                                        ? 'bg-m3-tertiary-container text-m3-on-tertiary-container'
-                                                        : 'bg-m3-surface-container text-m3-on-surface-variant'}"
-                                                >
-                                                    {row.areaSourceLabel}
-                                                </span>
-                                            </div>
-                                        {/if}
-                                        {#if typeof row.importanceScore === "number" || row.importanceReasons.length > 0}
-                                            <div class="mt-2 flex flex-wrap gap-1">
-                                                {#if typeof row.importanceScore === "number"}
-                                                    <span class="rounded-m3-full bg-m3-surface-container px-2 py-0.5 text-m3-label-small text-m3-on-surface-variant">
-                                                        Score {row.importanceScore}
-                                                    </span>
-                                                {/if}
-                                                {#each row.importanceReasons.slice(0, 3) as reason}
-                                                    <span class="rounded-m3-full bg-m3-secondary-container px-2 py-0.5 text-m3-label-small text-m3-on-secondary-container">
-                                                        {prettifyToken(reason)}
-                                                    </span>
-                                                {/each}
-                                            </div>
-                                        {/if}
-                                        <p class="mt-1 line-clamp-2 text-m3-body-small text-m3-on-surface-variant">
-                                            {row.reasons.join("; ")}
-                                        </p>
-                                        {#if entityReviewMode === "included"}
-                                            <button
-                                                type="button"
-                                                class="mt-2 rounded-m3-full bg-m3-error-container px-3 py-1 text-m3-label-small text-m3-on-error-container transition-colors hover:brightness-95"
-                                                aria-label={`Exclude ${row.entityId} from draft`}
-                                                onclick={() => excludeEntityFromDraft(row.entityId)}
-                                            >
-                                                Exclude
-                                            </button>
-                                        {:else}
-                                            <button
-                                                type="button"
-                                                class="mt-2 rounded-m3-full bg-m3-primary px-3 py-1 text-m3-label-small text-m3-on-primary transition-colors hover:brightness-95"
-                                                aria-label={`Include ${row.entityId} in draft`}
-                                                onclick={() => includeEntityInDraft(row.entityId)}
-                                            >
-                                                Include
-                                            </button>
-                                        {/if}
-                                    </div>
-                                {/each}
-                            </div>
-                        {:else}
-                            <p class="px-2 py-4 text-center text-m3-body-small text-m3-on-surface-variant">
-                                No {entityReviewMode} {getEntityReviewSourceLabel(
-                                    entityReviewSourceFilter,
-                                ).toLowerCase()} entities for this draft.
-                            </p>
-                        {/if}
-                    </div>
-                </section>
-            {/if}
-        </aside>
-
-        <section class="min-w-0 flex flex-col gap-3">
-            <div class="flex items-center justify-between gap-3">
-                <div>
-                    <h3 class="text-m3-title-medium text-m3-on-surface">
-                        {selectedPreviewTitle}
-                    </h3>
-                    <p class="text-m3-body-small text-m3-on-surface-variant">
-                        {selectedPreviewDescription}. Remove anything you do not want before applying.
-                    </p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="rounded-m3-full bg-m3-surface-container-high px-3 py-1 text-m3-label-small text-m3-on-surface-variant">
-                        Draft only
-                    </span>
-                    <button
-                        type="button"
-                        class="inline-flex h-9 items-center justify-center gap-2 rounded-m3-full bg-m3-surface-container-high px-3 text-m3-label-medium text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface"
-                        onclick={refreshInventorySnapshot}
-                    >
-                        <IconRefresh class="size-4" />
-                        Refresh
-                    </button>
-                </div>
-            </div>
-
-            {#if editingItem}
-                <section class="rounded-m3-card border border-m3-outline-variant bg-m3-surface-container-high p-4">
-                    <div class="mb-4 flex items-start justify-between gap-4">
-                        <div>
-                            <h4 class="text-m3-title-small text-m3-on-surface">
-                                Edit Draft Details
-                            </h4>
-                            <p class="text-m3-body-small text-m3-on-surface-variant">
-                                Changes are kept in this preview until you apply
-                                the draft.
-                            </p>
-                        </div>
-                        <button
-                            type="button"
-                            class="rounded-m3-full p-2 text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface"
-                            aria-label="Close draft details editor"
-                            onclick={closePreviewItemEditor}
-                        >
-                            <IconClose class="size-5" />
-                        </button>
-                    </div>
-
-                    <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                        <TextField
-                            variant="outlined"
-                            label="Card name"
-                            placeholder="Card name"
-                            bind:value={editName}
-                        />
-                        <TextField
-                            variant="outlined"
-                            label="Icon"
-                            placeholder="material symbol name"
-                            bind:value={editIcon}
-                        />
-                        {#if editingItem.cardType === "title"}
-                            <TextField
-                                variant="outlined"
-                                label="Subtitle"
-                                placeholder="Optional subtitle"
-                                bind:value={editSubtitle}
-                                class="md:col-span-2"
-                            />
-                        {/if}
-                        {#if editingItem.cardType === "navigation"}
-                            <TextField
-                                variant="outlined"
-                                label="Route path"
-                                placeholder="/dashboard/floor/room"
-                                bind:value={editPath}
-                                class="md:col-span-2"
-                            />
-                        {/if}
-                    </div>
-
-                    <div class="mt-4 flex justify-end gap-2">
-                        <button
-                            type="button"
-                            class="inline-flex h-10 items-center justify-center rounded-full px-4 text-m3-label-large text-m3-on-surface-variant hover:bg-m3-surface-container-highest"
-                            onclick={closePreviewItemEditor}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="button"
-                            class="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-m3-primary px-5 text-m3-label-large text-m3-on-primary hover:brightness-95"
-                            onclick={savePreviewItemEdits}
-                        >
-                            <IconCheck class="size-5" />
-                            Save Draft Changes
-                        </button>
-                    </div>
-                </section>
-            {/if}
+        {/if}
 
             {#snippet previewCardControls(item: DashboardItem, nested = false)}
                 {#if item.cardType !== "tabs"}
@@ -2491,7 +2639,11 @@
             {/snippet}
 
             {#if previewTab && previewTab.items.length > 0}
-                <div class="rounded-m3-card border border-m3-outline-variant/50 bg-m3-surface-container-low p-3 overflow-auto max-h-[72vh]">
+                <DashboardBackgroundLayer
+                    background={previewTab.background}
+                    class="min-h-0 flex-1 border border-m3-outline-variant/50 bg-m3-surface-container-low"
+                >
+                <div class="h-full overflow-auto p-3">
                     <div
                         class="grid"
                         style:display="grid"
@@ -2503,6 +2655,12 @@
                     >
                         {#each previewTab.items as item, index (item.id)}
                             {@const activeNestedTab = getActiveNestedPreviewTab(item)}
+                            {@const activeNestedCardSurfaceStyle = activeNestedTab
+                                ? resolveCardSurfaceStyle(
+                                      themeStore.cardSurfaceStyle,
+                                      activeNestedTab.cardSurfaceStyle,
+                                  )
+                                : activePreviewCardSurfaceStyle}
                             {@const itemLayout = getItemLayoutForProfile(item, activePreviewProfile)}
                             <div
                                 class="relative group/preview-card"
@@ -2564,6 +2722,7 @@
                                                             <DashboardCardRenderer
                                                                 bind:item={activeNestedTab.items[nestedIndex]}
                                                                 layoutRows={nestedLayout.rowSpan}
+                                                                surfaceStyle={activeNestedCardSurfaceStyle}
                                                             />
                                                         </div>
                                                         <GenerationStateBadge
@@ -2585,6 +2744,7 @@
                                         <DashboardCardRenderer
                                             bind:item={previewTab.items[index]}
                                             layoutRows={itemLayout.rowSpan}
+                                            surfaceStyle={activePreviewCardSurfaceStyle}
                                         />
                                     </div>
                                 {/if}
@@ -2601,6 +2761,7 @@
                         {/each}
                     </div>
                 </div>
+                </DashboardBackgroundLayer>
             {:else}
                 <div class="flex min-h-80 items-center justify-center rounded-m3-card border border-dashed border-m3-outline-variant bg-m3-surface-container-low p-6 text-center">
                     <p class="text-m3-body-medium text-m3-on-surface-variant">
@@ -2609,27 +2770,93 @@
                 </div>
             {/if}
         </section>
-    </div>
+{/snippet}
 
-    {#snippet actions()}
-        <button
-            type="button"
-            class="inline-flex h-10 items-center justify-center gap-2 rounded-full px-4 text-m3-label-large text-m3-on-surface-variant hover:bg-m3-surface-container-high"
-            onclick={handleClose}
-        >
-            <IconClose class="size-5" />
-            Cancel
-        </button>
-        <button
-            type="button"
-            class="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-m3-primary px-5 text-m3-label-large text-m3-on-primary hover:brightness-95 disabled:opacity-50"
-            disabled={!draft || visibleCardCount === 0}
-            onclick={handleApply}
-        >
-            <IconCheck class="size-5" />
-            {cleanGeneratedBeforeApply && cleanApplyConfirmationPending
-                ? "Confirm Clean Apply"
-                : "Apply Draft"}
-        </button>
-    {/snippet}
-</SideSheet>
+<Dialog.Root open={open} onOpenChange={handleDialogOpenChange}>
+    {#if open}
+        <Dialog.Portal>
+            <Dialog.Overlay class="fixed inset-0 z-[100] bg-m3-scrim/50 backdrop-blur-sm" />
+            <Dialog.Content
+                class="fixed inset-0 z-[101] flex flex-col overflow-hidden bg-m3-surface-container-low text-m3-on-surface shadow-2xl md:inset-4 md:rounded-m3-card"
+                interactOutsideBehavior="ignore"
+                aria-describedby="dashboard-generation-description"
+            >
+                <header class="flex shrink-0 flex-wrap items-start justify-between gap-4 border-b border-m3-outline-variant/30 px-4 py-4 sm:px-6">
+                    <div class="flex min-w-0 items-start gap-4">
+                        <div class="flex size-12 shrink-0 items-center justify-center rounded-m3-full bg-m3-primary-container text-m3-on-primary-container">
+                            <IconAutoAwesome class="size-6" />
+                        </div>
+                        <div class="min-w-0">
+                            <Dialog.Title
+                                level={2}
+                                class="text-m3-headline-small text-m3-on-surface"
+                            >
+                                Generate Dashboard
+                            </Dialog.Title>
+                            <Dialog.Description
+                                id="dashboard-generation-description"
+                                class="text-m3-body-medium text-m3-on-surface-variant"
+                            >
+                                Preview first, then apply when it looks right.
+                            </Dialog.Description>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-end gap-2">
+                        <button
+                            type="button"
+                            class="inline-flex h-11 items-center justify-center gap-2 rounded-m3-full bg-m3-surface-container-high px-4 text-m3-label-large text-m3-on-surface-variant transition-colors hover:bg-m3-surface-container-highest hover:text-m3-on-surface"
+                            onclick={refreshInventorySnapshot}
+                        >
+                            <IconRefresh class="size-5" />
+                            Refresh
+                        </button>
+                        {@render workspaceActions()}
+                    </div>
+                </header>
+
+                <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-4 sm:p-6">
+                    {#if isWorkspaceWide}
+                        <div class="grid min-h-0 flex-1 grid-cols-[21rem_minmax(32rem,1fr)_24rem] gap-4 overflow-hidden 2xl:grid-cols-[22rem_minmax(42rem,1fr)_26rem]">
+                            <aside class="min-h-0 overflow-y-auto rounded-m3-card bg-m3-surface-container p-4">
+                                <div class="flex flex-col gap-5">
+                                    {@render setupPanel()}
+                                </div>
+                            </aside>
+
+                            <main class="min-h-0 overflow-hidden rounded-m3-card bg-m3-surface-container p-4">
+                                {@render previewPanel()}
+                            </main>
+
+                            <aside class="min-h-0 overflow-y-auto rounded-m3-card bg-m3-surface-container p-4">
+                                <div class="flex flex-col gap-5">
+                                    {@render reviewPanel()}
+                                </div>
+                            </aside>
+                        </div>
+                    {:else}
+                        {@render workspaceStageTabs()}
+                        <div class="min-h-0 flex-1 overflow-hidden">
+                            {#if workspaceStage === "setup"}
+                                <div class="h-full overflow-y-auto rounded-m3-card bg-m3-surface-container p-4">
+                                    <div class="flex flex-col gap-5">
+                                        {@render setupPanel()}
+                                    </div>
+                                </div>
+                            {:else if workspaceStage === "review"}
+                                <div class="h-full overflow-y-auto rounded-m3-card bg-m3-surface-container p-4">
+                                    <div class="flex flex-col gap-5">
+                                        {@render reviewPanel()}
+                                    </div>
+                                </div>
+                            {:else}
+                                <main class="h-full overflow-hidden rounded-m3-card bg-m3-surface-container p-4">
+                                    {@render previewPanel()}
+                                </main>
+                            {/if}
+                        </div>
+                    {/if}
+                </div>
+            </Dialog.Content>
+        </Dialog.Portal>
+    {/if}
+</Dialog.Root>

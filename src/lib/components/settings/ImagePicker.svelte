@@ -1,17 +1,20 @@
 <script lang="ts">
+    import { browser } from "$app/environment";
     import Button from "$lib/components/md3/Button.svelte";
     import TextField from "$lib/components/md3/TextField.svelte";
     import type { DashboardImageAttribution } from "$lib/types/dashboard";
+    import { extractAccentColorFromImageUrl } from "$lib/utils/imageAccent";
     import Upload from "~icons/material-symbols/upload";
     import Image from "~icons/material-symbols/image";
     import Delete from "~icons/material-symbols/delete";
     import Search from "~icons/material-symbols/search";
 
-    interface UnsplashImageResult {
+    interface ProviderImageResult {
         id: string;
         thumbUrl: string;
         imageUrl: string;
         description: string;
+        color?: string;
         attribution: DashboardImageAttribution;
     }
 
@@ -21,8 +24,10 @@
         label = "Image",
         orientation = "landscape",
         enableUnsplash = false,
+        enablePexels = false,
+        accentColor = $bindable<string | undefined>(),
         searchHint = "",
-        onchange,
+        onchange = undefined,
     } = $props();
 
     let fileInput: HTMLInputElement;
@@ -30,14 +35,23 @@
     let uploading = $state(false);
     let errorMessage = $state("");
     let unsplashQuery = $state("");
-    let unsplashResults = $state<UnsplashImageResult[]>([]);
+    let unsplashResults = $state<ProviderImageResult[]>([]);
     let searchingUnsplash = $state(false);
     let unsplashMessage = $state("");
+    let pexelsQuery = $state("");
+    let pexelsResults = $state<ProviderImageResult[]>([]);
+    let searchingPexels = $state(false);
+    let pexelsMessage = $state("");
     let attributionImageUrl = $state(value || "");
+    let lastExtractedValue = $state("");
+    let accentExtractionTimer: ReturnType<typeof setTimeout> | undefined;
 
     $effect(() => {
         if (!unsplashQuery && searchHint) {
             unsplashQuery = searchHint;
+        }
+        if (!pexelsQuery && searchHint) {
+            pexelsQuery = searchHint;
         }
     });
 
@@ -50,6 +64,32 @@
             attributionImageUrl = "";
         }
     });
+
+    $effect(() => {
+        if (!browser || !value || attribution?.provider === "unsplash" || attribution?.provider === "pexels") {
+            return;
+        }
+        if (value === lastExtractedValue) return;
+
+        if (accentExtractionTimer) clearTimeout(accentExtractionTimer);
+        accentExtractionTimer = setTimeout(() => {
+            extractAccentFromImage(value);
+        }, 600);
+
+        return () => {
+            if (accentExtractionTimer) clearTimeout(accentExtractionTimer);
+        };
+    });
+
+    async function extractAccentFromImage(url: string) {
+        if (!browser || !url || url === lastExtractedValue) return;
+        lastExtractedValue = url;
+
+        const extractedAccent = await extractAccentColorFromImageUrl(url);
+        if (extractedAccent) {
+            accentColor = extractedAccent;
+        }
+    }
 
     async function handleFile(e: Event) {
         const target = e.target as HTMLInputElement;
@@ -73,6 +113,7 @@
                     value = data.url;
                     attribution = undefined;
                     attributionImageUrl = "";
+                    await extractAccentFromImage(data.url);
                     onchange?.();
                 } else {
                     const errorData = await res.json().catch(() => ({}));
@@ -100,6 +141,7 @@
         value = "";
         attribution = undefined;
         attributionImageUrl = "";
+        accentColor = undefined;
         onchange?.();
     }
 
@@ -138,10 +180,46 @@
         }
     }
 
-    async function selectUnsplashImage(result: UnsplashImageResult) {
+    async function searchPexels() {
+        const query = pexelsQuery.trim() || searchHint.trim();
+        if (!query) return;
+
+        searchingPexels = true;
+        pexelsMessage = "";
+        errorMessage = "";
+
+        try {
+            const params = new URLSearchParams({
+                query,
+                orientation: orientation === "portrait" ? "portrait" : "landscape",
+            });
+            const res = await fetch(`/api/image-providers/pexels/search?${params.toString()}`);
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                pexelsResults = [];
+                pexelsMessage =
+                    data.error || `Pexels search failed with status ${res.status}`;
+                return;
+            }
+
+            pexelsResults = data.results || [];
+            pexelsMessage =
+                pexelsResults.length === 0 ? "No Pexels images found." : "";
+        } catch (err) {
+            pexelsResults = [];
+            pexelsMessage = "Pexels search is unavailable.";
+            console.error("Pexels search error", err);
+        } finally {
+            searchingPexels = false;
+        }
+    }
+
+    async function selectUnsplashImage(result: ProviderImageResult) {
         value = result.imageUrl;
         attribution = result.attribution;
         attributionImageUrl = result.imageUrl;
+        accentColor = result.color || undefined;
         onchange?.();
 
         const downloadLocation = result.attribution.downloadLocation;
@@ -156,6 +234,14 @@
         } catch (err) {
             console.warn("Unsplash download tracking failed", err);
         }
+    }
+
+    function selectPexelsImage(result: ProviderImageResult) {
+        value = result.imageUrl;
+        attribution = result.attribution;
+        attributionImageUrl = result.imageUrl;
+        accentColor = result.color || undefined;
+        onchange?.();
     }
 </script>
 
@@ -233,6 +319,11 @@
                     Selected Unsplash photo by {attribution.authorName ||
                         "Unknown photographer"}.
                 </p>
+            {:else if attribution?.provider === "pexels"}
+                <p class="text-m3-body-small text-m3-on-surface-variant">
+                    Selected Pexels photo by {attribution.authorName ||
+                        "Unknown photographer"}.
+                </p>
             {:else}
                 <p class="text-m3-body-small text-m3-on-surface-variant">
                     Upload a local file (saved to local functionality) or paste a
@@ -294,6 +385,63 @@
                 <p class="text-m3-body-small text-m3-on-surface-variant">
                     Unsplash photos keep photographer attribution on the final
                     card.
+                </p>
+            {/if}
+        </div>
+    {/if}
+
+    {#if enablePexels}
+        <div class="mt-2 flex flex-col gap-3 rounded-m3-md border border-m3-outline-variant/50 bg-m3-surface-container-low p-3">
+            <div class="flex items-end gap-2">
+                <div class="min-w-0 flex-1">
+                    <TextField
+                        label="Browse Pexels"
+                        placeholder="kitchen interior, cozy bedroom..."
+                        bind:value={pexelsQuery}
+                    />
+                </div>
+                <Button
+                    variant="tonal"
+                    onclick={searchPexels}
+                    icon={Search}
+                    disabled={searchingPexels}
+                >
+                    {searchingPexels ? "Searching..." : "Search"}
+                </Button>
+            </div>
+
+            {#if pexelsMessage}
+                <p class="text-m3-body-small text-m3-on-surface-variant">
+                    {pexelsMessage}
+                </p>
+            {/if}
+
+            {#if pexelsResults.length > 0}
+                <div class="grid grid-cols-2 gap-2">
+                    {#each pexelsResults as result (result.id)}
+                        <button
+                            type="button"
+                            class="group relative aspect-video overflow-hidden rounded-m3-sm border border-m3-outline-variant/50 bg-m3-surface-container-high text-left transition-all hover:border-m3-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m3-primary"
+                            onclick={() => selectPexelsImage(result)}
+                            aria-label={`Use Pexels photo by ${result.attribution.authorName || "Unknown photographer"}`}
+                        >
+                            <img
+                                src={result.thumbUrl}
+                                alt={result.description || "Pexels result"}
+                                class="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+                            />
+                            <span
+                                class="absolute inset-x-0 bottom-0 bg-black/55 px-2 py-1 text-m3-label-small text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+                            >
+                                {result.attribution.authorName ||
+                                    "Pexels photographer"}
+                            </span>
+                        </button>
+                    {/each}
+                </div>
+                <p class="text-m3-body-small text-m3-on-surface-variant">
+                    Pexels photos keep photographer attribution on the final
+                    dashboard.
                 </p>
             {/if}
         </div>

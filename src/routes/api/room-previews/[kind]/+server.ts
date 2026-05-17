@@ -11,7 +11,11 @@ interface PreviewPalette {
     glow: string;
 }
 
-const ROOM_KINDS = new Set<RoomVisualKind>([
+type PreviewKind = RoomVisualKind | 'home' | 'floor';
+
+const ROOM_KINDS = new Set<PreviewKind>([
+    'home',
+    'floor',
     'bathroom',
     'bedroom',
     'child_boy_room',
@@ -31,7 +35,25 @@ const ROOM_KINDS = new Set<RoomVisualKind>([
 
 const ROOM_AUDIENCES = new Set<RoomVisualAudience>(['adult', 'boy', 'girl', 'child', 'family', 'neutral']);
 
-const PALETTES: Record<RoomVisualKind, PreviewPalette> = {
+const PALETTES: Record<PreviewKind, PreviewPalette> = {
+    home: {
+        wall: '#d9dfd8',
+        floor: '#b4bdae',
+        surface: '#f2f0e6',
+        accent: '#61754b',
+        accentSoft: '#c1d19c',
+        line: '#3d4a32',
+        glow: '#ffe9b5',
+    },
+    floor: {
+        wall: '#d9dedc',
+        floor: '#b2bbb7',
+        surface: '#f1efe7',
+        accent: '#536f68',
+        accentSoft: '#aec8c0',
+        line: '#344842',
+        glow: '#edf6ef',
+    },
     bathroom: {
         wall: '#dbe8e9',
         floor: '#b8cdcf',
@@ -169,8 +191,8 @@ const PALETTES: Record<RoomVisualKind, PreviewPalette> = {
     },
 };
 
-function asRoomKind(rawKind?: string): RoomVisualKind {
-    const kind = (rawKind ?? '').replace(/\.svg$/i, '') as RoomVisualKind;
+function asRoomKind(rawKind?: string): PreviewKind {
+    const kind = (rawKind ?? '').replace(/\.svg$/i, '') as PreviewKind;
     return ROOM_KINDS.has(kind) ? kind : 'generic_room';
 }
 
@@ -196,8 +218,26 @@ function wallAndFloor(palette: PreviewPalette) {
     `;
 }
 
-function roomShapes(kind: RoomVisualKind, palette: PreviewPalette) {
+function roomShapes(kind: PreviewKind, palette: PreviewPalette) {
     switch (kind) {
+        case 'home':
+            return `
+                <path d="M118 318 L320 166 L522 318 V492 H390 V370 H250 V492 H118 Z" fill="${palette.surface}" />
+                <path d="M88 322 L320 142 L552 322" fill="none" stroke="${palette.accent}" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" />
+                <rect x="150" y="350" width="72" height="82" rx="18" fill="${palette.accentSoft}" />
+                <rect x="418" y="350" width="72" height="82" rx="18" fill="${palette.accentSoft}" />
+                <path d="M250 492 V370 H390 V492" fill="${palette.wall}" stroke="${palette.line}" stroke-opacity=".28" stroke-width="8" />
+                <path d="M146 530 H494" stroke="${palette.accentSoft}" stroke-width="20" stroke-linecap="round" />
+            `;
+        case 'floor':
+            return `
+                <rect x="116" y="172" width="408" height="320" rx="34" fill="${palette.surface}" />
+                <path d="M166 242 H474 M166 320 H474 M166 398 H474" stroke="${palette.line}" stroke-opacity=".22" stroke-width="10" stroke-linecap="round" />
+                <path d="M230 172 V492 M320 172 V492 M410 172 V492" stroke="${palette.line}" stroke-opacity=".16" stroke-width="8" />
+                <rect x="182" y="218" width="92" height="66" rx="18" fill="${palette.accentSoft}" />
+                <rect x="366" y="336" width="92" height="66" rx="18" fill="${palette.accentSoft}" />
+                <path d="M128 522 H512" stroke="${palette.accent}" stroke-width="20" stroke-linecap="round" />
+            `;
         case 'kitchen':
             return `
                 <rect x="78" y="292" width="484" height="164" rx="24" fill="${palette.surface}" />
@@ -296,7 +336,7 @@ function roomShapes(kind: RoomVisualKind, palette: PreviewPalette) {
     }
 }
 
-function renderPreviewSvg(kind: RoomVisualKind, audience: RoomVisualAudience) {
+function renderPreviewSvg(kind: PreviewKind, audience: RoomVisualAudience) {
     const palette = withAudience(PALETTES[kind], audience);
     return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" role="img" aria-label="${kind.replace(/_/g, ' ')} preview">

@@ -755,7 +755,7 @@ export class DashboardEditorStore {
      * Update grid configuration (dimensions, gaps, padding, row height)
      */
     updateGridConfig(updates: Partial<Pick<GridConfig,
-        'columns' | 'columnProfiles' | 'gap' | 'padding' | 'rowHeight' | 'rowGap' | 'columnGap' | 'rows'
+        'columns' | 'columnProfiles' | 'gap' | 'padding' | 'rowHeight' | 'rowGap' | 'columnGap' | 'rows' | 'background' | 'cardSurfaceStyle'
     >>) {
         const context = this.getActiveGrid();
         if (!context) return;

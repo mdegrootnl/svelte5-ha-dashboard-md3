@@ -13,6 +13,7 @@ describe('ThemeStore', () => {
         expect(store.isDark).toBe(false);
         expect(store.cardRadius).toBe(12);
         expect(store.tabPillRadius).toBe(32);
+        expect(store.cardSurfaceStyle).toBe('md3');
     });
 
     it('should derive a valid theme', () => {
@@ -40,6 +41,23 @@ describe('ThemeStore', () => {
         expect(root.style.getPropertyValue('--radius-m3-card')).toBe('18px');
         expect(root.style.getPropertyValue('--radius-m3-tab-pill')).toBe('24px');
         expect(root.classList.contains('dark')).toBe(false);
+    });
+
+    it('should update and normalize card surface style', () => {
+        const store = new ThemeStore();
+        store.setCardSurfaceStyle('glass');
+        expect(store.cardSurfaceStyle).toBe('glass');
+
+        store.init({
+            sourceColor: '#6750A4',
+            isDark: false,
+            navigationStyle: 'standard',
+            navigationItems: [],
+            cardRadius: 12,
+            tabPillRadius: 32,
+            cardSurfaceStyle: 'soft',
+        });
+        expect(store.cardSurfaceStyle).toBe('soft');
     });
 
     it('should clamp card radius changes', () => {

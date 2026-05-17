@@ -33,6 +33,9 @@ export type DashboardCardType =
 
 export type GraphChartType = "area" | "line" | "bar" | "step";
 
+export type DashboardCardSurfaceStyle = "md3" | "glass" | "soft";
+export type DashboardGridCardSurfaceStyle = "theme" | DashboardCardSurfaceStyle;
+
 export type SmartSourceConfig = "auto" | "area" | "floor" | "query" | "manual";
 
 export type RoomVisualKind =
@@ -53,10 +56,18 @@ export type RoomVisualKind =
     | "custom";
 
 export type RoomVisualAudience = "adult" | "boy" | "girl" | "child" | "family" | "neutral";
-export type NavigationImageSource = "ha_area_picture" | "generated_preview" | "unsplash" | "manual" | "none";
+export type NavigationImageSource = "ha_area_picture" | "generated_preview" | "unsplash" | "pexels" | "manual" | "none";
+export type DashboardBackgroundSource =
+    | "none"
+    | "generated_preview"
+    | "ha_area_picture"
+    | "unsplash"
+    | "pexels"
+    | "manual";
 
 export type DashboardImageProvider =
     | "unsplash"
+    | "pexels"
     | "manual"
     | "generated_preview"
     | "ha_area_picture";
@@ -70,6 +81,16 @@ export interface DashboardImageAttribution {
     photoId?: string;
     licenseUrl?: string;
     downloadLocation?: string;
+}
+
+export interface DashboardBackgroundConfig {
+    enabled: boolean;
+    source: DashboardBackgroundSource;
+    imageUrl?: string;
+    imageAttribution?: DashboardImageAttribution;
+    accentColor?: string;
+    objectPosition?: "center" | "top" | "bottom";
+    scrimOpacity?: number;
 }
 
 export type DashboardGenerationRecipe =
@@ -112,6 +133,7 @@ export interface DashboardGenerationOptions {
     excludeLabels?: string[];
     includeEntityIds?: string[];
     excludeEntityIds?: string[];
+    useBackgroundImages?: boolean;
     applyMode: "replace_draft";
 }
 
@@ -242,6 +264,8 @@ export interface CollectionCardOptions {
 
 export interface EnergyCardOptions {
     source?: SmartSourceConfig;
+    mode?: "overview" | "flow" | "balance" | "sources" | "devices";
+    historyRange?: "last24h" | "today" | "7d" | "30d" | "12m";
     gridImportEntityId?: string;
     gridExportEntityId?: string;
     solarPowerEntityId?: string;
@@ -250,6 +274,8 @@ export interface EnergyCardOptions {
     todayEnergyEntityId?: string;
     gasEntityId?: string;
     waterEntityId?: string;
+    deviceEntityIds?: string[];
+    hoursToShow?: number;
 }
 
 export interface CalendarCardOptions {
@@ -561,6 +587,10 @@ export interface GridConfig {
     padding: number;
     /** Items placed in the grid */
     items: DashboardItem[];
+    /** Optional image background for this dashboard/grid surface. */
+    background?: DashboardBackgroundConfig;
+    /** Optional card surface override for cards rendered inside this grid. */
+    cardSurfaceStyle?: DashboardGridCardSurfaceStyle;
     /** Metadata for grids created by controlled dashboard generation. */
     generatedBy?: DashboardGenerationMetadata;
     generationState?: DashboardGenerationState;
@@ -692,9 +722,11 @@ export function createDefaultItemLayout(
     // Row span based on card size
     // Graph cards default to 2x spans if not specified
     const rowSpan = (
+        cardType === "weather" ||
+        cardType === "energy"
+    ) ? 3 : (
         cardType === "graph" ||
         cardType === "room" ||
-        cardType === "energy" ||
         cardType === "calendar" ||
         cardType === "device_panel"
     ) ? 2 : (cardSize === 'condensed' ? 1 : cardSize === 'standard' ? 2 : 3);

@@ -13,6 +13,12 @@
     import IconDevices from "~icons/material-symbols/devices";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import type { ButtonCardOptions, CardAction, CardVariant } from "$lib/types";
+    import type { DashboardCardSurfaceStyle } from "$lib/types/dashboard";
+    import {
+        getActiveCardSurfaceStyle,
+        getCardSurfaceClasses,
+        getCardSurfaceStyle,
+    } from "$lib/features/dashboard/utils/cardSurface";
 
     interface Props {
         id?: string;
@@ -24,6 +30,7 @@
         icon?: string | any; // Material Symbol component or name string
         color?: string; // Optional color override
         backgroundColor?: string; // Optional background override
+        surfaceStyle?: DashboardCardSurfaceStyle;
         onclick?: () => void;
         class?: string;
 
@@ -45,6 +52,7 @@
         value = $bindable(0),
         color = $bindable(),
         backgroundColor = $bindable(),
+        surfaceStyle = "md3",
         onclick,
         class: className = "",
         entityId = $bindable(""),
@@ -149,14 +157,10 @@
 
         // Background
         if (backgroundColor) {
-            styles += `background-color: ${backgroundColor}; `;
+            styles += getCardSurfaceStyle(surfaceStyle, backgroundColor);
         } else if (isActive && !isSlider && useStateColor) {
             const activeColor = color || "var(--color-m3-primary)";
-            styles += `background-color: color-mix(in srgb, ${activeColor} 15%, transparent); `;
-            styles += `box-shadow: inset 0 0 0 1px color-mix(in srgb, ${activeColor} 20%, transparent); `;
-        } else {
-            styles +=
-                "background-color: var(--color-m3-surface-container-highest); ";
+            styles += getActiveCardSurfaceStyle(surfaceStyle, activeColor, 15);
         }
 
         // Foreground (active state enhancement)
@@ -363,7 +367,7 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
     bind:this={cardElement}
-    class="{baseStyles} {interactiveStyles} {className} @container"
+    class="{baseStyles} {interactiveStyles} {getCardSurfaceClasses(surfaceStyle)} {className} @container"
     onclick={handleSwitchClick}
     onpointerdown={handlePointerDown}
     role="button"

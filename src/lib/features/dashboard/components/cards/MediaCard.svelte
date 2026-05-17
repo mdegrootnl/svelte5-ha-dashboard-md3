@@ -9,6 +9,11 @@
     import MediaProgress from "./media/MediaProgress.svelte";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import AuthenticatedImage from "$lib/components/common/AuthenticatedImage.svelte";
+    import type { DashboardCardSurfaceStyle } from "$lib/types/dashboard";
+    import {
+        getCardSurfaceClasses,
+        getCardSurfaceStyle,
+    } from "$lib/features/dashboard/utils/cardSurface";
 
     // Props
     interface Props {
@@ -22,6 +27,7 @@
         class?: string;
         color?: string;
         backgroundColor?: string;
+        surfaceStyle?: DashboardCardSurfaceStyle;
         icon?: string | any;
         layoutRows?: number;
     }
@@ -37,6 +43,7 @@
         class: className = "",
         color = $bindable(),
         backgroundColor = $bindable(),
+        surfaceStyle = "md3",
         icon: iconProp = $bindable(),
         layoutRows,
     }: Props = $props();
@@ -101,10 +108,10 @@
     // Dynamic container class
     let containerClass = $derived(
         isOff
-            ? "bg-m3-surface-container-low text-m3-on-surface overflow-hidden"
+            ? `text-m3-on-surface overflow-hidden ${getCardSurfaceClasses(surfaceStyle)}`
             : effectiveBackground === "immersive" && artworkSrc
-              ? "relative overflow-hidden"
-              : "bg-m3-surface-container-highest text-m3-on-surface overflow-hidden",
+              ? `relative overflow-hidden ${getCardSurfaceClasses(surfaceStyle)}`
+              : `text-m3-on-surface overflow-hidden ${getCardSurfaceClasses(surfaceStyle)}`,
     );
 
     function turnOn() {
@@ -132,11 +139,11 @@
 </script>
 
 <div
-    class={`flex flex-col w-full shadow-sm transition-all ${containerClass} rounded-m3-card relative group/card h-full @container`}
+    class={`flex flex-col w-full transition-all ${containerClass} rounded-m3-card relative group/card h-full @container`}
     bind:clientHeight
     style={`container-type: size;${backgroundColor &&
     (isOff || effectiveBackground !== "immersive" || !artworkSrc)
-        ? ` background-color: ${backgroundColor};`
+        ? getCardSurfaceStyle(surfaceStyle, backgroundColor)
         : ""}`}
 >
     <!-- Immersive Background -->

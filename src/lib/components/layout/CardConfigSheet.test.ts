@@ -12,10 +12,15 @@ vi.mock('$lib/stores/ha.svelte', () => ({
                 unit_of_measurement: 'kWh',
             },
         }),
+        getStatesView: vi.fn().mockReturnValue({}),
+        getEntityIdsSnapshot: vi.fn().mockReturnValue([]),
+        statesVersion: 0,
+        overridesVersion: 0,
         connected: false,
         auth: null,
         callService: vi.fn(),
         getHistory: vi.fn(),
+        getStatistics: vi.fn(),
     },
 }));
 
@@ -125,6 +130,73 @@ describe('CardConfigSheet', () => {
                         chartType: 'step',
                     }),
                 ],
+            }),
+        );
+    });
+
+    it('persists energy card mode and pinned device sensors', async () => {
+        const onSave = vi.fn();
+        render(CardConfigSheet);
+
+        cardEditorStore.openConfig({
+            type: 'energy',
+            entityId: '',
+            name: 'Energy',
+            options: {
+                energy: {
+                    source: 'auto',
+                    mode: 'overview',
+                },
+            },
+            onSave,
+        });
+
+        await fireEvent.click(await screen.findByText('Devices'));
+        await fireEvent.click(screen.getByText('Add'));
+        const picker = screen.getByLabelText('Device Energy Sensor') as HTMLInputElement;
+        await fireEvent.input(picker, { target: { value: 'sensor.dishwasher_energy' } });
+        await fireEvent.click(screen.getByText('Save'));
+
+        expect(onSave).toHaveBeenCalledWith(
+            expect.objectContaining({
+                options: expect.objectContaining({
+                    energy: expect.objectContaining({
+                        mode: 'devices',
+                        deviceEntityIds: ['sensor.dishwasher_energy'],
+                    }),
+                }),
+            }),
+        );
+    });
+
+    it('persists energy source history range', async () => {
+        const onSave = vi.fn();
+        render(CardConfigSheet);
+
+        cardEditorStore.openConfig({
+            type: 'energy',
+            entityId: '',
+            name: 'Energy',
+            options: {
+                energy: {
+                    source: 'auto',
+                    mode: 'sources',
+                },
+            },
+            onSave,
+        });
+
+        await fireEvent.click(await screen.findByText('30 days'));
+        await fireEvent.click(screen.getByText('Save'));
+
+        expect(onSave).toHaveBeenCalledWith(
+            expect.objectContaining({
+                options: expect.objectContaining({
+                    energy: expect.objectContaining({
+                        mode: 'sources',
+                        historyRange: '30d',
+                    }),
+                }),
             }),
         );
     });
