@@ -26,7 +26,7 @@ describe('TabBar Component', () => {
         expect(
             screen.getByText('Overview').closest('button')?.getAttribute('style'),
         ).toContain('var(--radius-m3-tab-pill)');
-        expect(screen.getByTitle('Add Tab').getAttribute('style')).toContain(
+        expect(screen.getByTitle('Nieuwe tab toevoegen').getAttribute('style')).toContain(
             'var(--radius-m3-tab-pill)',
         );
     });

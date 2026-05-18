@@ -11,6 +11,7 @@
 <script lang="ts">
     import AuthenticatedImage from "$lib/components/common/AuthenticatedImage.svelte";
     import { musicLibraryStore } from "../stores/musicLibrary.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
     import type {
         MAMediaItem,
         MAArtist,
@@ -64,10 +65,10 @@
             return album.artist?.name || "";
         }
         if (item.media_type === "artist") {
-            return "Artist";
+            return themeStore.t("music.artist");
         }
         if (item.media_type === "playlist") {
-            return "Playlist";
+            return themeStore.t("music.playlist");
         }
         if (item.media_type === "radio") {
             return item.provider || "Radio";
@@ -131,7 +132,7 @@
     <!-- Toggle Favorite Button -->
     <button
         class="touch-edit-control absolute top-4 right-4 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-m3-primary hover:scale-110 z-10"
-        aria-label={isFavorite ? "Remove favorite" : "Add favorite"}
+        aria-label={isFavorite ? themeStore.t("music.removeFavorite") : themeStore.t("music.addFavorite")}
         onclick={(e) => {
             e.stopPropagation();
             musicLibraryStore.toggleFavorite(item);

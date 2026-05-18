@@ -80,7 +80,7 @@
 		href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
 		rel="stylesheet"
 	/>
-	<title>Home Dashboard</title>
+	<title>{themeStore.t("app.title")}</title>
 	<link rel="icon" href={favicon} />
 </svelte:head>
 

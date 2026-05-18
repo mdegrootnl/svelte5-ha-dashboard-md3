@@ -4,6 +4,7 @@
 -->
 <script lang="ts">
     import { maStore } from "../stores/maStore.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
     import Search from "~icons/material-symbols/search";
     import Close from "~icons/material-symbols/close";
 
@@ -43,7 +44,7 @@
         />
         <input
             type="text"
-            placeholder="Search songs, artists, albums..."
+            placeholder={themeStore.t("music.search.placeholder")}
             value={query}
             oninput={handleInput}
             class="w-full h-12 pl-12 pr-12 rounded-full bg-m3-surface-container-high
@@ -55,7 +56,7 @@
                 onclick={clearSearch}
                 class="absolute right-4 w-6 h-6 rounded-full bg-m3-on-surface-variant/20
                     flex items-center justify-center hover:bg-m3-on-surface-variant/30 transition-colors"
-                aria-label="Clear search"
+                aria-label={themeStore.t("music.search.clear")}
             >
                 <Close class="w-4 h-4 text-m3-on-surface-variant" />
             </button>

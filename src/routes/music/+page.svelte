@@ -2,6 +2,7 @@
     import PageShell from "$lib/components/layout/PageShell.svelte";
     import { maStore } from "$lib/features/music/stores/maStore.svelte";
     import { haStore } from "$lib/stores/ha.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
     import Card from "$lib/components/md3/Card.svelte";
     import Button from "$lib/components/md3/Button.svelte";
     import MusicNowPlaying from "$lib/features/music/components/MusicNowPlaying.svelte";
@@ -25,6 +26,12 @@
 
     // Search query for the search tab
     let currentSearchQuery = $state("");
+    const tabs = $derived([
+        { id: "home", label: themeStore.t("music.tabs.home") },
+        { id: "browse", label: themeStore.t("music.tabs.browse") },
+        { id: "radio", label: themeStore.t("music.tabs.radio") },
+        { id: "library", label: themeStore.t("music.tabs.library") },
+    ]);
 
     // Retry check integration
     async function retryCheck() {
@@ -42,7 +49,7 @@
     });
 </script>
 
-<PageShell title="Music" description="Stream from Spotify, TuneIn, and more.">
+<PageShell title={themeStore.t("music.title")} description={themeStore.t("music.description")}>
     <!-- Error States -->
     {#if haStore.connectionState !== "connected"}
         <!-- HA Not Connected -->
@@ -54,12 +61,12 @@
             </div>
             <div class="text-center">
                 <h2 class="text-m3-headline-small text-m3-on-surface mb-2">
-                    Home Assistant Not Connected
+                    {themeStore.t("music.haNotConnected")}
                 </h2>
                 <p
                     class="text-m3-body-medium text-m3-on-surface-variant max-w-md"
                 >
-                    Connect to Home Assistant in Settings to stream music.
+                    {themeStore.t("music.connectInSettings")}
                 </p>
             </div>
             <a
@@ -67,7 +74,7 @@
                 class="touch-target inline-flex items-center justify-center gap-2 px-6 rounded-full text-m3-label-large font-medium bg-m3-primary text-m3-on-primary hover:bg-m3-primary/92 transition-colors"
             >
                 <SettingsIcon class="w-4 h-4" />
-                Go to Settings
+                {themeStore.t("music.goSettings")}
             </a>
         </div>
     {:else if maStore.integrationStatus === "checking"}
@@ -81,7 +88,7 @@
                 />
             </div>
             <p class="text-m3-body-medium text-m3-on-surface-variant">
-                Checking Music Assistant...
+                {themeStore.t("music.checking")}
             </p>
         </div>
     {:else if maStore.integrationStatus === "not_installed"}
@@ -94,13 +101,12 @@
             </div>
             <div class="text-center">
                 <h2 class="text-m3-headline-small text-m3-on-surface mb-2">
-                    Music Assistant Required
+                    {themeStore.t("music.required")}
                 </h2>
                 <p
                     class="text-m3-body-medium text-m3-on-surface-variant max-w-md mb-4"
                 >
-                    Install the Music Assistant addon in Home Assistant to
-                    stream music from Spotify, TuneIn, and more.
+                    {themeStore.t("music.requiredDescription")}
                 </p>
             </div>
             <div class="flex gap-3">
@@ -111,10 +117,10 @@
                     class="touch-target inline-flex items-center justify-center gap-2 px-6 rounded-full text-m3-label-large font-medium bg-m3-primary text-m3-on-primary hover:bg-m3-primary/92 transition-colors"
                 >
                     <OpenInNew class="w-4 h-4" />
-                    Installation Guide
+                    {themeStore.t("common.installGuide")}
                 </a>
                 <Button variant="outlined" onclick={retryCheck} icon={Refresh}>
-                    Retry
+                    {themeStore.t("common.retry")}
                 </Button>
             </div>
         </div>
@@ -128,17 +134,17 @@
             </div>
             <div class="text-center">
                 <h2 class="text-m3-headline-small text-m3-on-surface mb-2">
-                    Connection Error
+                    {themeStore.t("music.connectionError")}
                 </h2>
                 <p
                     class="text-m3-body-medium text-m3-on-surface-variant max-w-md"
                 >
                     {maStore.errorMessage ||
-                        "Failed to connect to Music Assistant."}
+                        themeStore.t("music.connectionFailed")}
                 </p>
             </div>
             <Button variant="outlined" onclick={retryCheck} icon={Refresh}>
-                Retry
+                {themeStore.t("common.retry")}
             </Button>
         </div>
     {:else}
@@ -159,7 +165,7 @@
 
             <!-- Tab Navigation -->
             <nav class="flex gap-1 px-4 pb-2 overflow-x-auto">
-                {#each [{ id: "home", label: "Home" }, { id: "browse", label: "Browse" }, { id: "radio", label: "Radio" }, { id: "library", label: "Library" }] as tab}
+                {#each tabs as tab}
                     <button
                         class="touch-target px-4 rounded-full text-m3-label-large font-medium whitespace-nowrap transition-colors
                             {activeTab === tab.id

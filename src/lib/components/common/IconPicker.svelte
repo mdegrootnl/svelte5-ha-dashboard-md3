@@ -7,6 +7,7 @@
     import IconClose from "~icons/material-symbols/close";
     import IconSearch from "~icons/material-symbols/search";
     import { portal } from "$lib/actions/portal";
+    import { themeStore } from "$lib/stores/theme.svelte";
 
     // Comprehensive list of Material Symbols icons for smart home/dashboard use
     // Users can type any valid Material Symbols name to search
@@ -229,11 +230,11 @@
         onkeydown={() => {}}
     >
         <div class="flex items-center justify-between">
-            <h3 class="text-m3-title-medium text-m3-on-surface">Select Icon</h3>
+            <h3 class="text-m3-title-medium text-m3-on-surface">{themeStore.t("iconPicker.title")}</h3>
             <button
                 onclick={() => onclose()}
                 class="touch-target rounded-full text-m3-on-surface-variant hover:text-m3-on-surface"
-                aria-label="Close"
+                aria-label={themeStore.t("common.close")}
             >
                 <IconClose class="size-6" />
             </button>
@@ -247,7 +248,7 @@
             <input
                 type="text"
                 bind:value={query}
-                placeholder="Search or type any icon name..."
+                placeholder={themeStore.t("iconPicker.search")}
                 class="w-full h-12 pl-10 pr-4 rounded-full bg-m3-surface-container-highest text-m3-on-surface placeholder:text-m3-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-m3-primary"
             />
         </div>
@@ -255,13 +256,7 @@
         <!-- Hint for custom icons -->
         {#if showCustomIcon}
             <p class="text-m3-body-small text-m3-on-surface-variant px-2">
-                💡 "<strong>{query}</strong>" not in common icons. Type any
-                valid
-                <a
-                    href="https://fonts.google.com/icons"
-                    target="_blank"
-                    class="text-m3-primary underline">Material Symbol</a
-                > name and select it below.
+                {themeStore.t("iconPicker.customHint", { query })}
             </p>
         {/if}
 
@@ -272,13 +267,13 @@
                 <button
                     class="touch-target col-span-6 flex items-center justify-center gap-2 rounded-m3-sm bg-m3-primary-container text-m3-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-m3-primary"
                     onclick={() => handleSelect(query.toLowerCase())}
-                    title="Use '{query}' as icon"
+                    title={themeStore.t("iconPicker.useAsIcon", { query })}
                 >
                     <span class="material-symbols-outlined text-xl"
                         >add_circle</span
                     >
                     <span class="text-m3-label-large"
-                        >Use "<strong>{query}</strong>" as icon</span
+                        >{themeStore.t("iconPicker.useAsIcon", { query })}</span
                     >
                 </button>
             {/if}
@@ -297,7 +292,7 @@
         </div>
 
         <p class="text-m3-body-small text-m3-on-surface-variant text-center">
-            Browse all icons at <a
+            {themeStore.t("iconPicker.browse")} <a
                 href="https://fonts.google.com/icons"
                 target="_blank"
                 class="text-m3-primary underline">fonts.google.com/icons</a

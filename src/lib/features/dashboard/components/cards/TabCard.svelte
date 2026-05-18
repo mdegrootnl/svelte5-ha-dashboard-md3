@@ -214,7 +214,7 @@
                         class="ml-1 p-0.5 rounded-full hover:bg-m3-on-surface/10 text-m3-on-surface-variant/50 hover:text-m3-on-surface-variant"
                         onclick={(e) => deleteTab(i, e)}
                         onkeydown={(e) => e.key === "Enter" && deleteTab(i, e)}
-                        title="Delete Tab"
+                        title={themeStore.t("dashboard.deleteTab")}
                     >
                         <IconClose class="size-3" />
                     </div>
@@ -227,7 +227,7 @@
                         onclick={openRenameDialog}
                         onkeydown={(e) =>
                             e.key === "Enter" && openRenameDialog(e)}
-                        title="Rename Tab"
+                        title={themeStore.t("dialog.renameTab")}
                     >
                         <IconEdit class="size-3" />
                     </div>
@@ -240,7 +240,7 @@
                 class="touch-target-compact flex items-center justify-center size-8 bg-m3-surface-container-highest/50 border border-transparent text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface transition-colors"
                 style:border-radius="var(--radius-m3-tab-pill)"
                 onclick={addTab}
-                title="Add Tab"
+                title={themeStore.t("dashboard.addTab")}
             >
                 <IconAdd class="size-5" />
             </button>
@@ -326,7 +326,7 @@
                                                     gridId,
                                                 );
                                         }}
-                                        title="Edit Content"
+                                        title={themeStore.t("dashboard.editContent")}
                                     >
                                         <IconEdit class="size-4" />
                                     </button>
@@ -346,10 +346,10 @@
                     <button
                         class="flex items-center gap-2 px-4 py-2 bg-m3-primary-container text-m3-on-primary-container rounded-m3-card shadow-lg hover:brightness-110 transition-all font-medium"
                         onclick={handleAddCard}
-                        title="Add Card"
+                        title={themeStore.t("dashboard.addCard")}
                     >
                         <IconAdd class="size-4" />
-                        <span class="hidden md:inline">Add</span>
+                        <span class="hidden md:inline">{themeStore.t("common.add")}</span>
                     </button>
 
                     <!-- Grid Settings Button -->
@@ -359,7 +359,7 @@
                             e.stopPropagation();
                             isGridConfigOpen = true;
                         }}
-                        title="Grid Settings"
+                        title={themeStore.t("dashboard.gridSettings")}
                     >
                         <IconGridView class="size-4" />
                     </button>
@@ -370,7 +370,7 @@
                     <button
                         class="flex items-center justify-center p-2 bg-m3-surface-container-high text-m3-on-surface rounded-m3-card shadow-lg hover:bg-m3-surface-container-highest transition-all"
                         onclick={openParentConfig}
-                        title="Card Settings"
+                        title={themeStore.t("dashboard.cardSettings")}
                     >
                         <IconSettings class="size-4" />
                     </button>
@@ -380,7 +380,7 @@
                         onclick={exitFocus}
                     >
                         <IconCheck class="size-4" />
-                        <span>Done</span>
+                        <span>{themeStore.t("common.done")}</span>
                     </button>
                 </div>
             {/if}
@@ -388,7 +388,7 @@
             <div
                 class="flex items-center justify-center h-full text-m3-on-surface-variant/50"
             >
-                No tabs configured
+                {themeStore.t("dashboard.noTabs")}
             </div>
         {/if}
     </div>
@@ -398,8 +398,8 @@
 <!-- Rename Dialog -->
 {#if isRenameDialogOpen && currentGrid}
     <TextInputDialog
-        title="Rename Tab"
-        label="Tab Name"
+        title={themeStore.t("dialog.renameTab")}
+        label={themeStore.t("dialog.tabName")}
         initialValue={currentGrid.name}
         onconfirm={handleRenameTab}
         oncancel={() => (isRenameDialogOpen = false)}

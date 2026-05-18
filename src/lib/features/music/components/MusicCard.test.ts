@@ -94,7 +94,7 @@ describe('MusicCard Component', () => {
     it('shows favorite icon and calls toggleFavorite on click', async () => {
         render(MusicCard, { props: { item: mockTrack, onPlay: mockOnPlay } });
 
-        const favoriteBtn = screen.getByRole('button', { name: /add favorite/i });
+        const favoriteBtn = screen.getByRole('button', { name: /favoriet toevoegen/i });
         await fireEvent.click(favoriteBtn);
         expect(musicLibraryStore.toggleFavorite).toHaveBeenCalledWith(mockTrack);
     });

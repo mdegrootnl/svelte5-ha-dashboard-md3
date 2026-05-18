@@ -122,8 +122,9 @@ describe('smart dashboard cards', () => {
         });
 
         expect(screen.getByText('Attention')).toBeInTheDocument();
-        expect(screen.getByText('1 item')).toBeInTheDocument();
+        expect(screen.getByText('1 on')).toBeInTheDocument();
         expect(screen.getByText('Table Lamp')).toBeInTheDocument();
+        expect(screen.getByText('On')).toBeInTheDocument();
     });
 
     it('renders empty summary collections with a neutral clear state', () => {

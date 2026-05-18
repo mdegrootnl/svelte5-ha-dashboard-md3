@@ -10,12 +10,13 @@
 
 <nav
     class="relative z-50 flex flex-col items-center py-8 w-20 bg-m3-surface/82 border-r border-m3-outline-variant h-full gap-4 backdrop-blur-md"
-    aria-label="Primary navigation"
+    aria-label={themeStore.t("nav.primary")}
 >
     {#each themeStore.navigationItems as link (link.id)}
         {@const isActive =
             currentPath === link.href ||
             (link.href !== "/" && currentPath.startsWith(link.href))}
+        {@const label = themeStore.navigationLabel(link)}
 
         <a
             href={link.href}
@@ -39,11 +40,11 @@
             </div>
 
             <span
-                class="text-m3-label-medium font-medium transition-colors {isActive
+                class="max-w-[4.5rem] truncate text-center text-m3-label-medium font-medium transition-colors {isActive
                     ? 'text-m3-on-surface'
                     : 'text-m3-on-surface-variant'}"
             >
-                {link.label}
+                {label}
             </span>
         </a>
     {/each}
@@ -53,7 +54,7 @@
         <button
             onclick={() => themeStore.toggleDark()}
             class="flex items-center justify-center w-12 h-12 rounded-full transition-colors hover:bg-m3-surface-container-highest text-m3-on-surface-variant hover:text-m3-primary"
-            aria-label="Toggle Dark Mode"
+            aria-label={themeStore.t("nav.darkMode")}
         >
             {#if themeStore.isDark}
                 <LightMode class="w-6 h-6" />

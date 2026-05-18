@@ -180,15 +180,15 @@ describe('TabCard Component', () => {
 
         render(TabCardTestWrapper, { props: { config: mockConfig } });
 
-        expect(screen.getByTitle('Add Tab')).toBeInTheDocument();
-        expect(screen.getAllByTitle('Delete Tab').length).toBe(2);
+        expect(screen.getByTitle('Nieuwe tab toevoegen')).toBeInTheDocument();
+        expect(screen.getAllByTitle('Tab verwijderen').length).toBe(2);
     });
 
     it('adds a new tab when clicked', async () => {
         vi.mocked(dashboardEditorStore).isEditing = true;
         render(TabCardTestWrapper, { props: { config: mockConfig } });
 
-        const addBtn = screen.getByTitle('Add Tab');
+        const addBtn = screen.getByTitle('Nieuwe tab toevoegen');
         await fireEvent.click(addBtn);
 
         await waitFor(() => {
@@ -200,7 +200,7 @@ describe('TabCard Component', () => {
         vi.mocked(dashboardEditorStore).isEditing = true;
         render(TabCardTestWrapper, { props: { config: mockConfig } });
 
-        const deleteButtons = screen.getAllByTitle('Delete Tab');
+        const deleteButtons = screen.getAllByTitle('Tab verwijderen');
         await fireEvent.click(deleteButtons[1]); // Delete Tab 2
 
         await waitFor(() => {
@@ -213,27 +213,27 @@ describe('TabCard Component', () => {
 
         render(TabCardTestWrapper, { props: { config: mockConfig } });
 
-        expect(screen.getByTitle('Add Card')).toBeInTheDocument();
-        expect(screen.getByTitle('Grid Settings')).toBeInTheDocument();
-        expect(screen.getByTitle('Card Settings')).toBeInTheDocument();
-        expect(screen.getByText('Done')).toBeInTheDocument();
+        expect(screen.getByTitle('Kaart toevoegen')).toBeInTheDocument();
+        expect(screen.getByTitle('Rasterinstellingen')).toBeInTheDocument();
+        expect(screen.getByTitle('Kaartinstellingen')).toBeInTheDocument();
+        expect(screen.getByText('Klaar')).toBeInTheDocument();
     });
 
     it('opens rename dialog when rename tab icon is clicked', async () => {
         vi.mocked(dashboardEditorStore).focusedGridId = 'grid-1';
         render(TabCardTestWrapper, { props: { config: mockConfig } });
 
-        const renameBtn = screen.getByTitle('Rename Tab');
+        const renameBtn = screen.getByTitle('Tab hernoemen');
         await fireEvent.click(renameBtn);
 
-        expect(screen.getByText('Rename Tab')).toBeInTheDocument();
+        expect(screen.getByText('Tab hernoemen')).toBeInTheDocument();
     });
 
     it('calls exitGrid when Done is clicked', async () => {
         vi.mocked(dashboardEditorStore).focusedGridId = 'grid-1';
         render(TabCardTestWrapper, { props: { config: mockConfig } });
 
-        const doneBtn = screen.getByText('Done').closest('button');
+        const doneBtn = screen.getByText('Klaar').closest('button');
         await fireEvent.click(doneBtn!);
         expect(dashboardEditorStore.exitGrid).toHaveBeenCalled();
     });

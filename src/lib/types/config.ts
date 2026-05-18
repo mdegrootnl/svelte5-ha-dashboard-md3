@@ -1,5 +1,6 @@
 import type { DashboardCardSurfaceStyle, RoomDashboardConfig, DashboardPage } from './dashboard';
 import type { MAMediaItem } from './musicAssistant';
+import type { AppLanguage } from '$lib/i18n';
 
 export interface NavigationItem {
     id: string;
@@ -11,6 +12,7 @@ export interface NavigationItem {
 export interface ThemeConfig {
     sourceColor: string;
     isDark: boolean;
+    language: AppLanguage;
     navigationStyle: 'standard' | 'modern';
     navigationItems: NavigationItem[];
     cardRadius: number;
@@ -43,19 +45,20 @@ export const DEFAULT_CONFIG: AppConfig = {
     theme: {
         sourceColor: '#6750A4',
         isDark: false,
+        language: 'nl',
         navigationStyle: 'standard',
         cardRadius: 12,
         tabPillRadius: 32,
         cardSurfaceStyle: 'md3',
         navigationItems: [
-            { id: 'home', label: 'Home', icon: 'home', href: '/' },
-            { id: 'dashboard', label: 'Home Dashboard', icon: 'home', href: '/dashboard' },
-            { id: 'music', label: 'Music', icon: 'music_note', href: '/music' },
-            { id: 'weather', label: 'Weather', icon: 'partly_cloudy_day', href: '/weather' },
-            { id: 'library', label: 'Library', icon: 'widgets', href: '/library' },
-            { id: 'theme', label: 'Theme', icon: 'palette', href: '/theme' },
-            { id: 'calendar', label: 'Calendar', icon: 'calendar_month', href: '/calendar' },
-            { id: 'settings', label: 'Settings', icon: 'settings', href: '/settings' }
+            { id: 'home', label: 'Start', icon: 'home', href: '/' },
+            { id: 'dashboard', label: 'Woningdashboard', icon: 'home', href: '/dashboard' },
+            { id: 'music', label: 'Muziek', icon: 'music_note', href: '/music' },
+            { id: 'weather', label: 'Weer', icon: 'partly_cloudy_day', href: '/weather' },
+            { id: 'library', label: 'Bibliotheek', icon: 'widgets', href: '/library' },
+            { id: 'theme', label: 'Thema', icon: 'palette', href: '/theme' },
+            { id: 'calendar', label: 'Agenda', icon: 'calendar_month', href: '/calendar' },
+            { id: 'settings', label: 'Instellingen', icon: 'settings', href: '/settings' }
         ]
     },
     dashboards: {},

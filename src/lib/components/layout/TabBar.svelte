@@ -3,6 +3,7 @@
     import IconClose from "~icons/material-symbols/close";
     import IconEdit from "~icons/material-symbols/edit";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
 
     interface TabItem {
         id: string;
@@ -95,7 +96,7 @@
                                 });
                             }
                         }}
-                        title="Click to rename">{tab.name}</span
+                        title={themeStore.t("dialog.rename")}>{tab.name}</span
                     >
                 {:else}
                     <span
@@ -110,12 +111,12 @@
                         role="button"
                         tabindex="0"
                         class="touch-hitbox size-5 rounded-full hover:bg-black/10 flex items-center justify-center cursor-pointer"
-                        aria-label="Change tab icon"
+                        aria-label={themeStore.t("iconPicker.title")}
                         onclick={(e) => handleEditIcon(tab.id, e)}
                         onkeydown={(e) =>
                             e.key === "Enter" &&
                             handleEditIcon(tab.id, e as unknown as MouseEvent)}
-                        title="Change Icon"
+                        title={themeStore.t("navigationEditor.pickIcon")}
                     >
                         <IconEdit class="size-3" />
                     </div>
@@ -127,12 +128,12 @@
                         role="button"
                         tabindex="0"
                         class="touch-hitbox size-5 rounded-full hover:bg-black/10 flex items-center justify-center cursor-pointer"
-                        aria-label="Delete tab"
+                        aria-label={themeStore.t("dashboard.deleteTab")}
                         onclick={(e) => handleDelete(tab.id, e)}
                         onkeydown={(e) =>
                             e.key === "Enter" &&
                             handleDelete(tab.id, e as unknown as MouseEvent)}
-                        title="Delete Tab"
+                        title={themeStore.t("dashboard.deleteTab")}
                     >
                         <IconClose class="size-3" />
                     </div>
@@ -146,7 +147,7 @@
             class="flex items-center justify-center size-12 md:size-16 bg-m3-primary-container text-m3-on-primary-container hover:brightness-95 transition-colors shadow-sm shrink-0"
             style:border-radius="var(--radius-m3-tab-pill)"
             onclick={handleAdd}
-            title="Add Tab"
+            title={themeStore.t("dashboard.addTab")}
         >
             <IconAdd class="size-6 md:size-8" />
         </button>

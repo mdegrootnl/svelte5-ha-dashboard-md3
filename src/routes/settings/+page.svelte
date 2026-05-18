@@ -3,6 +3,7 @@
     import { haStore } from "$lib/stores/ha.svelte";
     import { maStore } from "$lib/features/music/stores/maStore.svelte";
     import { themeStore } from "$lib/stores/theme.svelte";
+    import { LANGUAGE_OPTIONS, type AppLanguage } from "$lib/i18n";
     import Button from "$lib/components/md3/Button.svelte";
     import TextField from "$lib/components/md3/TextField.svelte";
     import Card from "$lib/components/md3/Card.svelte";
@@ -21,6 +22,7 @@
     import MusicIcon from "~icons/material-symbols/music-note";
     import Palette from "~icons/material-symbols/palette";
     import LockClock from "~icons/material-symbols/lock-clock";
+    import Translate from "~icons/material-symbols/translate";
     import ImagePicker from "$lib/components/settings/ImagePicker.svelte";
     import Switch from "$lib/components/md3/Switch.svelte";
     import { lockScreenStore } from "$lib/features/lockscreen/stores/lockscreen.svelte";
@@ -86,7 +88,7 @@
 
     function validateHost(value: string): string | null {
         if (!value || value.trim() === "") {
-            return "Host is required";
+            return themeStore.t("settings.homeAssistant.hostRequired");
         }
         const trimmed = value.trim();
         // Allow URLs with protocol
@@ -95,24 +97,24 @@
         }
         // Validate as hostname or IP
         if (!HOSTNAME_REGEX.test(trimmed) && !IP_REGEX.test(trimmed)) {
-            return "Invalid hostname or IP address";
+            return themeStore.t("settings.homeAssistant.invalidHost");
         }
         if (trimmed.length > 253) {
-            return "Hostname too long";
+            return themeStore.t("settings.homeAssistant.hostTooLong");
         }
         return null;
     }
 
     function validatePort(value: string): string | null {
         if (!value || value.trim() === "") {
-            return "Port is required";
+            return themeStore.t("settings.homeAssistant.portRequired");
         }
         const portNum = parseInt(value, 10);
         if (isNaN(portNum) || !Number.isInteger(portNum)) {
-            return "Port must be a number";
+            return themeStore.t("settings.homeAssistant.portNumber");
         }
         if (portNum < 1 || portNum > 65535) {
-            return "Port must be between 1 and 65535";
+            return themeStore.t("settings.homeAssistant.portRange");
         }
         return null;
     }
@@ -137,7 +139,7 @@
         } catch (e) {
             error =
                 haStore.connectionError ||
-                "Failed to connect. Check URL and try again.";
+                themeStore.t("settings.homeAssistant.connectFailed");
         } finally {
             loading = false;
         }
@@ -166,8 +168,10 @@
 
     function formatProviderStatus(provider: "unsplash" | "pexels") {
         const status = imageProviderStatus[provider];
-        if (!status.configured) return "Not configured";
-        return status.source === "runtime" ? "Configured in Settings" : "Configured by environment";
+        if (!status.configured) return themeStore.t("common.notConfigured");
+        return status.source === "runtime"
+            ? themeStore.t("settings.providers.configuredSettings")
+            : themeStore.t("settings.providers.configuredEnvironment");
     }
 
     async function saveImageProviderKeys() {
@@ -176,7 +180,7 @@
         if (pexelsApiKey.trim()) payload.pexelsApiKey = pexelsApiKey.trim();
 
         if (!Object.keys(payload).length) {
-            imageProviderMessage = "Enter a key before saving.";
+            imageProviderMessage = themeStore.t("settings.providers.enterKey");
             return;
         }
 
@@ -190,15 +194,15 @@
             });
             const data = await response.json().catch(() => ({}));
             if (!response.ok) {
-                imageProviderMessage = data.error || "Failed to save provider keys.";
+                imageProviderMessage = data.error || themeStore.t("settings.providers.saveFailed");
                 return;
             }
             imageProviderStatus = data.providers;
             unsplashAccessKey = "";
             pexelsApiKey = "";
-            imageProviderMessage = "Image provider keys saved.";
+            imageProviderMessage = themeStore.t("settings.providers.saved");
         } catch {
-            imageProviderMessage = "Image provider settings are unavailable.";
+            imageProviderMessage = themeStore.t("settings.providers.unavailable");
         } finally {
             imageProviderSaving = false;
         }
@@ -218,15 +222,15 @@
             });
             const data = await response.json().catch(() => ({}));
             if (!response.ok) {
-                imageProviderMessage = data.error || "Failed to clear provider keys.";
+                imageProviderMessage = data.error || themeStore.t("settings.providers.clearFailed");
                 return;
             }
             imageProviderStatus = data.providers;
             unsplashAccessKey = "";
             pexelsApiKey = "";
-            imageProviderMessage = "Runtime image provider keys cleared.";
+            imageProviderMessage = themeStore.t("settings.providers.cleared");
         } catch {
-            imageProviderMessage = "Image provider settings are unavailable.";
+            imageProviderMessage = themeStore.t("settings.providers.unavailable");
         } finally {
             imageProviderSaving = false;
         }
@@ -239,20 +243,88 @@
     );
 
     // Settings Tabs
-    const tabs = [
-        { id: "connections", name: "Connections", icon: "link" },
-        { id: "navigation", name: "Navigation", icon: "menu_open" },
-        { id: "dashboards", name: "Dashboards", icon: "dashboard" },
-        { id: "lockscreen", name: "Lockscreen", icon: "lock_clock" },
-    ];
-    let activeTabId = $state("connections");
+    const tabs = $derived([
+        { id: "general", name: themeStore.t("settings.tabs.general"), icon: "translate" },
+        { id: "connections", name: themeStore.t("settings.tabs.connections"), icon: "link" },
+        { id: "navigation", name: themeStore.t("settings.tabs.navigation"), icon: "menu_open" },
+        { id: "dashboards", name: themeStore.t("settings.tabs.dashboards"), icon: "dashboard" },
+        { id: "lockscreen", name: themeStore.t("settings.tabs.lockscreen"), icon: "lock_clock" },
+    ]);
+    let activeTabId = $state("general");
 </script>
 
-<PageShell title="Settings" description="Configure application integrations.">
+<PageShell title={themeStore.t("settings.title")} description={themeStore.t("settings.description")}>
     <!-- Tab Bar -->
     <div class="mb-6">
         <TabBar {tabs} {activeTabId} onselect={(id) => (activeTabId = id)} />
     </div>
+
+    <!-- General Tab -->
+    {#if activeTabId === "general"}
+        <section class="mb-6">
+            <Card variant="outlined" class="w-full">
+                <div class="p-6 flex flex-col gap-6">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-10 h-10 rounded-lg bg-m3-primary/10 flex items-center justify-center"
+                        >
+                            <Translate class="w-6 h-6 text-m3-primary" />
+                        </div>
+                        <div class="flex-1">
+                            <h2 class="text-m3-title-large text-m3-on-surface">
+                                {themeStore.t("settings.language.title")}
+                            </h2>
+                            <p
+                                class="text-m3-body-medium text-m3-on-surface-variant"
+                            >
+                                {themeStore.t("settings.language.description")}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        {#each LANGUAGE_OPTIONS as option}
+                            <label
+                                class="flex min-h-20 cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors hover:bg-m3-surface-container-low {themeStore.language === option.value
+                                    ? 'border-m3-primary bg-m3-primary-container/30'
+                                    : 'border-m3-outline-variant bg-m3-surface'}"
+                            >
+                                <Radio
+                                    value={option.value}
+                                    group={themeStore.language}
+                                    onchange={(value) =>
+                                        themeStore.setLanguage(value as AppLanguage)}
+                                />
+                                <span class="flex min-w-0 flex-1 flex-col">
+                                    <span
+                                        class="text-m3-body-large font-medium text-m3-on-surface"
+                                    >
+                                        {option.nativeLabel}
+                                    </span>
+                                    <span
+                                        class="text-m3-body-small text-m3-on-surface-variant"
+                                    >
+                                        {themeStore.t(`language.${option.value}`)}
+                                    </span>
+                                </span>
+                                {#if option.dashboardPrimary}
+                                    <span
+                                        class="rounded-full bg-m3-secondary-container px-2 py-1 text-m3-label-small text-m3-on-secondary-container"
+                                    >
+                                        {themeStore.t("language.primaryBadge")}
+                                    </span>
+                                {/if}
+                            </label>
+                        {/each}
+                    </div>
+
+                    <p class="text-m3-body-small text-m3-on-surface-variant">
+                        {themeStore.t("settings.language.helper")}
+                    </p>
+                </div>
+            </Card>
+        </section>
+    {/if}
 
     <!-- Navigation Tab -->
     {#if activeTabId === "navigation"}
@@ -267,12 +339,12 @@
                         </div>
                         <div class="flex-1">
                             <h2 class="text-m3-title-large text-m3-on-surface">
-                                Appearance
+                                {themeStore.t("settings.appearance.title")}
                             </h2>
                             <p
                                 class="text-m3-body-medium text-m3-on-surface-variant"
                             >
-                                Customize layout and visual style.
+                                {themeStore.t("settings.appearance.description")}
                             </p>
                         </div>
                     </div>
@@ -280,7 +352,7 @@
                     <!-- Navigation Style Selection -->
                     <div class="flex flex-col gap-3">
                         <span class="text-m3-label-large text-m3-on-surface"
-                            >Navigation Style</span
+                            >{themeStore.t("settings.navigation.style")}</span
                         >
 
                         <div class="flex flex-col sm:flex-row gap-8">
@@ -298,11 +370,11 @@
                                 <div class="flex flex-col">
                                     <span
                                         class="text-m3-body-large text-m3-on-surface group-hover:text-m3-primary transition-colors"
-                                        >Standard</span
+                                        >{themeStore.t("settings.navigation.standard")}</span
                                     >
                                     <span
                                         class="text-m3-body-small text-m3-on-surface-variant"
-                                        >Rail (Desktop) / Bottom (Mobile)</span
+                                        >{themeStore.t("settings.navigation.standardDescription")}</span
                                     >
                                 </div>
                             </label>
@@ -319,11 +391,11 @@
                                 <div class="flex flex-col">
                                     <span
                                         class="text-m3-body-large text-m3-on-surface group-hover:text-m3-primary transition-colors"
-                                        >Modern</span
+                                        >{themeStore.t("settings.navigation.modern")}</span
                                     >
                                     <span
                                         class="text-m3-body-small text-m3-on-surface-variant"
-                                        >Floating Bar (Desktop & Mobile)</span
+                                        >{themeStore.t("settings.navigation.modernDescription")}</span
                                     >
                                 </div>
                             </label>
@@ -352,12 +424,12 @@
                         </div>
                         <div class="flex-1">
                             <h2 class="text-m3-title-large text-m3-on-surface">
-                                Dashboards
+                                {themeStore.t("settings.dashboards.title")}
                             </h2>
                             <p
                                 class="text-m3-body-medium text-m3-on-surface-variant"
                             >
-                                Manage dashboard pages and custom routes.
+                                {themeStore.t("settings.dashboards.description")}
                             </p>
                         </div>
                     </div>
@@ -383,18 +455,18 @@
                         </div>
                         <div class="flex-1">
                             <h2 class="text-m3-title-large text-m3-on-surface">
-                                Lock Screen
+                                {themeStore.t("settings.lockscreen.title")}
                             </h2>
                             <p
                                 class="text-m3-body-medium text-m3-on-surface-variant"
                             >
-                                Configure idle timeout and background images.
+                                {themeStore.t("settings.lockscreen.description")}
                             </p>
                         </div>
                         <!-- Enable/Disable Switch -->
                         <div class="flex items-center gap-2">
                             <span class="text-m3-label-large text-m3-on-surface"
-                                >Enabled</span
+                                >{themeStore.t("common.enabled")}</span
                             >
                             <Switch
                                 checked={lockScreenStore.enabled}
@@ -412,7 +484,7 @@
                             <div class="flex justify-between items-center">
                                 <span
                                     class="text-m3-label-large text-m3-on-surface"
-                                    >Idle Timeout</span
+                                    >{themeStore.t("settings.lockscreen.idleTimeout")}</span
                                 >
                                 <span
                                     class="text-m3-body-medium text-m3-on-surface-variant"
@@ -438,13 +510,13 @@
                             <p
                                 class="text-m3-body-small text-m3-on-surface-variant"
                             >
-                                Time before the screen locks automatically.
+                                {themeStore.t("settings.lockscreen.timeoutHelp")}
                             </p>
                         </div>
 
                         <!-- Landscape Image -->
                         <ImagePicker
-                            label="Landscape Background (Desktop)"
+                            label={themeStore.t("settings.lockscreen.landscape")}
                             orientation="landscape"
                             bind:value={lockScreenStore.backgroundLandscape}
                             onchange={() =>
@@ -456,7 +528,7 @@
 
                         <!-- Portrait Image -->
                         <ImagePicker
-                            label="Portrait Background (Mobile)"
+                            label={themeStore.t("settings.lockscreen.portrait")}
                             orientation="portrait"
                             bind:value={lockScreenStore.backgroundPortrait}
                             onchange={() =>
@@ -487,13 +559,12 @@
                                 <h2
                                     class="text-m3-title-large text-m3-on-surface"
                                 >
-                                    Home Assistant
+                                    {themeStore.t("settings.homeAssistant.title")}
                                 </h2>
                                 <p
                                     class="text-m3-body-medium text-m3-on-surface-variant"
                                 >
-                                    Connect to your local instance to control
-                                    devices.
+                                    {themeStore.t("settings.homeAssistant.description")}
                                 </p>
                             </div>
 
@@ -504,7 +575,7 @@
                                 >
                                     <CheckCircle class="w-5 h-5" />
                                     <span class="text-sm font-medium"
-                                        >Connected</span
+                                        >{themeStore.t("common.connected")}</span
                                     >
                                 </div>
                             {:else if haStore.connectionState === "connecting"}
@@ -513,7 +584,7 @@
                                 >
                                     <Sync class="w-5 h-5 animate-spin" />
                                     <span class="text-sm font-medium"
-                                        >Connecting...</span
+                                        >{themeStore.t("common.connecting")}</span
                                     >
                                 </div>
                             {:else if haStore.connectionState === "expired"}
@@ -522,7 +593,7 @@
                                 >
                                     <Error class="w-5 h-5" />
                                     <span class="text-sm font-medium"
-                                        >Connection Expired</span
+                                        >{themeStore.t("settings.homeAssistant.connectionExpired")}</span
                                     >
                                 </div>
                             {:else if haStore.connectionState === "error"}
@@ -531,7 +602,7 @@
                                 >
                                     <Error class="w-5 h-5" />
                                     <span class="text-sm font-medium"
-                                        >Connection Failed</span
+                                        >{themeStore.t("settings.homeAssistant.connectionFailed")}</span
                                     >
                                 </div>
                             {:else}
@@ -540,7 +611,7 @@
                                 >
                                     <LinkOff class="w-5 h-5" />
                                     <span class="text-sm font-medium"
-                                        >Disconnected</span
+                                        >{themeStore.t("common.disconnected")}</span
                                     >
                                 </div>
                             {/if}
@@ -559,8 +630,8 @@
                                         class="text-m3-body-medium text-red-500 font-medium"
                                     >
                                         {haStore.connectionState === "expired"
-                                            ? "Connection Expired"
-                                            : "Connection Failed"}
+                                            ? themeStore.t("settings.homeAssistant.connectionExpired")
+                                            : themeStore.t("settings.homeAssistant.connectionFailed")}
                                     </p>
                                     <p
                                         class="text-m3-body-small text-m3-on-surface-variant mt-1"
@@ -572,7 +643,7 @@
                                     variant="outlined"
                                     onclick={handleReconnect}
                                 >
-                                    Reconnect
+                                    {themeStore.t("common.reconnect")}
                                 </Button>
                             </div>
                         {/if}
@@ -581,14 +652,14 @@
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div class="md:col-span-2">
                                     <TextField
-                                        label="Host / IP Address"
-                                        placeholder="e.g. 192.168.1.50"
+                                        label={themeStore.t("settings.homeAssistant.host")}
+                                        placeholder={themeStore.t("settings.homeAssistant.hostPlaceholder")}
                                         bind:value={host}
                                     />
                                 </div>
                                 <div>
                                     <TextField
-                                        label="Port"
+                                        label={themeStore.t("settings.homeAssistant.port")}
                                         placeholder="8123"
                                         bind:value={port}
                                     />
@@ -608,7 +679,7 @@
                                     disabled={loading}
                                     icon={Link}
                                 >
-                                    {loading ? "Connecting..." : "Connect"}
+                                    {loading ? themeStore.t("common.connecting") : themeStore.t("common.connect")}
                                 </Button>
                             </div>
                         {:else if haStore.connectionState === "connected"}
@@ -617,7 +688,7 @@
                             >
                                 <span
                                     class="text-m3-label-medium text-m3-on-surface-variant"
-                                    >Connection Details</span
+                                    >{themeStore.t("settings.homeAssistant.connectionDetails")}</span
                                 >
                                 <div class="flex justify-between items-center">
                                     <span
@@ -632,7 +703,7 @@
                                     variant="outlined"
                                     onclick={handleDisconnect}
                                 >
-                                    Disconnect
+                                    {themeStore.t("common.disconnect")}
                                 </Button>
                             </div>
                         {/if}
@@ -654,13 +725,12 @@
                                 <h2
                                     class="text-m3-title-large text-m3-on-surface"
                                 >
-                                    Image Providers
+                                    {themeStore.t("settings.providers.title")}
                                 </h2>
                                 <p
                                     class="text-m3-body-medium text-m3-on-surface-variant"
                                 >
-                                    Store provider keys on this server without
-                                    editing production environment files.
+                                    {themeStore.t("settings.providers.description")}
                                 </p>
                             </div>
                         </div>
@@ -668,18 +738,18 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div class="flex flex-col gap-2">
                                 <TextField
-                                    label="Unsplash Access Key"
+                                    label={themeStore.t("settings.providers.unsplash")}
                                     type="password"
-                                    placeholder="Paste a new key"
+                                    placeholder={themeStore.t("settings.providers.pasteKey")}
                                     bind:value={unsplashAccessKey}
                                     supportingText={formatProviderStatus("unsplash")}
                                 />
                             </div>
                             <div class="flex flex-col gap-2">
                                 <TextField
-                                    label="Pexels API Key"
+                                    label={themeStore.t("settings.providers.pexels")}
                                     type="password"
-                                    placeholder="Paste a new key"
+                                    placeholder={themeStore.t("settings.providers.pasteKey")}
                                     bind:value={pexelsApiKey}
                                     supportingText={formatProviderStatus("pexels")}
                                 />
@@ -698,7 +768,7 @@
                                 onclick={clearRuntimeImageProviderKeys}
                                 disabled={imageProviderSaving}
                             >
-                                Clear Runtime Keys
+                                {themeStore.t("settings.providers.clearRuntime")}
                             </Button>
                             <Button
                                 variant="filled"
@@ -706,7 +776,7 @@
                                 disabled={imageProviderSaving}
                                 icon={Key}
                             >
-                                {imageProviderSaving ? "Saving..." : "Save Keys"}
+                                {imageProviderSaving ? themeStore.t("common.saving") : themeStore.t("settings.providers.saveKeys")}
                             </Button>
                         </div>
                     </div>
@@ -727,13 +797,12 @@
                                 <h2
                                     class="text-m3-title-large text-m3-on-surface"
                                 >
-                                    Music Assistant
+                                    {themeStore.t("settings.musicAssistant.title")}
                                 </h2>
                                 <p
                                     class="text-m3-body-medium text-m3-on-surface-variant"
                                 >
-                                    Stream from Spotify, TuneIn, and local
-                                    files.
+                                    {themeStore.t("settings.musicAssistant.description")}
                                 </p>
                             </div>
 
@@ -744,7 +813,7 @@
                                 >
                                     <CheckCircle class="w-5 h-5" />
                                     <span class="text-sm font-medium"
-                                        >Connected</span
+                                        >{themeStore.t("common.connected")}</span
                                     >
                                 </div>
                             {:else if maStore.integrationStatus === "checking"}
@@ -753,7 +822,7 @@
                                 >
                                     <Sync class="w-5 h-5 animate-spin" />
                                     <span class="text-sm font-medium"
-                                        >Checking...</span
+                                        >{themeStore.t("common.checking")}</span
                                     >
                                 </div>
                             {:else if maStore.integrationStatus === "not_installed"}
@@ -762,7 +831,7 @@
                                 >
                                     <Warning class="w-5 h-5" />
                                     <span class="text-sm font-medium"
-                                        >Not Installed</span
+                                        >{themeStore.t("common.notInstalled")}</span
                                     >
                                 </div>
                             {:else}
@@ -771,7 +840,7 @@
                                 >
                                     <LinkOff class="w-5 h-5" />
                                     <span class="text-sm font-medium"
-                                        >Unavailable</span
+                                        >{themeStore.t("common.unavailable")}</span
                                     >
                                 </div>
                             {/if}
@@ -788,13 +857,12 @@
                                     <p
                                         class="text-m3-body-medium text-amber-600 dark:text-amber-400 font-medium"
                                     >
-                                        Music Assistant Addon Required
+                                        {themeStore.t("settings.musicAssistant.required")}
                                     </p>
                                     <p
                                         class="text-m3-body-small text-m3-on-surface-variant mt-1"
                                     >
-                                        Install the Music Assistant addon in
-                                        Home Assistant to stream music.
+                                        {themeStore.t("settings.musicAssistant.requiredDescription")}
                                     </p>
                                 </div>
                                 <a
@@ -803,7 +871,7 @@
                                     rel="noopener noreferrer"
                                     class="text-m3-primary hover:underline text-sm font-medium flex items-center gap-1"
                                 >
-                                    Install Guide
+                                    {themeStore.t("common.installGuide")}
                                     <OpenInNew class="w-4 h-4" />
                                 </a>
                             </div>
@@ -812,9 +880,7 @@
                                 <p
                                     class="text-m3-body-medium text-m3-on-surface-variant"
                                 >
-                                    Connected via Home Assistant. Providers and
-                                    players are configured in the Music
-                                    Assistant addon.
+                                    {themeStore.t("settings.musicAssistant.connectedDescription")}
                                 </p>
                             </div>
                             <div class="flex justify-end">
@@ -822,15 +888,14 @@
                                     href="/music"
                                     class="inline-flex items-center justify-center h-10 px-6 rounded-full text-m3-label-large font-medium bg-m3-primary text-m3-on-primary hover:bg-m3-primary/92 transition-colors"
                                 >
-                                    Open Music
+                                    {themeStore.t("settings.musicAssistant.openMusic")}
                                 </a>
                             </div>
                         {:else if haStore.connectionState !== "connected"}
                             <p
                                 class="text-m3-body-medium text-m3-on-surface-variant"
                             >
-                                Connect to Home Assistant first to enable Music
-                                Assistant.
+                                {themeStore.t("settings.homeAssistant.connectFirst")}
                             </p>
                         {/if}
                     </div>

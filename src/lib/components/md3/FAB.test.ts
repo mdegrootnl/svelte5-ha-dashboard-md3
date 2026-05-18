@@ -27,7 +27,7 @@ describe('FAB Component', () => {
     it('renders different sizes', () => {
         // @ts-ignore
         const { container, rerender } = render(FAB, { props: { icon: mockIcon, size: 'small' } });
-        expect(container.firstChild).toHaveClass('w-10');
+        expect(container.firstChild).toHaveClass('w-12');
 
         // @ts-ignore
         rerender({ icon: mockIcon, size: 'large' });

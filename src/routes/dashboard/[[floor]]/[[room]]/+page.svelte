@@ -68,17 +68,17 @@
     let isGenerationSheetOpen = $state(false);
     let generationCleanGenerated = $state(false);
 
-    const viewportProfileOptions: Array<{
+    let viewportProfileOptions = $derived<Array<{
         value: ViewportProfile | "auto";
         label: string;
-    }> = [
-        { value: "auto", label: "Auto" },
-        { value: "phonePortrait", label: "Phone P" },
-        { value: "phoneLandscape", label: "Phone L" },
-        { value: "tabletPortrait", label: "Tablet P" },
-        { value: "tabletLandscape", label: "Tablet L" },
-        { value: "desktopEdit", label: "Desktop" },
-    ];
+    }>>([
+        { value: "auto", label: themeStore.t("dashboard.profile.auto") },
+        { value: "phonePortrait", label: themeStore.t("dashboard.profile.phonePortrait") },
+        { value: "phoneLandscape", label: themeStore.t("dashboard.profile.phoneLandscape") },
+        { value: "tabletPortrait", label: themeStore.t("dashboard.profile.tabletPortrait") },
+        { value: "tabletLandscape", label: themeStore.t("dashboard.profile.tabletLandscape") },
+        { value: "desktopEdit", label: themeStore.t("dashboard.profile.desktop") },
+    ]);
 
     // Responsive viewport profile detection
     function updateViewportProfile() {
@@ -194,7 +194,7 @@
         } else {
             // Room/Floor dashboards still need auto-creation if they don't exist
             // Custom pages are handled in DashboardStore.addPage
-            const config = createDefaultGridConfig("Main");
+            const config = createDefaultGridConfig(themeStore.t("common.main"));
             const newConfig: RoomDashboardConfig = {
                 ...config,
                 id: configId,
@@ -253,7 +253,7 @@
         routeArea?.name ??
             (room
                 ? formatRouteLabel(room)
-                : routeFloor?.name ?? (floor ? formatRouteLabel(floor) : roomConfig?.name ?? "Home Dashboard")),
+                : routeFloor?.name ?? (floor ? formatRouteLabel(floor) : roomConfig?.name ?? themeStore.t("dashboard.title"))),
     );
     let pageIcon = $derived(
         normalizeHeaderIcon(
@@ -424,7 +424,7 @@
     }
 
     function onTabAdd() {
-        dashboardStore.addTab("New Tab");
+        dashboardStore.addTab(themeStore.t("dashboard.newTab"));
     }
 
     function onTabDelete(id: string) {
@@ -471,7 +471,7 @@
 />
 
 <svelte:head>
-    <title>Home Dashboard - Home Assistant</title>
+    <title>{themeStore.t("dashboard.title")} - Home Assistant</title>
 </svelte:head>
 
 <DashboardBackgroundLayer
@@ -481,7 +481,7 @@
 >
 <PageShell
     title={pageTitle}
-    description={haStore.connected ? undefined : "Configure connection in Settings"}
+    description={haStore.connected ? undefined : themeStore.t("dashboard.disconnectedDescription")}
     maxWidth="6xl"
     backgroundActive={activeViewHasBackground}
 >
@@ -506,24 +506,24 @@
                 <button
                     onclick={() => openGenerationSheet(false)}
                     class="touch-target inline-flex items-center justify-center px-4 gap-2 rounded-full bg-m3-secondary-container text-m3-on-secondary-container text-m3-label-large font-medium hover:brightness-95 transition-colors"
-                    title="Generate dashboard draft"
+                    title={themeStore.t("dashboard.generateTitle")}
                 >
                     <IconRefresh class="size-5" />
-                    <span class="hidden md:inline">Generate</span>
+                    <span class="hidden md:inline">{themeStore.t("dashboard.generate")}</span>
                 </button>
 
                 <button
                     onclick={openCleanGenerationSheet}
                     class="touch-target inline-flex items-center justify-center px-4 gap-2 rounded-full bg-m3-error-container text-m3-on-error-container text-m3-label-large font-medium hover:brightness-95 transition-colors"
-                    title="Clean generated cards and regenerate a preview"
+                    title={themeStore.t("dashboard.cleanTitle")}
                 >
                     <IconDelete class="size-5" />
-                    <span class="hidden md:inline">Clean</span>
+                    <span class="hidden md:inline">{themeStore.t("common.clean")}</span>
                 </button>
 
                 <div
                     class="flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-m3-surface-container-high p-1"
-                    aria-label="Preview viewport profile"
+                    aria-label={themeStore.t("dashboard.previewProfile")}
                 >
                     {#each viewportProfileOptions as option}
                         <button
@@ -536,7 +536,7 @@
                                     ? "bg-m3-primary text-m3-on-primary"
                                     : "text-m3-on-surface-variant hover:bg-m3-surface-container-highest"
                             }`}
-                            title={`Preview ${option.label} layout`}
+                            title={themeStore.t("dashboard.previewLayout", { label: option.label })}
                         >
                             {option.label}
                         </button>
@@ -546,10 +546,10 @@
                 <button
                     onclick={openCardLibrary}
                     class="touch-target inline-flex items-center justify-center px-4 gap-2 rounded-full bg-m3-primary text-m3-on-primary text-m3-label-large font-medium hover:brightness-95 transition-colors shadow-m3-elevation-1"
-                    title="Add new card"
+                    title={themeStore.t("dashboard.addCard")}
                 >
                     <IconAdd class="size-5" />
-                    <span class="hidden md:inline">Add</span>
+                    <span class="hidden md:inline">{themeStore.t("common.add")}</span>
                 </button>
                 <div class="w-px h-6 bg-m3-outline-variant mx-1"></div>
 
@@ -564,14 +564,14 @@
                                     : "bg-m3-surface-container-high text-m3-on-surface"
                             }`}
                             title={selectedItemIsPinned
-                                ? "Unpin selected generated card"
-                                : "Pin selected generated card"}
+                                ? themeStore.t("dashboard.unpinSelected")
+                                : themeStore.t("dashboard.pinSelected")}
                         >
                             <IconPushPin class="size-5" />
                             <span class="hidden md:inline"
                                 >{selectedItemIsPinned
-                                    ? "Unpin"
-                                    : "Pin"}</span
+                                    ? themeStore.t("dashboard.unpin")
+                                    : themeStore.t("dashboard.pin")}</span
                             >
                         </button>
                     {/if}
@@ -579,7 +579,7 @@
                     <button
                         onclick={deleteSelected}
                         class="touch-target inline-flex items-center justify-center px-4 gap-2 rounded-full bg-m3-error-container text-m3-on-error-container text-m3-label-large font-medium hover:brightness-95 transition-colors"
-                        title="Delete selected card"
+                        title={themeStore.t("dashboard.deleteSelected")}
                     >
                         <IconDelete class="size-5" />
                     </button>
@@ -588,10 +588,10 @@
                 <button
                     onclick={() => (isGridConfigOpen = true)}
                     class="touch-target inline-flex items-center justify-center px-4 gap-2 rounded-full bg-m3-surface-container-high text-m3-on-surface text-m3-label-large font-medium hover:bg-m3-surface-container-highest transition-colors"
-                    title="Grid settings"
+                    title={themeStore.t("dashboard.gridSettings")}
                 >
                     <IconGridView class="size-5" />
-                    <span class="hidden md:inline">Grid</span>
+                    <span class="hidden md:inline">{themeStore.t("dashboard.grid")}</span>
                 </button>
 
                 {#if activeTabCanPin}
@@ -603,12 +603,12 @@
                                 : "bg-m3-surface-container-high text-m3-on-surface"
                         }`}
                         title={activeTabIsPinned
-                            ? "Unpin current generated tab"
-                            : "Pin current generated tab"}
+                            ? themeStore.t("dashboard.unpinTab")
+                            : themeStore.t("dashboard.pinTab")}
                     >
                         <IconPushPin class="size-5" />
                         <span class="hidden md:inline"
-                            >{activeTabIsPinned ? "Unpin Tab" : "Pin Tab"}</span
+                            >{activeTabIsPinned ? themeStore.t("dashboard.unpinTabShort") : themeStore.t("dashboard.pinTabShort")}</span
                         >
                     </button>
                 {/if}
@@ -617,10 +617,10 @@
                     <button
                         onclick={onTabAdd}
                         class="touch-target inline-flex items-center justify-center px-4 gap-2 rounded-full bg-m3-tertiary-container text-m3-on-tertiary-container text-m3-label-large font-medium hover:brightness-95 transition-colors"
-                        title="Add new tab"
+                        title={themeStore.t("dashboard.addTab")}
                     >
                         <IconTab class="size-5" />
-                        <span class="hidden md:inline">Add Tabs</span>
+                        <span class="hidden md:inline">{themeStore.t("dashboard.addTabs")}</span>
                     </button>
 
                     <div class="w-px h-6 bg-m3-outline-variant mx-1"></div>
@@ -629,19 +629,19 @@
                 <button
                     onclick={toggleEditMode}
                     class="touch-target inline-flex items-center justify-center px-4 gap-2 rounded-full bg-m3-primary text-m3-on-primary text-m3-label-large font-medium hover:brightness-95 transition-colors"
-                    title="Save and exit edit mode"
+                    title={themeStore.t("dashboard.saveExit")}
                 >
                     <IconCheck class="size-5" />
-                    <span class="hidden md:inline">Done</span>
+                    <span class="hidden md:inline">{themeStore.t("common.done")}</span>
                 </button>
             {:else}
                 <button
                     onclick={toggleEditMode}
                     class="touch-target inline-flex items-center justify-center px-4 gap-2 rounded-full bg-m3-secondary-container text-m3-on-secondary-container text-m3-label-large font-medium hover:brightness-95 transition-colors"
-                    title="Edit dashboard layout"
+                    title={themeStore.t("dashboard.editLayout")}
                 >
                     <IconEdit class="size-5" />
-                    <span class="hidden md:inline">Edit</span>
+                    <span class="hidden md:inline">{themeStore.t("common.edit")}</span>
                 </button>
             {/if}
         {:else}
@@ -649,7 +649,7 @@
                 href="/settings"
                 class="touch-target inline-flex items-center justify-center px-6 rounded-full bg-m3-primary text-m3-on-primary text-m3-label-large font-medium hover:bg-m3-primary/92 transition-colors"
             >
-                Connect
+                {themeStore.t("common.connect")}
             </a>
         {/if}
     {/snippet}
@@ -677,8 +677,7 @@
                     class="px-4 py-2 bg-m3-primary-container text-m3-on-primary-container rounded-full text-m3-label-medium inline-flex items-center gap-2 self-start"
                 >
                     <IconEdit class="size-4" />
-                    Edit Mode — Click cards to select, drag to move, use handles
-                    to resize
+                    {themeStore.t("dashboard.editModeHint")}
                 </div>
                 {#if activeTabCanPin}
                     <GenerationStateBadge
@@ -694,13 +693,12 @@
                     class="rounded-m3-card border border-dashed border-m3-outline-variant bg-m3-surface-container-low p-6 text-center"
                 >
                     <p class="text-m3-title-medium text-m3-on-surface">
-                        This dashboard is empty.
+                        {themeStore.t("dashboard.emptyTitle")}
                     </p>
                     <p
                         class="mt-1 text-m3-body-medium text-m3-on-surface-variant"
                     >
-                        Generate a draft from Home Assistant inventory, preview
-                        it, then apply only when it looks useful.
+                        {themeStore.t("dashboard.emptyDescription")}
                     </p>
                     <button
                         type="button"
@@ -708,7 +706,7 @@
                         onclick={() => openGenerationSheet(false)}
                     >
                         <IconRefresh class="size-5" />
-                        Generate Draft
+                        {themeStore.t("dashboard.generateDraft")}
                     </button>
                 </div>
             {/if}
@@ -786,7 +784,7 @@
                                                     gridId,
                                                 );
                                         }}
-                                        title="Edit Content"
+                                        title={themeStore.t("dashboard.editContent")}
                                     >
                                         <IconEdit class="size-4" />
                                     </button>
@@ -803,7 +801,7 @@
                 class="bg-m3-surface-container-high rounded-m3-lg p-8 text-center"
             >
                 <p class="text-m3-body-large text-m3-on-surface-variant">
-                    Initialising your dashboard...
+                    {themeStore.t("dashboard.initialising")}
                 </p>
             </div>
         </section>
@@ -813,13 +811,13 @@
                 class="bg-m3-surface-container-high rounded-m3-lg p-6 text-center"
             >
                 <p class="text-m3-body-large text-m3-on-surface-variant mb-4">
-                    Connect to Home Assistant to auto-generate your dashboard.
+                    {themeStore.t("dashboard.connectPrompt")}
                 </p>
                 <a
                     href="/settings"
                     class="touch-target inline-flex items-center justify-center px-6 rounded-full bg-m3-secondary-container text-m3-on-secondary-container text-m3-label-large font-medium hover:bg-m3-secondary-container/92 transition-colors"
                 >
-                    Go to Settings
+                    {themeStore.t("dashboard.goSettings")}
                 </a>
             </div>
         </section>
@@ -860,10 +858,10 @@
 
 {#if isRenameDialogOpen}
     <TextInputDialog
-        title="Rename Tab"
-        label="Tab Name"
+        title={themeStore.t("dialog.renameTab")}
+        label={themeStore.t("dialog.tabName")}
         initialValue={tabToRenameName}
-        placeholder="Enter tab name..."
+        placeholder={themeStore.t("dialog.tabNamePlaceholder")}
         onconfirm={handleRenameConfirm}
         oncancel={onRenameCancel}
     />

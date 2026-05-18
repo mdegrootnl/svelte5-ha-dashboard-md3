@@ -2,6 +2,7 @@
     import { onMount } from "svelte";
     import IconClose from "~icons/material-symbols/close";
     import { portal } from "$lib/actions/portal";
+    import { themeStore } from "$lib/stores/theme.svelte";
 
     interface Props {
         title?: string;
@@ -13,10 +14,10 @@
     }
 
     let {
-        title = "Rename",
-        label = "Name",
+        title = themeStore.t("dialog.rename"),
+        label = themeStore.t("dialog.name"),
         initialValue = "",
-        placeholder = "Enter name...",
+        placeholder = themeStore.t("dialog.namePlaceholder"),
         onconfirm,
         oncancel,
     }: Props = $props();
@@ -65,7 +66,7 @@
             <button
                 onclick={oncancel}
                 class="touch-target rounded-full text-m3-on-surface-variant hover:text-m3-on-surface transition-colors"
-                aria-label="Close"
+                aria-label={themeStore.t("common.close")}
             >
                 <IconClose class="size-6" />
             </button>
@@ -95,14 +96,14 @@
                 onclick={oncancel}
                 class="touch-target px-6 rounded-full text-m3-label-large text-m3-primary hover:bg-m3-primary/10 transition-colors"
             >
-                Cancel
+                {themeStore.t("common.cancel")}
             </button>
             <button
                 onclick={handleConfirm}
                 disabled={!inputValue.trim()}
                 class="touch-target px-6 rounded-full text-m3-label-large bg-m3-primary text-m3-on-primary hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-                Confirm
+                {themeStore.t("dialog.confirm")}
             </button>
         </div>
     </div>

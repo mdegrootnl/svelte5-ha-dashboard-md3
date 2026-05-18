@@ -13,6 +13,7 @@
 <script lang="ts">
     import AuthenticatedImage from "$lib/components/common/AuthenticatedImage.svelte";
     import { maStore } from "../stores/maStore.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
 
     import Close from "~icons/material-symbols/close";
     import PlayArrow from "~icons/material-symbols/play-arrow";
@@ -112,7 +113,7 @@
     class="fixed inset-0 z-50 flex flex-col bg-black"
     role="dialog"
     aria-modal="true"
-    aria-label="Now Playing"
+    aria-label={themeStore.t("music.nowPlaying")}
 >
     <!-- Background with blurred artwork -->
     {#if artwork}
@@ -139,13 +140,13 @@
             <button
                 onclick={onClose}
                 class="touch-target-compact w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
-                aria-label="Close"
+                aria-label={themeStore.t("common.close")}
             >
                 <Close class="w-6 h-6" />
             </button>
 
             <span class="text-sm uppercase tracking-wider text-white/60">
-                Now Playing
+                {themeStore.t("music.nowPlaying")}
             </span>
 
             <!-- Placeholder for symmetry -->
@@ -157,7 +158,7 @@
             {#if artwork}
                 <AuthenticatedImage
                     src={artwork}
-                    alt="Album Art"
+                    alt={themeStore.t("music.nowPlaying")}
                     class="max-w-full max-h-full aspect-square rounded-lg shadow-2xl object-cover"
                     style="max-height: min(70vh, 400px);"
                 />
@@ -173,10 +174,10 @@
         <!-- Track Info -->
         <div class="px-8 text-center">
             <h2 class="text-2xl font-bold truncate">
-                {nowPlaying?.title || "No Track"}
+                {nowPlaying?.title || themeStore.t("music.noTrack")}
             </h2>
             <p class="text-lg text-white/70 truncate mt-1">
-                {nowPlaying?.artist || "Unknown Artist"}
+                {nowPlaying?.artist || themeStore.t("common.unknownArtist")}
             </p>
             {#if nowPlaying?.album}
                 <p class="text-sm text-white/50 truncate mt-1">
@@ -191,7 +192,7 @@
                 type="button"
                 class="touch-pan-y flex h-12 w-full cursor-pointer items-center rounded-full group"
                 onclick={handleSeek}
-                aria-label="Seek"
+                aria-label={themeStore.t("music.seek")}
             >
                 <div
                     class="h-2 w-full rounded-full bg-white/20"
@@ -222,7 +223,7 @@
                         {nowPlaying?.shuffle
                         ? 'text-m3-primary'
                         : 'text-white/60 hover:text-white'}"
-                    aria-label="Toggle Shuffle"
+                    aria-label={themeStore.t("music.shuffle")}
                 >
                     <Shuffle class="w-6 h-6" />
                 </button>
@@ -236,7 +237,7 @@
                 <button
                     onclick={() => maStore.previous()}
                     class="w-12 h-12 rounded-full flex items-center justify-center text-white hover:bg-white/10 transition-colors"
-                    aria-label="Previous Track"
+                    aria-label={themeStore.t("music.previous")}
                 >
                     <SkipPrevious class="w-8 h-8" />
                 </button>
@@ -249,7 +250,7 @@
             <button
                 onclick={() => maStore.playPause()}
                 class="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition-transform shadow-xl"
-                aria-label={nowPlaying?.isPlaying ? "Pause" : "Play"}
+                aria-label={nowPlaying?.isPlaying ? themeStore.t("music.pause") : themeStore.t("music.play")}
             >
                 {#if nowPlaying?.isPlaying}
                     <Pause class="w-8 h-8" />
@@ -263,7 +264,7 @@
                 <button
                     onclick={() => maStore.next()}
                     class="w-12 h-12 rounded-full flex items-center justify-center text-white hover:bg-white/10 transition-colors"
-                    aria-label="Next Track"
+                    aria-label={themeStore.t("music.next")}
                 >
                     <SkipNext class="w-8 h-8" />
                 </button>
@@ -280,7 +281,7 @@
                         {nowPlaying?.repeat !== 'off'
                         ? 'text-m3-primary'
                         : 'text-white/60 hover:text-white'}"
-                    aria-label="Toggle Repeat"
+                    aria-label={themeStore.t("music.repeat")}
                 >
                     {#if nowPlaying?.repeat === "one"}
                         <RepeatOne class="w-6 h-6" />
@@ -299,7 +300,7 @@
             <button
                 onclick={() => maStore.toggleMute()}
                 class="touch-target-compact rounded-full text-white/60 hover:text-white transition-colors"
-                aria-label="Toggle Mute"
+                aria-label={themeStore.t("music.mute")}
             >
                 {#if nowPlaying?.isMuted || nowPlaying?.volume === 0}
                     <VolumeOff class="w-5 h-5" />
@@ -322,7 +323,7 @@
                     [&::-webkit-slider-thumb]:bg-white
                     [&::-webkit-slider-thumb]:rounded-full
                     [&::-webkit-slider-thumb]:shadow"
-                aria-label="Volume"
+                aria-label={themeStore.t("music.volume")}
             />
         </div>
     </div>

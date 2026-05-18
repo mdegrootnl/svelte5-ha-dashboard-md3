@@ -12,6 +12,7 @@
 <script lang="ts">
     import AuthenticatedImage from "$lib/components/common/AuthenticatedImage.svelte";
     import { maStore } from "../stores/maStore.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
 
     import PlayArrow from "~icons/material-symbols/play-arrow";
     import Pause from "~icons/material-symbols/pause";
@@ -71,7 +72,7 @@
         {#if artwork}
             <AuthenticatedImage
                 src={artwork}
-                alt="Album Art"
+                alt={themeStore.t("music.nowPlaying")}
                 class="w-12 h-12 rounded-md object-cover shadow-sm flex-shrink-0"
             />
         {:else}
@@ -101,18 +102,18 @@
                 <p
                     class="text-m3-body-small text-m3-on-surface-variant truncate"
                 >
-                    {nowPlaying.artist || "Unknown Artist"}
+                    {nowPlaying.artist || themeStore.t("common.unknownArtist")}
                 </p>
             {:else}
                 <p
                     class="text-m3-body-medium font-medium text-m3-on-surface truncate"
                 >
-                    {activePlayer?.attributes?.friendly_name || "Ready to play"}
+                    {activePlayer?.attributes?.friendly_name || themeStore.t("music.search.ready")}
                 </p>
                 <p
                     class="text-m3-body-small text-m3-on-surface-variant truncate capitalize"
                 >
-                    {activePlayer?.state || "Select a track to begin"}
+                    {activePlayer?.state || themeStore.t("music.search.selectTrack")}
                 </p>
             {/if}
         </div>
@@ -127,7 +128,7 @@
                         maStore.previous();
                     }}
                     class="touch-target-compact w-10 h-10 rounded-full text-m3-on-surface hover:bg-m3-on-surface/10 flex items-center justify-center transition-colors"
-                    aria-label="Previous"
+                    aria-label={themeStore.t("music.previous")}
                 >
                     <SkipPrevious class="w-6 h-6" />
                 </button>
@@ -137,7 +138,7 @@
             <button
                 onclick={handlePlayPause}
                 class="touch-target-compact w-10 h-10 rounded-full bg-m3-primary text-m3-on-primary flex items-center justify-center hover:bg-m3-primary/90 transition-colors flex-shrink-0 shadow-sm"
-                aria-label={nowPlaying?.isPlaying ? "Pause" : "Play"}
+                aria-label={nowPlaying?.isPlaying ? themeStore.t("music.pause") : themeStore.t("music.play")}
             >
                 {#if nowPlaying?.isPlaying}
                     <Pause class="w-6 h-6" />
@@ -154,7 +155,7 @@
                         maStore.next();
                     }}
                     class="touch-target-compact w-10 h-10 rounded-full text-m3-on-surface hover:bg-m3-on-surface/10 flex items-center justify-center transition-colors"
-                    aria-label="Next"
+                    aria-label={themeStore.t("music.next")}
                 >
                     <SkipNext class="w-6 h-6" />
                 </button>
@@ -170,7 +171,7 @@
                 <button
                     onclick={() => maStore.toggleMute()}
                     class="touch-target-compact rounded-full text-m3-on-surface-variant hover:text-m3-on-surface transition-colors"
-                    aria-label="Toggle Mute"
+                    aria-label={themeStore.t("music.mute")}
                 >
                     {#if nowPlaying.isMuted || nowPlaying.volume === 0}
                         <VolumeOff class="w-5 h-5" />
@@ -195,7 +196,7 @@
                         [&::-webkit-slider-thumb]:h-3
                         [&::-webkit-slider-thumb]:bg-m3-primary
                         [&::-webkit-slider-thumb]:rounded-full"
-                    aria-label="Volume"
+                    aria-label={themeStore.t("music.volume")}
                 />
             </div>
         {/if}

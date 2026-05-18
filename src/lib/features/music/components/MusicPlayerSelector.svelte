@@ -1,6 +1,7 @@
 <script lang="ts">
     import { maStore } from "../stores/maStore.svelte";
     import { musicLibraryStore } from "../stores/musicLibrary.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
     import SpeakerIcon from "~icons/material-symbols/speaker";
     import ExpandMore from "~icons/material-symbols/expand-more";
     import Check from "~icons/material-symbols/check";
@@ -36,6 +37,12 @@
         open = !open;
     }
 
+    function getDefaultPlayerTitle(playerId: string) {
+        return musicLibraryStore.defaultPlayerId === playerId
+            ? themeStore.t("music.player.removeDefault")
+            : themeStore.t("music.player.setDefault");
+    }
+
     // Close on outside click
     function handleClickOutside() {
         if (open) open = false;
@@ -53,7 +60,7 @@
     >
         <SpeakerIcon class="w-4 h-4 text-m3-on-surface-variant" />
         <span class="truncate max-w-32">
-            {activePlayer?.attributes?.friendly_name || "Select player"}
+            {activePlayer?.attributes?.friendly_name || themeStore.t("music.player.select")}
         </span>
         <ExpandMore
             class="w-4 h-4 text-m3-on-surface-variant transition-transform {open
@@ -124,10 +131,7 @@
                                 isDefault ? undefined : player.entity_id,
                             );
                         }}
-                        title={musicLibraryStore.defaultPlayerId ===
-                        player.entity_id
-                            ? "Remove as default"
-                            : "Set as default"}
+                        title={getDefaultPlayerTitle(player.entity_id)}
                     >
                         {#if musicLibraryStore.defaultPlayerId === player.entity_id}
                             <Star class="w-5 h-5 text-m3-primary" />
@@ -149,7 +153,7 @@
             <p
                 class="text-m3-body-medium text-m3-on-surface-variant text-center"
             >
-                No players found
+                {themeStore.t("music.player.noPlayers")}
             </p>
         </div>
     {/if}

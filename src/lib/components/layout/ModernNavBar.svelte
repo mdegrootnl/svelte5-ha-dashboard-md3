@@ -29,12 +29,13 @@
             /* Desktop: Vertical */
             xl:flex-col xl:w-auto xl:h-auto xl:max-h-full xl:overflow-y-auto
         "
-        aria-label="Primary navigation"
+        aria-label={themeStore.t("nav.primary")}
     >
         {#each themeStore.navigationItems as link (link.id)}
             {@const isActive =
                 currentPath === link.href ||
                 (link.href !== "/" && currentPath.startsWith(link.href))}
+            {@const label = themeStore.navigationLabel(link)}
 
             <a
                 href={link.href}
@@ -48,9 +49,9 @@
                     ? 'bg-m3-secondary-container text-m3-on-secondary-container'
                     : 'text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface'}
                 "
-                aria-label={link.label}
+                aria-label={label}
                 aria-current={isActive ? "page" : undefined}
-                title={link.label}
+                title={label}
             >
                 <DynamicIcon name={link.icon} class="size-6 shrink-0" />
 
@@ -76,7 +77,7 @@
                 hover:bg-m3-surface-container-highest hover:text-m3-primary
                 shrink-0
             "
-            aria-label="Toggle Dark Mode"
+            aria-label={themeStore.t("nav.darkMode")}
         >
             {#if themeStore.isDark}
                 <LightMode class="w-6 h-6" />

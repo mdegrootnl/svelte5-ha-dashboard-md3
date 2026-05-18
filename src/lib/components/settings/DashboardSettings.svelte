@@ -1,6 +1,7 @@
 <script lang="ts">
     import { dashboardStore, DashboardStore } from "$lib/features/dashboard/stores/dashboard.svelte";
     import { haRegistryStore } from "$lib/stores/haRegistry.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
     import Button from "$lib/components/md3/Button.svelte";
     import IconButton from "$lib/components/md3/IconButton.svelte";
     import TextField from "$lib/components/md3/TextField.svelte";
@@ -91,11 +92,15 @@
             return {
                 configId: config.id,
                 pageId: page?.id,
-                name: page?.name || config.name || "Dashboard",
+                name: page?.name || config.name || themeStore.t("dashboardSettings.dashboard"),
                 icon: page?.icon || config.icon || "dashboard",
                 path,
                 href: getDashboardHref(path),
-                sourceLabel: isHome ? "Main" : isCustom ? "Custom" : "Generated",
+                sourceLabel: isHome
+                    ? themeStore.t("common.main")
+                    : isCustom
+                        ? themeStore.t("dashboardSettings.custom")
+                        : themeStore.t("common.generated"),
                 canEditPath: isCustom,
                 canDelete: !isHome,
             };
@@ -112,7 +117,7 @@
                 icon: page.icon || "dashboard",
                 path: page.path,
                 href: getDashboardHref(page.path),
-                sourceLabel: "Custom",
+                sourceLabel: themeStore.t("dashboardSettings.custom"),
                 canEditPath: true,
                 canDelete: true,
             });
@@ -127,7 +132,7 @@
 
     function handleAdd() {
         const newPage = dashboardStore.addPage(
-            "New Dashboard",
+            themeStore.t("dashboardSettings.newDashboard"),
             "new-dashboard",
             "dashboard",
         );
@@ -158,7 +163,7 @@
     function handleSaveEdit() {
         if (!editingEntry) return;
 
-        const name = editingEntry.name.trim() || "Dashboard";
+        const name = editingEntry.name.trim() || themeStore.t("dashboardSettings.dashboard");
         const path = normalizeDashboardPath(editingEntry.path);
         const icon = editingEntry.icon || "dashboard";
 
@@ -210,12 +215,16 @@
 <div class="flex flex-col gap-4">
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex flex-col">
-            <span class="text-m3-title-medium text-m3-on-surface">Dashboards</span>
+            <span class="text-m3-title-medium text-m3-on-surface">
+                {themeStore.t("dashboardSettings.title")}
+            </span>
             <p class="text-m3-body-small text-m3-on-surface-variant">
-                Manage generated dashboards and custom dashboard routes.
+                {themeStore.t("dashboardSettings.description")}
             </p>
         </div>
-        <Button variant="tonal" icon={Add} onclick={handleAdd}>Add Custom Page</Button>
+        <Button variant="tonal" icon={Add} onclick={handleAdd}>
+            {themeStore.t("dashboardSettings.addCustomPage")}
+        </Button>
     </div>
 
     <div class="flex flex-col gap-2">
@@ -245,21 +254,21 @@
                     <a
                         href={entry.href}
                         class="rounded-full p-2 transition-colors hover:bg-m3-surface-container-highest"
-                        title="Open dashboard"
+                        title={themeStore.t("dashboardSettings.openDashboard")}
                     >
                         <OpenInNew class="size-5 text-m3-on-surface-variant" />
                     </a>
                     <IconButton
                         icon={Edit}
                         onclick={() => startEditing(entry)}
-                        title="Edit dashboard"
+                        title={themeStore.t("dashboardSettings.editDashboard")}
                     />
                     {#if entry.canDelete}
                         <IconButton
                             icon={Delete}
                             onclick={() => handleDelete(entry)}
                             class="text-m3-error transition-colors hover:bg-m3-error/10"
-                            title="Delete dashboard"
+                            title={themeStore.t("dashboardSettings.deleteDashboard")}
                         />
                     {/if}
                 </div>
@@ -270,7 +279,7 @@
             >
                 <DynamicIcon name="dashboard_customize" class="mb-2 size-10" />
                 <p class="text-m3-body-medium">
-                    No dashboards yet. Generate one or add a custom page.
+                    {themeStore.t("dashboardSettings.empty")}
                 </p>
             </div>
         {/each}
@@ -284,29 +293,29 @@
                 class="flex w-full max-w-md flex-col gap-6 rounded-xl bg-m3-surface-container-high p-6 shadow-xl"
             >
                 <h3 class="text-m3-title-large text-m3-on-surface">
-                    Edit Dashboard
+                    {themeStore.t("dashboardSettings.editDashboard")}
                 </h3>
 
                 <div class="flex flex-col gap-4">
                     <TextField
-                        label="Name"
+                        label={themeStore.t("dashboardSettings.name")}
                         bind:value={editingEntry.name}
-                        placeholder="e.g. Living Room"
+                        placeholder={themeStore.t("dashboardSettings.namePlaceholder")}
                     />
                     <TextField
-                        label="Path"
+                        label={themeStore.t("dashboardSettings.path")}
                         bind:value={editingEntry.path}
-                        placeholder="e.g. ground/kitchen"
+                        placeholder={themeStore.t("dashboardSettings.pathPlaceholder")}
                         disabled={!editingEntry.canEditPath}
                         supportingText={editingEntry.canEditPath
-                            ? "Custom dashboard route under /dashboard."
-                            : "Generated dashboard routes come from Home Assistant floors and areas."}
+                            ? themeStore.t("dashboardSettings.pathCustomHelp")
+                            : themeStore.t("dashboardSettings.pathGeneratedHelp")}
                     />
 
                     <div class="flex items-end gap-4">
                         <div class="flex-1">
                             <TextField
-                                label="Icon"
+                                label={themeStore.t("dashboardSettings.icon")}
                                 bind:value={editingEntry.icon}
                                 disabled={true}
                             />
@@ -314,7 +323,7 @@
                         <button
                             onclick={openIconPicker}
                             class="mb-1 flex size-14 items-center justify-center rounded-lg border border-m3-outline transition-colors hover:bg-m3-surface-container-highest"
-                            title="Pick icon"
+                            title={themeStore.t("navigationEditor.pickIcon")}
                         >
                             <DynamicIcon
                                 name={editingEntry.icon || "dashboard"}
@@ -325,8 +334,8 @@
                 </div>
 
                 <div class="mt-2 flex justify-end gap-2">
-                    <Button variant="text" onclick={handleCancelEdit}>Cancel</Button>
-                    <Button variant="filled" onclick={handleSaveEdit}>Save Changes</Button>
+                    <Button variant="text" onclick={handleCancelEdit}>{themeStore.t("common.cancel")}</Button>
+                    <Button variant="filled" onclick={handleSaveEdit}>{themeStore.t("common.saveChanges")}</Button>
                 </div>
             </div>
         </div>

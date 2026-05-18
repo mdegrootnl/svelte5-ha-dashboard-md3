@@ -2,49 +2,50 @@
   "theme": {
     "sourceColor": "#6750A4",
     "isDark": false,
+    "language": "nl",
     "navigationStyle": "standard",
     "cardRadius": 12,
     "tabPillRadius": 32,
     "navigationItems": [
       {
         "id": "dashboard",
-        "label": "Home Dashboard",
+        "label": "Woningdashboard",
         "icon": "home",
         "href": "/dashboard"
       },
       {
         "id": "music",
-        "label": "Music",
+        "label": "Muziek",
         "icon": "music_note",
         "href": "/music"
       },
       {
         "id": "weather",
-        "label": "Weather",
+        "label": "Weer",
         "icon": "partly_cloudy_day",
         "href": "/weather"
       },
       {
         "id": "library",
-        "label": "Library",
+        "label": "Bibliotheek",
         "icon": "widgets",
         "href": "/library"
       },
       {
         "id": "theme",
-        "label": "Theme",
+        "label": "Thema",
         "icon": "palette",
         "href": "/theme"
       },
       {
         "id": "calendar",
-        "label": "Calendar",
+        "label": "Agenda",
         "icon": "calendar_month",
         "href": "/calendar"
       },
       {
         "id": "settings",
-        "label": "Settings",
+        "label": "Instellingen",
         "icon": "settings",
         "href": "/settings"
       }

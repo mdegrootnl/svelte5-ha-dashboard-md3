@@ -22,7 +22,7 @@
     function handleAdd() {
         const newItem: NavigationItem = {
             id: generateUUID(),
-            label: "New Item",
+            label: themeStore.t("navigationEditor.newItem"),
             icon: "circle",
             href: "/",
         };
@@ -83,9 +83,11 @@
 <div class="flex flex-col gap-4">
     <div class="flex items-center justify-between">
         <span class="text-m3-title-medium text-m3-on-surface"
-            >Navigation Items</span
+            >{themeStore.t("navigationEditor.title")}</span
         >
-        <Button variant="tonal" icon={Add} onclick={handleAdd}>Add Item</Button>
+        <Button variant="tonal" icon={Add} onclick={handleAdd}>
+            {themeStore.t("navigationEditor.addItem")}
+        </Button>
     </div>
 
     <!-- List -->
@@ -99,7 +101,7 @@
                         class="p-1 rounded-full hover:bg-m3-surface-container-highest disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
                         disabled={index === 0}
                         onclick={() => handleMove(index, "up")}
-                        title="Move Up"
+                        title={themeStore.t("navigationEditor.moveUp")}
                     >
                         <ArrowUpward
                             class="w-4 h-4 text-m3-on-surface-variant"
@@ -110,7 +112,7 @@
                         disabled={index ===
                             themeStore.navigationItems.length - 1}
                         onclick={() => handleMove(index, "down")}
-                        title="Move Down"
+                        title={themeStore.t("navigationEditor.moveDown")}
                     >
                         <ArrowDownward
                             class="w-4 h-4 text-m3-on-surface-variant"
@@ -128,7 +130,7 @@
                     <div
                         class="text-m3-body-large text-m3-on-surface font-medium truncate"
                     >
-                        {item.label}
+                        {themeStore.navigationLabel(item)}
                     </div>
                     <div
                         class="text-m3-body-small text-m3-on-surface-variant truncate"
@@ -162,16 +164,16 @@
                 class="bg-m3-surface-container-high rounded-xl p-6 w-full max-w-md shadow-xl flex flex-col gap-4"
             >
                 <h3 class="text-m3-title-large text-m3-on-surface">
-                    Edit Item
+                    {themeStore.t("navigationEditor.editItem")}
                 </h3>
 
-                <TextField label="Label" bind:value={editingItem.label} />
-                <TextField label="Route" bind:value={editingItem.href} />
+                <TextField label={themeStore.t("navigationEditor.label")} bind:value={editingItem.label} />
+                <TextField label={themeStore.t("navigationEditor.route")} bind:value={editingItem.href} />
 
                 <div class="flex gap-4 items-end">
                     <div class="flex-1">
                         <TextField
-                            label="Icon Name"
+                            label={themeStore.t("navigationEditor.iconName")}
                             bind:value={editingItem.icon}
                             disabled={true}
                         />
@@ -180,21 +182,21 @@
                     <button
                         onclick={openIconPicker}
                         class="w-14 h-14 rounded-lg border border-m3-outline flex items-center justify-center hover:bg-m3-surface-container-highest transition-colors mb-1"
-                        title="Pick Icon"
+                        title={themeStore.t("navigationEditor.pickIcon")}
                     >
                         <DynamicIcon name={editingItem.icon} class="size-7" />
                     </button>
                 </div>
                 <p class="text-m3-body-small text-m3-on-surface-variant">
-                    Click the icon box to select a new icon.
+                    {themeStore.t("navigationEditor.iconHelp")}
                 </p>
 
                 <div class="flex justify-end gap-2 mt-4">
                     <Button variant="text" onclick={handleCancelEdit}
-                        >Cancel</Button
+                        >{themeStore.t("common.cancel")}</Button
                     >
                     <Button variant="filled" onclick={handleSaveEdit}
-                        >Save</Button
+                        >{themeStore.t("common.save")}</Button
                     >
                 </div>
             </div>

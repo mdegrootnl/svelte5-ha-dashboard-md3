@@ -10,6 +10,7 @@
 <script lang="ts">
     import { maStore } from "../stores/maStore.svelte";
     import { musicLibraryStore } from "../stores/musicLibrary.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
     import type {
         MAMediaItem,
         MAArtist,
@@ -151,8 +152,8 @@
         </div>
     {:else if section === "home"}
         <!-- Home Section -->
-        <MusicSection title="Your Playlists" items={localPlaylists} {onPlay} />
-        <MusicSection title="Favorite Albums" items={localAlbums} {onPlay} />
+        <MusicSection title={themeStore.t("music.sections.playlists")} items={localPlaylists} {onPlay} />
+        <MusicSection title={themeStore.t("music.sections.favoriteAlbums")} items={localAlbums} {onPlay} />
 
         {#if localPlaylists.length === 0 && localAlbums.length === 0}
             <div
@@ -162,21 +163,21 @@
                     class="w-16 h-16 text-m3-on-surface-variant opacity-30 mb-4"
                 />
                 <p class="text-m3-body-large text-m3-on-surface-variant">
-                    No favorites yet
+                    {themeStore.t("music.empty.noFavorites")}
                 </p>
                 <p
                     class="text-m3-body-medium text-m3-on-surface-variant opacity-70 mt-1"
                 >
-                    Search for music and tap the heart to add favorites
+                    {themeStore.t("music.empty.favoriteHint")}
                 </p>
             </div>
         {/if}
     {:else if section === "browse"}
         <!-- Browse Section -->
-        <MusicSection title="Artists" items={browseArtists} {onPlay} rounded />
-        <MusicSection title="Albums" items={browseAlbums} {onPlay} />
-        <MusicSection title="Playlists" items={browsePlaylists} {onPlay} />
-        <MusicSection title="Tracks" items={browseTracks} {onPlay} />
+        <MusicSection title={themeStore.t("music.sections.artists")} items={browseArtists} {onPlay} rounded />
+        <MusicSection title={themeStore.t("music.sections.albums")} items={browseAlbums} {onPlay} />
+        <MusicSection title={themeStore.t("music.sections.playlists")} items={browsePlaylists} {onPlay} />
+        <MusicSection title={themeStore.t("music.sections.tracks")} items={browseTracks} {onPlay} />
     {:else if section === "radio"}
         <!-- Radio Section -->
         {#if localRadios.length > 0}
@@ -195,12 +196,12 @@
                     class="w-16 h-16 text-m3-on-surface-variant opacity-30 mb-4"
                 />
                 <p class="text-m3-body-large text-m3-on-surface-variant">
-                    No radio stations available
+                    {themeStore.t("music.empty.noRadio")}
                 </p>
                 <p
                     class="text-m3-body-medium text-m3-on-surface-variant opacity-70 mt-1"
                 >
-                    Search for radio stations and tap the heart to add favorites
+                    {themeStore.t("music.empty.favoriteHint")}
                 </p>
             </div>
         {/if}
@@ -208,7 +209,7 @@
         <!-- Library Section -->
         <div class="flex items-center justify-between mb-6">
             <h2 class="text-m3-title-large font-bold text-m3-on-surface">
-                Library
+                {themeStore.t("music.tabs.library")}
             </h2>
             <button
                 class="flex items-center gap-2 px-4 py-2 rounded-full bg-m3-surface-container-high text-m3-on-surface hover:bg-m3-surface-container-highest transition-colors disabled:opacity-50"
@@ -222,22 +223,22 @@
                 />
                 <span class="text-m3-label-large">
                     {musicLibraryStore.loading
-                        ? "Syncing..."
-                        : "Sync from Music Assistant"}
+                        ? themeStore.t("music.library.syncing")
+                        : themeStore.t("music.library.sync")}
                 </span>
             </button>
         </div>
 
-        <MusicSection title="Favorite Tracks" items={localTracks} {onPlay} />
-        <MusicSection title="Favorite Albums" items={localAlbums} {onPlay} />
+        <MusicSection title={themeStore.t("music.sections.favoriteTracks")} items={localTracks} {onPlay} />
+        <MusicSection title={themeStore.t("music.sections.favoriteAlbums")} items={localAlbums} {onPlay} />
         <MusicSection
-            title="Favorite Artists"
+            title={themeStore.t("music.sections.favoriteArtists")}
             items={localArtists}
             {onPlay}
             rounded
         />
-        <MusicSection title="Playlists" items={localPlaylists} {onPlay} />
-        <MusicSection title="Radio Stations" items={localRadios} {onPlay} />
+        <MusicSection title={themeStore.t("music.sections.playlists")} items={localPlaylists} {onPlay} />
+        <MusicSection title={themeStore.t("music.sections.radioStations")} items={localRadios} {onPlay} />
 
         {#if localTracks.length === 0 && localAlbums.length === 0 && localArtists.length === 0 && localPlaylists.length === 0 && localRadios.length === 0}
             <div
@@ -247,13 +248,12 @@
                     class="w-16 h-16 text-m3-on-surface-variant opacity-30 mb-4"
                 />
                 <p class="text-m3-body-large text-m3-on-surface-variant">
-                    Your library is empty
+                    {themeStore.t("music.empty.library")}
                 </p>
                 <p
                     class="text-m3-body-medium text-m3-on-surface-variant opacity-70 mt-1"
                 >
-                    Browse or search for music and tap the heart to add
-                    favorites
+                    {themeStore.t("music.empty.favoriteHint")}
                 </p>
             </div>
         {/if}
@@ -261,27 +261,27 @@
         <!-- Search Section -->
         {#if searchResults}
             <MusicSection
-                title="Artists"
+                title={themeStore.t("music.sections.artists")}
                 items={searchResults.artists}
                 {onPlay}
                 rounded
             />
             <MusicSection
-                title="Albums"
+                title={themeStore.t("music.sections.albums")}
                 items={searchResults.albums}
                 {onPlay}
             />
             <MusicSection
-                title="Tracks"
+                title={themeStore.t("music.sections.tracks")}
                 items={searchResults.tracks}
                 {onPlay}
             />
             <MusicSection
-                title="Playlists"
+                title={themeStore.t("music.sections.playlists")}
                 items={searchResults.playlists}
                 {onPlay}
             />
-            <MusicSection title="Radio" items={searchResults.radio} {onPlay} />
+            <MusicSection title={themeStore.t("music.tabs.radio")} items={searchResults.radio} {onPlay} />
 
             {#if searchResults.artists.length === 0 && searchResults.albums.length === 0 && searchResults.tracks.length === 0 && searchResults.playlists.length === 0 && searchResults.radio.length === 0}
                 <div
@@ -291,12 +291,12 @@
                         class="w-16 h-16 text-m3-on-surface-variant opacity-30 mb-4"
                     />
                     <p class="text-m3-body-large text-m3-on-surface-variant">
-                        No results found
+                        {themeStore.t("music.empty.noResults")}
                     </p>
                     <p
                         class="text-m3-body-medium text-m3-on-surface-variant opacity-70 mt-1"
                     >
-                        Try a different search term
+                        {themeStore.t("music.empty.tryDifferentSearch")}
                     </p>
                 </div>
             {/if}
@@ -308,7 +308,7 @@
                     class="w-16 h-16 text-m3-on-surface-variant opacity-30 mb-4"
                 />
                 <p class="text-m3-body-large text-m3-on-surface-variant">
-                    Start typing to search
+                    {themeStore.t("music.empty.startTyping")}
                 </p>
             </div>
         {:else}
@@ -319,7 +319,7 @@
                     class="w-16 h-16 text-m3-on-surface-variant opacity-30 mb-4"
                 />
                 <p class="text-m3-body-large text-m3-on-surface-variant">
-                    Search for artists, albums, tracks, and more
+                    {themeStore.t("music.empty.searchPrompt")}
                 </p>
             </div>
         {/if}

@@ -11,6 +11,7 @@ describe('ThemeStore', () => {
         const store = new ThemeStore();
         expect(store.sourceColor).toBe('#6750A4');
         expect(store.isDark).toBe(false);
+        expect(store.language).toBe('nl');
         expect(store.cardRadius).toBe(12);
         expect(store.tabPillRadius).toBe(32);
         expect(store.cardSurfaceStyle).toBe('md3');
@@ -37,6 +38,7 @@ describe('ThemeStore', () => {
         (store as any).applyToDocument();
 
         const root = document.documentElement;
+        expect(root.lang).toBe('nl');
         expect(root.style.getPropertyValue('--color-m3-primary')).toBeDefined();
         expect(root.style.getPropertyValue('--radius-m3-card')).toBe('18px');
         expect(root.style.getPropertyValue('--radius-m3-tab-pill')).toBe('24px');
@@ -51,6 +53,7 @@ describe('ThemeStore', () => {
         store.init({
             sourceColor: '#6750A4',
             isDark: false,
+            language: 'nl',
             navigationStyle: 'standard',
             navigationItems: [],
             cardRadius: 12,
@@ -58,6 +61,26 @@ describe('ThemeStore', () => {
             cardSurfaceStyle: 'soft',
         });
         expect(store.cardSurfaceStyle).toBe('soft');
+    });
+
+    it('should set language and translate labels', () => {
+        const store = new ThemeStore();
+        store.setLanguage('de');
+
+        expect(store.language).toBe('de');
+        expect(store.t('settings.title')).toBe('Einstellungen');
+        expect(store.navigationLabel({
+            id: 'music',
+            label: 'Music',
+            icon: 'music_note',
+            href: '/music',
+        })).toBe('Musik');
+        expect(store.navigationLabel({
+            id: 'music',
+            label: 'Audio',
+            icon: 'music_note',
+            href: '/music',
+        })).toBe('Audio');
     });
 
     it('should clamp card radius changes', () => {

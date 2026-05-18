@@ -11,24 +11,24 @@ describe('NavigationRail Component', () => {
     it('renders all navigation links', () => {
         render(NavigationRail);
 
-        expect(screen.getByText('Home')).toBeInTheDocument();
-        expect(screen.getByText('Home Dashboard')).toBeInTheDocument();
-        expect(screen.getByText('Library')).toBeInTheDocument();
-        expect(screen.getByText('Theme')).toBeInTheDocument();
-        expect(screen.getByText('Settings')).toBeInTheDocument();
+        expect(screen.getByText('Start')).toBeInTheDocument();
+        expect(screen.getByText('Woningdashboard')).toBeInTheDocument();
+        expect(screen.getByText('Bibliotheek')).toBeInTheDocument();
+        expect(screen.getByText('Thema')).toBeInTheDocument();
+        expect(screen.getByText('Instellingen')).toBeInTheDocument();
     });
 
     it('marks current page as active', () => {
         render(NavigationRail);
 
-        const homeLink = screen.getByText('Home').closest('a');
+        const homeLink = screen.getByText('Start').closest('a');
         expect(homeLink).toHaveAttribute('aria-current', 'page');
     });
 
     it('renders dark mode toggle button', () => {
         render(NavigationRail);
 
-        expect(screen.getByLabelText('Toggle Dark Mode')).toBeInTheDocument();
+        expect(screen.getByLabelText('Donkere modus wisselen')).toBeInTheDocument();
     });
 
     it('toggles dark mode when button clicked', async () => {
@@ -36,7 +36,7 @@ describe('NavigationRail Component', () => {
         const originalIsDark = themeStore.isDark;
 
         render(NavigationRail);
-        const toggleBtn = screen.getByLabelText('Toggle Dark Mode');
+        const toggleBtn = screen.getByLabelText('Donkere modus wisselen');
 
         await fireEvent.click(toggleBtn);
 
@@ -51,8 +51,8 @@ describe('NavigationRail Component', () => {
     it('has correct link hrefs', () => {
         render(NavigationRail);
 
-        expect(screen.getByText('Home').closest('a')).toHaveAttribute('href', '/');
-        expect(screen.getByText('Home Dashboard').closest('a')).toHaveAttribute('href', '/dashboard');
-        expect(screen.getByText('Settings').closest('a')).toHaveAttribute('href', '/settings');
+        expect(screen.getByText('Start').closest('a')).toHaveAttribute('href', '/');
+        expect(screen.getByText('Woningdashboard').closest('a')).toHaveAttribute('href', '/dashboard');
+        expect(screen.getByText('Instellingen').closest('a')).toHaveAttribute('href', '/settings');
     });
 });

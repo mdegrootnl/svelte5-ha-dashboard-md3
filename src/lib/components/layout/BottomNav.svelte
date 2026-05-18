@@ -8,12 +8,13 @@
 
 <nav
     class="flex h-20 w-full items-center gap-1 overflow-x-auto overscroll-x-contain bg-m3-surface-container/88 border-t border-m3-outline-variant px-2 backdrop-blur-md"
-    aria-label="Primary navigation"
+    aria-label={themeStore.t("nav.primary")}
 >
     {#each themeStore.navigationItems as link (link.id)}
         {@const isActive =
             currentPath === link.href ||
             (link.href !== "/" && currentPath.startsWith(link.href))}
+        {@const label = themeStore.navigationLabel(link)}
 
         <a
             href={link.href}
@@ -41,7 +42,7 @@
                     ? 'text-m3-on-surface'
                     : 'text-m3-on-surface-variant'}"
             >
-                {link.label}
+                {label}
             </span>
         </a>
     {/each}
