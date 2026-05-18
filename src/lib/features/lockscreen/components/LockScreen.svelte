@@ -5,6 +5,8 @@
     import { weatherStore } from "$lib/stores/weather.svelte";
     import { calendarStore } from "$lib/features/calendar/stores/calendar.svelte";
     import { haStore } from "$lib/stores/ha.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
+    import { getLanguageLocale } from "$lib/i18n";
     import { untrack } from "svelte";
 
     let now = $state(new Date());
@@ -57,23 +59,25 @@
     });
 
     // Formatters
-    const timeFormatter = new Intl.DateTimeFormat("en-US", {
+    let locale = $derived(getLanguageLocale(themeStore.language));
+
+    let timeFormatter = $derived(new Intl.DateTimeFormat(locale, {
         hour: "numeric",
         minute: "2-digit",
         hour12: false,
-    });
+    }));
 
-    const dateFormatter = new Intl.DateTimeFormat("en-US", {
+    let dateFormatter = $derived(new Intl.DateTimeFormat(locale, {
         weekday: "long",
         month: "long",
         day: "numeric",
-    });
+    }));
 
-    const listDateFormatter = new Intl.DateTimeFormat("en-US", {
+    let listDateFormatter = $derived(new Intl.DateTimeFormat(locale, {
         weekday: "short",
         month: "short",
         day: "numeric",
-    });
+    }));
 
     // Background style
     // Use dynamic CSS variables or inline styles for background images to allow reactivity
@@ -156,7 +160,7 @@
                                 class="flex items-center gap-2 opacity-80 text-sm"
                             >
                                 {#if event.allDay}
-                                    <span class="font-bold">ALL DAY</span>
+                                    <span class="font-bold">{themeStore.t("lockscreen.allDay")}</span>
                                     <span
                                         >• {listDateFormatter.format(
                                             event.start,
@@ -205,7 +209,7 @@
                                         {#if iconUrl}
                                             <img
                                                 src={iconUrl}
-                                                alt="Weather Icon"
+                                                alt={themeStore.t("lockscreen.weatherIcon")}
                                                 class="w-8 h-8"
                                             />
                                         {/if}
@@ -236,7 +240,7 @@
                                             {#if dayIconUrl}
                                                 <img
                                                     src={dayIconUrl}
-                                                    alt="Forecast Icon"
+                                                    alt={themeStore.t("lockscreen.forecastIcon")}
                                                     class="w-8 h-8"
                                                 />
                                             {/if}
@@ -261,7 +265,7 @@
                         {/await}
                     {:else}
                         <div class="flex flex-col gap-1 opacity-60">
-                            <span class="text-xl">Loading Weather...</span>
+                            <span class="text-xl">{themeStore.t("lockscreen.loadingWeather")}</span>
                         </div>
                     {/if}
                 </div>

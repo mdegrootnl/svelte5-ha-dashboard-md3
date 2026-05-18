@@ -1,6 +1,7 @@
 // Figma-inspired coordinate-based layout system
 import { generateUUID } from '../utils/uuid';
 import type { GraphCardEntity } from './index';
+import type { AppLanguage } from '$lib/i18n';
 
 /**
  * Represents a single track (row or column) in the grid
@@ -124,6 +125,7 @@ export interface DashboardGenerationMetadata {
 export interface DashboardGenerationOptions {
     recipe: DashboardGenerationRecipe;
     targetDashboardId: string;
+    language?: AppLanguage;
     areaId?: string;
     floorId?: string;
     entityDomain?: string;

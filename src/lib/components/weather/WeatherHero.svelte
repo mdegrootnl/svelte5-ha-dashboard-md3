@@ -130,7 +130,7 @@
                 <div class="flex flex-col">
                     <span
                         class="text-title-md font-medium opacity-90 tracking-wide"
-                        >Now</span
+                        >{themeStore.t("weather.now")}</span
                     >
                     <h1
                         class="text-title-small opacity-80 flex items-center gap-1 mt-1"
@@ -150,11 +150,11 @@
                             ? weatherStore.getConditionText(
                                   current.weather_code,
                               )
-                            : "Loading..."}
+                            : themeStore.t("common.loading")}
                     </span>
                     {#if current}
                         <span class="text-label-lg opacity-90 drop-shadow-sm">
-                            Feels like {Math.round(current.temperature_2m)}°
+                            {themeStore.t("weather.feelsLike", { temperature: Math.round(current.temperature_2m) })}
                         </span>
                     {/if}
                 </div>
@@ -180,7 +180,7 @@
                             current.is_day === 1,
                             true,
                         )}
-                        alt="Weather Icon"
+                        alt={themeStore.t("weather.weatherIcon")}
                         class="w-24 h-24 md:w-32 md:h-32 drop-shadow-2xl opacity-90"
                     />
                 {/if}

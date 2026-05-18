@@ -36,6 +36,7 @@
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import { haRegistryStore } from "$lib/stores/haRegistry.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
     import { getDomain } from "$lib/utils/entity";
     import type {
         ButtonCardOptions,
@@ -926,34 +927,27 @@
     function handleBack() {
         cardEditorStore.goBack();
     }
+
+    function cardEditorTitle() {
+        if (isThermostatCard) return themeStore.t("cardConfig.editThermostat");
+        if (isTitleCard) return themeStore.t("cardConfig.editTitle");
+        if (isTabCard) return themeStore.t("cardConfig.editTabCard");
+        if (isGraphCard) return themeStore.t("cardConfig.editGraphCard");
+        if (isRoomCard) return themeStore.t("cardConfig.editRoomCard");
+        if (isCollectionCard) return themeStore.t("cardConfig.editCollectionCard");
+        if (isEnergyCard) return themeStore.t("cardConfig.editEnergyCard");
+        if (isCalendarCard) return themeStore.t("cardConfig.editCalendarCard");
+        if (isWeatherCard) return themeStore.t("cardConfig.editWeatherCard");
+        if (isRemoteCard) return themeStore.t("cardConfig.editRemoteCard");
+        if (isDevicePanelCard) return themeStore.t("cardConfig.editDevicePanel");
+        return themeStore.t("cardConfig.editCard");
+    }
 </script>
 
 <SideSheet
     bind:open
-    title={isThermostatCard
-        ? "Edit Thermostat"
-        : isTitleCard
-          ? "Edit Title"
-          : isTabCard
-            ? "Edit Tab Card"
-            : isGraphCard
-              ? "Edit Graph Card"
-              : isRoomCard
-                ? "Edit Room Card"
-                : isCollectionCard
-                  ? "Edit Collection Card"
-                  : isEnergyCard
-                    ? "Edit Energy Card"
-                    : isCalendarCard
-                      ? "Edit Calendar Card"
-                      : isWeatherCard
-                        ? "Edit Weather Card"
-                        : isRemoteCard
-                          ? "Edit Remote Card"
-                          : isDevicePanelCard
-                            ? "Edit Device Panel"
-                            : "Edit Card"}
-    subtitle={tempConfig.name || "Configure card settings"}
+    title={cardEditorTitle()}
+    subtitle={tempConfig.name || themeStore.t("cardConfig.configureCardSettings")}
     icon={CurrentIcon}
     {showBack}
     onclose={handleClose}
@@ -964,7 +958,7 @@
         {#if !isTitleCard && !isTabCard && !isNavigationCard && !isSmartCard}
             <div class="flex flex-col gap-2">
                 <span class="text-m3-label-medium text-m3-on-surface-variant"
-                    >Card Size</span
+                    >{themeStore.t("cardConfig.cardSize")}</span
                 >
                 <div
                     class="flex rounded-full bg-m3-surface-container-highest p-1 gap-1"
@@ -989,7 +983,7 @@
         {#if isTitleCard}
             <div class="flex flex-col gap-2">
                 <span class="text-m3-label-medium text-m3-on-surface-variant"
-                    >Alignment</span
+                    >{themeStore.t("cardConfig.alignment")}</span
                 >
                 <div
                     class="flex rounded-full bg-m3-surface-container-highest p-1 gap-1"
@@ -1020,7 +1014,7 @@
         <!-- Live Preview -->
         <div class="flex flex-col gap-2">
             <span class="text-m3-label-medium text-m3-on-surface-variant"
-                >Preview</span
+                >{themeStore.t("cardConfig.preview")}</span
             >
             <!-- Preview container with visible card boundary -->
             <div class="bg-m3-surface-container-high p-2 rounded-m3-md">
@@ -1207,7 +1201,7 @@
                         />
                     {:else}
                         <ButtonCard
-                            title={tempConfig.name || "Card Preview"}
+                            title={tempConfig.name || themeStore.t("cardConfig.cardPreview")}
                             entityId={tempConfig.entityId}
                             name={tempConfig.name}
                             domainFilter={tempConfig.domainFilter || ""}
@@ -3075,7 +3069,7 @@
     </div>
 
     {#snippet actions()}
-        <Button variant="text" onclick={handleClose}>Cancel</Button>
+        <Button variant="text" onclick={handleClose}>{themeStore.t("common.cancel")}</Button>
         {#if cardEditorStore.config.onDelete}
             <Button
                 variant="text"
@@ -3087,10 +3081,10 @@
                     }
                 }}
             >
-                Delete
+                {themeStore.t("common.delete")}
             </Button>
         {/if}
-        <Button variant="filled" onclick={handleSave}>Save</Button>
+        <Button variant="filled" onclick={handleSave}>{themeStore.t("common.save")}</Button>
     {/snippet}
 </SideSheet>
 

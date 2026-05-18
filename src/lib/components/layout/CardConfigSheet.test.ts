@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CardConfigSheet from './CardConfigSheet.svelte';
 import { cardEditorStore } from '$lib/features/dashboard/stores/cardEditor.svelte';
+import { themeStore } from '$lib/stores/theme.svelte';
 
 vi.mock('$lib/stores/ha.svelte', () => ({
     haStore: {
@@ -33,6 +34,7 @@ vi.mock('$lib/stores/haRegistry.svelte', () => ({
 
 describe('CardConfigSheet', () => {
     beforeEach(() => {
+        themeStore.language = 'en';
         vi.clearAllMocks();
         cardEditorStore.close();
         vi.stubGlobal(

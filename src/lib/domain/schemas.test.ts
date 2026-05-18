@@ -371,6 +371,16 @@ describe('DashboardItemSchema card options', () => {
 });
 
 describe('AppConfigPartialSchema theme options', () => {
+    it('accepts English as an app language', () => {
+        const parsed = AppConfigPartialSchema.parse({
+            theme: {
+                language: 'en',
+            },
+        });
+
+        expect(parsed.theme?.language).toBe('en');
+    });
+
     it('accepts configured radius values', () => {
         const parsed = AppConfigPartialSchema.parse({
             theme: {

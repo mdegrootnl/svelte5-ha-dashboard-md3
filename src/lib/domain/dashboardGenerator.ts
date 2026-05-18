@@ -36,6 +36,7 @@ import type { DashboardItem, DashboardCardOptions } from '$lib/types/dashboard';
 import type { CollectionCardOptions } from '$lib/types/dashboard';
 import { generateUUID } from '$lib/utils/uuid';
 import { getGeneratedRoomPreviewUrl, resolveRoomVisualProfile } from './roomVisualProfile';
+import { translate, type TranslationParams } from '$lib/i18n';
 
 export const DASHBOARD_GENERATOR_VERSION = 1;
 
@@ -123,6 +124,14 @@ const ROOM_STATUS_DEVICE_CLASSES = new Set([
     'safety',
     'tamper',
 ]);
+
+function generatorLanguage(options: DashboardGenerationOptions) {
+    return options.language ?? 'en';
+}
+
+function gt(options: DashboardGenerationOptions, key: string, params?: TranslationParams) {
+    return translate(generatorLanguage(options), key, params);
+}
 const NOISY_SENSOR_DEVICE_CLASSES = new Set([
     'signal_strength',
     'timestamp',
@@ -1419,7 +1428,7 @@ function addTitle(
             desktopSpan: 12,
             mobileSpan: 4,
             rowSpan: 1,
-            reason: `Section heading for ${title}`,
+            reason: gt(options, 'dashboardGeneration.output.reason.sectionHeading', { title }),
             sourceType,
             sourceId,
         },
@@ -1435,8 +1444,8 @@ function addAttentionSection(
     options: DashboardGenerationOptions,
     included: DashboardGenerationEntityRef[],
     definitions: AttentionDefinition[],
-    title = 'Attention',
-    subtitle = 'Current activity and things that need attention',
+    title?: string,
+    subtitle?: string,
 ) {
     const resolved = definitions
         .map((definition) => {
@@ -1460,8 +1469,8 @@ function addAttentionSection(
     addTitle(
         grid,
         placer,
-        title,
-        subtitle,
+        title ?? gt(options, 'dashboardGeneration.output.attention'),
+        subtitle ?? gt(options, 'dashboardGeneration.output.subtitle.attention'),
         options,
         definitions[0]?.sourceType,
         definitions[0]?.sourceId,
@@ -1541,7 +1550,7 @@ function setGeneratedTabs(
         config.name || fallback.name,
         fallback.icon || surface.icon,
         options,
-        `${surface.reason} page`,
+        gt(options, 'dashboardGeneration.output.reason.tabSurfacePage', { reason: surface.reason }),
         surface.sourceType,
         surface.sourceId,
     );
@@ -1585,6 +1594,7 @@ function countConfigItems(config: RoomDashboardConfig): number {
 function buildSkippedEntities(
     inventory: PreparedInventory,
     included: DashboardGenerationEntityRef[],
+    options: DashboardGenerationOptions,
     areaId?: string,
 ) {
     const used = new Set(included.map((item) => item.entityId));
@@ -1595,13 +1605,14 @@ function buildSkippedEntities(
         .slice(0, USED_DOMAIN_LIMIT)
         .map((entity) => ({
             entityId: entity.entityId,
-            reason: 'No v1 generator card selected for this entity',
+            reason: gt(options, 'dashboardGeneration.output.reason.noGeneratorCard'),
         }));
 }
 
 function buildSkippedEntitiesForAreas(
     inventory: PreparedInventory,
     included: DashboardGenerationEntityRef[],
+    options: DashboardGenerationOptions,
     areaIds: string[],
 ) {
     const areas = new Set(areaIds);
@@ -1613,7 +1624,7 @@ function buildSkippedEntitiesForAreas(
         .slice(0, USED_DOMAIN_LIMIT)
         .map((entity) => ({
             entityId: entity.entityId,
-            reason: 'No v1 floor generator card selected for this entity',
+            reason: gt(options, 'dashboardGeneration.output.reason.noFloorGeneratorCard'),
         }));
 }
 
@@ -1865,8 +1876,8 @@ function addForcedIncludeEntities(
     addTitle(
         grid,
         placer,
-        'Pinned Entities',
-        'Manually included from the generation preview',
+        gt(options, 'dashboardGeneration.output.pinnedEntities'),
+        gt(options, 'dashboardGeneration.output.subtitle.pinnedEntities'),
         options,
         sourceType,
         sourceId,
@@ -1876,7 +1887,7 @@ function addForcedIncludeEntities(
         addCard(
             grid,
             placer,
-            createEntityTypeCardInput(entity, 'Pinned Entities', sourceId, sourceType),
+            createEntityTypeCardInput(entity, gt(options, 'dashboardGeneration.output.pinnedEntities'), sourceId, sourceType),
             options,
             included,
         );
@@ -1917,14 +1928,14 @@ function generateHouseDashboard(
     const inventory = prepareInventory(context, options);
     const config = createGeneratedConfig(
         options.targetDashboardId,
-        'Home Overview',
+        gt(options, 'dashboardGeneration.output.homeOverview'),
         options,
-        'Generated house overview dashboard',
+        gt(options, 'dashboardGeneration.output.reason.houseOverview'),
     );
-    const homeTab = createGeneratedTab('Home', 'home', options, 'Generated house home tab', 'house', HOUSE_OVERVIEW_ID);
-    const statisticsTab = createGeneratedTab('Statistics', 'monitoring', options, 'Generated house statistics tab', 'house', HOUSE_OVERVIEW_ID);
-    const mediaTab = createGeneratedTab('Media', 'play_circle', options, 'Generated house media tab', 'house', HOUSE_OVERVIEW_ID);
-    const maintenanceTab = createGeneratedTab('Maintenance', 'build', options, 'Generated house maintenance tab', 'house', HOUSE_OVERVIEW_ID);
+    const homeTab = createGeneratedTab(gt(options, 'dashboardGeneration.output.tab.home'), 'home', options, gt(options, 'dashboardGeneration.output.reason.houseHomeTab'), 'house', HOUSE_OVERVIEW_ID);
+    const statisticsTab = createGeneratedTab(gt(options, 'dashboardGeneration.output.tab.statistics'), 'monitoring', options, gt(options, 'dashboardGeneration.output.reason.houseStatisticsTab'), 'house', HOUSE_OVERVIEW_ID);
+    const mediaTab = createGeneratedTab(gt(options, 'dashboardGeneration.output.tab.media'), 'play_circle', options, gt(options, 'dashboardGeneration.output.reason.houseMediaTab'), 'house', HOUSE_OVERVIEW_ID);
+    const maintenanceTab = createGeneratedTab(gt(options, 'dashboardGeneration.output.tab.maintenance'), 'build', options, gt(options, 'dashboardGeneration.output.reason.houseMaintenanceTab'), 'house', HOUSE_OVERVIEW_ID);
     setGeneratedTabColumns(homeTab, ROOM_OVERVIEW_TAB_COLUMNS, ROOM_OVERVIEW_TAB_COLUMN_PROFILES);
     setGeneratedTabColumns(maintenanceTab, MAINTENANCE_TAB_COLUMNS, MAINTENANCE_TAB_COLUMN_PROFILES);
     const homePlacer = createPlacer();
@@ -1941,9 +1952,9 @@ function generateHouseDashboard(
         [
             {
                 mode: 'security',
-                name: 'Security Alerts',
+                name: gt(options, 'dashboardGeneration.output.securityAlerts'),
                 icon: 'shield_alert',
-                reason: 'Security and safety entities needing attention',
+                reason: gt(options, 'dashboardGeneration.output.reason.securityAlerts'),
                 presentation: 'summary',
                 desktopSpan: 3,
                 mobileSpan: 2,
@@ -1953,9 +1964,9 @@ function generateHouseDashboard(
             },
             {
                 mode: 'openings',
-                name: 'Openings',
+                name: gt(options, 'dashboardGeneration.output.openings'),
                 icon: 'sensor_door',
-                reason: 'Open doors, windows, covers, and unlocked locks',
+                reason: gt(options, 'dashboardGeneration.output.reason.openings'),
                 presentation: 'summary',
                 desktopSpan: 3,
                 mobileSpan: 2,
@@ -1965,9 +1976,9 @@ function generateHouseDashboard(
             },
             {
                 mode: 'motion',
-                name: 'Motion & Presence',
+                name: gt(options, 'dashboardGeneration.output.motionPresence'),
                 icon: 'motion_sensor_active',
-                reason: 'Active motion, occupancy, and presence entities',
+                reason: gt(options, 'dashboardGeneration.output.reason.motionPresence'),
                 presentation: 'summary',
                 desktopSpan: 3,
                 mobileSpan: 2,
@@ -1977,9 +1988,9 @@ function generateHouseDashboard(
             },
             {
                 mode: 'media_playing',
-                name: 'Media Playing',
+                name: gt(options, 'dashboardGeneration.output.mediaPlaying'),
                 icon: 'play_circle',
-                reason: 'Media players currently playing or paused',
+                reason: gt(options, 'dashboardGeneration.output.reason.mediaPlaying'),
                 presentation: 'summary',
                 desktopSpan: 3,
                 mobileSpan: 2,
@@ -1989,9 +2000,9 @@ function generateHouseDashboard(
             },
             {
                 mode: 'lights_on',
-                name: 'Active Devices',
+                name: gt(options, 'dashboardGeneration.output.activeDevices'),
                 icon: 'bolt',
-                reason: 'Active light, switch, and fan entities',
+                reason: gt(options, 'dashboardGeneration.output.reason.activeDevices'),
                 presentation: 'summary',
                 desktopSpan: 3,
                 mobileSpan: 2,
@@ -2001,10 +2012,10 @@ function generateHouseDashboard(
             },
             {
                 mode: 'low_battery',
-                name: 'Low Batteries',
+                name: gt(options, 'dashboardGeneration.output.lowBatteries'),
                 icon: 'battery_alert',
                 threshold: 25,
-                reason: 'Battery sensors below threshold',
+                reason: gt(options, 'dashboardGeneration.output.reason.lowBatteries'),
                 presentation: 'summary',
                 desktopSpan: 3,
                 mobileSpan: 2,
@@ -2014,9 +2025,9 @@ function generateHouseDashboard(
             },
             {
                 mode: 'unavailable',
-                name: 'Unavailable',
+                name: gt(options, 'dashboardGeneration.output.unavailable'),
                 icon: 'link_off',
-                reason: 'Unavailable or unknown entities',
+                reason: gt(options, 'dashboardGeneration.output.reason.unavailable'),
                 presentation: 'summary',
                 desktopSpan: 3,
                 mobileSpan: 2,
@@ -2026,9 +2037,9 @@ function generateHouseDashboard(
             },
             {
                 mode: 'updates',
-                name: 'Updates',
+                name: gt(options, 'dashboardGeneration.output.updates'),
                 icon: 'system_update_alt',
-                reason: 'Available update entities',
+                reason: gt(options, 'dashboardGeneration.output.reason.updates'),
                 presentation: 'summary',
                 desktopSpan: 3,
                 mobileSpan: 2,
@@ -2048,7 +2059,7 @@ function generateHouseDashboard(
         .sort((a, b) => a.area.name.localeCompare(b.area.name));
 
     if (areaCards.length > 0) {
-        addTitle(homeTab, homePlacer, 'Rooms', 'Open a room dashboard or use quick controls', options);
+        addTitle(homeTab, homePlacer, gt(options, 'dashboardGeneration.output.rooms'), gt(options, 'dashboardGeneration.output.subtitle.rooms'), options);
         for (const { area, entities } of areaCards) {
             const path = getAreaDashboardPath(area);
             const shortcuts = getPrimaryRoomShortcuts(entities, inventory, area.area_id);
@@ -2087,7 +2098,7 @@ function generateHouseDashboard(
                     mobileSpan: 2,
                     rowSpan: navigationRowSpan,
                     mobileRowSpan: 2,
-                    reason: `Navigation to generated ${area.name} dashboard`,
+                    reason: gt(options, 'dashboardGeneration.output.reason.areaNavigation', { name: area.name }),
                     sourceType: 'area',
                     sourceId: area.area_id,
                 },
@@ -2097,7 +2108,7 @@ function generateHouseDashboard(
             );
         }
     } else {
-        warnings.push('No populated Home Assistant areas were found for room navigation.');
+        warnings.push(gt(options, 'dashboardGeneration.output.warning.noPopulatedAreas'));
     }
 
     const houseActionEntities = sortEntitiesByImportance(queryEntities(context, inventory, {
@@ -2107,7 +2118,7 @@ function generateHouseDashboard(
         .filter(isHouseActionEntity)
         .slice(0, 4);
     if (houseActionEntities.length > 0) {
-        addTitle(homeTab, homePlacer, 'Quick Actions', 'House-wide scenes, scripts, and helper actions', options);
+        addTitle(homeTab, homePlacer, gt(options, 'dashboardGeneration.output.quickActions'), gt(options, 'dashboardGeneration.output.subtitle.quickActions'), options);
         for (const entity of houseActionEntities) {
             addCard(
                 homeTab,
@@ -2123,7 +2134,7 @@ function generateHouseDashboard(
                     rowSpan: 2,
                     color: getEntityAccent(entity),
                     options: { button: { control: 'button', showState: false, stateColor: false } },
-                    reason: 'House-wide quick action',
+                    reason: gt(options, 'dashboardGeneration.output.reason.houseQuickAction'),
                     sourceType: 'house',
                     sourceId: HOUSE_OVERVIEW_ID,
                 },
@@ -2136,7 +2147,7 @@ function generateHouseDashboard(
     let hasContextTitle = false;
     function ensureContextTitle() {
         if (hasContextTitle) return;
-        addTitle(statisticsTab, statisticsPlacer, 'Context', 'Weather, energy, and calendar', options);
+        addTitle(statisticsTab, statisticsPlacer, gt(options, 'dashboardGeneration.output.context'), gt(options, 'dashboardGeneration.output.subtitle.context'), options);
         hasContextTitle = true;
     }
 
@@ -2148,12 +2159,12 @@ function generateHouseDashboard(
             statisticsPlacer,
             {
                 cardType: 'weather',
-                name: 'Weather',
+                name: gt(options, 'dashboardGeneration.output.weather'),
                 icon: 'partly_cloudy_day',
                 desktopSpan: 4,
                 mobileSpan: 4,
                 options: { weather: weatherOptions },
-                reason: 'Weather entities discovered from HA state',
+                reason: gt(options, 'dashboardGeneration.output.reason.weather'),
             },
             options,
             includedEntities,
@@ -2183,13 +2194,13 @@ function generateHouseDashboard(
             statisticsPlacer,
             {
                 cardType: 'energy',
-                name: 'Energy',
+                name: gt(options, 'dashboardGeneration.output.energy'),
                 icon: 'electric_bolt',
                 desktopSpan: 6,
                 mobileSpan: 4,
                 rowSpan: 3,
                 options: { energy: statisticsEnergyOptions },
-                reason: 'Energy entities discovered from HA state and names',
+                reason: gt(options, 'dashboardGeneration.output.reason.energy'),
             },
             options,
             includedEntities,
@@ -2205,12 +2216,12 @@ function generateHouseDashboard(
             statisticsPlacer,
             {
                 cardType: 'calendar',
-                name: 'Calendar',
+                name: gt(options, 'dashboardGeneration.output.calendar'),
                 icon: 'calendar_month',
                 desktopSpan: 4,
                 mobileSpan: 4,
                 options: { calendar: calendarOptions },
-                reason: 'Calendar entities discovered from HA state',
+                reason: gt(options, 'dashboardGeneration.output.reason.calendar'),
             },
             options,
             includedEntities,
@@ -2220,9 +2231,9 @@ function generateHouseDashboard(
 
     const mediaPlayers = dedupeGeneratedMediaPlayers(sortEntitiesByImportance(queryEntities(context, inventory, {
         domains: ['media_player'],
-    }).filter(isUsableGeneratedEntity)), 'Home Overview', localQualityHints);
+    }).filter(isUsableGeneratedEntity)), gt(options, 'dashboardGeneration.output.homeOverview'), localQualityHints);
     if (mediaPlayers.length > 0) {
-        addTitle(mediaTab, mediaPlacer, 'Media', 'Available media players', options, 'house', HOUSE_OVERVIEW_ID);
+        addTitle(mediaTab, mediaPlacer, gt(options, 'dashboardGeneration.output.media'), gt(options, 'dashboardGeneration.output.subtitle.mediaPlayers'), options, 'house', HOUSE_OVERVIEW_ID);
         for (const mediaPlayer of mediaPlayers) {
             addCard(
                 mediaTab,
@@ -2236,7 +2247,7 @@ function generateHouseDashboard(
                     desktopSpan: 4,
                     mobileSpan: 4,
                     color: getEntityAccent(mediaPlayer),
-                    reason: 'Available media player discovered from HA inventory',
+                    reason: gt(options, 'dashboardGeneration.output.reason.mediaPlayer'),
                 },
                 options,
                 includedEntities,
@@ -2250,23 +2261,23 @@ function generateHouseDashboard(
     });
 
     if (homeTab.items.length <= 2) {
-        warnings.push('Only a sparse house dashboard could be generated from the current HA inventory.');
+        warnings.push(gt(options, 'dashboardGeneration.output.warning.sparseHouse'));
     }
 
     setGeneratedTabs(config, [homeTab, statisticsTab, mediaTab, maintenanceTab], homeTab, options, {
-        name: 'Home Sections',
+        name: gt(options, 'dashboardGeneration.output.homeSections'),
         icon: 'tab',
-        reason: 'Generated nested house tab surface',
+        reason: gt(options, 'dashboardGeneration.output.reason.houseTabSurface'),
         sourceType: 'house',
         sourceId: HOUSE_OVERVIEW_ID,
     });
     applyGeneratedRootBackground(config, context, options);
-    const skippedEntities = buildSkippedEntities(inventory, includedEntities);
+    const skippedEntities = buildSkippedEntities(inventory, includedEntities, options);
     const explainedIncludedEntities = enrichEntityRefs(includedEntities, inventory);
     const explainedSkippedEntities = enrichEntityRefs(skippedEntities, inventory);
     const qualityHints = mergeQualityHints(
         buildQualityHints(inventory, explainedIncludedEntities, explainedSkippedEntities),
-        buildAreaPictureHints(areaCards, 'Home Overview'),
+        buildAreaPictureHints(areaCards, gt(options, 'dashboardGeneration.output.homeOverview')),
         localQualityHints,
         ...relatedQualityHints,
     );
@@ -2274,7 +2285,7 @@ function generateHouseDashboard(
     return {
         config,
         relatedConfigs,
-        summary: applyResultSummary(config, 'house', 'Home Overview', explainedIncludedEntities, explainedSkippedEntities, relatedConfigs),
+        summary: applyResultSummary(config, 'house', gt(options, 'dashboardGeneration.output.homeOverview'), explainedIncludedEntities, explainedSkippedEntities, relatedConfigs),
         includedEntities: explainedIncludedEntities,
         skippedEntities: explainedSkippedEntities,
         qualityHints,
@@ -2301,37 +2312,37 @@ function generateFloorDashboard(
         options.targetDashboardId || getFloorDashboardId(floorRouteId),
         floorName,
         resolvedOptions,
-        `Generated dashboard for ${floorName}`,
+        gt(resolvedOptions, 'dashboardGeneration.output.reason.generatedDashboardFor', { name: floorName }),
     );
     const floorTab = createGeneratedTab(
-        'Floor',
+        gt(resolvedOptions, 'dashboardGeneration.output.tab.floor'),
         'layers',
         resolvedOptions,
-        `Generated floor overview tab for ${floorName}`,
+        gt(resolvedOptions, 'dashboardGeneration.output.reason.floorOverviewTab', { name: floorName }),
         'floor',
         floorRouteId,
     );
     const statisticsTab = createGeneratedTab(
-        'Statistics',
+        gt(resolvedOptions, 'dashboardGeneration.output.tab.statistics'),
         'monitoring',
         resolvedOptions,
-        `Generated floor statistics tab for ${floorName}`,
+        gt(resolvedOptions, 'dashboardGeneration.output.reason.floorStatisticsTab', { name: floorName }),
         'floor',
         floorRouteId,
     );
     const mediaTab = createGeneratedTab(
-        'Media',
+        gt(resolvedOptions, 'dashboardGeneration.output.tab.media'),
         'play_circle',
         resolvedOptions,
-        `Generated floor media tab for ${floorName}`,
+        gt(resolvedOptions, 'dashboardGeneration.output.reason.floorMediaTab', { name: floorName }),
         'floor',
         floorRouteId,
     );
     const maintenanceTab = createGeneratedTab(
-        'Maintenance',
+        gt(resolvedOptions, 'dashboardGeneration.output.tab.maintenance'),
         'build',
         resolvedOptions,
-        `Generated floor maintenance tab for ${floorName}`,
+        gt(resolvedOptions, 'dashboardGeneration.output.reason.floorMaintenanceTab', { name: floorName }),
         'floor',
         floorRouteId,
     );
@@ -2343,7 +2354,7 @@ function generateFloorDashboard(
     const maintenancePlacer = createPlacer();
 
     if (!floorId) {
-        warnings.push('No Home Assistant floor was available, so unassigned rooms were used where possible.');
+        warnings.push(gt(resolvedOptions, 'dashboardGeneration.output.warning.noFloor'));
     }
 
     const floorAreas = (context.areas ?? [])
@@ -2361,10 +2372,10 @@ function generateFloorDashboard(
         [
             {
                 mode: 'security',
-                name: 'Security Alerts',
+                name: gt(resolvedOptions, 'dashboardGeneration.output.securityAlerts'),
                 icon: 'shield_alert',
                 query: { ...floorQuery, limit: 6 },
-                reason: `${floorName} security and safety entities needing attention`,
+                reason: gt(resolvedOptions, 'dashboardGeneration.output.reason.areaSecurityAlerts', { name: floorName }),
                 presentation: 'summary',
                 desktopSpan: 3,
                 mobileSpan: 2,
@@ -2374,10 +2385,10 @@ function generateFloorDashboard(
             },
             {
                 mode: 'openings',
-                name: 'Openings',
+                name: gt(resolvedOptions, 'dashboardGeneration.output.openings'),
                 icon: 'sensor_door',
                 query: { ...floorQuery, limit: 6 },
-                reason: `${floorName} open doors, windows, covers, and unlocked locks`,
+                reason: gt(resolvedOptions, 'dashboardGeneration.output.reason.areaOpenings', { name: floorName }),
                 presentation: 'summary',
                 desktopSpan: 3,
                 mobileSpan: 2,
@@ -2387,10 +2398,10 @@ function generateFloorDashboard(
             },
             {
                 mode: 'motion',
-                name: 'Motion & Presence',
+                name: gt(resolvedOptions, 'dashboardGeneration.output.motionPresence'),
                 icon: 'motion_sensor_active',
                 query: { ...floorQuery, limit: 6 },
-                reason: `${floorName} active motion, occupancy, and presence entities`,
+                reason: gt(resolvedOptions, 'dashboardGeneration.output.reason.areaMotionPresence', { name: floorName }),
                 presentation: 'summary',
                 desktopSpan: 3,
                 mobileSpan: 2,
@@ -2400,10 +2411,10 @@ function generateFloorDashboard(
             },
             {
                 mode: 'lights_on',
-                name: 'Active Devices',
+                name: gt(resolvedOptions, 'dashboardGeneration.output.activeDevices'),
                 icon: 'bolt',
                 query: { ...floorQuery, limit: 12 },
-                reason: `${floorName} active light, switch, and fan entities`,
+                reason: gt(resolvedOptions, 'dashboardGeneration.output.reason.areaActiveDevices', { name: floorName }),
                 presentation: 'summary',
                 desktopSpan: 3,
                 mobileSpan: 2,
@@ -2413,10 +2424,10 @@ function generateFloorDashboard(
             },
             {
                 mode: 'media_playing',
-                name: 'Media Playing',
+                name: gt(resolvedOptions, 'dashboardGeneration.output.mediaPlaying'),
                 icon: 'play_circle',
                 query: { ...floorQuery, limit: 4 },
-                reason: `${floorName} media players currently playing or paused`,
+                reason: gt(resolvedOptions, 'dashboardGeneration.output.reason.areaMediaPlaying', { name: floorName }),
                 presentation: 'summary',
                 desktopSpan: 3,
                 mobileSpan: 2,
@@ -2434,7 +2445,7 @@ function generateFloorDashboard(
         .filter((entry) => entry.entities.length > 0);
 
     if (areaCards.length > 0) {
-        addTitle(floorTab, floorPlacer, 'Rooms', 'Open a room dashboard or use quick controls', resolvedOptions, 'floor', floorRouteId);
+        addTitle(floorTab, floorPlacer, gt(resolvedOptions, 'dashboardGeneration.output.rooms'), gt(resolvedOptions, 'dashboardGeneration.output.subtitle.rooms'), resolvedOptions, 'floor', floorRouteId);
         for (const { area, entities } of areaCards) {
             const shortcuts = getPrimaryRoomShortcuts(entities, inventory, area.area_id);
             const subtitle = summarizeRoomNavigation(inventory, resolvedOptions, area.area_id, entities.length);
@@ -2472,7 +2483,7 @@ function generateFloorDashboard(
                     mobileSpan: 2,
                     rowSpan: navigationRowSpan,
                     mobileRowSpan: 2,
-                    reason: `Navigation to generated ${area.name} dashboard`,
+                    reason: gt(resolvedOptions, 'dashboardGeneration.output.reason.areaNavigation', { name: area.name }),
                     sourceType: 'area',
                     sourceId: area.area_id,
                 },
@@ -2482,7 +2493,7 @@ function generateFloorDashboard(
             );
         }
     } else {
-        warnings.push(`${floorName} has no populated Home Assistant areas for room navigation.`);
+        warnings.push(gt(resolvedOptions, 'dashboardGeneration.output.warning.floorNoPopulatedAreas', { name: floorName }));
     }
 
     const batteryEntities = filterLowBattery(
@@ -2505,7 +2516,7 @@ function generateFloorDashboard(
     });
 
     if (batteryEntities.length > 0 || unavailableEntities.length > 0) {
-        addTitle(maintenanceTab, maintenancePlacer, 'Maintenance', 'Batteries, availability, and floor review', resolvedOptions, 'floor', floorRouteId);
+        addTitle(maintenanceTab, maintenancePlacer, gt(resolvedOptions, 'dashboardGeneration.output.maintenance'), gt(resolvedOptions, 'dashboardGeneration.output.subtitle.floorMaintenance'), resolvedOptions, 'floor', floorRouteId);
     }
 
     if (batteryEntities.length > 0) {
@@ -2514,7 +2525,7 @@ function generateFloorDashboard(
             maintenancePlacer,
             {
                 cardType: 'collection',
-                name: 'Low Batteries',
+                name: gt(resolvedOptions, 'dashboardGeneration.output.lowBatteries'),
                 icon: 'battery_alert',
                 desktopSpan: 4,
                 mobileSpan: 4,
@@ -2532,7 +2543,7 @@ function generateFloorDashboard(
                         },
                     },
                 },
-                reason: `${floorName} battery sensors below threshold`,
+                reason: gt(resolvedOptions, 'dashboardGeneration.output.reason.areaLowBatteries', { name: floorName }),
                 sourceType: 'floor',
                 sourceId: floorRouteId,
             },
@@ -2548,7 +2559,7 @@ function generateFloorDashboard(
             maintenancePlacer,
             {
                 cardType: 'collection',
-                name: 'Unavailable',
+                name: gt(resolvedOptions, 'dashboardGeneration.output.unavailable'),
                 icon: 'link_off',
                 desktopSpan: 4,
                 mobileSpan: 4,
@@ -2565,7 +2576,7 @@ function generateFloorDashboard(
                         },
                     },
                 },
-                reason: `${floorName} unavailable or unknown entities`,
+                reason: gt(resolvedOptions, 'dashboardGeneration.output.reason.areaUnavailable', { name: floorName }),
                 sourceType: 'floor',
                 sourceId: floorRouteId,
             },
@@ -2582,7 +2593,7 @@ function generateFloorDashboard(
         limit: 16,
     }).filter((entity) => isUsableGeneratedEntity(entity) && isValidNumericSensor(entity))).slice(0, 4);
     if (floorGraphSensors.length > 0) {
-        addTitle(statisticsTab, statisticsPlacer, 'Statistics', 'Key floor measurements and history', resolvedOptions, 'floor', floorRouteId);
+        addTitle(statisticsTab, statisticsPlacer, gt(resolvedOptions, 'dashboardGeneration.output.statistics'), gt(resolvedOptions, 'dashboardGeneration.output.subtitle.floorStatistics'), resolvedOptions, 'floor', floorRouteId);
         for (const [sensorIndex, sensor] of floorGraphSensors.entries()) {
             addCard(
                 statisticsTab,
@@ -2599,7 +2610,10 @@ function generateFloorDashboard(
                     hours_to_show: 12,
                     aggregate_func: 'avg',
                     chartType: getGraphChartType(sensor),
-                    reason: `${floorName} ${sensor.deviceClass ?? 'sensor'} history`,
+                    reason: gt(resolvedOptions, 'dashboardGeneration.output.reason.sensorHistory', {
+                        name: floorName,
+                        sensor: sensor.deviceClass ?? 'sensor',
+                    }),
                     sourceType: 'floor',
                     sourceId: floorRouteId,
                 },
@@ -2614,7 +2628,7 @@ function generateFloorDashboard(
         domains: ['media_player'],
     }).filter(isUsableGeneratedEntity)), floorName, localQualityHints);
     if (floorMediaPlayers.length > 0) {
-        addTitle(mediaTab, mediaPlacer, 'Media', 'Available media players on this floor', resolvedOptions, 'floor', floorRouteId);
+        addTitle(mediaTab, mediaPlacer, gt(resolvedOptions, 'dashboardGeneration.output.media'), gt(resolvedOptions, 'dashboardGeneration.output.subtitle.floorMedia'), resolvedOptions, 'floor', floorRouteId);
         for (const mediaPlayer of floorMediaPlayers) {
             addCard(
                 mediaTab,
@@ -2628,7 +2642,7 @@ function generateFloorDashboard(
                     desktopSpan: 4,
                     mobileSpan: 4,
                     color: getEntityAccent(mediaPlayer),
-                    reason: `${floorName} media player`,
+                    reason: gt(resolvedOptions, 'dashboardGeneration.output.reason.floorMediaPlayer', { name: floorName }),
                     sourceType: 'floor',
                     sourceId: floorRouteId,
                 },
@@ -2645,18 +2659,18 @@ function generateFloorDashboard(
     });
 
     if (floorTab.items.length <= 1) {
-        warnings.push(`Only a sparse ${floorName} dashboard could be generated from the current HA inventory.`);
+        warnings.push(gt(resolvedOptions, 'dashboardGeneration.output.warning.sparseNamedDashboard', { name: floorName }));
     }
 
     setGeneratedTabs(config, [floorTab, statisticsTab, mediaTab, maintenanceTab], floorTab, resolvedOptions, {
-        name: `${floorName} Sections`,
+        name: gt(resolvedOptions, 'dashboardGeneration.output.namedSections', { name: floorName }),
         icon: 'tab',
-        reason: `Generated nested floor tab surface for ${floorName}`,
+        reason: gt(resolvedOptions, 'dashboardGeneration.output.reason.floorTabSurface', { name: floorName }),
         sourceType: 'floor',
         sourceId: floorRouteId,
     });
     applyGeneratedRootBackground(config, context, resolvedOptions);
-    const skippedEntities = buildSkippedEntitiesForAreas(inventory, includedEntities, floorAreaIds);
+    const skippedEntities = buildSkippedEntitiesForAreas(inventory, includedEntities, resolvedOptions, floorAreaIds);
     const explainedIncludedEntities = enrichEntityRefs(includedEntities, inventory);
     const explainedSkippedEntities = enrichEntityRefs(skippedEntities, inventory);
     const qualityHints = mergeQualityHints(
@@ -2815,26 +2829,26 @@ function generateEntityTypeDashboard(
         options.targetDashboardId,
         title,
         resolvedOptions,
-        `Generated dashboard for ${title}`,
+        gt(resolvedOptions, 'dashboardGeneration.output.reason.generatedDashboardFor', { name: title }),
     );
     const typeTab = createGeneratedTab(
         title,
         getEntityTypeIcon(domain, deviceClass),
         resolvedOptions,
-        `Generated entity type tab for ${title}`,
+        gt(resolvedOptions, 'dashboardGeneration.output.reason.entityTypeTab', { name: title }),
         'entity_type',
         sourceId,
     );
     const placer = createPlacer();
 
-    addTitle(typeTab, placer, title, 'Generated from matching Home Assistant entities', resolvedOptions, 'entity_type', sourceId);
+    addTitle(typeTab, placer, title, gt(resolvedOptions, 'dashboardGeneration.output.subtitle.entityType'), resolvedOptions, 'entity_type', sourceId);
 
     if (!domain) {
-        warnings.push('No Home Assistant entities were available for an entity-type dashboard.');
+        warnings.push(gt(resolvedOptions, 'dashboardGeneration.output.warning.noEntityTypeEntities'));
     }
 
     if (matchingEntities.length === 0) {
-        warnings.push(`No ${title.toLowerCase()} were found in the current Home Assistant inventory.`);
+        warnings.push(gt(resolvedOptions, 'dashboardGeneration.output.warning.noMatchingEntities', { name: title.toLowerCase() }));
     }
 
     if (domain === 'calendar' && matchingEntities.length > 0) {
@@ -2854,7 +2868,7 @@ function generateEntityTypeDashboard(
                         entityIds: matchingEntities.map((entity) => entity.entityId),
                     },
                 },
-                reason: `${title} calendar collection`,
+                reason: gt(resolvedOptions, 'dashboardGeneration.output.reason.calendarCollection', { name: title }),
                 sourceType: 'entity_type',
                 sourceId,
             },
@@ -2880,7 +2894,7 @@ function generateEntityTypeDashboard(
                             weatherEntityId: entity.entityId,
                         },
                     },
-                    reason: `${title} weather entity`,
+                    reason: gt(resolvedOptions, 'dashboardGeneration.output.reason.weatherEntity', { name: title }),
                     sourceType: 'entity_type',
                     sourceId,
                 },
@@ -2913,7 +2927,7 @@ function generateEntityTypeDashboard(
                         },
                     },
                 },
-                reason: `${title} entity collection`,
+                reason: gt(resolvedOptions, 'dashboardGeneration.output.reason.entityCollection', { name: title }),
                 sourceType: 'entity_type',
                 sourceId,
             },
@@ -2943,7 +2957,7 @@ function generateEntityTypeDashboard(
     const skippedEntities = buildSkippedEntitiesFromResolved(
         matchingEntities,
         includedEntities,
-        `No v1 entity-type generator card selected for ${title}`,
+        gt(resolvedOptions, 'dashboardGeneration.output.reason.noEntityTypeCard', { name: title }),
     );
     const explainedIncludedEntities = enrichEntityRefs(includedEntities, inventory);
     const explainedSkippedEntities = enrichEntityRefs(skippedEntities, inventory);
@@ -2981,26 +2995,26 @@ function generateLabelDashboard(
         options.targetDashboardId,
         title,
         resolvedOptions,
-        `Generated dashboard for label ${title}`,
+        gt(resolvedOptions, 'dashboardGeneration.output.reason.labelDashboard', { name: title }),
     );
     const labelTab = createGeneratedTab(
         title,
         'label',
         resolvedOptions,
-        `Generated label tab for ${title}`,
+        gt(resolvedOptions, 'dashboardGeneration.output.reason.labelTab', { name: title }),
         'label',
         labelId || 'label',
     );
     const placer = createPlacer();
 
-    addTitle(labelTab, placer, title, 'Generated from Home Assistant label membership', resolvedOptions, 'label', labelId || 'label');
+    addTitle(labelTab, placer, title, gt(resolvedOptions, 'dashboardGeneration.output.subtitle.label'), resolvedOptions, 'label', labelId || 'label');
 
     if (!labelId) {
-        warnings.push('No Home Assistant labels were available for a label dashboard.');
+        warnings.push(gt(resolvedOptions, 'dashboardGeneration.output.warning.noLabels'));
     }
 
     if (matchingEntities.length === 0) {
-        warnings.push(`No entities with the ${title} label were found in the current Home Assistant inventory.`);
+        warnings.push(gt(resolvedOptions, 'dashboardGeneration.output.warning.noLabelEntities', { name: title }));
     }
 
     if (matchingEntities.length > 18) {
@@ -3026,7 +3040,7 @@ function generateLabelDashboard(
                         },
                     },
                 },
-                reason: `${title} labeled entity collection`,
+                reason: gt(resolvedOptions, 'dashboardGeneration.output.reason.labeledCollection', { name: title }),
                 sourceType: 'label',
                 sourceId: labelId || 'label',
             },
@@ -3046,7 +3060,7 @@ function generateLabelDashboard(
                     labelTab,
                     placer,
                     getEntityTypeTitle(domain),
-                    `${title} labeled ${domain} entities`,
+                    gt(resolvedOptions, 'dashboardGeneration.output.subtitle.labeledDomainEntities', { name: title, domain }),
                     resolvedOptions,
                     'label',
                     labelId || 'label',
@@ -3075,7 +3089,7 @@ function generateLabelDashboard(
     const skippedEntities = buildSkippedEntitiesFromResolved(
         matchingEntities,
         includedEntities,
-        `No v1 label generator card selected for ${title}`,
+        gt(resolvedOptions, 'dashboardGeneration.output.reason.noLabelCard', { name: title }),
     );
     const explainedIncludedEntities = enrichEntityRefs(includedEntities, inventory);
     const explainedSkippedEntities = enrichEntityRefs(skippedEntities, inventory);
@@ -3145,15 +3159,15 @@ function generateMaintenanceDashboard(
     const inventory = preparedInventory ?? prepareInventory(context, options);
     const config = createGeneratedConfig(
         options.targetDashboardId,
-        'Maintenance',
+        gt(options, 'dashboardGeneration.output.maintenance'),
         options,
-        'Generated maintenance dashboard',
+        gt(options, 'dashboardGeneration.output.reason.maintenanceDashboard'),
     );
     const maintenanceTab = createGeneratedTab(
-        'Maintenance',
+        gt(options, 'dashboardGeneration.output.tab.maintenance'),
         'build',
         options,
-        'Generated maintenance tab',
+        gt(options, 'dashboardGeneration.output.reason.maintenanceTab'),
         'maintenance',
         'maintenance',
     );
@@ -3163,8 +3177,8 @@ function generateMaintenanceDashboard(
     addTitle(
         maintenanceTab,
         placer,
-        'Maintenance',
-        'Generated from Home Assistant health and attention signals',
+        gt(options, 'dashboardGeneration.output.maintenance'),
+        gt(options, 'dashboardGeneration.output.subtitle.maintenanceHealth'),
         options,
         'maintenance',
         'maintenance',
@@ -3212,8 +3226,8 @@ function generateMaintenanceDashboard(
         addTitle(
             maintenanceTab,
             placer,
-            'Attention',
-            'Unavailable entities, updates, low batteries, and active alerts',
+            gt(options, 'dashboardGeneration.output.attention'),
+            gt(options, 'dashboardGeneration.output.subtitle.maintenanceAttention'),
             options,
             'maintenance',
             'maintenance',
@@ -3221,7 +3235,7 @@ function generateMaintenanceDashboard(
     }
 
     addMaintenanceCollection(maintenanceTab, placer, options, includedEntities, {
-        name: 'Unavailable',
+        name: gt(options, 'dashboardGeneration.output.unavailable'),
         icon: 'link_off',
         entities: unavailableEntities,
         query: {
@@ -3230,10 +3244,10 @@ function generateMaintenanceDashboard(
             limit: 18,
             sort: 'domain',
         },
-        reason: 'Unavailable or unknown Home Assistant entities',
+        reason: gt(options, 'dashboardGeneration.output.reason.haUnavailable'),
     });
     addMaintenanceCollection(maintenanceTab, placer, options, includedEntities, {
-        name: 'Low Batteries',
+        name: gt(options, 'dashboardGeneration.output.lowBatteries'),
         icon: 'battery_alert',
         entities: lowBatteryEntities,
         threshold: 25,
@@ -3244,10 +3258,10 @@ function generateMaintenanceDashboard(
             limit: 18,
             sort: 'state',
         },
-        reason: 'Battery sensors below threshold',
+        reason: gt(options, 'dashboardGeneration.output.reason.lowBatteries'),
     });
     addMaintenanceCollection(maintenanceTab, placer, options, includedEntities, {
-        name: 'Updates',
+        name: gt(options, 'dashboardGeneration.output.updates'),
         icon: 'system_update_alt',
         entities: updateEntities,
         query: {
@@ -3256,10 +3270,10 @@ function generateMaintenanceDashboard(
             limit: 18,
             sort: 'name',
         },
-        reason: 'Available Home Assistant update entities',
+        reason: gt(options, 'dashboardGeneration.output.reason.haUpdates'),
     });
     addMaintenanceCollection(maintenanceTab, placer, options, includedEntities, {
-        name: 'Active Alerts',
+        name: gt(options, 'dashboardGeneration.output.activeAlerts'),
         icon: 'warning',
         entities: alertEntities,
         query: {
@@ -3270,11 +3284,11 @@ function generateMaintenanceDashboard(
             limit: 18,
             sort: 'domain',
         },
-        reason: 'Active binary sensor alerts',
+        reason: gt(options, 'dashboardGeneration.output.reason.activeAlerts'),
     });
 
     if (maintenanceCandidates.length === 0) {
-        warnings.push('No current maintenance issues were found in the Home Assistant inventory.');
+        warnings.push(gt(options, 'dashboardGeneration.output.warning.noMaintenanceIssues'));
     }
 
     addForcedIncludeEntities(maintenanceTab, placer, inventory, options, includedEntities, {
@@ -3287,7 +3301,7 @@ function generateMaintenanceDashboard(
     const skippedEntities = buildSkippedEntitiesFromResolved(
         maintenanceCandidates,
         includedEntities,
-        'No v1 maintenance generator card selected for this entity',
+        gt(options, 'dashboardGeneration.output.reason.noMaintenanceCard'),
     );
     const explainedIncludedEntities = enrichEntityRefs(includedEntities, inventory);
     const explainedSkippedEntities = enrichEntityRefs(skippedEntities, inventory);
@@ -3295,7 +3309,7 @@ function generateMaintenanceDashboard(
 
     return {
         config,
-        summary: applyResultSummary(config, 'maintenance', 'Maintenance', explainedIncludedEntities, explainedSkippedEntities),
+        summary: applyResultSummary(config, 'maintenance', gt(options, 'dashboardGeneration.output.maintenance'), explainedIncludedEntities, explainedSkippedEntities),
         includedEntities: explainedIncludedEntities,
         skippedEntities: explainedSkippedEntities,
         qualityHints,
@@ -3319,12 +3333,12 @@ function generateRoomDashboard(
         options.targetDashboardId,
         areaName,
         options,
-        `Generated dashboard for ${areaName}`,
+        gt(options, 'dashboardGeneration.output.reason.generatedDashboardFor', { name: areaName }),
     );
-    const roomTab = createGeneratedTab('Room', 'meeting_room', options, `Generated room controls tab for ${areaName}`, 'area', areaId);
-    const statisticsTab = createGeneratedTab('Statistics', 'monitoring', options, `Generated room statistics tab for ${areaName}`, 'area', areaId);
-    const mediaTab = createGeneratedTab('Media', 'play_circle', options, `Generated room media tab for ${areaName}`, 'area', areaId);
-    const maintenanceTab = createGeneratedTab('Maintenance', 'build', options, `Generated room maintenance tab for ${areaName}`, 'area', areaId);
+    const roomTab = createGeneratedTab(gt(options, 'dashboardGeneration.output.tab.room'), 'meeting_room', options, gt(options, 'dashboardGeneration.output.reason.roomControlsTab', { name: areaName }), 'area', areaId);
+    const statisticsTab = createGeneratedTab(gt(options, 'dashboardGeneration.output.tab.statistics'), 'monitoring', options, gt(options, 'dashboardGeneration.output.reason.roomStatisticsTab', { name: areaName }), 'area', areaId);
+    const mediaTab = createGeneratedTab(gt(options, 'dashboardGeneration.output.tab.media'), 'play_circle', options, gt(options, 'dashboardGeneration.output.reason.roomMediaTab', { name: areaName }), 'area', areaId);
+    const maintenanceTab = createGeneratedTab(gt(options, 'dashboardGeneration.output.tab.maintenance'), 'build', options, gt(options, 'dashboardGeneration.output.reason.roomMaintenanceTab', { name: areaName }), 'area', areaId);
     setGeneratedTabColumns(roomTab, ROOM_OVERVIEW_TAB_COLUMNS, ROOM_OVERVIEW_TAB_COLUMN_PROFILES);
     setGeneratedTabColumns(maintenanceTab, MAINTENANCE_TAB_COLUMNS, MAINTENANCE_TAB_COLUMN_PROFILES);
     const roomPlacer = createPlacer();
@@ -3333,7 +3347,7 @@ function generateRoomDashboard(
     const maintenancePlacer = createPlacer();
 
     if (!areaId) {
-        warnings.push('No Home Assistant area was available for a room dashboard.');
+        warnings.push(gt(options, 'dashboardGeneration.output.warning.noArea'));
     }
 
     const areaQuery = { areaIds: areaId ? [areaId] : undefined, limit: 100 };
@@ -3352,10 +3366,10 @@ function generateRoomDashboard(
         [
             {
                 mode: 'security',
-                name: 'Security Alerts',
+                name: gt(options, 'dashboardGeneration.output.securityAlerts'),
                 icon: 'shield_alert',
                 query: { areaIds: areaId ? [areaId] : undefined, limit: 6 },
-                reason: `${areaName} security and safety entities needing attention`,
+                reason: gt(options, 'dashboardGeneration.output.reason.areaSecurityAlerts', { name: areaName }),
                 presentation: 'summary',
                 desktopSpan: 3,
                 mobileSpan: 2,
@@ -3365,10 +3379,10 @@ function generateRoomDashboard(
             },
             {
                 mode: 'openings',
-                name: 'Openings',
+                name: gt(options, 'dashboardGeneration.output.openings'),
                 icon: 'sensor_door',
                 query: { areaIds: areaId ? [areaId] : undefined, limit: 6 },
-                reason: `${areaName} open doors, windows, covers, and unlocked locks`,
+                reason: gt(options, 'dashboardGeneration.output.reason.areaOpenings', { name: areaName }),
                 presentation: 'summary',
                 desktopSpan: 3,
                 mobileSpan: 2,
@@ -3378,10 +3392,10 @@ function generateRoomDashboard(
             },
             {
                 mode: 'motion',
-                name: 'Motion & Presence',
+                name: gt(options, 'dashboardGeneration.output.motionPresence'),
                 icon: 'motion_sensor_active',
                 query: { areaIds: areaId ? [areaId] : undefined, limit: 6 },
-                reason: `${areaName} active motion, occupancy, and presence entities`,
+                reason: gt(options, 'dashboardGeneration.output.reason.areaMotionPresence', { name: areaName }),
                 presentation: 'summary',
                 desktopSpan: 3,
                 mobileSpan: 2,
@@ -3391,10 +3405,10 @@ function generateRoomDashboard(
             },
             {
                 mode: 'media_playing',
-                name: 'Media Playing',
+                name: gt(options, 'dashboardGeneration.output.mediaPlaying'),
                 icon: 'play_circle',
                 query: { areaIds: areaId ? [areaId] : undefined, limit: 4 },
-                reason: `${areaName} media players currently playing or paused`,
+                reason: gt(options, 'dashboardGeneration.output.reason.areaMediaPlaying', { name: areaName }),
                 presentation: 'summary',
                 desktopSpan: 3,
                 mobileSpan: 2,
@@ -3404,11 +3418,11 @@ function generateRoomDashboard(
             },
             {
                 mode: 'low_battery',
-                name: 'Low Batteries',
+                name: gt(options, 'dashboardGeneration.output.lowBatteries'),
                 icon: 'battery_alert',
                 threshold: 25,
                 query: { areaIds: areaId ? [areaId] : undefined, limit: 6 },
-                reason: `${areaName} battery sensors below threshold`,
+                reason: gt(options, 'dashboardGeneration.output.reason.areaLowBatteries', { name: areaName }),
                 presentation: 'summary',
                 desktopSpan: 3,
                 mobileSpan: 2,
@@ -3418,10 +3432,10 @@ function generateRoomDashboard(
             },
             {
                 mode: 'updates',
-                name: 'Updates',
+                name: gt(options, 'dashboardGeneration.output.updates'),
                 icon: 'system_update_alt',
                 query: { areaIds: areaId ? [areaId] : undefined, limit: 6 },
-                reason: `${areaName} available updates`,
+                reason: gt(options, 'dashboardGeneration.output.reason.areaUpdates', { name: areaName }),
                 presentation: 'summary',
                 desktopSpan: 3,
                 mobileSpan: 2,
@@ -3430,8 +3444,8 @@ function generateRoomDashboard(
                 sourceId: areaId,
             },
         ],
-        'Attention',
-        'Current activity and room issues',
+        gt(options, 'dashboardGeneration.output.attention'),
+        gt(options, 'dashboardGeneration.output.subtitle.roomAttention'),
     );
     const roomAttentionEntityIds = new Set(roomAttentionEntities.map((entity) => entity.entityId));
 
@@ -3455,7 +3469,7 @@ function generateRoomDashboard(
         .filter(isPrimaryRoomControlEntity)
         .slice(0, 6);
     if (primaryControlEntities.length > 0) {
-        addTitle(roomTab, roomPlacer, 'Primary Controls', 'Most useful room controls', options, 'area', areaId);
+        addTitle(roomTab, roomPlacer, gt(options, 'dashboardGeneration.output.primaryControls'), gt(options, 'dashboardGeneration.output.subtitle.primaryControls'), options, 'area', areaId);
     }
 
     let largeControlCount = 0;
@@ -3476,7 +3490,7 @@ function generateRoomDashboard(
                 rowSpan: useLargeCard ? 2 : 1,
                 options: { button: { display: useLargeCard ? 'tile' : 'compact', control: 'auto', showState: true, stateColor: true } },
                 color: getEntityAccent(entity),
-                reason: `${areaName} ${entity.domain} control`,
+                reason: gt(options, 'dashboardGeneration.output.reason.roomDomainControl', { name: areaName, domain: entity.domain }),
                 sourceType: 'area',
                 sourceId: areaId,
             },
@@ -3495,7 +3509,7 @@ function generateRoomDashboard(
     const climate = comfortEntities.find((entity) => entity.domain === 'climate');
     const specialistEntities = comfortEntities.filter((entity) => ['cover', 'fan'].includes(entity.domain)).slice(0, 2);
     if (climate || specialistEntities.length > 0) {
-        addTitle(roomTab, roomPlacer, 'Comfort', 'Climate, covers, and airflow', options, 'area', areaId);
+        addTitle(roomTab, roomPlacer, gt(options, 'dashboardGeneration.output.comfort'), gt(options, 'dashboardGeneration.output.subtitle.comfort'), options, 'area', areaId);
     }
 
     if (climate) {
@@ -3512,7 +3526,7 @@ function generateRoomDashboard(
                 mobileSpan: 4,
                 rowSpan: 2,
                 color: getEntityAccent(climate),
-                reason: `${areaName} climate entity`,
+                reason: gt(options, 'dashboardGeneration.output.reason.roomClimate', { name: areaName }),
                 sourceType: 'area',
                 sourceId: areaId,
             },
@@ -3542,7 +3556,7 @@ function generateRoomDashboard(
                         entityId: specialist.entityId,
                     }),
                 },
-                reason: `${areaName} ${specialist.domain} device panel`,
+                reason: gt(options, 'dashboardGeneration.output.reason.roomDevicePanel', { name: areaName, domain: specialist.domain }),
                 sourceType: 'area',
                 sourceId: areaId,
             },
@@ -3552,7 +3566,7 @@ function generateRoomDashboard(
     }
 
     if (comfortStateSensors.length > 0) {
-        addTitle(statisticsTab, statisticsPlacer, 'Readings', 'Temperature, humidity, air quality, and light levels', options, 'area', areaId);
+        addTitle(statisticsTab, statisticsPlacer, gt(options, 'dashboardGeneration.output.readings'), gt(options, 'dashboardGeneration.output.subtitle.readings'), options, 'area', areaId);
     }
 
     for (const sensor of comfortStateSensors) {
@@ -3570,7 +3584,10 @@ function generateRoomDashboard(
                 rowSpan: 1,
                 color: getEntityAccent(sensor),
                 options: { button: { display: 'compact', control: 'none', showState: true, stateColor: false } },
-                reason: `${areaName} ${sensor.deviceClass ?? 'sensor'} reading`,
+                reason: gt(options, 'dashboardGeneration.output.reason.roomReading', {
+                    name: areaName,
+                    sensor: sensor.deviceClass ?? 'sensor',
+                }),
                 sourceType: 'area',
                 sourceId: areaId,
             },
@@ -3591,7 +3608,7 @@ function generateRoomDashboard(
         (entity) => entity.domain === 'remote' && isTvLikeMediaEntity(entity),
     );
     if (mediaPlayers.length > 0 || remoteCandidates.length > 0) {
-        addTitle(mediaTab, mediaPlacer, 'Media', 'Available players and remote controls', options, 'area', areaId);
+        addTitle(mediaTab, mediaPlacer, gt(options, 'dashboardGeneration.output.media'), gt(options, 'dashboardGeneration.output.subtitle.roomMedia'), options, 'area', areaId);
     }
     for (const mediaPlayer of mediaPlayers) {
         addCard(
@@ -3606,7 +3623,7 @@ function generateRoomDashboard(
                 desktopSpan: 4,
                 mobileSpan: 4,
                 color: getEntityAccent(mediaPlayer),
-                reason: `${areaName} media player`,
+                reason: gt(options, 'dashboardGeneration.output.reason.floorMediaPlayer', { name: areaName }),
                 sourceType: 'area',
                 sourceId: areaId,
             },
@@ -3648,8 +3665,8 @@ function generateRoomDashboard(
             mediaPlacer,
             {
                 cardType: 'remote',
-                name: `${roomRemote.name} Remote`,
-                subtitle: `Controls ${roomRemote.name}`,
+                name: gt(options, 'dashboardGeneration.output.remoteName', { name: roomRemote.name }),
+                subtitle: gt(options, 'dashboardGeneration.output.subtitle.controls', { name: roomRemote.name }),
                 entityId: remoteOptions.remoteEntityId ?? roomRemote.entityId,
                 icon: 'settings_remote',
                 desktopSpan: 4,
@@ -3657,7 +3674,7 @@ function generateRoomDashboard(
                 rowSpan: 2,
                 color: getEntityAccent(roomRemote),
                 options: { remote: remoteOptions },
-                reason: `${areaName} room remote controls`,
+                reason: gt(options, 'dashboardGeneration.output.reason.roomRemote', { name: areaName }),
                 sourceType: 'area',
                 sourceId: areaId,
             },
@@ -3685,13 +3702,13 @@ function generateRoomDashboard(
     const roomStatusEntities = statusEntities.filter(isRoomStatusEntity).slice(0, 8);
     const roomStatusEntityIds = new Set(roomStatusEntities.map((entity) => entity.entityId));
     if (roomStatusEntities.length > 0) {
-        addTitle(maintenanceTab, maintenancePlacer, 'Openings & Security', 'Doors, locks, presence, and safety sensors', options, 'area', areaId);
+        addTitle(maintenanceTab, maintenancePlacer, gt(options, 'dashboardGeneration.output.openingsSecurity'), gt(options, 'dashboardGeneration.output.subtitle.openingsSecurity'), options, 'area', areaId);
         addCard(
             maintenanceTab,
             maintenancePlacer,
             {
                 cardType: 'collection',
-                name: 'Room Status',
+                name: gt(options, 'dashboardGeneration.output.roomStatus'),
                 icon: 'sensor_door',
                 desktopSpan: 4,
                 mobileSpan: 4,
@@ -3706,7 +3723,7 @@ function generateRoomDashboard(
                         entityIds: roomStatusEntities.map((entity) => entity.entityId),
                     },
                 },
-                reason: `${areaName} room opening, security, and presence status`,
+                reason: gt(options, 'dashboardGeneration.output.reason.roomStatus', { name: areaName }),
                 sourceType: 'area',
                 sourceId: areaId,
             },
@@ -3718,7 +3735,7 @@ function generateRoomDashboard(
 
     const sensorEntities = statusEntities.filter((entity) => !roomStatusEntityIds.has(entity.entityId));
     if (sensorEntities.length > 0) {
-        addTitle(statisticsTab, statisticsPlacer, 'Sensors & History', 'Key measurements and room sensor states', options, 'area', areaId);
+        addTitle(statisticsTab, statisticsPlacer, gt(options, 'dashboardGeneration.output.sensorsHistory'), gt(options, 'dashboardGeneration.output.subtitle.sensorsHistory'), options, 'area', areaId);
         const graphEntities = sensorEntities
             .filter((entity) => isValidNumericSensor(entity) && GRAPH_DEVICE_CLASSES.has(entity.deviceClass ?? ''))
             .slice(0, 2);
@@ -3740,7 +3757,10 @@ function generateRoomDashboard(
                     hours_to_show: 12,
                     aggregate_func: 'avg',
                     chartType: getGraphChartType(sensor),
-                    reason: `${areaName} ${sensor.deviceClass ?? 'sensor'} history`,
+                    reason: gt(options, 'dashboardGeneration.output.reason.sensorHistory', {
+                        name: areaName,
+                        sensor: sensor.deviceClass ?? 'sensor',
+                    }),
                     sourceType: 'area',
                     sourceId: areaId,
                 },
@@ -3755,7 +3775,7 @@ function generateRoomDashboard(
                 statisticsPlacer,
                 {
                     cardType: 'collection',
-                    name: 'Room Sensors',
+                    name: gt(options, 'dashboardGeneration.output.roomSensors'),
                     icon: 'sensors',
                     desktopSpan: 4,
                     mobileSpan: 4,
@@ -3770,7 +3790,7 @@ function generateRoomDashboard(
                             entityIds: collectionEntities.map((entity) => entity.entityId),
                         },
                     },
-                    reason: `${areaName} room sensor collection`,
+                    reason: gt(options, 'dashboardGeneration.output.reason.roomSensorCollection', { name: areaName }),
                     sourceType: 'area',
                     sourceId: areaId,
                 },
@@ -3787,7 +3807,7 @@ function generateRoomDashboard(
         limit: 6,
     }).filter((entity) => entity.state !== 'unavailable');
     if (actionEntities.length > 0) {
-        addTitle(roomTab, roomPlacer, 'Actions', 'Scenes, scripts, and helper actions', options, 'area', areaId);
+        addTitle(roomTab, roomPlacer, gt(options, 'dashboardGeneration.output.actions'), gt(options, 'dashboardGeneration.output.subtitle.actions'), options, 'area', areaId);
         for (const entity of actionEntities) {
             addCard(
                 roomTab,
@@ -3803,7 +3823,7 @@ function generateRoomDashboard(
                     rowSpan: 1,
                     color: getEntityAccent(entity),
                     options: { button: { display: 'compact', control: 'button', showState: true, stateColor: false } },
-                    reason: `${areaName} ${entity.domain} action`,
+                    reason: gt(options, 'dashboardGeneration.output.reason.roomDomainAction', { name: areaName, domain: entity.domain }),
                     sourceType: 'area',
                     sourceId: areaId,
                 },
@@ -3820,18 +3840,18 @@ function generateRoomDashboard(
     });
 
     if (roomTab.items.length <= 1) {
-        warnings.push(`${areaName} has no useful visible entities for the v1 room recipe.`);
+        warnings.push(gt(options, 'dashboardGeneration.output.warning.roomNoUsefulEntities', { name: areaName }));
     }
 
     setGeneratedTabs(config, [roomTab, statisticsTab, mediaTab, maintenanceTab], roomTab, options, {
-        name: `${areaName} Sections`,
+        name: gt(options, 'dashboardGeneration.output.namedSections', { name: areaName }),
         icon: 'tab',
-        reason: `Generated nested room tab surface for ${areaName}`,
+        reason: gt(options, 'dashboardGeneration.output.reason.roomTabSurface', { name: areaName }),
         sourceType: 'area',
         sourceId: areaId,
     });
     applyGeneratedRootBackground(config, context, options);
-    const skippedEntities = buildSkippedEntities(inventory, includedEntities, areaId);
+    const skippedEntities = buildSkippedEntities(inventory, includedEntities, options, areaId);
     const explainedIncludedEntities = enrichEntityRefs(includedEntities, inventory, areaId);
     const explainedSkippedEntities = enrichEntityRefs(skippedEntities, inventory, areaId);
     const qualityHints = mergeQualityHints(

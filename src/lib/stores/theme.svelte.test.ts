@@ -65,6 +65,17 @@ describe('ThemeStore', () => {
 
     it('should set language and translate labels', () => {
         const store = new ThemeStore();
+        store.setLanguage('en');
+
+        expect(store.language).toBe('en');
+        expect(store.t('settings.title')).toBe('Settings');
+        expect(store.navigationLabel({
+            id: 'music',
+            label: 'Music',
+            icon: 'music_note',
+            href: '/music',
+        })).toBe('Music');
+
         store.setLanguage('de');
 
         expect(store.language).toBe('de');

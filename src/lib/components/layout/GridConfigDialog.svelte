@@ -10,6 +10,7 @@
     import IconLinkOff from "~icons/material-symbols/link-off";
     import { dashboardStore } from "$lib/features/dashboard/stores/dashboard.svelte";
     import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
     import { haStore } from "$lib/stores/ha.svelte";
     import { haRegistryStore } from "$lib/stores/haRegistry.svelte";
     import {
@@ -451,8 +452,8 @@
 
 <SideSheet
     bind:open
-    title="Grid Settings"
-    subtitle={config?.name ?? "Dashboard"}
+    title={themeStore.t("gridConfig.title")}
+    subtitle={config?.name ?? themeStore.t("gridConfig.dashboard")}
     icon={IconGridView}
     onclose={handleClose}
 >
@@ -529,7 +530,7 @@
 
     <!-- Row Height Section -->
     <section>
-        <h3 class="text-m3-title-small text-m3-on-surface mb-4">Row Height</h3>
+        <h3 class="text-m3-title-small text-m3-on-surface mb-4">{themeStore.t("gridConfig.rowHeight")}</h3>
         <p class="text-m3-body-small text-m3-on-surface-variant mb-4">
             Height of each grid row in pixels
         </p>
@@ -647,7 +648,7 @@
     <section>
         <div class="flex items-center justify-between mb-4">
             <div>
-                <h3 class="text-m3-title-small text-m3-on-surface">Gaps</h3>
+                <h3 class="text-m3-title-small text-m3-on-surface">{themeStore.t("gridConfig.gaps")}</h3>
                 <p class="text-m3-body-small text-m3-on-surface-variant">
                     Spacing between grid cells
                 </p>
@@ -658,7 +659,7 @@
                        {gapsLinked
                     ? 'bg-m3-primary-container text-m3-on-primary-container'
                     : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest'}"
-                title={gapsLinked ? "Unlink gaps" : "Link gaps"}
+                title={gapsLinked ? themeStore.t("gridConfig.unlinkGaps") : themeStore.t("gridConfig.linkGaps")}
             >
                 {#if gapsLinked}
                     <IconLink class="size-4" />
@@ -921,7 +922,7 @@
                         >
                             <AuthenticatedImage
                                 src={backgroundImageUrl}
-                                alt="Background preview"
+                                alt={themeStore.t("gridConfig.backgroundPreview")}
                                 class="h-full w-full object-cover"
                                 style={`object-position: ${backgroundObjectPosition};`}
                             />
@@ -935,7 +936,7 @@
                                 class="absolute bottom-3 left-3 rounded-m3-card bg-m3-surface-container-highest px-4 py-3 text-m3-on-surface shadow-m3-elevation-2"
                             >
                                 <div class="text-m3-title-small">
-                                    {config?.name ?? "Dashboard"}
+                                    {config?.name ?? themeStore.t("gridConfig.dashboard")}
                                 </div>
                                 <div
                                     class="text-m3-body-small text-m3-on-surface-variant"
@@ -958,10 +959,10 @@
     </section>
 
     {#snippet actions()}
-        <Button variant="text" onclick={handleReset}>Reset</Button>
+        <Button variant="text" onclick={handleReset}>{themeStore.t("common.reset")}</Button>
         <div class="flex gap-3">
-            <Button variant="outlined" onclick={handleClose}>Cancel</Button>
-            <Button variant="filled" onclick={handleApply}>Apply</Button>
+            <Button variant="outlined" onclick={handleClose}>{themeStore.t("common.cancel")}</Button>
+            <Button variant="filled" onclick={handleApply}>{themeStore.t("common.apply")}</Button>
         </div>
     {/snippet}
 </SideSheet>

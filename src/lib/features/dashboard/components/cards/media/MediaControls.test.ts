@@ -2,9 +2,11 @@ import { render, screen, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import MediaControls from './MediaControls.svelte';
 import { haStore } from '$lib';
+import { themeStore } from '$lib/stores/theme.svelte';
 
 describe('MediaControls Component', () => {
     beforeEach(() => {
+        themeStore.language = 'en';
         vi.clearAllMocks();
         vi.spyOn(haStore, 'getEntity').mockReturnValue(undefined as any);
         vi.spyOn(haStore, 'callService').mockResolvedValue({ ok: true, value: undefined });

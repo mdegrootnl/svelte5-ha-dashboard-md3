@@ -1,5 +1,6 @@
 <script lang="ts">
     import { type Snippet } from "svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
     import IconError from "~icons/material-symbols/error";
 
     interface Props {
@@ -27,7 +28,7 @@
         >
             <IconError class="w-6 h-6 shrink-0" />
             <div>
-                <p class="font-medium">Something went wrong</p>
+                <p class="font-medium">{themeStore.t("errorBoundary.title")}</p>
                 <p class="text-sm opacity-80">{error.message}</p>
             </div>
         </div>

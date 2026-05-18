@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DashboardGenerationSheet from './DashboardGenerationSheet.svelte';
-import { haRegistryStore, haStore } from '$lib';
+import { haRegistryStore, haStore, themeStore } from '$lib';
 import type { HAEntity, HAEntityRegistryEntry } from '$lib/types';
 import {
     createDefaultGridConfig,
@@ -151,6 +151,7 @@ function createGeneratedDashboardWithEditedCard(id = 'dashboard_home'): RoomDash
 describe('DashboardGenerationSheet', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        themeStore.language = 'en';
         Object.defineProperty(window, 'innerWidth', {
             configurable: true,
             writable: true,

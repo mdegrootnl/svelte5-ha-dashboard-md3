@@ -1,6 +1,7 @@
 <script lang="ts">
     import WeatherTile from "./WeatherTile.svelte";
     import { weatherStore } from "$lib/stores/weather.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
 
     let pressure = $derived(
         weatherStore.data?.current?.surface_pressure ?? 1013,
@@ -18,7 +19,7 @@
     // Radius 40.
 </script>
 
-<WeatherTile title="Pressure" icon="compress">
+<WeatherTile title={themeStore.t("weather.pressure")} icon="compress">
     <div
         class="relative w-full h-full flex flex-col items-center justify-center"
     >

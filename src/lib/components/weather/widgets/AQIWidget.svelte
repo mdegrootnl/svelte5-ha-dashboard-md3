@@ -2,6 +2,7 @@
     import WeatherTile from "./WeatherTile.svelte";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import { haStore } from "$lib/stores/ha.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
     import { browser } from "$app/environment";
     import IconEdit from "~icons/material-symbols/edit";
 
@@ -53,22 +54,22 @@
 
     // AQI level and description
     let level = $derived.by(() => {
-        if (val <= 50) return "Good";
-        if (val <= 100) return "Moderate";
-        if (val <= 150) return "Unhealthy for Sensitive";
-        if (val <= 200) return "Unhealthy";
-        if (val <= 300) return "Very Unhealthy";
-        return "Hazardous";
+        if (val <= 50) return themeStore.t("weather.aqi.good");
+        if (val <= 100) return themeStore.t("weather.aqi.moderate");
+        if (val <= 150) return themeStore.t("weather.aqi.unhealthySensitive");
+        if (val <= 200) return themeStore.t("weather.aqi.unhealthy");
+        if (val <= 300) return themeStore.t("weather.aqi.veryUnhealthy");
+        return themeStore.t("weather.aqi.hazardous");
     });
 
     let desc = $derived.by(() => {
-        if (!activeEntityId) return "No sensor configured";
-        if (!entity) return "Sensor not found";
-        if (val <= 50) return "Air quality is satisfactory";
-        if (val <= 100) return "Acceptable air quality";
-        if (val <= 150) return "Sensitive groups affected";
-        if (val <= 200) return "Health effects possible";
-        return "Health alert";
+        if (!activeEntityId) return themeStore.t("weather.aqi.noSensor");
+        if (!entity) return themeStore.t("weather.aqi.sensorMissing");
+        if (val <= 50) return themeStore.t("weather.aqi.goodDescription");
+        if (val <= 100) return themeStore.t("weather.aqi.moderateDescription");
+        if (val <= 150) return themeStore.t("weather.aqi.sensitiveDescription");
+        if (val <= 200) return themeStore.t("weather.aqi.unhealthyDescription");
+        return themeStore.t("weather.aqi.alertDescription");
     });
 
     // Color logic
@@ -98,7 +99,7 @@
     }
 </script>
 
-<WeatherTile title="AQI" icon="ecg_heart">
+<WeatherTile title={themeStore.t("weather.aqi")} icon="ecg_heart">
     <div
         class="w-full flex flex-col items-center justify-center gap-2 px-2 relative group"
     >
@@ -133,7 +134,7 @@
         <button
             class="absolute top-0 right-0 p-1.5 rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-30 hover:brightness-110"
             onclick={openConfig}
-            title="Configure AQI Sensor"
+            title={themeStore.t("weather.aqi.configureSensor")}
         >
             <IconEdit class="size-4" />
         </button>

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ImagePicker from './ImagePicker.svelte';
+import { themeStore } from '$lib/stores/theme.svelte';
 
 vi.mock('$lib/utils/imageAccent', () => ({
     extractAccentColorFromImageUrl: vi.fn(async () => '#91a87c'),
@@ -43,6 +44,7 @@ const unsplashResult = {
 
 describe('ImagePicker', () => {
     beforeEach(() => {
+        themeStore.language = 'en';
         vi.restoreAllMocks();
     });
 

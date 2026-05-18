@@ -1,6 +1,7 @@
 <script lang="ts">
     import WeatherTile from "./WeatherTile.svelte";
     import { weatherStore } from "$lib/stores/weather.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
 
     // Assuming we don't have direction in current store yet, defaulting to North or random for demo if missing
     // In real app, we need to map attributes.wind_bearing from HA.
@@ -40,7 +41,7 @@
     }
 </script>
 
-<WeatherTile title="Wind" icon="air">
+<WeatherTile title={themeStore.t("weather.wind")} icon="air">
     <div class="flex flex-col items-center gap-1">
         <!-- Fan Graphic -->
         <div class="relative w-28 h-28 flex items-center justify-center p-2">
@@ -76,7 +77,7 @@
         </div>
 
         <span class="text-label-medium font-medium text-m3-on-surface-variant">
-            From {getDirectionText(direction)}
+            {themeStore.t("weather.windFrom", { direction: getDirectionText(direction) })}
         </span>
     </div>
 </WeatherTile>

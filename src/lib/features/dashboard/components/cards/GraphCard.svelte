@@ -1,5 +1,6 @@
 <script lang="ts">
     import { haStore } from "$lib/stores/ha.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import { HistoryService } from "$lib/domain/historyService";
     import { getDomain, getEntityName } from "$lib/utils/entity";
@@ -408,7 +409,7 @@
                 <div
                     class="absolute inset-0 flex items-center justify-center opacity-50"
                 >
-                    <span class="text-[clamp(0.6875rem,3cqmin,0.875rem)]">Loading history...</span>
+                    <span class="text-[clamp(0.6875rem,3cqmin,0.875rem)]">{themeStore.t("graph.loadingHistory")}</span>
                 </div>
             {/if}
 

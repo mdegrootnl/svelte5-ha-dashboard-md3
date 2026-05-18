@@ -203,58 +203,62 @@
         disabled: boolean;
     }
 
-    const recipeChoices: Array<{
+    function dg(key: string, params: Record<string, string | number> = {}) {
+        return themeStore.t(`dashboardGeneration.${key}`, params);
+    }
+
+    let recipeChoices = $derived<Array<{
         id: Extract<DashboardGenerationRecipe, "house" | "room" | "floor" | "entity_type" | "label" | "maintenance">;
         label: string;
         description: string;
         icon: typeof IconHome;
-    }> = [
+    }>>([
         {
             id: "house",
-            label: "House Overview",
-            description: "Rooms, global status, weather, energy, calendar, media, and maintenance collections.",
+            label: dg("recipe.house.label"),
+            description: dg("recipe.house.description"),
             icon: IconHome,
         },
         {
             id: "floor",
-            label: "Floor Overview",
-            description: "Room navigation and floor-scoped active device and maintenance collections.",
+            label: dg("recipe.floor.label"),
+            description: dg("recipe.floor.description"),
             icon: IconHome,
         },
         {
             id: "room",
-            label: "Room Dashboard",
-            description: "Area-based Comfort, Media, Status, and Actions sections.",
+            label: dg("recipe.room.label"),
+            description: dg("recipe.room.description"),
             icon: IconRoom,
         },
         {
             id: "entity_type",
-            label: "Entity Type",
-            description: "Focused dashboards for domains or device classes like lights, climate, media, or batteries.",
+            label: dg("recipe.entityType.label"),
+            description: dg("recipe.entityType.description"),
             icon: IconHome,
         },
         {
             id: "label",
-            label: "Label",
-            description: "Focused dashboards from explicit Home Assistant entity or device labels.",
+            label: dg("recipe.label.label"),
+            description: dg("recipe.label.description"),
             icon: IconHome,
         },
         {
             id: "maintenance",
-            label: "Maintenance",
-            description: "Unavailable entities, low batteries, available updates, and active alert sensors.",
+            label: dg("recipe.maintenance.label"),
+            description: dg("recipe.maintenance.description"),
             icon: IconHome,
         },
-    ];
+    ]);
 
-    const workspaceStageChoices: Array<{
+    let workspaceStageChoices = $derived<Array<{
         id: "setup" | "review" | "preview";
         label: string;
-    }> = [
-        { id: "setup", label: "Setup" },
-        { id: "preview", label: "Preview" },
-        { id: "review", label: "Review" },
-    ];
+    }>>([
+        { id: "setup", label: dg("stage.setup") },
+        { id: "preview", label: dg("stage.preview") },
+        { id: "review", label: dg("stage.review") },
+    ]);
 
     let areaChoices = $derived(
         [...haRegistryStore.areas].sort((a, b) => a.name.localeCompare(b.name)),
@@ -298,26 +302,26 @@
         return [
             {
                 id: ROOT_PREVIEW_ID,
-                label: draft.config.name || "House Overview",
+                label: draft.config.name || dg("houseOverview"),
                 description:
                     recipe === "house"
-                        ? "Root dashboard"
+                        ? dg("rootDashboard")
                         : recipe === "floor"
-                          ? "Floor dashboard"
+                          ? dg("floorDashboard")
                           : recipe === "entity_type"
-                            ? "Entity type dashboard"
+                            ? dg("entityTypeDashboard")
                             : recipe === "label"
-                              ? "Label dashboard"
+                              ? dg("labelDashboard")
                               : recipe === "maintenance"
-                                ? "Maintenance dashboard"
-                            : "Room dashboard",
+                                ? dg("maintenanceDashboard")
+                            : dg("roomDashboard"),
                 kind: "root",
                 config: draft.config,
             },
             ...(draft.relatedConfigs ?? []).map((config) => ({
                 id: getPreviewConfigId(config),
                 label: config.name || config.tabs[0]?.name || config.id,
-                description: "Generated room dashboard",
+                description: dg("generatedRoomDashboard"),
                 kind: "related" as const,
                 config,
             })),
@@ -352,15 +356,15 @@
                 : recipe === "floor"
                   ? selectedFloorName
                   : recipe === "entity_type"
-                    ? selectedEntityTypeChoice?.label ?? "Entity Type"
+                    ? selectedEntityTypeChoice?.label ?? dg("entityType")
                     : recipe === "label"
-                      ? selectedLabelChoice?.label ?? "Label"
+                      ? selectedLabelChoice?.label ?? dg("label")
                       : recipe === "maintenance"
-                        ? "Maintenance"
-                    : "House Overview"),
+                        ? dg("maintenance")
+                    : dg("houseOverview")),
     );
     let selectedPreviewDescription = $derived(
-        selectedPreviewConfig?.description ?? "Generated dashboard draft",
+        selectedPreviewConfig?.description ?? dg("generatedDashboardDraft"),
     );
     let rootCardCount = $derived(getConfigCardCount(draft?.config));
     let relatedCardCount = $derived(getRelatedCardCount(draft?.relatedConfigs ?? []));
@@ -473,6 +477,7 @@
             {
                 recipe,
                 targetDashboardId: getGeneratedTargetDashboardId(),
+                language: themeStore.language,
                 areaId: recipe === "room" ? selectedAreaId : undefined,
                 floorId: recipe === "floor" ? selectedFloorId : undefined,
                 entityDomain:
@@ -519,14 +524,14 @@
         if (preservedItems > 0 || preservedTabs > 0) {
             generatedDraft.warnings = [
                 ...generatedDraft.warnings,
-                `Preserved ${preservedItems} user-modified/manual cards and ${preservedTabs} manual tabs from existing dashboards.`,
+                dg("preservedWarning", { preservedItems, preservedTabs }),
             ];
         }
 
         if (cleanGeneratedBeforeApply) {
             generatedDraft.warnings = [
                 ...generatedDraft.warnings,
-                'Clean regeneration is enabled: edited generated cards in this scope are replaced by the fresh draft. Manual and pinned content is preserved.',
+                dg("cleanEnabledWarning"),
             ];
         }
 
@@ -616,22 +621,33 @@
 
     function formatCardTypeLabel(cardType: DashboardCardType) {
         const labels: Partial<Record<DashboardCardType, string>> = {
-            button: "Buttons",
-            thermostat: "Thermostats",
-            media: "Media",
-            graph: "Graphs",
-            collection: "Collections",
-            energy: "Energy",
-            calendar: "Calendar",
-            weather: "Weather",
-            remote: "Remotes",
-            device_panel: "Device Panels",
-            tabs: "Tabs",
-            room: "Room Summaries",
-            navigation: "Navigation",
-            title: "Titles",
+            button: dg("cardType.button"),
+            thermostat: dg("cardType.thermostat"),
+            media: dg("cardType.media"),
+            graph: dg("cardType.graph"),
+            collection: dg("cardType.collection"),
+            energy: dg("cardType.energy"),
+            calendar: dg("cardType.calendar"),
+            weather: dg("cardType.weather"),
+            remote: dg("cardType.remote"),
+            device_panel: dg("cardType.devicePanel"),
+            tabs: dg("cardType.tabs"),
+            room: dg("cardType.room"),
+            navigation: dg("cardType.navigation"),
+            title: dg("cardType.title"),
         };
         return labels[cardType] ?? cardType;
+    }
+
+    function generatedCardCountLabel(count: number) {
+        return dg(count === 1 ? "generatedCardCount" : "generatedCardsCount", { count });
+    }
+
+    function matchingEntitiesDescription(count: number) {
+        return dg("matchingEntities", {
+            count,
+            entityLabel: dg(count === 1 ? "entitySingular" : "entityPlural"),
+        });
     }
 
     function isGeneratedPreviewItem(item: DashboardItem) {
@@ -822,7 +838,7 @@
                 count: 0,
             };
             domainChoice.count += 1;
-            domainChoice.description = `${domainChoice.count} matching ${domainChoice.count === 1 ? "entity" : "entities"}`;
+            domainChoice.description = matchingEntitiesDescription(domainChoice.count);
             choices.set(domainId, domainChoice);
 
             if (deviceClass) {
@@ -836,7 +852,7 @@
                     count: 0,
                 };
                 classChoice.count += 1;
-                classChoice.description = `${classChoice.count} matching ${classChoice.count === 1 ? "entity" : "entities"}`;
+                classChoice.description = matchingEntitiesDescription(classChoice.count);
                 choices.set(classId, classChoice);
             }
         }
@@ -860,7 +876,7 @@
             choices.set(label, {
                 id: label,
                 label: prettifyToken(label),
-                description: "No matching loaded entities",
+                description: dg("noMatchingLoadedEntities"),
                 count: 0,
             });
         }
@@ -885,7 +901,7 @@
                     count: 0,
                 };
                 existing.count += 1;
-                existing.description = `${existing.count} matching ${existing.count === 1 ? "entity" : "entities"}`;
+                existing.description = matchingEntitiesDescription(existing.count);
                 choices.set(label, existing);
             }
         }
@@ -964,25 +980,25 @@
             metrics: [
                 {
                     id: "entity_registry",
-                    label: "Entity registry",
+                    label: dg("entityRegistry"),
                     value: summary.entityRegistry,
                     tone: "default",
                 },
                 {
                     id: "device_registry",
-                    label: "Device registry",
+                    label: dg("deviceRegistry"),
                     value: summary.deviceRegistry,
                     tone: "default",
                 },
                 {
                     id: "name_inference",
-                    label: "Name inference",
+                    label: dg("nameInference"),
                     value: summary.nameInference,
                     tone: summary.nameInference > 0 ? "warning" : "default",
                 },
                 {
                     id: "unassigned",
-                    label: "No room source",
+                    label: dg("noRoomSource"),
                     value: summary.unassigned,
                     tone: summary.unassigned > 0 ? "warning" : "default",
                 },
@@ -999,7 +1015,7 @@
         if (entity?.areaSource === "name_inference") {
             return {
                 areaSource: "name_inference",
-                areaSourceLabel: "Name-inferred area",
+                areaSourceLabel: dg("nameInferredArea"),
                 areaSourceTone: "warning",
             };
         }
@@ -1007,7 +1023,7 @@
         if (entity?.areaSource === "device_registry") {
             return {
                 areaSource: "device_registry",
-                areaSourceLabel: "Device area",
+                areaSourceLabel: dg("deviceArea"),
                 areaSourceTone: "default",
             };
         }
@@ -1015,7 +1031,7 @@
         if (entity?.areaSource === "entity_registry") {
             return {
                 areaSource: "entity_registry",
-                areaSourceLabel: "Entity area",
+                areaSourceLabel: dg("entityArea"),
                 areaSourceTone: "default",
             };
         }
@@ -1023,7 +1039,7 @@
         if (entity) {
             return {
                 areaSource: "unassigned",
-                areaSourceLabel: "No room source",
+                areaSourceLabel: dg("noRoomSource"),
                 areaSourceTone: "warning",
             };
         }
@@ -1032,16 +1048,16 @@
     }
 
     function getEntityReviewSourceLabel(filter: EntityReviewSourceFilter) {
-        if (filter === "entity_registry") return "Entity area";
-        if (filter === "device_registry") return "Device area";
-        if (filter === "name_inference") return "Name-inferred";
-        if (filter === "unassigned") return "No room source";
-        return "All sources";
+        if (filter === "entity_registry") return dg("entityArea");
+        if (filter === "device_registry") return dg("deviceArea");
+        if (filter === "name_inference") return dg("nameInferred");
+        if (filter === "unassigned") return dg("noRoomSource");
+        return dg("allSources");
     }
 
     function getQualityHintLabel(code: string) {
-        if (code === "skipped_low_importance") return "Low Importance Skips";
-        if (code === "skipped_diagnostic") return "Diagnostic Skips";
+        if (code === "skipped_low_importance") return dg("lowImportanceSkips");
+        if (code === "skipped_diagnostic") return dg("diagnosticSkips");
         return code
             .split("_")
             .map((part) => `${part[0]?.toUpperCase() ?? ""}${part.slice(1)}`)
@@ -1059,19 +1075,19 @@
     }
 
     function getQualityHintGroupLabel(severity: DashboardGenerationQualitySeverity) {
-        if (severity === "warning") return "Needs Review";
-        if (severity === "suggestion") return "Suggestions";
-        return "Confidence";
+        if (severity === "warning") return dg("needsReview");
+        if (severity === "suggestion") return dg("suggestions");
+        return dg("confidence");
     }
 
     function getQualityHintGroupDescription(severity: DashboardGenerationQualitySeverity) {
         if (severity === "warning") {
-            return "Area or assignment uncertainty to inspect before applying.";
+            return dg("warningDescription");
         }
         if (severity === "suggestion") {
-            return "Useful cleanup or optional include opportunities.";
+            return dg("suggestionDescription");
         }
-        return "Positive signals and skipped maintenance details.";
+        return dg("infoDescription");
     }
 
     function groupQualityHints(hints: DashboardGenerationQualityHint[]): QualityHintGroup[] {
@@ -1095,7 +1111,7 @@
             return {
                 mode: "included",
                 filter: "entity_registry",
-                label: "Review entity-area matches",
+                label: dg("reviewEntityAreaMatches"),
             };
         }
 
@@ -1103,7 +1119,7 @@
             return {
                 mode: "included",
                 filter: "device_registry",
-                label: "Review device-area fallbacks",
+                label: dg("reviewDeviceAreaFallbacks"),
             };
         }
 
@@ -1111,7 +1127,7 @@
             return {
                 mode: "included",
                 filter: "name_inference",
-                label: "Review name-inferred entities",
+                label: dg("reviewNameInferredEntities"),
             };
         }
 
@@ -1119,7 +1135,7 @@
             return {
                 mode: "skipped",
                 filter: "unassigned",
-                label: "Review entities without rooms",
+                label: dg("reviewEntitiesWithoutRooms"),
             };
         }
 
@@ -1127,7 +1143,7 @@
             return {
                 mode: "skipped",
                 filter: "all",
-                label: "Review diagnostic skips",
+                label: dg("reviewDiagnosticSkips"),
             };
         }
 
@@ -1135,7 +1151,7 @@
             return {
                 mode: "skipped",
                 filter: "all",
-                label: "Review low-importance skips",
+                label: dg("reviewLowImportanceSkips"),
             };
         }
 
@@ -1147,7 +1163,7 @@
             return {
                 mode: "skipped",
                 filter: "all",
-                label: "Review skipped entities",
+                label: dg("reviewSkippedEntities"),
             };
         }
 
@@ -1155,14 +1171,14 @@
             return {
                 mode: "included",
                 filter: "all",
-                label: "Review generated entity names and groups",
+                label: dg("reviewGeneratedNamesAndGroups"),
             };
         }
 
         return {
             mode: "included",
             filter: "all",
-            label: "Review manually flagged entities",
+            label: dg("reviewFlaggedEntities"),
         };
     }
 
@@ -1191,31 +1207,31 @@
         return [
             {
                 id: "all",
-                label: "All sources",
+                label: dg("allSources"),
                 count: rows.length,
                 tone: "default",
             },
             {
                 id: "entity_registry",
-                label: "Entity area",
+                label: dg("entityArea"),
                 count: counts.entity_registry,
                 tone: "default",
             },
             {
                 id: "device_registry",
-                label: "Device area",
+                label: dg("deviceArea"),
                 count: counts.device_registry,
                 tone: "default",
             },
             {
                 id: "name_inference",
-                label: "Name-inferred",
+                label: dg("nameInferred"),
                 count: counts.name_inference,
                 tone: counts.name_inference > 0 ? "warning" : "default",
             },
             {
                 id: "unassigned",
-                label: "No room source",
+                label: dg("noRoomSource"),
                 count: counts.unassigned,
                 tone: counts.unassigned > 0 ? "warning" : "default",
             },
@@ -1738,7 +1754,7 @@
         onclick={handleClose}
     >
         <IconClose class="size-5" />
-        Cancel
+        {dg("cancel")}
     </button>
     <button
         type="button"
@@ -1748,8 +1764,8 @@
     >
         <IconCheck class="size-5" />
         {cleanGeneratedBeforeApply && cleanApplyConfirmationPending
-            ? "Confirm Clean Apply"
-            : "Apply Draft"}
+            ? dg("confirmCleanApply")
+            : dg("applyDraft")}
     </button>
 {/snippet}
 
@@ -1757,7 +1773,7 @@
     <div
         class="flex gap-2 overflow-x-auto rounded-m3-full bg-m3-surface-container-high p-1 xl:hidden"
         role="tablist"
-        aria-label="Generator workspace sections"
+        aria-label={dg("workspaceSections")}
     >
         {#each workspaceStageChoices as choice}
             <button
@@ -1779,7 +1795,7 @@
 {#snippet setupPanel()}
     <section class="flex flex-col gap-2">
         <h3 class="text-m3-title-small text-m3-on-surface">
-            Recipe
+            {dg("recipe")}
         </h3>
         <div class="grid grid-cols-1 gap-2">
             {#each recipeChoices as choice}
@@ -1808,7 +1824,7 @@
     {#if recipe === "room"}
         <section class="flex flex-col gap-2">
             <h3 class="text-m3-title-small text-m3-on-surface">
-                Area
+                {dg("area")}
             </h3>
             {#if areaChoices.length > 0}
                 <div class="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto pr-1">
@@ -1827,7 +1843,7 @@
                 </div>
             {:else}
                 <p class="rounded-m3-card bg-m3-error-container px-3 py-2 text-m3-body-small text-m3-on-error-container">
-                    No Home Assistant areas are available yet.
+                    {dg("noAreas")}
                 </p>
             {/if}
         </section>
@@ -1836,7 +1852,7 @@
     {#if recipe === "floor"}
         <section class="flex flex-col gap-2">
             <h3 class="text-m3-title-small text-m3-on-surface">
-                Floor
+                {dg("floor")}
             </h3>
             {#if floorChoices.length > 0}
                 <div class="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto pr-1">
@@ -1855,7 +1871,7 @@
                 </div>
             {:else}
                 <p class="rounded-m3-card bg-m3-error-container px-3 py-2 text-m3-body-small text-m3-on-error-container">
-                    No Home Assistant floors are available yet.
+                    {dg("noFloors")}
                 </p>
             {/if}
         </section>
@@ -1864,7 +1880,7 @@
     {#if recipe === "entity_type"}
         <section class="flex flex-col gap-2">
             <h3 class="text-m3-title-small text-m3-on-surface">
-                Entity Type
+                {dg("entityType")}
             </h3>
             {#if entityTypeChoices.length > 0}
                 <div class="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto pr-1">
@@ -1888,7 +1904,7 @@
                 </div>
             {:else}
                 <p class="rounded-m3-card bg-m3-error-container px-3 py-2 text-m3-body-small text-m3-on-error-container">
-                    No Home Assistant entities are available yet.
+                    {dg("noEntities")}
                 </p>
             {/if}
         </section>
@@ -1897,7 +1913,7 @@
     {#if recipe === "label"}
         <section class="flex flex-col gap-2">
             <h3 class="text-m3-title-small text-m3-on-surface">
-                Label
+                {dg("label")}
             </h3>
             {#if labelChoices.length > 0}
                 <div class="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto pr-1">
@@ -1921,7 +1937,7 @@
                 </div>
             {:else}
                 <p class="rounded-m3-card bg-m3-error-container px-3 py-2 text-m3-body-small text-m3-on-error-container">
-                    No Home Assistant labels are available yet.
+                    {dg("noLabels")}
                 </p>
             {/if}
         </section>
@@ -1931,7 +1947,7 @@
         <section class="grid grid-cols-3 gap-2">
             <div class="rounded-m3-card bg-m3-surface-container-high p-3">
                 <div class="text-m3-label-small text-m3-on-surface-variant">
-                    Cards
+                    {dg("cards")}
                 </div>
                 <div class="text-m3-title-large text-m3-on-surface">
                     {visibleCardCount}
@@ -1939,7 +1955,7 @@
             </div>
             <div class="rounded-m3-card bg-m3-surface-container-high p-3">
                 <div class="text-m3-label-small text-m3-on-surface-variant">
-                    Entities
+                    {dg("entities")}
                 </div>
                 <div class="text-m3-title-large text-m3-on-surface">
                     {draft.summary.included}
@@ -1947,7 +1963,7 @@
             </div>
             <div class="rounded-m3-card bg-m3-surface-container-high p-3">
                 <div class="text-m3-label-small text-m3-on-surface-variant">
-                    Rooms
+                    {dg("rooms")}
                 </div>
                 <div class="text-m3-title-large text-m3-on-surface">
                     {relatedDashboardCount}
@@ -1958,11 +1974,10 @@
         <section class="flex flex-col gap-3">
             <div>
                 <h3 class="text-m3-title-small text-m3-on-surface">
-                    Visual Treatment
+                    {dg("visualTreatment")}
                 </h3>
                 <p class="text-m3-body-small text-m3-on-surface-variant">
-                    Optional. Adds generated or HA area images behind
-                    generated dashboard tabs.
+                    {dg("visualTreatment.description")}
                 </p>
             </div>
             <button
@@ -1975,12 +1990,10 @@
                     (useBackgroundImages = !useBackgroundImages)}
             >
                 <span class="block text-m3-label-large">
-                    Use Background Images
+                    {dg("useBackgroundImages")}
                 </span>
                 <span class="block text-m3-body-small opacity-75">
-                    Keeps MD3 cards readable with a theme scrim and local
-                    accent. You can edit or remove backgrounds later in
-                    grid settings.
+                    {dg("useBackgroundImages.description")}
                 </span>
             </button>
         </section>
@@ -1988,10 +2001,10 @@
         <section class="flex flex-col gap-3">
             <div>
                 <h3 class="text-m3-title-small text-m3-on-surface">
-                    Regeneration Mode
+                    {dg("regenerationMode")}
                 </h3>
                 <p class="text-m3-body-small text-m3-on-surface-variant">
-                    Choose whether edited generated cards are kept when this draft is applied.
+                    {dg("regenerationMode.description")}
                 </p>
             </div>
             <div class="grid grid-cols-1 gap-2">
@@ -2007,10 +2020,10 @@
                     }}
                 >
                     <span class="block text-m3-label-large">
-                        Preserve Edits
+                        {dg("preserveEdits")}
                     </span>
                     <span class="block text-m3-body-small opacity-75">
-                        Keep manual, pinned, and edited generated cards.
+                        {dg("preserveEdits.description")}
                     </span>
                 </button>
                 <button
@@ -2025,18 +2038,16 @@
                     }}
                 >
                     <span class="block text-m3-label-large">
-                        Clean Generated
+                        {dg("cleanGenerated")}
                     </span>
                     <span class="block text-m3-body-small opacity-75">
-                        Replace edited generated cards. Manual and pinned content stays.
+                        {dg("cleanGenerated.description")}
                     </span>
                 </button>
             </div>
             {#if cleanApplyConfirmationPending}
                 <p class="rounded-m3-card bg-m3-error-container px-3 py-2 text-m3-body-small text-m3-on-error-container">
-                    Clean regeneration will replace edited generated
-                    cards in this scope. Press Confirm Clean Apply to
-                    continue, or switch back to Preserve Edits.
+                    {dg("cleanWarning")}
                 </p>
             {/if}
         </section>
@@ -2045,10 +2056,10 @@
             <section class="flex flex-col gap-3">
                 <div>
                     <h3 class="text-m3-title-small text-m3-on-surface">
-                        Card Families
+                        {dg("cardFamilies")}
                     </h3>
                     <p class="text-m3-body-small text-m3-on-surface-variant">
-                        Toggle generated families before applying the draft.
+                        {dg("cardFamilies.description")}
                     </p>
                 </div>
                 <div class="grid grid-cols-1 gap-2">
@@ -2056,7 +2067,7 @@
                         <button
                             type="button"
                             aria-pressed={!family.disabled}
-                            aria-label={`${family.disabled ? "Enable" : "Disable"} ${family.label} cards`}
+                            aria-label={dg(family.disabled ? "enableFamily" : "disableFamily", { label: family.label })}
                             class="flex items-center justify-between gap-3 rounded-m3-card p-3 text-left transition-colors {family.disabled
                                 ? 'bg-m3-surface-container-high text-m3-on-surface-variant'
                                 : 'bg-m3-secondary-container text-m3-on-secondary-container'}"
@@ -2067,11 +2078,11 @@
                                     {family.label}
                                 </span>
                                 <span class="block text-m3-body-small opacity-75">
-                                    {family.count} generated {family.count === 1 ? "card" : "cards"}
+                                    {generatedCardCountLabel(family.count)}
                                 </span>
                             </span>
                             <span class="rounded-m3-full bg-m3-surface-container-highest px-2 py-0.5 text-m3-label-small">
-                                {family.disabled ? "Off" : "On"}
+                                {family.disabled ? dg("off") : dg("on")}
                             </span>
                         </button>
                     {/each}
@@ -2083,10 +2094,10 @@
             <section class="flex flex-col gap-3">
                 <div>
                     <h3 class="text-m3-title-small text-m3-on-surface">
-                        Label Filters
+                        {dg("labelFilters")}
                     </h3>
                     <p class="text-m3-body-small text-m3-on-surface-variant">
-                        Optional. Area, domain, device class, state, and name still drive generation.
+                        {dg("labelFilters.description")}
                     </p>
                 </div>
                 <div class="flex flex-col gap-2">
@@ -2104,7 +2115,7 @@
                                     : 'bg-m3-surface-container-highest text-m3-on-surface-variant hover:text-m3-on-surface'}"
                                 onclick={() => toggleLabelFilter("include", label)}
                             >
-                                Include
+                                {dg("include")}
                             </button>
                             <button
                                 type="button"
@@ -2115,7 +2126,7 @@
                                     : 'bg-m3-surface-container-highest text-m3-on-surface-variant hover:text-m3-on-surface'}"
                                 onclick={() => toggleLabelFilter("exclude", label)}
                             >
-                                Exclude
+                                {dg("exclude")}
                             </button>
                         </div>
                     {/each}
@@ -2132,17 +2143,16 @@
                 <div class="mb-4 flex items-start justify-between gap-4">
                     <div>
                         <h4 class="text-m3-title-small text-m3-on-surface">
-                            Edit Draft Details
+                            {dg("editDraftDetails")}
                         </h4>
                         <p class="text-m3-body-small text-m3-on-surface-variant">
-                            Changes are kept in this preview until you apply
-                            the draft.
+                            {dg("editDraftDetails.description")}
                         </p>
                     </div>
                     <button
                         type="button"
                         class="rounded-m3-full p-2 text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface"
-                        aria-label="Close draft details editor"
+                        aria-label={dg("closeDraftEditor")}
                         onclick={closePreviewItemEditor}
                     >
                         <IconClose class="size-5" />
@@ -2152,28 +2162,28 @@
                 <div class="grid grid-cols-1 gap-3">
                     <TextField
                         variant="outlined"
-                        label="Card name"
-                        placeholder="Card name"
+                        label={dg("cardName")}
+                        placeholder={dg("cardName")}
                         bind:value={editName}
                     />
                     <TextField
                         variant="outlined"
-                        label="Icon"
-                        placeholder="material symbol name"
+                        label={dg("icon")}
+                        placeholder={dg("iconPlaceholder")}
                         bind:value={editIcon}
                     />
                     {#if editingItem.cardType === "title"}
                         <TextField
                             variant="outlined"
-                            label="Subtitle"
-                            placeholder="Optional subtitle"
+                            label={dg("subtitle")}
+                            placeholder={dg("optionalSubtitle")}
                             bind:value={editSubtitle}
                         />
                     {/if}
                     {#if editingItem.cardType === "navigation"}
                         <TextField
                             variant="outlined"
-                            label="Route path"
+                            label={dg("routePath")}
                             placeholder="/dashboard/floor/room"
                             bind:value={editPath}
                         />
@@ -2186,7 +2196,7 @@
                         class="inline-flex h-10 items-center justify-center rounded-m3-full px-4 text-m3-label-large text-m3-on-surface-variant hover:bg-m3-surface-container-highest"
                         onclick={closePreviewItemEditor}
                     >
-                        Cancel
+                        {dg("cancel")}
                     </button>
                     <button
                         type="button"
@@ -2194,7 +2204,7 @@
                         onclick={savePreviewItemEdits}
                     >
                         <IconCheck class="size-5" />
-                        Save Draft Changes
+                        {dg("saveDraftChanges")}
                     </button>
                 </div>
             </section>
@@ -2203,11 +2213,10 @@
         <section class="flex flex-col gap-3">
             <div>
                 <h3 class="text-m3-title-small text-m3-on-surface">
-                    Inventory Quality
+                    {dg("inventoryQuality")}
                 </h3>
                 <p class="text-m3-body-small text-m3-on-surface-variant">
-                    Room source coverage across {inventoryQuality.total}
-                    loaded entities.
+                    {dg("inventoryQuality.description", { count: inventoryQuality.total })}
                 </p>
             </div>
             <div class="grid grid-cols-2 gap-2">
@@ -2229,8 +2238,7 @@
             </div>
             {#if inventoryQuality.nameInference > 0 || inventoryQuality.unassigned > 0}
                 <p class="rounded-m3-card bg-m3-surface-container-high px-3 py-2 text-m3-body-small text-m3-on-surface-variant">
-                    Name inference is useful for weak HA labels, but
-                    these matches should be reviewed before applying.
+                    {dg("nameInferenceWarning")}
                 </p>
             {/if}
         </section>
@@ -2239,10 +2247,10 @@
             <section class="flex flex-col gap-3">
                 <div>
                     <h3 class="text-m3-title-small text-m3-on-surface">
-                        Included in Draft
+                        {dg("includedInDraft")}
                     </h3>
                     <p class="text-m3-body-small text-m3-on-surface-variant">
-                        These entities are pinned into the generated draft until restored.
+                        {dg("includedInDraft.description")}
                     </p>
                 </div>
                 <div class="flex flex-col gap-2">
@@ -2254,10 +2262,10 @@
                             <button
                                 type="button"
                                 class="rounded-m3-full bg-m3-surface-container-highest px-3 py-1 text-m3-label-small text-m3-on-surface-variant transition-colors hover:text-m3-on-surface"
-                                aria-label={`Restore ${entityId} to automatic generation`}
+                                aria-label={dg("restoreAuto", { entityId })}
                                 onclick={() => restoreIncludedEntity(entityId)}
                             >
-                                Restore
+                                {dg("restore")}
                             </button>
                         </div>
                     {/each}
@@ -2269,10 +2277,10 @@
             <section class="flex flex-col gap-3">
                 <div>
                     <h3 class="text-m3-title-small text-m3-on-surface">
-                        Excluded from Draft
+                        {dg("excludedFromDraft")}
                     </h3>
                     <p class="text-m3-body-small text-m3-on-surface-variant">
-                        These entities are ignored until restored or the workspace is closed.
+                        {dg("excludedFromDraft.description")}
                     </p>
                 </div>
                 <div class="flex flex-col gap-2">
@@ -2284,10 +2292,10 @@
                             <button
                                 type="button"
                                 class="rounded-m3-full bg-m3-surface-container-highest px-3 py-1 text-m3-label-small text-m3-on-surface-variant transition-colors hover:text-m3-on-surface"
-                                aria-label={`Restore ${entityId} to draft`}
+                                aria-label={dg("restoreDraft", { entityId })}
                                 onclick={() => restoreExcludedEntity(entityId)}
                             >
-                                Restore
+                                {dg("restore")}
                             </button>
                         </div>
                     {/each}
@@ -2298,7 +2306,7 @@
         {#if draft.warnings.length > 0}
             <section class="flex flex-col gap-2">
                 <h3 class="text-m3-title-small text-m3-on-surface">
-                    Warnings
+                    {dg("warnings")}
                 </h3>
                 {#each draft.warnings as warning}
                     <p class="rounded-m3-card bg-m3-tertiary-container px-3 py-2 text-m3-body-small text-m3-on-tertiary-container">
@@ -2312,10 +2320,10 @@
             <section class="flex flex-col gap-2">
                 <div>
                     <h3 class="text-m3-title-small text-m3-on-surface">
-                        Quality Hints
+                        {dg("qualityHints")}
                     </h3>
                     <p class="text-m3-body-small text-m3-on-surface-variant">
-                        Generation confidence and cleanup opportunities.
+                        {dg("qualityHints.description")}
                     </p>
                 </div>
                 <div class="flex flex-col gap-2">
@@ -2332,7 +2340,10 @@
                                 </div>
                                 <span
                                     class="rounded-m3-full bg-m3-surface-container-highest px-2 py-0.5 text-m3-label-small text-m3-on-surface-variant"
-                                    aria-label={`${group.label}: ${group.entityCount} affected entities`}
+                                    aria-label={dg("qualityGroupCountAria", {
+                                        label: group.label,
+                                        count: group.entityCount,
+                                    })}
                                 >
                                     {group.entityCount}
                                 </span>
@@ -2360,7 +2371,7 @@
                                         <button
                                             type="button"
                                             class="mt-3 rounded-m3-full bg-m3-surface-container-high px-3 py-1.5 text-m3-label-small text-m3-on-surface transition-colors hover:brightness-95"
-                                            aria-label={`Review ${getQualityHintLabel(hint.code)} entities`}
+                                            aria-label={dg("reviewHintEntities", { label: getQualityHintLabel(hint.code) })}
                                             onclick={() => reviewQualityHint(hint.code)}
                                         >
                                             {reviewTarget.label}
@@ -2377,10 +2388,10 @@
         <section class="flex min-h-0 flex-col gap-3">
             <div>
                 <h3 class="text-m3-title-small text-m3-on-surface">
-                    Entity Review
+                    {dg("entityReview")}
                 </h3>
                 <p class="text-m3-body-small text-m3-on-surface-variant">
-                    Why the generator used or skipped entities.
+                    {dg("entityReview.description")}
                 </p>
             </div>
             <div class="grid grid-cols-2 gap-2">
@@ -2392,7 +2403,7 @@
                         : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:text-m3-on-surface'}"
                     onclick={() => (entityReviewMode = "included")}
                 >
-                    Included {includedEntityRows.length}
+                    {dg("included")} {includedEntityRows.length}
                 </button>
                 <button
                     type="button"
@@ -2402,11 +2413,12 @@
                         : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:text-m3-on-surface'}"
                     onclick={() => (entityReviewMode = "skipped")}
                 >
-                    Skipped {skippedEntityRows.length}
+                    {dg("skipped")} {skippedEntityRows.length}
                 </button>
             </div>
             <div class="flex flex-wrap gap-2">
                 {#each entityReviewSourceChoices as choice}
+                    {@const sourceEntityLabel = dg("showSourceEntities", { label: choice.label })}
                     <button
                         type="button"
                         class="rounded-m3-full px-3 py-1 text-m3-label-small transition-colors {entityReviewSourceFilter ===
@@ -2415,8 +2427,9 @@
                                 ? 'bg-m3-tertiary-container text-m3-on-tertiary-container'
                                 : 'bg-m3-primary text-m3-on-primary'
                             : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:text-m3-on-surface'}"
-                        aria-label={`Show ${choice.label} entities`}
+                        aria-label={sourceEntityLabel}
                         aria-pressed={entityReviewSourceFilter === choice.id}
+                        title={sourceEntityLabel}
                         onclick={() => (entityReviewSourceFilter = choice.id)}
                     >
                         {choice.label} {choice.count}
@@ -2434,7 +2447,7 @@
                                     </span>
                                     {#if row.count > 1}
                                         <span class="rounded-m3-full bg-m3-surface-container px-2 py-0.5 text-m3-label-small text-m3-on-surface-variant">
-                                            {row.count} uses
+                                            {dg("uses", { count: row.count })}
                                         </span>
                                     {/if}
                                 </div>
@@ -2454,7 +2467,7 @@
                                     <div class="mt-2 flex flex-wrap gap-1">
                                         {#if typeof row.importanceScore === "number"}
                                             <span class="rounded-m3-full bg-m3-surface-container px-2 py-0.5 text-m3-label-small text-m3-on-surface-variant">
-                                                Score {row.importanceScore}
+                                                {dg("score", { score: row.importanceScore })}
                                             </span>
                                         {/if}
                                         {#each row.importanceReasons.slice(0, 3) as reason}
@@ -2471,19 +2484,19 @@
                                     <button
                                         type="button"
                                         class="mt-2 rounded-m3-full bg-m3-error-container px-3 py-1 text-m3-label-small text-m3-on-error-container transition-colors hover:brightness-95"
-                                        aria-label={`Exclude ${row.entityId} from draft`}
+                                        aria-label={dg("excludeEntityFromDraft", { entityId: row.entityId })}
                                         onclick={() => excludeEntityFromDraft(row.entityId)}
                                     >
-                                        Exclude
+                                        {dg("exclude")}
                                     </button>
                                 {:else}
                                     <button
                                         type="button"
                                         class="mt-2 rounded-m3-full bg-m3-primary px-3 py-1 text-m3-label-small text-m3-on-primary transition-colors hover:brightness-95"
-                                        aria-label={`Include ${row.entityId} in draft`}
+                                        aria-label={dg("includeEntityInDraft", { entityId: row.entityId })}
                                         onclick={() => includeEntityInDraft(row.entityId)}
                                     >
-                                        Include
+                                        {dg("include")}
                                     </button>
                                 {/if}
                             </div>
@@ -2491,9 +2504,10 @@
                     </div>
                 {:else}
                     <p class="px-2 py-4 text-center text-m3-body-small text-m3-on-surface-variant">
-                        No {entityReviewMode} {getEntityReviewSourceLabel(
-                            entityReviewSourceFilter,
-                        ).toLowerCase()} entities for this draft.
+                        {dg("noEntityRows", {
+                            mode: entityReviewMode === "included" ? dg("included").toLowerCase() : dg("skipped").toLowerCase(),
+                            source: getEntityReviewSourceLabel(entityReviewSourceFilter).toLowerCase(),
+                        })}
                     </p>
                 {/if}
             </div>
@@ -2509,24 +2523,24 @@
                     {selectedPreviewTitle}
                 </h3>
                 <p class="text-m3-body-small text-m3-on-surface-variant">
-                    {selectedPreviewDescription}. Remove anything you do not want before applying.
+                    {selectedPreviewDescription}. {dg("previewDescriptionSuffix")}
                 </p>
             </div>
             <span class="rounded-m3-full bg-m3-surface-container-high px-3 py-1 text-m3-label-small text-m3-on-surface-variant">
-                Draft only
+                {dg("draftOnly")}
             </span>
         </div>
 
         {#if previewConfigs.length > 1}
             <section class="flex flex-col gap-2">
                 <h3 class="text-m3-title-small text-m3-on-surface">
-                    Preview
+                    {dg("preview")}
                 </h3>
                 <div class="flex gap-2 overflow-x-auto pb-1">
                     {#each previewConfigs as previewChoice}
                         <button
                             type="button"
-                            aria-label={`Preview ${previewChoice.label}`}
+                            aria-label={dg("previewChoice", { label: previewChoice.label })}
                             class="flex min-w-48 items-center gap-3 rounded-m3-card px-3 py-2 text-left transition-colors {selectedPreviewConfigId ===
                             previewChoice.id
                                 ? 'bg-m3-secondary-container text-m3-on-secondary-container'
@@ -2543,7 +2557,10 @@
                                     {previewChoice.label}
                                 </span>
                                 <span class="block truncate text-m3-body-small opacity-75">
-                                    {previewChoice.description} - {getConfigCardCount(previewChoice.config)} cards
+                                    {dg("previewChoiceCards", {
+                                        description: previewChoice.description,
+                                        count: getConfigCardCount(previewChoice.config),
+                                    })}
                                 </span>
                             </span>
                         </button>
@@ -2559,7 +2576,7 @@
                         class="absolute right-2 top-2 z-20 rounded-full bg-m3-error-container p-2 text-m3-on-error-container opacity-0 shadow-m3-elevation-1 transition-opacity {nested
                             ? 'group-hover/nested-preview-card:opacity-100'
                             : 'group-hover/preview-card:opacity-100'} focus:opacity-100"
-                        title="Remove from draft"
+                        title={dg("removeFromDraft")}
                         onclick={() => removePreviewItem(item.id)}
                     >
                         <IconDelete class="size-4" />
@@ -2569,8 +2586,8 @@
                         class="absolute right-12 top-2 z-20 rounded-full bg-m3-surface-container-high p-2 text-m3-on-surface opacity-0 shadow-m3-elevation-1 transition-opacity hover:bg-m3-surface-container-highest {nested
                             ? 'group-hover/nested-preview-card:opacity-100'
                             : 'group-hover/preview-card:opacity-100'} focus:opacity-100"
-                        title="Edit draft details"
-                        aria-label={`Edit ${item.name || item.cardType} draft details`}
+                        title={dg("editDraftDetailsTitle")}
+                        aria-label={dg("editDraftDetailsAria", { label: item.name || item.cardType })}
                         onclick={() => openPreviewItemEditor(item)}
                     >
                         <IconEdit class="size-4" />
@@ -2585,9 +2602,12 @@
                                 ? 'bg-m3-primary text-m3-on-primary'
                                 : 'bg-m3-surface-container-high text-m3-on-surface hover:bg-m3-surface-container-highest'}"
                             title={item.generationState === "pinned"
-                                ? "Unpin from draft"
-                                : "Pin in draft"}
-                            aria-label={`${item.generationState === "pinned" ? "Unpin" : "Pin"} ${item.name || item.cardType} in draft`}
+                                ? dg("unpinFromDraft")
+                                : dg("pinInDraft")}
+                            aria-label={dg("pinDraftAria", {
+                                action: item.generationState === "pinned" ? dg("unpin") : dg("pin"),
+                                label: item.name || item.cardType,
+                            })}
                             aria-pressed={item.generationState === "pinned"}
                             onclick={() => togglePreviewItemPin(item)}
                         >
@@ -2603,8 +2623,8 @@
                             <button
                                 type="button"
                                 class="inline-flex size-8 items-center justify-center rounded-m3-full bg-m3-surface-container-high text-m3-on-surface shadow-m3-elevation-1 hover:bg-m3-surface-container-highest disabled:pointer-events-none disabled:opacity-40"
-                                title="Move earlier in draft"
-                                aria-label={`Move ${item.name || item.cardType} earlier`}
+                                title={dg("moveEarlier")}
+                                aria-label={dg("moveEarlierAria", { label: item.name || item.cardType })}
                                 disabled={!canMovePreviewItem(item.id, "previous")}
                                 onclick={() => movePreviewItem(item.id, "previous")}
                             >
@@ -2613,8 +2633,8 @@
                             <button
                                 type="button"
                                 class="inline-flex size-8 items-center justify-center rounded-m3-full bg-m3-surface-container-high text-m3-on-surface shadow-m3-elevation-1 hover:bg-m3-surface-container-highest disabled:pointer-events-none disabled:opacity-40"
-                                title="Move later in draft"
-                                aria-label={`Move ${item.name || item.cardType} later`}
+                                title={dg("moveLater")}
+                                aria-label={dg("moveLaterAria", { label: item.name || item.cardType })}
                                 disabled={!canMovePreviewItem(item.id, "next")}
                                 onclick={() => movePreviewItem(item.id, "next")}
                             >
@@ -2629,11 +2649,11 @@
                         class="absolute bottom-2 left-2 z-20 inline-flex items-center gap-1 rounded-m3-full bg-m3-primary px-3 py-1.5 text-m3-label-small text-m3-on-primary opacity-0 shadow-m3-elevation-1 transition-opacity {nested
                             ? 'group-hover/nested-preview-card:opacity-100'
                             : 'group-hover/preview-card:opacity-100'} focus:opacity-100"
-                        title={`Preview ${item.name} room dashboard`}
+                        title={dg("previewRoomDashboard", { label: item.name })}
                         onclick={() => inspectNavigationTarget(item)}
                     >
                         <IconRoom class="size-4" />
-                        Inspect
+                        {dg("inspect")}
                     </button>
                 {/if}
             {/snippet}
@@ -2765,7 +2785,7 @@
             {:else}
                 <div class="flex min-h-80 items-center justify-center rounded-m3-card border border-dashed border-m3-outline-variant bg-m3-surface-container-low p-6 text-center">
                     <p class="text-m3-body-medium text-m3-on-surface-variant">
-                        No preview cards were generated for this selection.
+                        {dg("noPreviewCards")}
                     </p>
                 </div>
             {/if}
@@ -2791,13 +2811,13 @@
                                 level={2}
                                 class="text-m3-headline-small text-m3-on-surface"
                             >
-                                Generate Dashboard
+                                {dg("title")}
                             </Dialog.Title>
                             <Dialog.Description
                                 id="dashboard-generation-description"
                                 class="text-m3-body-medium text-m3-on-surface-variant"
                             >
-                                Preview first, then apply when it looks right.
+                                {dg("description")}
                             </Dialog.Description>
                         </div>
                     </div>
@@ -2808,7 +2828,7 @@
                             onclick={refreshInventorySnapshot}
                         >
                             <IconRefresh class="size-5" />
-                            Refresh
+                            {dg("refresh")}
                         </button>
                         {@render workspaceActions()}
                     </div>

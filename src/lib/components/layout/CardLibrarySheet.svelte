@@ -26,6 +26,7 @@
         type DashboardCardType,
     } from "$lib/types/dashboard";
     import type { Component } from "svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
 
     let open = $derived(cardEditorStore.mode === "library");
 
@@ -46,38 +47,20 @@
 
     const cardSections: Array<{
         id: LibrarySectionId;
-        title: string;
-        description: string;
     }> = [
-        {
-            id: "core",
-            title: "Core Controls",
-            description: "Single-entity cards for daily dashboard control.",
-        },
-        {
-            id: "layout",
-            title: "Layout",
-            description: "Structure, navigation, tabs, and chart surfaces.",
-        },
-        {
-            id: "smart",
-            title: "Smart Summaries",
-            description: "Auto-discovered cards backed by HA inventory data.",
-        },
-        {
-            id: "specialist",
-            title: "Specialist Controls",
-            description: "Focused panels for media, remotes, and devices.",
-        },
+        { id: "core" },
+        { id: "layout" },
+        { id: "smart" },
+        { id: "specialist" },
     ];
 
     const cardTypes: LibraryCardDefinition[] = [
         {
             id: "light",
             configType: "button",
-            name: "Light",
-            description: "Control lights and dimmers",
-            sourcePattern: "MD3 Button tile",
+            name: "cardLibrary.light.name",
+            description: "cardLibrary.light.description",
+            sourcePattern: "cardLibrary.pattern.md3Button",
             icon: IconLightbulb,
             domain: "light",
             section: "core",
@@ -85,9 +68,9 @@
         {
             id: "title",
             configType: "title",
-            name: "Title",
-            description: "Section header",
-            sourcePattern: "Dashboard section label",
+            name: "cardLibrary.title.name",
+            description: "cardLibrary.title.description",
+            sourcePattern: "cardLibrary.pattern.sectionLabel",
             icon: IconHdrAuto,
             domain: "",
             section: "layout",
@@ -95,9 +78,9 @@
         {
             id: "tabs",
             configType: "tabs",
-            name: "Tabs",
-            description: "Container with multiple tabs",
-            sourcePattern: "MD3 tab container",
+            name: "cardLibrary.tabs.name",
+            description: "cardLibrary.tabs.description",
+            sourcePattern: "cardLibrary.pattern.tabContainer",
             icon: IconViewModule,
             domain: "",
             section: "layout",
@@ -105,9 +88,9 @@
         {
             id: "switch",
             configType: "button",
-            name: "Switch",
-            description: "Toggle switches and outlets",
-            sourcePattern: "MD3 Button tile",
+            name: "cardLibrary.switch.name",
+            description: "cardLibrary.switch.description",
+            sourcePattern: "cardLibrary.pattern.md3Button",
             icon: IconToggleOn,
             domain: "switch",
             section: "core",
@@ -115,9 +98,9 @@
         {
             id: "thermostat",
             configType: "thermostat",
-            name: "Thermostat",
-            description: "Climate control",
-            sourcePattern: "Native climate panel",
+            name: "cardLibrary.thermostat.name",
+            description: "cardLibrary.thermostat.description",
+            sourcePattern: "cardLibrary.pattern.climatePanel",
             icon: IconThermostat,
             domain: "climate",
             section: "core",
@@ -125,9 +108,9 @@
         {
             id: "media",
             configType: "media",
-            name: "Media Player",
-            description: "Control media playback",
-            sourcePattern: "Inspired by Mini Media Player",
+            name: "cardLibrary.media.name",
+            description: "cardLibrary.media.description",
+            sourcePattern: "cardLibrary.pattern.miniMedia",
             icon: IconPlayCircle,
             domain: "media_player",
             section: "specialist",
@@ -135,9 +118,9 @@
         {
             id: "graph",
             configType: "graph",
-            name: "Graph",
-            description: "History graph with auto-aggregation",
-            sourcePattern: "Inspired by Mini Graph",
+            name: "cardLibrary.graph.name",
+            description: "cardLibrary.graph.description",
+            sourcePattern: "cardLibrary.pattern.miniGraph",
             icon: IconShowChart,
             domain: "sensor",
             section: "layout",
@@ -145,9 +128,9 @@
         {
             id: "navigation",
             configType: "navigation",
-            name: "Navigation",
-            description: "Link to another page",
-            sourcePattern: "Inspired by Bubble navigation",
+            name: "cardLibrary.navigation.name",
+            description: "cardLibrary.navigation.description",
+            sourcePattern: "cardLibrary.pattern.bubbleNavigation",
             icon: IconLink,
             domain: "",
             section: "layout",
@@ -155,9 +138,9 @@
         {
             id: "room",
             configType: "room",
-            name: "Room",
-            description: "Area summary with smart controls",
-            sourcePattern: "Inspired by Mushroom and Bubble",
+            name: "cardLibrary.room.name",
+            description: "cardLibrary.room.description",
+            sourcePattern: "cardLibrary.pattern.mushroomBubble",
             icon: IconRoom,
             domain: "",
             section: "smart",
@@ -166,9 +149,9 @@
         {
             id: "collection",
             configType: "collection",
-            name: "Collection",
-            description: "Auto entity lists and status views",
-            sourcePattern: "Inspired by Auto Entities",
+            name: "cardLibrary.collection.name",
+            description: "cardLibrary.collection.description",
+            sourcePattern: "cardLibrary.pattern.autoEntities",
             icon: IconFilterAlt,
             domain: "",
             section: "smart",
@@ -177,9 +160,9 @@
         {
             id: "energy",
             configType: "energy",
-            name: "Energy",
-            description: "Solar, grid, home, and usage overview",
-            sourcePattern: "Inspired by Power Flow Plus",
+            name: "cardLibrary.energy.name",
+            description: "cardLibrary.energy.description",
+            sourcePattern: "cardLibrary.pattern.powerFlow",
             icon: IconBolt,
             domain: "sensor",
             section: "smart",
@@ -188,9 +171,9 @@
         {
             id: "calendar",
             configType: "calendar",
-            name: "Calendar",
-            description: "Agenda from calendar entities",
-            sourcePattern: "Inspired by Calendar Card Pro",
+            name: "cardLibrary.calendar.name",
+            description: "cardLibrary.calendar.description",
+            sourcePattern: "cardLibrary.pattern.calendarPro",
             icon: IconCalendar,
             domain: "calendar",
             section: "smart",
@@ -199,9 +182,9 @@
         {
             id: "weather",
             configType: "weather",
-            name: "Weather",
-            description: "Weather, rain, wind, and outdoor sensors",
-            sourcePattern: "Inspired by weather/rain cards",
+            name: "cardLibrary.weather.name",
+            description: "cardLibrary.weather.description",
+            sourcePattern: "cardLibrary.pattern.weatherRain",
             icon: IconWeather,
             domain: "weather",
             section: "smart",
@@ -210,9 +193,9 @@
         {
             id: "remote",
             configType: "remote",
-            name: "Remote",
-            description: "TV and media remote controls",
-            sourcePattern: "Inspired by universal remote cards",
+            name: "cardLibrary.remote.name",
+            description: "cardLibrary.remote.description",
+            sourcePattern: "cardLibrary.pattern.remoteCards",
             icon: IconRemote,
             domain: "media_player",
             section: "specialist",
@@ -221,9 +204,9 @@
         {
             id: "device_panel",
             configType: "device_panel",
-            name: "Device Panel",
-            description: "Specialist cover, fan, vacuum, and timer controls",
-            sourcePattern: "Inspired by vacuum/fan/cover cards",
+            name: "cardLibrary.devicePanel.name",
+            description: "cardLibrary.devicePanel.description",
+            sourcePattern: "cardLibrary.pattern.deviceCards",
             icon: IconDevicePanel,
             domain: "",
             section: "specialist",
@@ -263,7 +246,7 @@
         };
 
         if (cardType.configType === "tabs") {
-            initialConfig.tabs = [createDefaultGridConfig("Tab 1")];
+            initialConfig.tabs = [createDefaultGridConfig(themeStore.t("dashboard.newTab"))];
         }
 
         const options = cloneOptions(cardType.options);
@@ -288,8 +271,8 @@
 
 <SideSheet
     {open}
-    title="Add Card"
-    subtitle="Select a card type to add"
+    title={themeStore.t("cardLibrary.title")}
+    subtitle={themeStore.t("cardLibrary.subtitle")}
     icon={IconLibraryAdd}
     onclose={handleClose}
 >
@@ -298,10 +281,10 @@
             <section class="flex flex-col gap-2">
                 <div class="px-1">
                     <h3 class="text-m3-title-small text-m3-on-surface">
-                        {section.title}
+                        {themeStore.t(`cardLibrary.section.${section.id}.title`)}
                     </h3>
                     <p class="text-m3-body-small text-m3-on-surface-variant">
-                        {section.description}
+                        {themeStore.t(`cardLibrary.section.${section.id}.description`)}
                     </p>
                 </div>
 
@@ -321,18 +304,18 @@
                                     <h4
                                         class="text-m3-title-medium text-m3-on-surface truncate"
                                     >
-                                        {cardType.name}
+                                        {themeStore.t(cardType.name)}
                                     </h4>
                                     <span
                                         class="w-fit max-w-full rounded-m3-full bg-m3-tertiary-container text-m3-on-tertiary-container px-2.5 py-1 text-m3-label-small truncate"
                                     >
-                                        {cardType.sourcePattern}
+                                        {themeStore.t(cardType.sourcePattern)}
                                     </span>
                                 </div>
                                 <p
                                     class="text-m3-body-small text-m3-on-surface-variant"
                                 >
-                                    {cardType.description}
+                                    {themeStore.t(cardType.description)}
                                 </p>
                             </div>
                         </button>

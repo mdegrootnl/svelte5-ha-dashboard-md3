@@ -1,7 +1,10 @@
 <script lang="ts">
     import { weatherStore } from "$lib/stores/weather.svelte";
     import { themeStore } from "$lib/stores/theme.svelte";
+    import { getLanguageLocale } from "$lib/i18n";
     import Card from "$lib/components/md3/Card.svelte";
+
+    let locale = $derived(getLanguageLocale(themeStore.language));
 </script>
 
 <Card variant="filled" class="h-full">
@@ -10,7 +13,7 @@
         class="px-4 py-4 md:px-6 flex justify-between items-center bg-m3-surface-container-highest/50"
     >
         <h2 class="text-title-medium font-bold text-m3-on-surface">
-            7-Day Forecast
+            {themeStore.t("weather.forecast7Day")}
         </h2>
         <span class="material-symbols-outlined text-m3-outline"
             >calendar_month</span
@@ -22,14 +25,14 @@
         <div
             class="grid grid-cols-[4rem_3rem_4rem_1fr_3.5rem_3.5rem] items-center gap-2 text-label-medium text-m3-on-surface-variant opacity-70"
         >
-            <span>Day</span>
+            <span>{themeStore.t("weather.day")}</span>
             <span></span>
             <!-- Icon -->
-            <span>Rain</span>
+            <span>{themeStore.t("weather.rain")}</span>
             <span></span>
             <!-- Spacer -->
-            <span class="text-right">Min</span>
-            <span class="text-right">Max</span>
+            <span class="text-right">{themeStore.t("weather.min")}</span>
+            <span class="text-right">{themeStore.t("weather.max")}</span>
         </div>
     </div>
 
@@ -48,7 +51,7 @@
                     {/if}
 
                     <span class="text-body-large font-medium text-m3-on-surface"
-                        >{day.date.toLocaleDateString("en-US", {
+                        >{day.date.toLocaleDateString(locale, {
                             weekday: "short",
                         })}</span
                     >

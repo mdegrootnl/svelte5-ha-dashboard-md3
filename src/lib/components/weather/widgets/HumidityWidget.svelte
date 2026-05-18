@@ -1,6 +1,7 @@
 <script lang="ts">
     import WeatherTile from "./WeatherTile.svelte";
     import { weatherStore } from "$lib/stores/weather.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
 
     let humidity = $derived(
         weatherStore.data?.current?.relative_humidity_2m ?? 0,
@@ -29,7 +30,7 @@
     );
 </script>
 
-<WeatherTile title="Humidity" icon="humidity_percentage">
+<WeatherTile title={themeStore.t("weather.humidity")} icon="humidity_percentage">
     <div
         class="relative w-full h-full flex items-center justify-between gap-4 px-2"
     >
@@ -41,7 +42,7 @@
                 {humidity}<span class="text-headline-small">%</span>
             </span>
             <span class="text-label-medium text-m3-on-surface-variant mt-1">
-                Dew point {dewPoint}°
+                {themeStore.t("weather.dewPoint", { temperature: dewPoint })}
             </span>
         </div>
 

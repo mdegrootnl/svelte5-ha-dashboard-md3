@@ -1,19 +1,22 @@
 <script lang="ts">
     import WeatherTile from "./WeatherTile.svelte";
     import { weatherStore } from "$lib/stores/weather.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
+    import { getLanguageLocale } from "$lib/i18n";
 
     let astronomy = $derived(weatherStore.data?.astronomy);
+    let locale = $derived(getLanguageLocale(themeStore.language));
 
     // 24h Format with fallback
     let sunriseStr = $derived(
-        astronomy?.sunrise?.toLocaleTimeString("en-GB", {
+        astronomy?.sunrise?.toLocaleTimeString(locale, {
             hour: "2-digit",
             minute: "2-digit",
             hour12: false,
         }) ?? "--:--",
     );
     let sunsetStr = $derived(
-        astronomy?.sunset?.toLocaleTimeString("en-GB", {
+        astronomy?.sunset?.toLocaleTimeString(locale, {
             hour: "2-digit",
             minute: "2-digit",
             hour12: false,
@@ -105,14 +108,14 @@
     });
 </script>
 
-<WeatherTile title="Sunrise & Sunset" icon="wb_twilight">
+<WeatherTile title={themeStore.t("weather.sunriseSunset")} icon="wb_twilight">
     <div class="relative w-full h-full flex flex-col justify-between">
         <!-- Top Times (Sunrise / Sunset) -->
         <div class="w-full flex justify-between items-start px-1">
             <div class="flex flex-col items-start leading-none">
                 <span
                     class="text-label-medium text-m3-on-surface-variant mb-0.5"
-                    >Sunrise</span
+                    >{themeStore.t("weather.sunrise")}</span
                 >
                 <span class="text-title-large font-bold text-m3-on-surface"
                     >{sunriseStr}</span
@@ -121,7 +124,7 @@
             <div class="flex flex-col items-end leading-none">
                 <span
                     class="text-label-medium text-m3-on-surface-variant mb-0.5"
-                    >Sunset</span
+                    >{themeStore.t("weather.sunset")}</span
                 >
                 <span class="text-title-large font-bold text-m3-on-surface"
                     >{sunsetStr}</span

@@ -2,9 +2,11 @@ import { render, screen, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import MediaCard from './MediaCard.svelte';
 import { haStore, cardEditorStore } from '$lib';
+import { themeStore } from '$lib/stores/theme.svelte';
 
 describe('MediaCard Component', () => {
     beforeEach(() => {
+        themeStore.language = 'en';
         vi.clearAllMocks();
         vi.spyOn(haStore, 'getEntity').mockReturnValue(undefined as any);
         vi.spyOn(haStore, 'callService').mockResolvedValue({ ok: true, value: undefined });

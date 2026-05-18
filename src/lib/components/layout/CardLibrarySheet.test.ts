@@ -3,6 +3,7 @@ import { tick } from 'svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CardLibrarySheet from './CardLibrarySheet.svelte';
 import { cardEditorStore } from '$lib/features/dashboard/stores/cardEditor.svelte';
+import { themeStore } from '$lib/stores/theme.svelte';
 import type { CardConfig } from '$lib/types';
 
 const smartCardCases = [
@@ -46,6 +47,7 @@ const smartCardCases = [
 describe('CardLibrarySheet', () => {
     beforeEach(() => {
         cardEditorStore.close();
+        themeStore.language = 'en';
     });
 
     it('groups cards with source-pattern labels', async () => {

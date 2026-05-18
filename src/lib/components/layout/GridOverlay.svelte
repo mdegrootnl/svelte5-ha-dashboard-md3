@@ -11,6 +11,7 @@
     } from "$lib/types/dashboard";
     import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
 
     import GridDimensionLabel from "./GridDimensionLabel.svelte";
     import IconPlus from "~icons/material-symbols/add";
@@ -307,7 +308,7 @@
                         class="touch-visible touch-hitbox insert-trigger pointer-events-auto absolute -left-6 -top-3 w-12 h-6 flex items-center justify-center z-50 opacity-0 hover:opacity-100 transition-opacity"
                         onclick={() => dashboardEditorStore.addRow(row)}
                         onpointerdown={(e) => e.stopPropagation()}
-                        title="Insert row above"
+                        title={themeStore.t("gridOverlay.insertRowAbove")}
                     >
                         <div
                             class="w-6 h-6 bg-m3-secondary-container rounded-full flex items-center justify-center shadow-sm text-m3-on-secondary-container hover:bg-m3-primary hover:text-m3-on-primary transition-colors"
@@ -327,7 +328,7 @@
                             }}
                             onmouseenter={() => (hoveredRow = row)}
                             onpointerdown={(e) => e.stopPropagation()}
-                            title="Delete row"
+                            title={themeStore.t("gridOverlay.deleteRow")}
                         >
                             <div
                                 class="w-6 h-6 bg-m3-error rounded-full flex items-center justify-center shadow-sm text-m3-on-error hover:brightness-95 transition-all"
@@ -344,7 +345,7 @@
                             class="touch-visible touch-hitbox insert-trigger pointer-events-auto absolute -left-6 -bottom-3 w-12 h-6 flex items-center justify-center z-50 opacity-0 hover:opacity-100 transition-opacity"
                             onclick={() => dashboardEditorStore.addRow(row + 1)}
                             onpointerdown={(e) => e.stopPropagation()}
-                            title="Insert row below"
+                            title={themeStore.t("gridOverlay.insertRowBelow")}
                         >
                             <div
                                 class="w-6 h-6 bg-m3-secondary-container rounded-full flex items-center justify-center shadow-sm text-m3-on-secondary-container hover:bg-m3-primary hover:text-m3-on-primary transition-colors"
@@ -371,7 +372,7 @@
                     onpointerdown={(e) => e.stopPropagation()}
                 >
                     <IconPlus class="size-5" />
-                    <span>Add</span>
+                    <span>{themeStore.t("common.add")}</span>
                 </button>
             </div>
         {/if}

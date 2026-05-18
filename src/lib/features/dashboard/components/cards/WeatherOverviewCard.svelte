@@ -2,6 +2,7 @@
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import { inventoryStore } from "$lib/stores/inventory.svelte";
     import { haStore } from "$lib/stores/ha.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import type { HAEntity, WeatherCardOptions } from "$lib/types";
     import type { DashboardCardSurfaceStyle } from "$lib/types/dashboard";
@@ -95,7 +96,7 @@
             ?? readWeatherAttribute(weather, ["wind_speed"], ["wind_speed_unit"])
             ?? "--",
     );
-    let conditionText = $derived(isUsableValue(weather?.state) ? weather?.state : "No weather entity");
+    let conditionText = $derived(isUsableValue(weather?.state) ? weather?.state : themeStore.t("weather.noWeatherEntity"));
 
     let conditionIcon = $derived.by(() => {
         const condition = (isUsableValue(weather?.state) ? weather?.state || "" : "").toLowerCase();
@@ -145,7 +146,7 @@
             </div>
             <div class="min-w-0">
                 <h3 class="text-[clamp(14px,5cqmin,20px)] font-bold leading-tight truncate">
-                    {name || "Weather"}
+                    {name || themeStore.t("nav.weather")}
                 </h3>
                 <p class="text-[clamp(10px,3.4cqmin,13px)] text-m3-on-surface-variant capitalize truncate">
                     {conditionText}
@@ -158,23 +159,23 @@
                 {temperature}
             </span>
             <div class="text-right text-[clamp(0.625rem,2.9cqmin,0.8125rem)] text-m3-on-surface-variant min-w-0">
-                <div>Humidity {humidity}</div>
-                <div>Rain {rain}</div>
-                <div>Wind {wind}</div>
+                <div>{themeStore.t("weather.humidity")} {humidity}</div>
+                <div>{themeStore.t("weather.rain")} {rain}</div>
+                <div>{themeStore.t("weather.wind")} {wind}</div>
             </div>
         </div>
 
         <div class="mt-auto grid grid-cols-3 gap-[clamp(0.25rem,2.4cqmin,0.75rem)]">
             <div class="rounded-m3-md bg-m3-surface-container-high p-[clamp(0.375rem,2.8cqmin,0.875rem)] text-center min-w-0">
-                <span class="block text-[clamp(0.625rem,2.8cqmin,0.8125rem)] text-m3-on-surface-variant">Humidity</span>
+                <span class="block text-[clamp(0.625rem,2.8cqmin,0.8125rem)] text-m3-on-surface-variant">{themeStore.t("weather.humidity")}</span>
                 <span class="font-semibold text-[clamp(0.75rem,3.8cqmin,1rem)] truncate block">{humidity}</span>
             </div>
             <div class="rounded-m3-md bg-m3-surface-container-high p-[clamp(0.375rem,2.8cqmin,0.875rem)] text-center min-w-0">
-                <span class="block text-[clamp(0.625rem,2.8cqmin,0.8125rem)] text-m3-on-surface-variant">Rain</span>
+                <span class="block text-[clamp(0.625rem,2.8cqmin,0.8125rem)] text-m3-on-surface-variant">{themeStore.t("weather.rain")}</span>
                 <span class="font-semibold text-[clamp(0.75rem,3.8cqmin,1rem)] truncate block">{rain}</span>
             </div>
             <div class="rounded-m3-md bg-m3-surface-container-high p-[clamp(0.375rem,2.8cqmin,0.875rem)] text-center min-w-0">
-                <span class="block text-[clamp(0.625rem,2.8cqmin,0.8125rem)] text-m3-on-surface-variant">Wind</span>
+                <span class="block text-[clamp(0.625rem,2.8cqmin,0.8125rem)] text-m3-on-surface-variant">{themeStore.t("weather.wind")}</span>
                 <span class="font-semibold text-[clamp(0.75rem,3.8cqmin,1rem)] truncate block">{wind}</span>
             </div>
         </div>
@@ -183,7 +184,7 @@
     <button
         class="touch-edit-control absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover/card:opacity-100 transition-opacity z-20 hover:brightness-110"
         onclick={openConfig}
-        title="Edit Weather Card"
+        title={themeStore.t("weather.editWeatherCard")}
     >
         <IconEdit class="size-[clamp(0.875rem,3.5cqmin,1.25rem)]" />
     </button>

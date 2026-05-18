@@ -1,9 +1,14 @@
 import { render, screen, fireEvent } from '@testing-library/svelte';
-import { describe, it, expect } from 'vitest';
+import { beforeEach, describe, it, expect } from 'vitest';
 import ErrorBoundary from './ErrorBoundary.svelte';
+import { themeStore } from '$lib/stores/theme.svelte';
 import { createRawSnippet } from 'svelte';
 
 describe('ErrorBoundary Component', () => {
+    beforeEach(() => {
+        themeStore.language = 'en';
+    });
+
     it('renders children when no error', () => {
         const children = createRawSnippet(() => ({ render: () => '<span>Normal Content</span>' }));
         render(ErrorBoundary, { props: { children } });

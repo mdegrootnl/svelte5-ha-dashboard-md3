@@ -5,6 +5,7 @@
     } from "$lib/domain/haInventory";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import { inventoryStore } from "$lib/stores/inventory.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
     import { getDomain } from "$lib/utils/entity";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import type { CollectionCardOptions } from "$lib/types";
@@ -301,7 +302,7 @@
                 </div>
             </div>
             {#if summaryPreviewEntities.length > 0}
-                <div class="collection-summary__entities" aria-label="Matching entities">
+                <div class="collection-summary__entities" aria-label={themeStore.t("collection.matchingEntities")}>
                     {#each summaryPreviewEntities as entity (entity.entityId)}
                         {@const stateLabel = formatEntityState(entity)}
                         <div class="collection-summary__entity" title={formatEntityTitle(entity, stateLabel)}>
@@ -320,7 +321,7 @@
                         </div>
                     {/each}
                     {#if summaryRemainingCount > 0}
-                        <div class="collection-summary__more" title={`${summaryRemainingCount} more items`}>
+                        <div class="collection-summary__more" title={themeStore.t("collection.moreItems", { count: summaryRemainingCount })}>
                             +{summaryRemainingCount}
                         </div>
                     {/if}
@@ -346,7 +347,7 @@
                         {title}
                     </h3>
                     <p class="text-[clamp(0.8125rem,max(4.8cqb,1.2cqi),0.95rem)] text-m3-on-surface-variant">
-                        {resolvedEntities.length} item{resolvedEntities.length === 1 ? "" : "s"}
+                        {themeStore.t(resolvedEntities.length === 1 ? "collection.itemCount" : "collection.itemCountPlural", { count: resolvedEntities.length })}
                     </p>
                 </div>
             </header>
@@ -369,7 +370,7 @@
                     </div>
                 {:else}
                     <div class="flex-1 flex items-center justify-center text-center text-[clamp(0.75rem,3.2cqmin,0.95rem)] text-m3-on-surface-variant px-[clamp(0.5rem,3cqmin,1rem)]">
-                        Nothing matches this collection
+                        {themeStore.t("collection.empty")}
                     </div>
                 {/each}
             </div>
@@ -380,7 +381,7 @@
         class="touch-edit-control collection-edit-button rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover/card:opacity-100 transition-opacity z-20 hover:brightness-110"
         class:collection-edit-button--summary={isSummary}
         onclick={openConfig}
-        title="Edit Collection Card"
+        title={themeStore.t("collection.editTitle")}
     >
         <IconEdit class="size-[clamp(0.875rem,3.5cqmin,1.25rem)]" />
     </button>

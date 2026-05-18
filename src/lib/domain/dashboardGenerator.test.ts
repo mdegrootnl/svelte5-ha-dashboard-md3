@@ -317,6 +317,26 @@ describe('dashboardGenerator', () => {
         expect(allItems.every((item) => item.generatedBy?.recipe === 'house')).toBe(true);
     });
 
+    it('localizes generated dashboard tabs and system card names', () => {
+        const result = generateDashboard(richContext, {
+            recipe: 'house',
+            targetDashboardId: 'dashboard_home',
+            applyMode: 'replace_draft',
+            language: 'nl',
+        });
+
+        expect(result.summary.title).toBe('Woningoverzicht');
+        expect(getNestedTabs(result.config).map((tab) => tab.name)).toEqual(
+            expect.arrayContaining(['Start', 'Statistieken', 'Media', 'Onderhoud']),
+        );
+        expect(getNestedItems(result.config, 'Start').map((item) => item.name)).toEqual(
+            expect.arrayContaining(['Ruimtes', 'Snelle acties']),
+        );
+        expect(getNestedItems(result.config, 'Onderhoud').map((item) => item.name)).toEqual(
+            expect.arrayContaining(['Lage batterijen', 'Niet beschikbaar', 'Updates']),
+        );
+    });
+
     it('keeps generated dashboard backgrounds disabled by default', () => {
         const result = generateDashboard(richContext, {
             recipe: 'house',

@@ -4,6 +4,7 @@
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import { inventoryStore } from "$lib/stores/inventory.svelte";
     import { haStore } from "$lib/stores/ha.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
     import { getDomain, getEntityName } from "$lib/utils/entity";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import type { RoomCardOptions } from "$lib/types";
@@ -52,7 +53,7 @@
 
     let areaName = $derived.by(() => {
         const area = inventoryStore.index.areas.find((item) => item.area_id === options?.areaId);
-        return name || area?.name || "Room";
+        return name || area?.name || themeStore.t("roomSummary.room");
     });
 
     let roomEntities = $derived.by(() => {
@@ -176,7 +177,7 @@
                         {areaName}
                     </h3>
                     <p class="text-[clamp(10px,3.4cqmin,13px)] text-m3-on-surface-variant truncate">
-                        {activeCount} active - {roomEntities.length} entities
+                        {themeStore.t("roomSummary.activeSummary", { active: activeCount, count: roomEntities.length })}
                     </p>
                 </div>
             </div>
@@ -189,21 +190,23 @@
 
         <div class="grid grid-cols-3 gap-[clamp(0.25rem,2.4cqmin,0.75rem)]">
             <div class="rounded-m3-md bg-m3-surface-container-high p-[clamp(0.375rem,2.8cqmin,0.875rem)]">
-                <span class="block text-[clamp(0.625rem,2.8cqmin,0.8125rem)] text-m3-on-surface-variant">Climate</span>
+                <span class="block text-[clamp(0.625rem,2.8cqmin,0.8125rem)] text-m3-on-surface-variant">{themeStore.t("roomSummary.climate")}</span>
                 <span class="text-[clamp(0.75rem,3.8cqmin,1rem)] font-semibold truncate block">
                     {climate?.attributes.current_temperature ?? climate?.state ?? "--"}
                 </span>
             </div>
             <div class="rounded-m3-md bg-m3-surface-container-high p-[clamp(0.375rem,2.8cqmin,0.875rem)]">
-                <span class="block text-[clamp(0.625rem,2.8cqmin,0.8125rem)] text-m3-on-surface-variant">Media</span>
+                <span class="block text-[clamp(0.625rem,2.8cqmin,0.8125rem)] text-m3-on-surface-variant">{themeStore.t("roomSummary.media")}</span>
                 <span class="text-[clamp(0.75rem,3.8cqmin,1rem)] font-semibold truncate block">
                     {media?.state ?? "--"}
                 </span>
             </div>
             <div class="rounded-m3-md bg-m3-surface-container-high p-[clamp(0.375rem,2.8cqmin,0.875rem)]">
-                <span class="block text-[clamp(0.625rem,2.8cqmin,0.8125rem)] text-m3-on-surface-variant">Health</span>
+                <span class="block text-[clamp(0.625rem,2.8cqmin,0.8125rem)] text-m3-on-surface-variant">{themeStore.t("roomSummary.health")}</span>
                 <span class="text-[clamp(0.75rem,3.8cqmin,1rem)] font-semibold truncate block">
-                    {problemCount === 0 ? "OK" : `${problemCount} issue${problemCount === 1 ? "" : "s"}`}
+                    {problemCount === 0
+                        ? themeStore.t("roomSummary.ok")
+                        : themeStore.t(problemCount === 1 ? "roomSummary.issueCount" : "roomSummary.issueCountPlural", { count: problemCount })}
                 </span>
             </div>
         </div>
@@ -215,7 +218,7 @@
                     <span class="truncate">{getEntityName(item.entity_id, item.attributes)}</span>
                 </span>
             {:else}
-                <span class="text-m3-body-small text-m3-on-surface-variant">No room entities found</span>
+                <span class="text-m3-body-small text-m3-on-surface-variant">{themeStore.t("roomSummary.noEntities")}</span>
             {/each}
         </div>
 
@@ -237,7 +240,7 @@
     <button
         class="touch-edit-control absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover/card:opacity-100 transition-opacity z-20 hover:brightness-110"
         onclick={openConfig}
-        title="Edit Room Card"
+        title={themeStore.t("roomSummary.editTitle")}
     >
         <IconEdit class="size-[clamp(0.875rem,3.5cqmin,1.25rem)]" />
     </button>

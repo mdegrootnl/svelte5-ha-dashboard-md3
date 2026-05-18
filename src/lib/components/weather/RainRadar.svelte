@@ -170,7 +170,7 @@
         <button
             onclick={togglePlayPause}
             class="material-symbols-outlined text-on-surface hover:text-primary transition-colors cursor-pointer"
-            aria-label={isPlaying ? "Pause" : "Play"}
+            aria-label={isPlaying ? themeStore.t("music.pause") : themeStore.t("music.play")}
         >
             {isPlaying ? "pause" : "play_arrow"}
         </button>
@@ -190,7 +190,7 @@
                     }}
                     role="button"
                     tabindex="0"
-                    aria-label={`Frame ${i + 1}`}
+                    aria-label={themeStore.t("weather.radarFrame", { index: i + 1 })}
                 ></div>
             {/each}
         </div>

@@ -4,6 +4,7 @@
     import SkipNext from "~icons/material-symbols/skip-next";
     import PlayArrow from "~icons/material-symbols/play-arrow";
     import Pause from "~icons/material-symbols/pause";
+    import { themeStore } from "$lib/stores/theme.svelte";
 
     let { entityId, theme = "light", compact = false, color = "" } = $props();
     let entity = $derived(haStore.getEntity(entityId));
@@ -85,7 +86,7 @@
         class={`touch-target-compact rounded-full transition-all flex items-center justify-center ${baseBtnClass} ${sideButtonSizeClass}`}
         style={baseBtnStyle}
         onclick={prevTrack}
-        aria-label="Previous Track"
+        aria-label={themeStore.t("mediaCard.previousTrack")}
     >
         <SkipPrevious class="size-[58%]" />
     </button>
@@ -95,7 +96,7 @@
         class={`touch-target rounded-full transition-all shadow-sm flex items-center justify-center ${playBtnClass} ${playButtonSizeClass}`}
         style={playBtnStyle}
         onclick={togglePlay}
-        aria-label={isPlaying ? "Pause" : "Play"}
+        aria-label={isPlaying ? themeStore.t("music.pause") : themeStore.t("music.play")}
     >
         {#if isPlaying}
             <Pause class="size-[58%]" />
@@ -109,7 +110,7 @@
         class={`touch-target-compact rounded-full transition-all flex items-center justify-center ${baseBtnClass} ${sideButtonSizeClass}`}
         style={baseBtnStyle}
         onclick={nextTrack}
-        aria-label="Next Track"
+        aria-label={themeStore.t("mediaCard.nextTrack")}
     >
         <SkipNext class="size-[58%]" />
     </button>

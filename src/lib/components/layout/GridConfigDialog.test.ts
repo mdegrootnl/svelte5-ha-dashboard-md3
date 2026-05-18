@@ -4,6 +4,7 @@ import GridConfigDialog from './GridConfigDialog.svelte';
 import { dashboardEditorStore } from '$lib/features/dashboard/stores/dashboardEditor.svelte';
 import { dashboardStore } from '$lib/features/dashboard/stores/dashboard.svelte';
 import { haRegistryStore } from '$lib/stores/haRegistry.svelte';
+import { themeStore } from '$lib/stores/theme.svelte';
 import { createDefaultGridConfig, type GridConfig } from '$lib/types/dashboard';
 
 function createTestGrid(name = 'Home Overview'): GridConfig {
@@ -14,6 +15,7 @@ function createTestGrid(name = 'Home Overview'): GridConfig {
 
 describe('GridConfigDialog', () => {
     beforeEach(() => {
+        themeStore.language = 'en';
         dashboardStore.setViewportProfile('desktopEdit');
         haRegistryStore.areas = [];
         vi.spyOn(dashboardEditorStore, 'updateGridConfig').mockImplementation(() => undefined);

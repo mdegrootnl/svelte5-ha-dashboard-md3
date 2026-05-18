@@ -390,7 +390,7 @@ const NavigationItemSchema = z.object({
 const ThemeConfigPartialSchema = z.object({
     sourceColor: z.string().min(1).optional(),
     isDark: z.boolean().optional(),
-    language: z.enum(['nl', 'de', 'fr', 'es']).optional(),
+    language: z.enum(['nl', 'en', 'de', 'fr', 'es']).optional(),
     navigationStyle: z.enum(['standard', 'modern']).optional(),
     cardRadius: z.number().min(0).max(32).optional(),
     tabPillRadius: z.number().min(0).max(48).optional(),

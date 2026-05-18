@@ -1,5 +1,6 @@
 <script lang="ts">
     import { haStore } from "$lib/stores/ha.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
     import IconEdit from "~icons/material-symbols/edit";
     import PowerOff from "~icons/material-symbols/power-off";
     import MusicNote from "~icons/material-symbols/music-note";
@@ -51,9 +52,9 @@
     // Derived State
     let entity = $derived(haStore.getEntity(entityId));
     let entityName = $derived(
-        entity?.attributes?.friendly_name || "Media Player",
+        entity?.attributes?.friendly_name || themeStore.t("mediaCard.mediaPlayer"),
     );
-    let title = $derived(name || entity?.attributes?.media_title || "No Media");
+    let title = $derived(name || entity?.attributes?.media_title || themeStore.t("mediaCard.noMedia"));
     let artist = $derived(
         entity?.attributes?.media_artist ||
             entity?.attributes?.media_album_name ||
@@ -184,7 +185,7 @@
                         >
                         <span
                             class="text-[clamp(14px,4.5cqmin,24px)] text-m3-on-surface-variant font-medium truncate"
-                            >Powered Off</span
+                            >{themeStore.t("mediaCard.poweredOff")}</span
                         >
                     </div>
                 </div>
@@ -194,7 +195,7 @@
                     style:color={color ? "white" : "var(--color-m3-on-primary)"}
                     onclick={turnOn}
                 >
-                    Turn On
+                    {themeStore.t("mediaCard.turnOn")}
                 </button>
             </div>
         {:else}
@@ -217,7 +218,7 @@
                     <p
                         class="text-m3-body-large text-m3-on-surface-variant font-medium"
                     >
-                        Powered Off
+                        {themeStore.t("mediaCard.poweredOff")}
                     </p>
                 </div>
                 <button
@@ -226,7 +227,7 @@
                     style:color={color ? "white" : "var(--color-m3-on-primary)"}
                     onclick={turnOn}
                 >
-                    Turn On
+                    {themeStore.t("mediaCard.turnOn")}
                 </button>
             </div>
         {/if}
@@ -247,7 +248,7 @@
                 {#if artworkSrc}
                     <AuthenticatedImage
                         src={artworkSrc}
-                        alt="Cover"
+                        alt={themeStore.t("mediaCard.cover")}
                         class="h-full max-h-[70cqmin] aspect-square rounded-[var(--radius-m3-md)] object-cover shadow-2xl"
                     />
                 {:else}
@@ -275,7 +276,7 @@
                     <p
                         class={`text-[clamp(0.75rem,3cqmin,0.9375rem)] truncate text-center ${currentTheme === "dark" ? "text-white/70" : "text-m3-on-surface-variant"}`}
                     >
-                        {artist || "Idle"}
+                        {artist || themeStore.t("mediaCard.idle")}
                     </p>
                 </div>
 
@@ -300,7 +301,7 @@
             {#if artworkSrc}
                 <AuthenticatedImage
                     src={artworkSrc}
-                    alt="Cover"
+                    alt={themeStore.t("mediaCard.cover")}
                     class="size-[15cqmin] rounded-[var(--radius-m3-sm)] object-cover shadow-sm shrink-0"
                 />
             {:else}
@@ -327,7 +328,7 @@
                 <p
                     class="text-[clamp(10px,3.5cqmin,14px)] text-m3-on-surface-variant truncate leading-tight"
                 >
-                    {artist || "Idle"}
+                    {artist || themeStore.t("mediaCard.idle")}
                 </p>
             </div>
 
@@ -343,7 +344,7 @@
                     <div class="relative group">
                         <AuthenticatedImage
                             src={artworkSrc}
-                            alt="Cover"
+                            alt={themeStore.t("mediaCard.cover")}
                             class="size-[clamp(3rem,15cqmin,5.5rem)] rounded-[var(--radius-m3-md)] object-cover shadow-md shrink-0"
                         />
                     </div>
@@ -372,7 +373,7 @@
                     <p
                         class="text-[clamp(11px,4cqmin,16px)] text-m3-on-surface-variant truncate"
                     >
-                        {artist || "Idle"}
+                        {artist || themeStore.t("mediaCard.idle")}
                     </p>
                 </div>
             </div>
@@ -392,7 +393,7 @@
         class="touch-edit-control absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary/10 text-m3-primary shadow-sm opacity-0 group-hover/card:opacity-100 transition-opacity z-50 hover:bg-m3-primary hover:text-m3-on-primary backdrop-blur-sm"
         onclick={openConfig}
         onpointerdown={(e) => e.stopPropagation()}
-        title="Edit Card"
+        title={themeStore.t("mediaCard.editTitle")}
     >
         <IconEdit class="size-[clamp(0.875rem,3.5cqmin,1.25rem)]" />
     </button>

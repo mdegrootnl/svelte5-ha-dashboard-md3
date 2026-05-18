@@ -2,6 +2,7 @@
     import { browser } from "$app/environment";
     import Button from "$lib/components/md3/Button.svelte";
     import TextField from "$lib/components/md3/TextField.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
     import type { DashboardImageAttribution } from "$lib/types/dashboard";
     import { extractAccentColorFromImageUrl } from "$lib/utils/imageAccent";
     import Upload from "~icons/material-symbols/upload";
@@ -21,7 +22,7 @@
     let {
         value = $bindable(),
         attribution = $bindable<DashboardImageAttribution | undefined>(),
-        label = "Image",
+        label = "",
         orientation = "landscape",
         enableUnsplash = false,
         enablePexels = false,
@@ -45,6 +46,14 @@
     let attributionImageUrl = $state(value || "");
     let lastExtractedValue = $state("");
     let accentExtractionTimer: ReturnType<typeof setTimeout> | undefined;
+
+    function ip(key: string, params: Record<string, string | number> = {}) {
+        return themeStore.t(`imagePicker.${key}`, params);
+    }
+
+    function photographerName(name?: string | null) {
+        return name || ip("unknownPhotographer");
+    }
 
     $effect(() => {
         if (!unsplashQuery && searchHint) {
@@ -119,11 +128,11 @@
                     const errorData = await res.json().catch(() => ({}));
                     errorMessage =
                         errorData.error ||
-                        `Upload failed with status ${res.status}`;
+                        ip("uploadFailedStatus", { status: res.status });
                     console.error("Upload failed:", errorMessage);
                 }
             } catch (err) {
-                errorMessage = "Network error or server unavailable";
+                errorMessage = ip("networkError");
                 console.error("Upload error", err);
             } finally {
                 uploading = false;
@@ -164,16 +173,16 @@
             if (!res.ok) {
                 unsplashResults = [];
                 unsplashMessage =
-                    data.error || `Unsplash search failed with status ${res.status}`;
+                    data.error || ip("unsplashFailedStatus", { status: res.status });
                 return;
             }
 
             unsplashResults = data.results || [];
             unsplashMessage =
-                unsplashResults.length === 0 ? "No Unsplash images found." : "";
+                unsplashResults.length === 0 ? ip("noUnsplash") : "";
         } catch (err) {
             unsplashResults = [];
-            unsplashMessage = "Unsplash search is unavailable.";
+            unsplashMessage = ip("unsplashUnavailable");
             console.error("Unsplash search error", err);
         } finally {
             searchingUnsplash = false;
@@ -199,16 +208,16 @@
             if (!res.ok) {
                 pexelsResults = [];
                 pexelsMessage =
-                    data.error || `Pexels search failed with status ${res.status}`;
+                    data.error || ip("pexelsFailedStatus", { status: res.status });
                 return;
             }
 
             pexelsResults = data.results || [];
             pexelsMessage =
-                pexelsResults.length === 0 ? "No Pexels images found." : "";
+                pexelsResults.length === 0 ? ip("noPexels") : "";
         } catch (err) {
             pexelsResults = [];
-            pexelsMessage = "Pexels search is unavailable.";
+            pexelsMessage = ip("pexelsUnavailable");
             console.error("Pexels search error", err);
         } finally {
             searchingPexels = false;
@@ -246,7 +255,7 @@
 </script>
 
 <div class="flex flex-col gap-2">
-    <span class="text-m3-label-large text-m3-on-surface">{label}</span>
+    <span class="text-m3-label-large text-m3-on-surface">{label || ip("image")}</span>
 
     <div class="flex items-start gap-4">
         <!-- Preview -->
@@ -259,13 +268,13 @@
             {#if value}
                 <img
                     src={value}
-                    alt="Preview"
+                    alt={ip("preview")}
                     class="w-full h-full object-cover"
                 />
                 <button
                     onclick={clear}
                     class="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    aria-label="Remove image"
+                    aria-label={ip("removeImage")}
                 >
                     <Delete class="w-5 h-5" />
                 </button>
@@ -286,7 +295,7 @@
 
         <!-- Controls -->
         <div class="flex-1 flex flex-col gap-3">
-            <TextField label="Image URL" placeholder="https://..." bind:value />
+            <TextField label={ip("imageUrl")} placeholder="https://..." bind:value />
 
             <div class="flex flex-col gap-2">
                 <input
@@ -304,7 +313,7 @@
                         icon={Upload}
                         disabled={uploading}
                     >
-                        {uploading ? "Uploading..." : "Upload Image"}
+                        {uploading ? ip("uploading") : ip("uploadImage")}
                     </Button>
                 </div>
 
@@ -316,18 +325,15 @@
             </div>
             {#if attribution?.provider === "unsplash"}
                 <p class="text-m3-body-small text-m3-on-surface-variant">
-                    Selected Unsplash photo by {attribution.authorName ||
-                        "Unknown photographer"}.
+                    {ip("selectedUnsplash", { author: photographerName(attribution.authorName) })}
                 </p>
             {:else if attribution?.provider === "pexels"}
                 <p class="text-m3-body-small text-m3-on-surface-variant">
-                    Selected Pexels photo by {attribution.authorName ||
-                        "Unknown photographer"}.
+                    {ip("selectedPexels", { author: photographerName(attribution.authorName) })}
                 </p>
             {:else}
                 <p class="text-m3-body-small text-m3-on-surface-variant">
-                    Upload a local file (saved to local functionality) or paste a
-                    URL.
+                    {ip("help")}
                 </p>
             {/if}
         </div>
@@ -338,8 +344,8 @@
             <div class="flex items-end gap-2">
                 <div class="min-w-0 flex-1">
                     <TextField
-                        label="Browse Unsplash"
-                        placeholder="kitchen interior, cozy bedroom..."
+                        label={ip("browseUnsplash")}
+                        placeholder={ip("searchPlaceholder")}
                         bind:value={unsplashQuery}
                     />
                 </div>
@@ -349,7 +355,7 @@
                     icon={Search}
                     disabled={searchingUnsplash}
                 >
-                    {searchingUnsplash ? "Searching..." : "Search"}
+                    {searchingUnsplash ? ip("searching") : ip("search")}
                 </Button>
             </div>
 
@@ -366,25 +372,23 @@
                             type="button"
                             class="group relative aspect-video overflow-hidden rounded-m3-sm border border-m3-outline-variant/50 bg-m3-surface-container-high text-left transition-all hover:border-m3-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m3-primary"
                             onclick={() => selectUnsplashImage(result)}
-                            aria-label={`Use Unsplash photo by ${result.attribution.authorName || "Unknown photographer"}`}
+                            aria-label={ip("useUnsplashPhoto", { author: photographerName(result.attribution.authorName) })}
                         >
                             <img
                                 src={result.thumbUrl}
-                                alt={result.description || "Unsplash result"}
+                                alt={result.description || ip("unsplashResult")}
                                 class="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
                             />
                             <span
                                 class="absolute inset-x-0 bottom-0 bg-black/55 px-2 py-1 text-m3-label-small text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
                             >
-                                {result.attribution.authorName ||
-                                    "Unsplash photographer"}
+                                {result.attribution.authorName || ip("unsplashPhotographer")}
                             </span>
                         </button>
                     {/each}
                 </div>
                 <p class="text-m3-body-small text-m3-on-surface-variant">
-                    Unsplash photos keep photographer attribution on the final
-                    card.
+                    {ip("unsplashAttributionHelp")}
                 </p>
             {/if}
         </div>
@@ -395,8 +399,8 @@
             <div class="flex items-end gap-2">
                 <div class="min-w-0 flex-1">
                     <TextField
-                        label="Browse Pexels"
-                        placeholder="kitchen interior, cozy bedroom..."
+                        label={ip("browsePexels")}
+                        placeholder={ip("searchPlaceholder")}
                         bind:value={pexelsQuery}
                     />
                 </div>
@@ -406,7 +410,7 @@
                     icon={Search}
                     disabled={searchingPexels}
                 >
-                    {searchingPexels ? "Searching..." : "Search"}
+                    {searchingPexels ? ip("searching") : ip("search")}
                 </Button>
             </div>
 
@@ -423,25 +427,23 @@
                             type="button"
                             class="group relative aspect-video overflow-hidden rounded-m3-sm border border-m3-outline-variant/50 bg-m3-surface-container-high text-left transition-all hover:border-m3-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m3-primary"
                             onclick={() => selectPexelsImage(result)}
-                            aria-label={`Use Pexels photo by ${result.attribution.authorName || "Unknown photographer"}`}
+                            aria-label={ip("usePexelsPhoto", { author: photographerName(result.attribution.authorName) })}
                         >
                             <img
                                 src={result.thumbUrl}
-                                alt={result.description || "Pexels result"}
+                                alt={result.description || ip("pexelsResult")}
                                 class="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
                             />
                             <span
                                 class="absolute inset-x-0 bottom-0 bg-black/55 px-2 py-1 text-m3-label-small text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
                             >
-                                {result.attribution.authorName ||
-                                    "Pexels photographer"}
+                                {result.attribution.authorName || ip("pexelsPhotographer")}
                             </span>
                         </button>
                     {/each}
                 </div>
                 <p class="text-m3-body-small text-m3-on-surface-variant">
-                    Pexels photos keep photographer attribution on the final
-                    dashboard.
+                    {ip("pexelsAttributionHelp")}
                 </p>
             {/if}
         </div>

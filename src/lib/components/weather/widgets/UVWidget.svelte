@@ -1,15 +1,16 @@
 <script lang="ts">
     import WeatherTile from "./WeatherTile.svelte";
     import { weatherStore } from "$lib/stores/weather.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
 
     let uv = $derived(weatherStore.data?.current?.uv_index ?? 0);
 
     let level = $derived.by(() => {
-        if (uv <= 2) return "Low";
-        if (uv <= 5) return "Moderate";
-        if (uv <= 7) return "High";
-        if (uv <= 10) return "Very High";
-        return "Extreme";
+        if (uv <= 2) return themeStore.t("weather.uv.low");
+        if (uv <= 5) return themeStore.t("weather.uv.moderate");
+        if (uv <= 7) return themeStore.t("weather.uv.high");
+        if (uv <= 10) return themeStore.t("weather.uv.veryHigh");
+        return themeStore.t("weather.uv.extreme");
     });
 
     let colorClass = $derived.by(() => {
@@ -19,7 +20,7 @@
     });
 </script>
 
-<WeatherTile title="UV Index" icon="wb_sunny">
+<WeatherTile title={themeStore.t("weather.uvIndex")} icon="wb_sunny">
     <div class="flex flex-col items-center gap-2">
         <!-- Dynamic UV Star Shape -->
         <div class="relative w-24 h-24 flex items-center justify-center">

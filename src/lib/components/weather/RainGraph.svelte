@@ -4,6 +4,7 @@
         type RainDataPoint,
     } from "$lib/domain/weatherEnricher";
     import { haStore } from "$lib/stores/ha.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
     import { area, line, curveMonotoneX } from "d3-shape";
     import { scaleLinear, scaleTime } from "d3-scale";
 
@@ -76,15 +77,17 @@
 <div class="flex flex-col h-full w-full">
     <div class="flex justify-between items-center mb-2">
         <h3 class="text-label-lg font-medium text-on-surface-variant">
-            Precipitation (mm/h)
+            {themeStore.t("weather.precipitation")}
         </h3>
         {#if data.length > 0}
             <span class="text-label-sm text-on-surface-variant"
-                >Next {Math.round(
-                    (data[data.length - 1].time.getTime() -
-                        data[0].time.getTime()) /
-                        60000,
-                )} min</span
+                >{themeStore.t("weather.nextMinutes", {
+                    minutes: Math.round(
+                        (data[data.length - 1].time.getTime() -
+                            data[0].time.getTime()) /
+                            60000,
+                    ),
+                })}</span
             >
         {/if}
     </div>
@@ -135,14 +138,14 @@
             <div
                 class="flex items-center justify-center h-full text-on-surface-variant/50 text-sm"
             >
-                {loading ? "Loading..." : "No Data"}
+                {loading ? themeStore.t("common.loading") : themeStore.t("common.noData")}
             </div>
         {/if}
     </div>
 
     <!-- Legend / Max Value -->
     <div class="mt-2 flex justify-between text-xs text-on-surface-variant px-1">
-        <span>Now</span>
+        <span>{themeStore.t("weather.now")}</span>
         <span
             >{data.length > 0
                 ? data[data.length - 1].time.toLocaleTimeString([], {
