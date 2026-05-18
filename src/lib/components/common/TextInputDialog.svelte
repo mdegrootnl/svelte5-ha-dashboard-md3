@@ -64,7 +64,8 @@
             <h3 class="text-m3-headline-small text-m3-on-surface">{title}</h3>
             <button
                 onclick={oncancel}
-                class="text-m3-on-surface-variant hover:text-m3-on-surface transition-colors"
+                class="touch-target rounded-full text-m3-on-surface-variant hover:text-m3-on-surface transition-colors"
+                aria-label="Close"
             >
                 <IconClose class="size-6" />
             </button>
@@ -92,14 +93,14 @@
         <div class="flex justify-end gap-2">
             <button
                 onclick={oncancel}
-                class="px-6 py-2.5 rounded-full text-m3-label-large text-m3-primary hover:bg-m3-primary/10 transition-colors"
+                class="touch-target px-6 rounded-full text-m3-label-large text-m3-primary hover:bg-m3-primary/10 transition-colors"
             >
                 Cancel
             </button>
             <button
                 onclick={handleConfirm}
                 disabled={!inputValue.trim()}
-                class="px-6 py-2.5 rounded-full text-m3-label-large bg-m3-primary text-m3-on-primary hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                class="touch-target px-6 rounded-full text-m3-label-large bg-m3-primary text-m3-on-primary hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 Confirm
             </button>

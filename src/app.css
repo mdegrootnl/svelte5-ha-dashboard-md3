@@ -72,6 +72,7 @@
     /* --- Surface & Background --- */
     --color-m3-surface: oklch(0.98 0.01 240);
     --color-m3-on-surface: oklch(0.15 0.02 240);
+    --color-m3-surface-variant: oklch(0.88 0.02 240);
     --color-m3-on-surface-variant: oklch(0.35 0.03 240);
     --color-m3-inverse-surface: oklch(0.20 0.02 240);
     --color-m3-inverse-on-surface: oklch(0.95 0.01 240);
@@ -102,7 +103,134 @@
     :root {
         --color-m3-surface: oklch(0.15 0.02 240);
         --color-m3-on-surface: oklch(0.95 0.01 240);
+        --color-m3-surface-variant: oklch(0.28 0.02 240);
         --color-m3-surface-container: oklch(0.12 0.02 240);
+    }
+}
+
+/* =========================================
+   Touch Input Primitives
+   ========================================= */
+:root {
+    --touch-target-min: 48px;
+    --touch-target-compact: 44px;
+    --touch-range-track-height: 8px;
+    --touch-range-thumb-size: 24px;
+    --touch-range-track-color: var(--color-m3-surface-container-highest);
+    --touch-range-thumb-color: var(--color-m3-primary);
+}
+
+.touch-target {
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
+    touch-action: manipulation;
+}
+
+.touch-target-compact {
+    min-width: var(--touch-target-compact);
+    min-height: var(--touch-target-compact);
+    touch-action: manipulation;
+}
+
+.touch-hitbox {
+    position: relative;
+    touch-action: manipulation;
+}
+
+.touch-hitbox::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, var(--touch-target-min));
+    height: max(100%, var(--touch-target-min));
+    transform: translate(-50%, -50%);
+    border-radius: inherit;
+}
+
+.touch-edit-control {
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
+    touch-action: manipulation;
+}
+
+.touch-pan-y {
+    touch-action: pan-y;
+}
+
+.touch-range {
+    min-height: var(--touch-target-compact);
+    appearance: none;
+    background: transparent !important;
+    touch-action: pan-y;
+}
+
+.touch-range::-webkit-slider-runnable-track {
+    height: var(--touch-range-track-height);
+    border-radius: var(--radius-m3-full);
+    background: var(--touch-range-track-color);
+}
+
+.touch-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: var(--touch-range-thumb-size);
+    height: var(--touch-range-thumb-size);
+    margin-top: calc(
+        (var(--touch-range-track-height) - var(--touch-range-thumb-size)) / 2
+    );
+    border: 2px solid var(--color-m3-surface);
+    border-radius: var(--radius-m3-full);
+    background: var(--touch-range-thumb-color);
+    box-shadow: 0 2px 6px color-mix(in srgb, var(--color-m3-scrim) 24%, transparent);
+}
+
+.touch-range::-moz-range-track {
+    height: var(--touch-range-track-height);
+    border-radius: var(--radius-m3-full);
+    background: var(--touch-range-track-color);
+}
+
+.touch-range::-moz-range-progress {
+    height: var(--touch-range-track-height);
+    border-radius: var(--radius-m3-full);
+    background: var(--touch-range-thumb-color);
+}
+
+.touch-range::-moz-range-thumb {
+    width: var(--touch-range-thumb-size);
+    height: var(--touch-range-thumb-size);
+    border: 2px solid var(--color-m3-surface);
+    border-radius: var(--radius-m3-full);
+    background: var(--touch-range-thumb-color);
+    box-shadow: 0 2px 6px color-mix(in srgb, var(--color-m3-scrim) 24%, transparent);
+}
+
+@media (hover: none), (pointer: coarse) {
+    .touch-visible,
+    button[class*="group-hover/card:opacity-100"],
+    button[class*="group-hover/grid-item:opacity-100"],
+    button[class*="group-hover:opacity-100"] {
+        opacity: 1 !important;
+        transform: none !important;
+    }
+
+    button[class*="group-hover/card:opacity-100"],
+    button[class*="group-hover/grid-item:opacity-100"],
+    button[class*="group-hover:opacity-100"] {
+        min-width: var(--touch-target-min);
+        min-height: var(--touch-target-min);
+        touch-action: manipulation;
+    }
+
+    button[class*="h-8"],
+    button[class*="h-10"],
+    button[class*="size-8"],
+    button[class*="w-10 h-10"],
+    a[class*="h-10"] {
+        min-width: var(--touch-target-compact);
+        min-height: var(--touch-target-compact);
+        touch-action: manipulation;
     }
 }
 

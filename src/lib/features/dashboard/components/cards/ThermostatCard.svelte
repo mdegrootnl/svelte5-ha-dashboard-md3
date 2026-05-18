@@ -307,7 +307,7 @@
             <!-- Status & Info -->
             <div class="flex items-center gap-[clamp(0.375rem,3cqmin,1rem)] min-w-0">
                 <button
-                    class="size-[clamp(2.5rem,20cqmin,4.25rem)] flex items-center justify-center rounded-full transition-colors shrink-0"
+                    class="touch-target-compact size-[clamp(2.5rem,20cqmin,4.25rem)] flex items-center justify-center rounded-full transition-colors shrink-0"
                     style:background-color={isActive
                         ? color
                             ? `color-mix(in srgb, ${color} 10%, transparent)`
@@ -346,7 +346,7 @@
                     class="flex items-center bg-m3-surface-container-high rounded-full p-[clamp(0.125rem,1cqmin,0.375rem)] border border-m3-outline/10"
                 >
                     <button
-                        class="size-[clamp(1.75rem,8cqmin,2.5rem)] flex items-center justify-center rounded-full hover:bg-m3-on-surface/10 text-m3-on-surface-variant text-[clamp(1rem,5cqmin,1.5rem)]"
+                        class="touch-target-compact size-[clamp(1.75rem,8cqmin,2.5rem)] flex items-center justify-center rounded-full hover:bg-m3-on-surface/10 text-m3-on-surface-variant text-[clamp(1rem,5cqmin,1.5rem)]"
                         onclick={decrementTemp}
                         aria-label="Decrease temperature"
                     >
@@ -358,7 +358,7 @@
                         {targetTemp !== null ? targetTemp.toFixed(1) : "--"}
                     </span>
                     <button
-                        class="size-[clamp(1.75rem,8cqmin,2.5rem)] flex items-center justify-center rounded-full hover:bg-m3-on-surface/10 text-m3-on-surface-variant text-[clamp(1rem,5cqmin,1.5rem)]"
+                        class="touch-target-compact size-[clamp(1.75rem,8cqmin,2.5rem)] flex items-center justify-center rounded-full hover:bg-m3-on-surface/10 text-m3-on-surface-variant text-[clamp(1rem,5cqmin,1.5rem)]"
                         onclick={incrementTemp}
                         aria-label="Increase temperature"
                     >
@@ -439,7 +439,7 @@
                     class="flex items-center gap-[clamp(0.25rem,2cqmin,0.75rem)] bg-m3-surface-container-high rounded-full px-[clamp(0.375rem,2.5cqmin,0.875rem)] py-[clamp(0.25rem,1.6cqmin,0.625rem)]"
                 >
                     <button
-                        class="size-[clamp(1.75rem,8cqmin,2.5rem)] flex items-center justify-center rounded-full text-m3-on-surface-variant hover:bg-m3-on-surface/10 transition-colors"
+                        class="touch-target-compact size-[clamp(1.75rem,8cqmin,2.5rem)] flex items-center justify-center rounded-full text-m3-on-surface-variant hover:bg-m3-on-surface/10 transition-colors"
                         onclick={decrementTemp}
                         aria-label="Decrease temperature"
                     >
@@ -451,7 +451,7 @@
                         {targetTemp !== null ? targetTemp.toFixed(1) : "--"}
                     </span>
                     <button
-                        class="size-[clamp(1.75rem,8cqmin,2.5rem)] flex items-center justify-center rounded-full text-m3-on-surface-variant hover:bg-m3-on-surface/10 transition-colors"
+                        class="touch-target-compact size-[clamp(1.75rem,8cqmin,2.5rem)] flex items-center justify-center rounded-full text-m3-on-surface-variant hover:bg-m3-on-surface/10 transition-colors"
                         onclick={incrementTemp}
                         aria-label="Increase temperature"
                     >
@@ -463,7 +463,7 @@
                 <div class="flex items-center gap-[clamp(0.25rem,2cqmin,0.75rem)]">
                     <!-- HVAC Mode Button -->
                     <button
-                        class="size-[clamp(2.25rem,10cqmin,3.75rem)] flex items-center justify-center rounded-full transition-colors"
+                        class="touch-target-compact size-[clamp(2.25rem,10cqmin,3.75rem)] flex items-center justify-center rounded-full transition-colors"
                         style:background-color={isActive
                             ? color
                                 ? `color-mix(in srgb, ${color} 10%, transparent)`
@@ -484,7 +484,7 @@
 
                     <!-- Power Button -->
                     <button
-                        class="size-[clamp(2.25rem,10cqmin,3.75rem)] flex items-center justify-center rounded-full bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-on-surface/10 transition-colors"
+                        class="touch-target-compact size-[clamp(2.25rem,10cqmin,3.75rem)] flex items-center justify-center rounded-full bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-on-surface/10 transition-colors"
                         onclick={togglePower}
                         aria-label="Toggle power"
                     >
@@ -497,7 +497,7 @@
 
     <!-- Edit FAB (Visible on Hover) -->
     <button
-        class="absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover/card:opacity-100 transition-opacity hover:brightness-110 z-20"
+        class="touch-edit-control absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover/card:opacity-100 transition-opacity hover:brightness-110 z-20"
         onclick={openConfig}
         title="Edit Card"
     >

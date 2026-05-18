@@ -17,7 +17,7 @@
 
         <a
             href={link.href}
-            class="group flex min-w-[4.5rem] flex-1 flex-col items-center gap-1 no-underline text-center"
+            class="group flex min-w-[4.5rem] min-h-16 flex-1 flex-col items-center justify-center gap-1 no-underline text-center touch-manipulation"
             aria-current={isActive ? "page" : undefined}
         >
             <div

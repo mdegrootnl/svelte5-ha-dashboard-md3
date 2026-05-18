@@ -80,7 +80,7 @@
 
     // Handle seek
     function handleSeek(e: MouseEvent) {
-        const target = e.currentTarget as HTMLDivElement;
+        const target = e.currentTarget as HTMLButtonElement;
         const rect = target.getBoundingClientRect();
         const percent = (e.clientX - rect.left) / rect.width;
         const position = percent * (nowPlaying?.duration || 0);
@@ -102,6 +102,9 @@
         const target = e.target as HTMLInputElement;
         maStore.setVolume(parseInt(target.value) / 100);
     }
+
+    const volumeRangeStyle =
+        "--touch-range-track-color: rgb(255 255 255 / 0.2); --touch-range-thumb-color: white;";
 </script>
 
 <!-- Full screen overlay -->
@@ -135,7 +138,7 @@
         <header class="flex items-center justify-between p-4">
             <button
                 onclick={onClose}
-                class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+                class="touch-target-compact w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
                 aria-label="Close"
             >
                 <Close class="w-6 h-6" />
@@ -185,17 +188,22 @@
         <!-- Progress Bar -->
         <div class="px-8 mt-6">
             <button
-                class="w-full h-2 bg-white/20 rounded-full cursor-pointer group"
+                type="button"
+                class="touch-pan-y flex h-12 w-full cursor-pointer items-center rounded-full group"
                 onclick={handleSeek}
                 aria-label="Seek"
             >
                 <div
-                    class="h-full bg-white rounded-full relative transition-all group-hover:bg-m3-primary"
-                    style="width: {progress}%"
+                    class="h-2 w-full rounded-full bg-white/20"
                 >
                     <div
-                        class="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                    ></div>
+                        class="h-full bg-white rounded-full relative transition-all group-hover:bg-m3-primary"
+                        style="width: {progress}%"
+                    >
+                        <div
+                            class="touch-visible absolute right-0 top-1/2 -translate-y-1/2 w-5 h-5 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity"
+                        ></div>
+                    </div>
                 </div>
             </button>
             <div class="flex justify-between mt-2 text-sm text-white/60">
@@ -210,7 +218,7 @@
             {#if nowPlaying && nowPlaying.supported_features & 32768}
                 <button
                     onclick={() => maStore.toggleShuffle()}
-                    class="w-10 h-10 rounded-full flex items-center justify-center transition-colors
+                    class="touch-target-compact w-10 h-10 rounded-full flex items-center justify-center transition-colors
                         {nowPlaying?.shuffle
                         ? 'text-m3-primary'
                         : 'text-white/60 hover:text-white'}"
@@ -268,7 +276,7 @@
             {#if nowPlaying && nowPlaying.supported_features & 262144}
                 <button
                     onclick={cycleRepeat}
-                    class="w-10 h-10 rounded-full flex items-center justify-center transition-colors
+                    class="touch-target-compact w-10 h-10 rounded-full flex items-center justify-center transition-colors
                         {nowPlaying?.repeat !== 'off'
                         ? 'text-m3-primary'
                         : 'text-white/60 hover:text-white'}"
@@ -290,7 +298,7 @@
         <div class="flex items-center gap-3 px-8 mt-6 mb-8">
             <button
                 onclick={() => maStore.toggleMute()}
-                class="text-white/60 hover:text-white transition-colors"
+                class="touch-target-compact rounded-full text-white/60 hover:text-white transition-colors"
                 aria-label="Toggle Mute"
             >
                 {#if nowPlaying?.isMuted || nowPlaying?.volume === 0}
@@ -306,7 +314,8 @@
                 max="100"
                 value={volumeValue}
                 oninput={handleVolumeChange}
-                class="flex-1 h-1 bg-white/20 rounded-full appearance-none cursor-pointer
+                style={volumeRangeStyle}
+                class="touch-range flex-1 rounded-full appearance-none cursor-pointer
                     [&::-webkit-slider-thumb]:appearance-none
                     [&::-webkit-slider-thumb]:w-3
                     [&::-webkit-slider-thumb]:h-3

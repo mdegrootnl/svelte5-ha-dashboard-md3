@@ -94,13 +94,8 @@ describe('MusicCard Component', () => {
     it('shows favorite icon and calls toggleFavorite on click', async () => {
         render(MusicCard, { props: { item: mockTrack, onPlay: mockOnPlay } });
 
-        const favoriteBtn = screen.getByRole('button', { name: '' }); // The favorite button doesn't have text
-        // In reality, we might want to add an aria-label or title to this button in the component
-        // But for now, let's find it by the group hover behavior if possible or just select the second button
-        const buttons = screen.getAllByRole('button');
-        const toggleBtn = buttons[1]; // Index 1 is the favorite toggle
-
-        await fireEvent.click(toggleBtn);
+        const favoriteBtn = screen.getByRole('button', { name: /add favorite/i });
+        await fireEvent.click(favoriteBtn);
         expect(musicLibraryStore.toggleFavorite).toHaveBeenCalledWith(mockTrack);
     });
 

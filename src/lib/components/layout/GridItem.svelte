@@ -171,6 +171,7 @@
             <!-- Drag Handle (visible when selected) -->
             {#if isSelected}
                 <button
+                    type="button"
                     class="drag-handle"
                     onpointerdown={handleDragStart}
                     onpointermove={handleDragMove}
@@ -183,6 +184,7 @@
 
                 <!-- Resize Handles -->
                 <button
+                    type="button"
                     class="resize-handle resize-handle-right"
                     onpointerdown={(e) => handleResizeStart(e, "right")}
                     onpointermove={handleResizeMove}
@@ -194,6 +196,7 @@
                 </button>
 
                 <button
+                    type="button"
                     class="resize-handle resize-handle-bottom"
                     onpointerdown={(e) => handleResizeStart(e, "bottom")}
                     onpointermove={handleResizeMove}
@@ -205,6 +208,7 @@
                 </button>
 
                 <button
+                    type="button"
                     class="resize-handle resize-handle-corner"
                     onpointerdown={(e) => handleResizeStart(e, "corner")}
                     onpointermove={handleResizeMove}
@@ -310,10 +314,14 @@
         border: none;
         border-radius: 8px;
         padding: 4px 12px;
+        min-width: var(--touch-target-min, 48px);
+        min-height: 36px;
         cursor: grab;
         display: flex;
         align-items: center;
         justify-content: center;
+        touch-action: none;
+        user-select: none;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         transition:
             transform 0.1s ease,
@@ -342,6 +350,19 @@
         z-index: 20;
         transition: transform 0.1s ease;
         padding: 0;
+        touch-action: none;
+        user-select: none;
+    }
+
+    .resize-handle::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: var(--touch-target-min, 48px);
+        height: var(--touch-target-min, 48px);
+        transform: translate(-50%, -50%);
+        border-radius: 9999px;
     }
 
     .resize-handle:hover {
@@ -400,5 +421,32 @@
         height: 20px;
         cursor: nwse-resize;
         border-radius: 6px;
+    }
+
+    @media (hover: none), (pointer: coarse) {
+        .drag-handle {
+            top: 6px;
+            min-height: var(--touch-target-compact, 44px);
+            padding: 8px 16px;
+        }
+
+        .resize-handle-right {
+            right: -14px;
+            width: 28px;
+            height: 48px;
+        }
+
+        .resize-handle-bottom {
+            bottom: -14px;
+            width: 48px;
+            height: 28px;
+        }
+
+        .resize-handle-corner {
+            right: -14px;
+            bottom: -14px;
+            width: 36px;
+            height: 36px;
+        }
     }
 </style>

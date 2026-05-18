@@ -28,7 +28,7 @@
     }: Props = $props();
 
     const baseStyles =
-        "relative flex items-center justify-center w-10 h-10 rounded-full transition-colors duration-200 disabled:opacity-38 disabled:cursor-not-allowed";
+        "touch-target relative flex items-center justify-center rounded-full transition-colors duration-200 disabled:opacity-38 disabled:cursor-not-allowed";
 
     let variantStyles = $derived({
         standard: selected

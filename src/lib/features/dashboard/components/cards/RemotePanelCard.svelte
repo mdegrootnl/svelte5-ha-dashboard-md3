@@ -148,7 +148,7 @@
         <div class="grid grid-cols-4 justify-items-center gap-[clamp(0.25rem,2.4cqmin,0.75rem)] mt-auto min-h-0">
             {#each actions.slice(0, 8) as action (action.id)}
                 <button
-                    class="size-[clamp(2rem,min(16cqb,14cqi),3.25rem)] rounded-m3-full bg-m3-surface-container-high text-m3-on-surface flex items-center justify-center hover:bg-m3-surface-container transition-colors active:scale-95 disabled:opacity-40 disabled:hover:bg-m3-surface-container-high disabled:active:scale-100"
+                    class="touch-target-compact size-[clamp(2rem,min(16cqb,14cqi),3.25rem)] rounded-m3-full bg-m3-surface-container-high text-m3-on-surface flex items-center justify-center hover:bg-m3-surface-container transition-colors active:scale-95 disabled:opacity-40 disabled:hover:bg-m3-surface-container-high disabled:active:scale-100"
                     onclick={(e) => runAction(action, e)}
                     disabled={!canRunAction(action)}
                     title={canRunAction(action)
@@ -162,7 +162,7 @@
     </div>
 
     <button
-        class="absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover/card:opacity-100 transition-opacity z-20 hover:brightness-110"
+        class="touch-edit-control absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover/card:opacity-100 transition-opacity z-20 hover:brightness-110"
         onclick={openConfig}
         title="Edit Remote Card"
     >

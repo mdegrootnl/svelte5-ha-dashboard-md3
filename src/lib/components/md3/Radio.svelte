@@ -25,7 +25,7 @@
 </script>
 
 <label
-    class="relative inline-flex items-center justify-center w-10 h-10 cursor-pointer {disabled
+    class="touch-target relative inline-flex items-center justify-center cursor-pointer {disabled
         ? 'opacity-38 cursor-not-allowed'
         : ''} {className}"
 >

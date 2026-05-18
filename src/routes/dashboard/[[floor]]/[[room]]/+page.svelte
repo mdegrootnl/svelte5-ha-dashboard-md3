@@ -505,7 +505,7 @@
             {#if isEditing}
                 <button
                     onclick={() => openGenerationSheet(false)}
-                    class="inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full bg-m3-secondary-container text-m3-on-secondary-container text-m3-label-large font-medium hover:brightness-95 transition-colors"
+                    class="touch-target inline-flex items-center justify-center px-4 gap-2 rounded-full bg-m3-secondary-container text-m3-on-secondary-container text-m3-label-large font-medium hover:brightness-95 transition-colors"
                     title="Generate dashboard draft"
                 >
                     <IconRefresh class="size-5" />
@@ -514,7 +514,7 @@
 
                 <button
                     onclick={openCleanGenerationSheet}
-                    class="inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full bg-m3-error-container text-m3-on-error-container text-m3-label-large font-medium hover:brightness-95 transition-colors"
+                    class="touch-target inline-flex items-center justify-center px-4 gap-2 rounded-full bg-m3-error-container text-m3-on-error-container text-m3-label-large font-medium hover:brightness-95 transition-colors"
                     title="Clean generated cards and regenerate a preview"
                 >
                     <IconDelete class="size-5" />
@@ -529,7 +529,7 @@
                         <button
                             type="button"
                             onclick={() => setViewportProfileOverride(option.value)}
-                            class={`h-8 rounded-full px-3 text-m3-label-medium transition-colors whitespace-nowrap ${
+                            class={`touch-target-compact rounded-full px-3 text-m3-label-medium transition-colors whitespace-nowrap ${
                                 dashboardStore.viewportProfileOverride === option.value ||
                                 (dashboardStore.viewportProfileOverride === "auto" &&
                                     option.value === "auto")
@@ -545,7 +545,7 @@
 
                 <button
                     onclick={openCardLibrary}
-                    class="inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full bg-m3-primary text-m3-on-primary text-m3-label-large font-medium hover:brightness-95 transition-colors shadow-m3-elevation-1"
+                    class="touch-target inline-flex items-center justify-center px-4 gap-2 rounded-full bg-m3-primary text-m3-on-primary text-m3-label-large font-medium hover:brightness-95 transition-colors shadow-m3-elevation-1"
                     title="Add new card"
                 >
                     <IconAdd class="size-5" />
@@ -558,7 +558,7 @@
                     {#if selectedItemCanPin}
                         <button
                             onclick={toggleSelectedItemPin}
-                            class={`inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full text-m3-label-large font-medium hover:brightness-95 transition-colors ${
+                            class={`touch-target inline-flex items-center justify-center px-4 gap-2 rounded-full text-m3-label-large font-medium hover:brightness-95 transition-colors ${
                                 selectedItemIsPinned
                                     ? "bg-m3-primary-container text-m3-on-primary-container"
                                     : "bg-m3-surface-container-high text-m3-on-surface"
@@ -578,7 +578,7 @@
 
                     <button
                         onclick={deleteSelected}
-                        class="inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full bg-m3-error-container text-m3-on-error-container text-m3-label-large font-medium hover:brightness-95 transition-colors"
+                        class="touch-target inline-flex items-center justify-center px-4 gap-2 rounded-full bg-m3-error-container text-m3-on-error-container text-m3-label-large font-medium hover:brightness-95 transition-colors"
                         title="Delete selected card"
                     >
                         <IconDelete class="size-5" />
@@ -587,7 +587,7 @@
 
                 <button
                     onclick={() => (isGridConfigOpen = true)}
-                    class="inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full bg-m3-surface-container-high text-m3-on-surface text-m3-label-large font-medium hover:bg-m3-surface-container-highest transition-colors"
+                    class="touch-target inline-flex items-center justify-center px-4 gap-2 rounded-full bg-m3-surface-container-high text-m3-on-surface text-m3-label-large font-medium hover:bg-m3-surface-container-highest transition-colors"
                     title="Grid settings"
                 >
                     <IconGridView class="size-5" />
@@ -597,7 +597,7 @@
                 {#if activeTabCanPin}
                     <button
                         onclick={toggleActiveTabPin}
-                        class={`inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full text-m3-label-large font-medium hover:brightness-95 transition-colors ${
+                        class={`touch-target inline-flex items-center justify-center px-4 gap-2 rounded-full text-m3-label-large font-medium hover:brightness-95 transition-colors ${
                             activeTabIsPinned
                                 ? "bg-m3-primary-container text-m3-on-primary-container"
                                 : "bg-m3-surface-container-high text-m3-on-surface"
@@ -616,7 +616,7 @@
                 {#if isEditing}
                     <button
                         onclick={onTabAdd}
-                        class="inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full bg-m3-tertiary-container text-m3-on-tertiary-container text-m3-label-large font-medium hover:brightness-95 transition-colors"
+                        class="touch-target inline-flex items-center justify-center px-4 gap-2 rounded-full bg-m3-tertiary-container text-m3-on-tertiary-container text-m3-label-large font-medium hover:brightness-95 transition-colors"
                         title="Add new tab"
                     >
                         <IconTab class="size-5" />
@@ -628,7 +628,7 @@
 
                 <button
                     onclick={toggleEditMode}
-                    class="inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full bg-m3-primary text-m3-on-primary text-m3-label-large font-medium hover:brightness-95 transition-colors"
+                    class="touch-target inline-flex items-center justify-center px-4 gap-2 rounded-full bg-m3-primary text-m3-on-primary text-m3-label-large font-medium hover:brightness-95 transition-colors"
                     title="Save and exit edit mode"
                 >
                     <IconCheck class="size-5" />
@@ -637,7 +637,7 @@
             {:else}
                 <button
                     onclick={toggleEditMode}
-                    class="inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full bg-m3-secondary-container text-m3-on-secondary-container text-m3-label-large font-medium hover:brightness-95 transition-colors"
+                    class="touch-target inline-flex items-center justify-center px-4 gap-2 rounded-full bg-m3-secondary-container text-m3-on-secondary-container text-m3-label-large font-medium hover:brightness-95 transition-colors"
                     title="Edit dashboard layout"
                 >
                     <IconEdit class="size-5" />
@@ -647,7 +647,7 @@
         {:else}
             <a
                 href="/settings"
-                class="inline-flex items-center justify-center h-10 px-6 rounded-full bg-m3-primary text-m3-on-primary text-m3-label-large font-medium hover:bg-m3-primary/92 transition-colors"
+                class="touch-target inline-flex items-center justify-center px-6 rounded-full bg-m3-primary text-m3-on-primary text-m3-label-large font-medium hover:bg-m3-primary/92 transition-colors"
             >
                 Connect
             </a>
@@ -704,7 +704,7 @@
                     </p>
                     <button
                         type="button"
-                        class="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-full bg-m3-primary px-5 text-m3-label-large text-m3-on-primary hover:brightness-95"
+                        class="touch-target mt-4 inline-flex items-center justify-center gap-2 rounded-full bg-m3-primary px-5 text-m3-label-large text-m3-on-primary hover:brightness-95"
                         onclick={() => openGenerationSheet(false)}
                     >
                         <IconRefresh class="size-5" />
@@ -772,7 +772,7 @@
                                 />
                                 {#if item.cardType === "tabs"}
                                     <button
-                                        class="absolute top-2 right-2 p-2 rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-md z-50 hover:brightness-110 pointer-events-auto opacity-0 group-hover/grid-item:opacity-100 transition-opacity"
+                                        class="touch-edit-control absolute top-2 right-2 p-2 rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-md z-50 hover:brightness-110 pointer-events-auto opacity-0 group-hover/grid-item:opacity-100 transition-opacity"
                                         onclick={(e) => {
                                             e.stopPropagation();
                                             const activeIdx =
@@ -817,7 +817,7 @@
                 </p>
                 <a
                     href="/settings"
-                    class="inline-flex items-center justify-center h-10 px-6 rounded-full bg-m3-secondary-container text-m3-on-secondary-container text-m3-label-large font-medium hover:bg-m3-secondary-container/92 transition-colors"
+                    class="touch-target inline-flex items-center justify-center px-6 rounded-full bg-m3-secondary-container text-m3-on-secondary-container text-m3-label-large font-medium hover:bg-m3-secondary-container/92 transition-colors"
                 >
                     Go to Settings
                 </a>

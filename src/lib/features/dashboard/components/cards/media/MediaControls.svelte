@@ -82,7 +82,7 @@
 >
     <!-- Previous Button -->
     <button
-        class={`rounded-full transition-all flex items-center justify-center ${baseBtnClass} ${sideButtonSizeClass}`}
+        class={`touch-target-compact rounded-full transition-all flex items-center justify-center ${baseBtnClass} ${sideButtonSizeClass}`}
         style={baseBtnStyle}
         onclick={prevTrack}
         aria-label="Previous Track"
@@ -92,7 +92,7 @@
 
     <!-- Play/Pause Button -->
     <button
-        class={`rounded-full transition-all shadow-sm flex items-center justify-center ${playBtnClass} ${playButtonSizeClass}`}
+        class={`touch-target rounded-full transition-all shadow-sm flex items-center justify-center ${playBtnClass} ${playButtonSizeClass}`}
         style={playBtnStyle}
         onclick={togglePlay}
         aria-label={isPlaying ? "Pause" : "Play"}
@@ -106,7 +106,7 @@
 
     <!-- Next Button -->
     <button
-        class={`rounded-full transition-all flex items-center justify-center ${baseBtnClass} ${sideButtonSizeClass}`}
+        class={`touch-target-compact rounded-full transition-all flex items-center justify-center ${baseBtnClass} ${sideButtonSizeClass}`}
         style={baseBtnStyle}
         onclick={nextTrack}
         aria-label="Next Track"

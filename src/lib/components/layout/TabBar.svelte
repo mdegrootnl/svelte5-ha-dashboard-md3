@@ -109,7 +109,8 @@
                     <div
                         role="button"
                         tabindex="0"
-                        class="size-5 rounded-full hover:bg-black/10 flex items-center justify-center cursor-pointer"
+                        class="touch-hitbox size-5 rounded-full hover:bg-black/10 flex items-center justify-center cursor-pointer"
+                        aria-label="Change tab icon"
                         onclick={(e) => handleEditIcon(tab.id, e)}
                         onkeydown={(e) =>
                             e.key === "Enter" &&
@@ -125,7 +126,8 @@
                     <div
                         role="button"
                         tabindex="0"
-                        class="size-5 rounded-full hover:bg-black/10 flex items-center justify-center cursor-pointer"
+                        class="touch-hitbox size-5 rounded-full hover:bg-black/10 flex items-center justify-center cursor-pointer"
+                        aria-label="Delete tab"
                         onclick={(e) => handleDelete(tab.id, e)}
                         onkeydown={(e) =>
                             e.key === "Enter" &&

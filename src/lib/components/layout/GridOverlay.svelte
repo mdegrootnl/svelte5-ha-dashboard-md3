@@ -303,7 +303,8 @@
 
                     <!-- Insert Row Trigger (Top Edge) -->
                     <button
-                        class="insert-trigger pointer-events-auto absolute -left-6 -top-3 w-12 h-6 flex items-center justify-center z-50 opacity-0 hover:opacity-100 transition-opacity"
+                        type="button"
+                        class="touch-visible touch-hitbox insert-trigger pointer-events-auto absolute -left-6 -top-3 w-12 h-6 flex items-center justify-center z-50 opacity-0 hover:opacity-100 transition-opacity"
                         onclick={() => dashboardEditorStore.addRow(row)}
                         onpointerdown={(e) => e.stopPropagation()}
                         title="Insert row above"
@@ -318,7 +319,8 @@
                     <!-- Delete Row Trigger (Bottom Edge) -->
                     {#if hoveredRow === row}
                         <button
-                            class="delete-trigger pointer-events-auto absolute -left-6 -bottom-3 w-12 h-6 flex items-center justify-center z-[60] opacity-0 hover:opacity-100 transition-opacity"
+                            type="button"
+                            class="touch-visible touch-hitbox delete-trigger pointer-events-auto absolute -left-6 -bottom-3 w-12 h-6 flex items-center justify-center z-[60] opacity-0 hover:opacity-100 transition-opacity"
                             onclick={(e) => {
                                 e.stopPropagation();
                                 dashboardEditorStore.removeRow(row);
@@ -338,7 +340,8 @@
                     <!-- Insert Row Trigger (Bottom Edge - Only for last row) -->
                     {#if row === rowCount() && hoveredRow !== row}
                         <button
-                            class="insert-trigger pointer-events-auto absolute -left-6 -bottom-3 w-12 h-6 flex items-center justify-center z-50 opacity-0 hover:opacity-100 transition-opacity"
+                            type="button"
+                            class="touch-visible touch-hitbox insert-trigger pointer-events-auto absolute -left-6 -bottom-3 w-12 h-6 flex items-center justify-center z-50 opacity-0 hover:opacity-100 transition-opacity"
                             onclick={() => dashboardEditorStore.addRow(row + 1)}
                             onpointerdown={(e) => e.stopPropagation()}
                             title="Insert row below"
@@ -362,7 +365,8 @@
                 style:grid-row="{selectionBounds.rowStart} / span {selectionBounds.rowSpan}"
             >
                 <button
-                    class="pointer-events-auto inline-flex items-center justify-center h-10 px-4 gap-2 rounded-full bg-m3-primary text-m3-on-primary text-m3-label-large font-medium hover:brightness-95 transition-colors shadow-m3-elevation-1"
+                    type="button"
+                    class="touch-target pointer-events-auto inline-flex items-center justify-center px-4 gap-2 rounded-full bg-m3-primary text-m3-on-primary text-m3-label-large font-medium hover:brightness-95 transition-colors shadow-m3-elevation-1"
                     onclick={handleAddCard}
                     onpointerdown={(e) => e.stopPropagation()}
                 >

@@ -232,7 +232,8 @@
             <h3 class="text-m3-title-medium text-m3-on-surface">Select Icon</h3>
             <button
                 onclick={() => onclose()}
-                class="text-m3-on-surface-variant hover:text-m3-on-surface"
+                class="touch-target rounded-full text-m3-on-surface-variant hover:text-m3-on-surface"
+                aria-label="Close"
             >
                 <IconClose class="size-6" />
             </button>
@@ -247,7 +248,7 @@
                 type="text"
                 bind:value={query}
                 placeholder="Search or type any icon name..."
-                class="w-full h-10 pl-10 pr-4 rounded-full bg-m3-surface-container-highest text-m3-on-surface placeholder:text-m3-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-m3-primary"
+                class="w-full h-12 pl-10 pr-4 rounded-full bg-m3-surface-container-highest text-m3-on-surface placeholder:text-m3-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-m3-primary"
             />
         </div>
 
@@ -269,7 +270,7 @@
             {#if showCustomIcon}
                 <!-- Custom icon option - shows text name, not icon preview -->
                 <button
-                    class="col-span-6 flex items-center justify-center gap-2 py-2 rounded-m3-sm bg-m3-primary-container text-m3-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-m3-primary"
+                    class="touch-target col-span-6 flex items-center justify-center gap-2 rounded-m3-sm bg-m3-primary-container text-m3-on-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-m3-primary"
                     onclick={() => handleSelect(query.toLowerCase())}
                     title="Use '{query}' as icon"
                 >
@@ -284,7 +285,7 @@
 
             {#each filteredIcons as icon}
                 <button
-                    class="aspect-square flex flex-col items-center justify-center gap-1 rounded-m3-sm hover:bg-m3-surface-container-highest text-m3-on-surface-variant hover:text-m3-on-surface transition-colors focus:outline-none focus:ring-2 focus:ring-m3-primary/50"
+                    class="touch-target aspect-square flex flex-col items-center justify-center gap-1 rounded-m3-sm hover:bg-m3-surface-container-highest text-m3-on-surface-variant hover:text-m3-on-surface transition-colors focus:outline-none focus:ring-2 focus:ring-m3-primary/50"
                     onclick={() => handleSelect(icon)}
                     title={icon}
                 >

@@ -541,7 +541,7 @@
                 max="200"
                 step="10"
                 bind:value={rowHeight}
-                class="flex-1 h-2 bg-m3-surface-container-highest rounded-full appearance-none cursor-pointer accent-m3-primary"
+                class="touch-range flex-1 rounded-full appearance-none cursor-pointer accent-m3-primary"
             />
             <span
                 class="text-m3-body-medium text-m3-on-surface w-16 text-right tabular-nums"
@@ -597,7 +597,7 @@
                                     ...individualRowHeights,
                                 ]; // trigger reactivity
                             }}
-                            class="flex-1 h-2 bg-m3-surface-container-highest rounded-full appearance-none cursor-pointer accent-m3-primary"
+                            class="touch-range flex-1 rounded-full appearance-none cursor-pointer accent-m3-primary"
                         />
                         <span
                             class="text-m3-body-small text-m3-on-surface w-12 text-right tabular-nums"
@@ -610,7 +610,7 @@
 
             <!-- Apply default height to all rows -->
             <button
-                class="mt-3 text-m3-label-medium text-m3-primary hover:underline"
+                class="touch-target mt-3 rounded-full px-3 text-m3-label-medium text-m3-primary hover:underline"
                 onclick={() => {
                     individualRowHeights = Array.from(
                         { length: rows },
@@ -654,7 +654,7 @@
             </div>
             <button
                 onclick={toggleGapLink}
-                class="flex items-center gap-2 px-3 py-2 rounded-full text-m3-label-medium transition-colors
+                class="touch-target flex items-center gap-2 px-3 rounded-full text-m3-label-medium transition-colors
                        {gapsLinked
                     ? 'bg-m3-primary-container text-m3-on-primary-container'
                     : 'bg-m3-surface-container-high text-m3-on-surface-variant hover:bg-m3-surface-container-highest'}"
@@ -741,7 +741,7 @@
                 max="48"
                 step="4"
                 bind:value={padding}
-                class="flex-1 h-2 bg-m3-surface-container-highest rounded-full appearance-none cursor-pointer accent-m3-primary"
+                class="touch-range flex-1 rounded-full appearance-none cursor-pointer accent-m3-primary"
             />
             <span
                 class="text-m3-body-medium text-m3-on-surface w-16 text-right tabular-nums"
@@ -907,7 +907,7 @@
                             max="0.82"
                             step="0.02"
                             bind:value={backgroundScrimOpacity}
-                            class="h-2 w-full cursor-pointer appearance-none rounded-full bg-m3-surface-container-highest accent-m3-primary"
+                            class="touch-range w-full cursor-pointer appearance-none rounded-full accent-m3-primary"
                         />
                     </div>
                 </div>
@@ -971,22 +971,22 @@
     input[type="range"]::-webkit-slider-thumb {
         -webkit-appearance: none;
         appearance: none;
-        width: 20px;
-        height: 20px;
+        width: var(--touch-range-thumb-size, 24px);
+        height: var(--touch-range-thumb-size, 24px);
         border-radius: 50%;
-        background: var(--m3-primary);
+        background: var(--touch-range-thumb-color, var(--color-m3-primary));
         cursor: pointer;
-        border: 2px solid var(--m3-surface);
+        border: 2px solid var(--color-m3-surface);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
 
     input[type="range"]::-moz-range-thumb {
-        width: 20px;
-        height: 20px;
+        width: var(--touch-range-thumb-size, 24px);
+        height: var(--touch-range-thumb-size, 24px);
         border-radius: 50%;
-        background: var(--m3-primary);
+        background: var(--touch-range-thumb-color, var(--color-m3-primary));
         cursor: pointer;
-        border: 2px solid var(--m3-surface);
+        border: 2px solid var(--color-m3-surface);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
 </style>

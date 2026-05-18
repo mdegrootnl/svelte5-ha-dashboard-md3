@@ -237,7 +237,7 @@
 
         {#if isGlobalEditing}
             <button
-                class="flex items-center justify-center size-8 bg-m3-surface-container-highest/50 border border-transparent text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface transition-colors"
+                class="touch-target-compact flex items-center justify-center size-8 bg-m3-surface-container-highest/50 border border-transparent text-m3-on-surface-variant hover:bg-m3-surface-container-highest hover:text-m3-on-surface transition-colors"
                 style:border-radius="var(--radius-m3-tab-pill)"
                 onclick={addTab}
                 title="Add Tab"
@@ -312,7 +312,7 @@
                                 />
                                 {#if item.cardType === "tabs"}
                                     <button
-                                        class="absolute top-2 right-2 p-2 rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-md z-50 hover:brightness-110 pointer-events-auto opacity-0 group-hover/grid-item:opacity-100 transition-opacity"
+                                        class="touch-edit-control absolute top-2 right-2 p-2 rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-md z-50 hover:brightness-110 pointer-events-auto opacity-0 group-hover/grid-item:opacity-100 transition-opacity"
                                         onclick={(e) => {
                                             e.stopPropagation();
                                             const activeIdx =

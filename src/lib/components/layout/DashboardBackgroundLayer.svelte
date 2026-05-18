@@ -103,8 +103,8 @@
     );
     let attributionButtonClass = $derived(
         isViewport
-            ? "group/credit fixed bottom-24 left-4 z-[60] flex size-8 items-center justify-center rounded-full bg-black/35 text-white/90 backdrop-blur-sm transition-colors hover:bg-black/55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m3-primary xl:bottom-4 xl:left-24"
-            : "group/credit absolute bottom-3 left-3 z-20 flex size-8 items-center justify-center rounded-full bg-black/35 text-white/90 backdrop-blur-sm transition-colors hover:bg-black/55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m3-primary",
+            ? "group/credit touch-target-compact fixed bottom-24 left-4 z-[60] flex size-8 items-center justify-center rounded-full bg-black/35 text-white/90 backdrop-blur-sm transition-colors hover:bg-black/55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m3-primary xl:bottom-4 xl:left-24"
+            : "group/credit touch-target-compact absolute bottom-3 left-3 z-20 flex size-8 items-center justify-center rounded-full bg-black/35 text-white/90 backdrop-blur-sm transition-colors hover:bg-black/55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-m3-primary",
     );
 
     function openAttribution(e: MouseEvent) {

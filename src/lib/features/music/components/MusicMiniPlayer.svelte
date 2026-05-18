@@ -47,12 +47,15 @@
         e.stopPropagation();
         maStore.playPause();
     }
+
+    const volumeRangeStyle =
+        "--touch-range-track-color: color-mix(in srgb, var(--color-m3-on-surface-variant) 30%, transparent); --touch-range-thumb-color: var(--color-m3-primary);";
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-    class="w-full bg-m3-surface-container-highest border-t border-m3-outline-variant shadow-lg cursor-pointer"
+    class="w-full bg-m3-surface-container-highest border-t border-m3-outline-variant shadow-lg cursor-pointer touch-manipulation"
     {onclick}
 >
     <!-- Progress bar at top -->
@@ -123,7 +126,7 @@
                         e.stopPropagation();
                         maStore.previous();
                     }}
-                    class="w-10 h-10 rounded-full text-m3-on-surface hover:bg-m3-on-surface/10 flex items-center justify-center transition-colors"
+                    class="touch-target-compact w-10 h-10 rounded-full text-m3-on-surface hover:bg-m3-on-surface/10 flex items-center justify-center transition-colors"
                     aria-label="Previous"
                 >
                     <SkipPrevious class="w-6 h-6" />
@@ -133,7 +136,7 @@
             <!-- Play/Pause Button -->
             <button
                 onclick={handlePlayPause}
-                class="w-10 h-10 rounded-full bg-m3-primary text-m3-on-primary flex items-center justify-center hover:bg-m3-primary/90 transition-colors flex-shrink-0 shadow-sm"
+                class="touch-target-compact w-10 h-10 rounded-full bg-m3-primary text-m3-on-primary flex items-center justify-center hover:bg-m3-primary/90 transition-colors flex-shrink-0 shadow-sm"
                 aria-label={nowPlaying?.isPlaying ? "Pause" : "Play"}
             >
                 {#if nowPlaying?.isPlaying}
@@ -150,7 +153,7 @@
                         e.stopPropagation();
                         maStore.next();
                     }}
-                    class="w-10 h-10 rounded-full text-m3-on-surface hover:bg-m3-on-surface/10 flex items-center justify-center transition-colors"
+                    class="touch-target-compact w-10 h-10 rounded-full text-m3-on-surface hover:bg-m3-on-surface/10 flex items-center justify-center transition-colors"
                     aria-label="Next"
                 >
                     <SkipNext class="w-6 h-6" />
@@ -166,7 +169,8 @@
             >
                 <button
                     onclick={() => maStore.toggleMute()}
-                    class="text-m3-on-surface-variant hover:text-m3-on-surface transition-colors"
+                    class="touch-target-compact rounded-full text-m3-on-surface-variant hover:text-m3-on-surface transition-colors"
+                    aria-label="Toggle Mute"
                 >
                     {#if nowPlaying.isMuted || nowPlaying.volume === 0}
                         <VolumeOff class="w-5 h-5" />
@@ -184,7 +188,8 @@
                         maStore.setVolume(
                             parseInt(e.currentTarget.value) / 100,
                         )}
-                    class="w-20 h-1 bg-m3-on-surface-variant/30 rounded-full appearance-none cursor-pointer
+                    style={volumeRangeStyle}
+                    class="touch-range w-24 rounded-full appearance-none cursor-pointer
                         [&::-webkit-slider-thumb]:appearance-none
                         [&::-webkit-slider-thumb]:w-3
                         [&::-webkit-slider-thumb]:h-3

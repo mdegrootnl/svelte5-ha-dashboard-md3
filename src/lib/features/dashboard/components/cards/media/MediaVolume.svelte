@@ -65,6 +65,16 @@
             return `background-color: ${color}; opacity: 0.6;`;
         return "";
     });
+
+    let rangeStyle = $derived.by(() => {
+        const track = theme === "dark"
+            ? "rgb(255 255 255 / 0.2)"
+            : "var(--color-m3-surface-variant)";
+        const thumb = theme === "dark"
+            ? "white"
+            : color || "var(--color-m3-primary)";
+        return `--touch-range-track-color: ${track}; --touch-range-thumb-color: ${thumb};`;
+    });
 </script>
 
 <div class="flex items-center gap-[clamp(0.375rem,3cqmin,1rem)] w-full group/vol">
@@ -73,14 +83,15 @@
         style={theme !== "dark" && color ? `color: ${color};` : ""}
     />
 
-    <div class="relative flex-1 flex items-center h-[clamp(1rem,5cqmin,1.5rem)]">
+    <div class="relative flex-1 flex items-center min-h-[var(--touch-target-compact)]">
         <input
             type="range"
             min="0"
             max="100"
             bind:value={volume}
             oninput={handleSlide}
-            class={`w-full h-[clamp(0.1875rem,1cqmin,0.375rem)] rounded-full appearance-none cursor-pointer transition-all ${trackColor} accent-transparent
+            style={rangeStyle}
+            class={`touch-range w-full rounded-full appearance-none cursor-pointer transition-all ${trackColor} accent-transparent
                 [&::-webkit-slider-thumb]:appearance-none 
                 [&::-webkit-slider-thumb]:w-[clamp(0.75rem,3.5cqmin,1.125rem)] 
                 [&::-webkit-slider-thumb]:h-[clamp(0.75rem,3.5cqmin,1.125rem)] 

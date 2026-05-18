@@ -389,7 +389,7 @@
 
     <!-- Edit FAB -->
     <button
-        class="absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary/10 text-m3-primary shadow-sm opacity-0 group-hover/card:opacity-100 transition-opacity z-50 hover:bg-m3-primary hover:text-m3-on-primary backdrop-blur-sm"
+        class="touch-edit-control absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary/10 text-m3-primary shadow-sm opacity-0 group-hover/card:opacity-100 transition-opacity z-50 hover:bg-m3-primary hover:text-m3-on-primary backdrop-blur-sm"
         onclick={openConfig}
         onpointerdown={(e) => e.stopPropagation()}
         title="Edit Card"

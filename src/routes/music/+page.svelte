@@ -64,7 +64,7 @@
             </div>
             <a
                 href="/settings"
-                class="inline-flex items-center justify-center gap-2 h-10 px-6 rounded-full text-m3-label-large font-medium bg-m3-primary text-m3-on-primary hover:bg-m3-primary/92 transition-colors"
+                class="touch-target inline-flex items-center justify-center gap-2 px-6 rounded-full text-m3-label-large font-medium bg-m3-primary text-m3-on-primary hover:bg-m3-primary/92 transition-colors"
             >
                 <SettingsIcon class="w-4 h-4" />
                 Go to Settings
@@ -108,7 +108,7 @@
                     href="https://music-assistant.io/installation/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="inline-flex items-center justify-center gap-2 h-10 px-6 rounded-full text-m3-label-large font-medium bg-m3-primary text-m3-on-primary hover:bg-m3-primary/92 transition-colors"
+                    class="touch-target inline-flex items-center justify-center gap-2 px-6 rounded-full text-m3-label-large font-medium bg-m3-primary text-m3-on-primary hover:bg-m3-primary/92 transition-colors"
                 >
                     <OpenInNew class="w-4 h-4" />
                     Installation Guide
@@ -161,7 +161,7 @@
             <nav class="flex gap-1 px-4 pb-2 overflow-x-auto">
                 {#each [{ id: "home", label: "Home" }, { id: "browse", label: "Browse" }, { id: "radio", label: "Radio" }, { id: "library", label: "Library" }] as tab}
                     <button
-                        class="px-4 py-2 rounded-full text-m3-label-large font-medium whitespace-nowrap transition-colors
+                        class="touch-target px-4 rounded-full text-m3-label-large font-medium whitespace-nowrap transition-colors
                             {activeTab === tab.id
                             ? 'bg-m3-secondary-container text-m3-on-secondary-container'
                             : 'text-m3-on-surface-variant hover:bg-m3-surface-container-highest'}"

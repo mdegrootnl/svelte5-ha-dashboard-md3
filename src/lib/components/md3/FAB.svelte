@@ -30,7 +30,7 @@
     // Small: 40x40, rounded-xl (12dp? no usually m3 is consistent container shape usually)
     // Update: M3 Small FAB is 40dp, Standard 56dp, Large 96dp.
     const sizeStyles: Record<FabSize, string> = {
-        small: "w-10 h-10 rounded-m3-lg",
+        small: "w-12 h-12 rounded-m3-lg",
         standard: "w-14 h-14 rounded-m3-xl",
         large: "w-24 h-24 rounded-m3-xl", // Large usually larger radius
     };

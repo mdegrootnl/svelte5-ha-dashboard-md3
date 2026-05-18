@@ -24,7 +24,7 @@
     }: Props = $props();
 
     const baseStyles =
-        "relative inline-flex items-center justify-center h-8 px-4 rounded-m3-lg border transition-all duration-200 cursor-pointer min-w-16";
+        "touch-target-compact relative inline-flex items-center justify-center px-4 rounded-m3-lg border transition-all duration-200 cursor-pointer min-w-16";
 
     // Variant styles
     // Assist: Surface, Outline border.
@@ -68,13 +68,14 @@
     <!-- Trailing Icon (Close for Input) -->
     {#if variant === "input" && onclose}
         <span
-            class="ml-2 w-4.5 h-4.5 text-m3-on-surface-variant hover:text-m3-on-surface rounded-full hover:bg-m3-on-surface-variant/10 flex items-center justify-center"
+            class="touch-hitbox ml-2 w-4.5 h-4.5 text-m3-on-surface-variant hover:text-m3-on-surface rounded-full hover:bg-m3-on-surface-variant/10 flex items-center justify-center"
             onclick={(e) => {
                 e.stopPropagation();
                 onclose();
             }}
             role="button"
             tabindex="0"
+            aria-label={`Remove ${label}`}
             onkeydown={(e) => e.key === "Enter" && onclose()}
         >
             <!-- Icon: Close -->

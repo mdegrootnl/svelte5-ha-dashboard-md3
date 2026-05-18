@@ -22,7 +22,7 @@
     }: Props = $props();
 
     const baseStyles =
-        "relative inline-flex items-center justify-center gap-2 h-10 px-6 rounded-m3-full text-m3-label-large font-medium transition-all duration-200 disabled:opacity-38 disabled:cursor-not-allowed overflow-hidden";
+        "touch-target relative inline-flex items-center justify-center gap-2 px-6 rounded-m3-full text-m3-label-large font-medium transition-all duration-200 disabled:opacity-38 disabled:cursor-not-allowed overflow-hidden";
 
     // Variant-specific styles map
     const variantStyles: Record<ButtonVariant, string> = {

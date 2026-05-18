@@ -78,7 +78,7 @@
         >
             {#if showBack}
                 <button
-                    class="p-2 -ml-2 rounded-full hover:bg-m3-on-surface/10 text-m3-on-surface hover:text-m3-on-surface transition-colors"
+                    class="touch-target p-2 -ml-2 rounded-full hover:bg-m3-on-surface/10 text-m3-on-surface hover:text-m3-on-surface transition-colors"
                     onclick={handleBack}
                     aria-label="Back"
                 >
@@ -107,7 +107,7 @@
             </div>
 
             <button
-                class="p-2 rounded-full hover:bg-m3-on-surface/10 text-m3-on-surface-variant hover:text-m3-on-surface transition-colors"
+                class="touch-target p-2 rounded-full hover:bg-m3-on-surface/10 text-m3-on-surface-variant hover:text-m3-on-surface transition-colors"
                 onclick={handleClose}
                 aria-label="Close"
             >

@@ -104,7 +104,7 @@
             {/if}
             <!-- Play overlay -->
             <div
-                class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                class="touch-visible absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
             >
                 <div
                     class="w-12 h-12 rounded-full bg-m3-primary flex items-center justify-center shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform"
@@ -130,7 +130,8 @@
     </button>
     <!-- Toggle Favorite Button -->
     <button
-        class="absolute top-4 right-4 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-m3-primary hover:scale-110 z-10"
+        class="touch-edit-control absolute top-4 right-4 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-m3-primary hover:scale-110 z-10"
+        aria-label={isFavorite ? "Remove favorite" : "Add favorite"}
         onclick={(e) => {
             e.stopPropagation();
             musicLibraryStore.toggleFavorite(item);

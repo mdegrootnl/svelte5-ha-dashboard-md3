@@ -170,7 +170,7 @@
             </div>
 
             <button
-                class="pr-3 pl-2 text-m3-on-surface-variant hover:text-m3-on-surface transition-colors focus:outline-none"
+                class="touch-target-compact pr-3 pl-2 text-m3-on-surface-variant hover:text-m3-on-surface transition-colors focus:outline-none"
                 onclick={() => {
                     if (isOpen) {
                         isOpen = false;

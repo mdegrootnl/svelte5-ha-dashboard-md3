@@ -350,12 +350,21 @@
         if (!isSlider && canToggle) handleToggle();
     }
 
+    function handleKeydown(e: KeyboardEvent) {
+        if (isSlider || !canToggle) return;
+        if (e.key !== "Enter" && e.key !== " ") return;
+
+        e.preventDefault();
+        handleToggle();
+    }
+
     function runAction(action: CardAction, e: Event) {
         e.stopPropagation();
         executeCardAction(action, entityId);
     }
 
     let cardElement: HTMLElement;
+    let cardTouchAction = $derived(isSlider ? "pan-y" : "manipulation");
 </script>
 
 <svelte:window
@@ -370,9 +379,10 @@
     class="{baseStyles} {interactiveStyles} {getCardSurfaceClasses(surfaceStyle)} {className} @container"
     onclick={handleSwitchClick}
     onpointerdown={handlePointerDown}
+    onkeydown={handleKeydown}
     role="button"
     tabindex="0"
-    style="container-type: size; touch-action: none; {cardStyle}"
+    style="container-type: size; touch-action: {cardTouchAction}; {cardStyle}"
 >
     <!-- Slider Progress Background (Visual) -->
     {#if isSlider}
@@ -434,7 +444,7 @@
             >
                 {#each actionButtons.slice(0, 3) as action (action.id)}
                     <button
-                        class="size-[clamp(2rem,max(12cqb,3cqi),3rem)] rounded-m3-full bg-m3-surface-container-high text-m3-on-surface flex items-center justify-center hover:bg-m3-surface-container active:scale-95 transition-transform"
+                        class="touch-target-compact size-[clamp(2rem,max(12cqb,3cqi),3rem)] rounded-m3-full bg-m3-surface-container-high text-m3-on-surface flex items-center justify-center hover:bg-m3-surface-container active:scale-95 transition-transform"
                         onclick={(e) => runAction(action, e)}
                         onpointerdown={(e) => e.stopPropagation()}
                         title={action.label || action.id}
@@ -452,7 +462,7 @@
     <!-- Edit FAB (Visible on Hover) -->
     <!-- z-30 to be above the slider input -->
     <button
-        class="absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover/card:opacity-100 transition-opacity z-30 hover:brightness-110 pointer-events-auto"
+        class="touch-edit-control absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover/card:opacity-100 transition-opacity z-30 hover:brightness-110 pointer-events-auto"
         onclick={openConfig}
         onpointerdown={(e) => e.stopPropagation()}
         title="Edit Card"
