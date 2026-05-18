@@ -6,6 +6,45 @@
     import DarkMode from "~icons/material-symbols/dark-mode";
 
     let currentPath = $derived($page.url.pathname);
+
+    function detectTextOverflow(node: HTMLElement, _label = "") {
+        let frame = 0;
+        const scheduleFrame =
+            typeof requestAnimationFrame === "function"
+                ? requestAnimationFrame
+                : (callback: FrameRequestCallback) => window.setTimeout(() => callback(performance.now()), 0);
+        const cancelFrame =
+            typeof cancelAnimationFrame === "function" ? cancelAnimationFrame : window.clearTimeout;
+
+        function measure() {
+            cancelFrame(frame);
+            frame = scheduleFrame(() => {
+                const wasOverflowing = node.dataset.overflowing;
+                delete node.dataset.overflowing;
+                const isOverflowing = node.scrollWidth > node.clientWidth + 1;
+
+                if (isOverflowing) {
+                    node.dataset.overflowing = "true";
+                } else if (wasOverflowing) {
+                    delete node.dataset.overflowing;
+                }
+            });
+        }
+
+        const observer = typeof ResizeObserver === "function" ? new ResizeObserver(measure) : null;
+        observer?.observe(node);
+        measure();
+
+        return {
+            update(_nextLabel: string) {
+                measure();
+            },
+            destroy() {
+                cancelFrame(frame);
+                observer?.disconnect();
+            },
+        };
+    }
 </script>
 
 <nav
@@ -20,8 +59,9 @@
 
         <a
             href={link.href}
-            class="flex min-h-16 flex-col items-center justify-center gap-1 group no-underline text-center w-full touch-manipulation"
+            class="flex min-h-16 flex-col items-center justify-center gap-1 group no-underline text-center w-full touch-manipulation px-1"
             aria-current={isActive ? "page" : undefined}
+            title={label}
         >
             <div
                 class="
@@ -40,7 +80,8 @@
             </div>
 
             <span
-                class="max-w-[4.5rem] truncate text-center text-m3-label-medium font-medium transition-colors {isActive
+                use:detectTextOverflow={label}
+                class="nav-label text-center text-m3-label-medium font-medium transition-colors {isActive
                     ? 'text-m3-on-surface'
                     : 'text-m3-on-surface-variant'}"
             >
@@ -64,3 +105,25 @@
         </button>
     </div>
 </nav>
+
+<style>
+    .nav-label {
+        display: block;
+        max-width: min(4.5rem, 100%);
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    :global(.nav-label[data-overflowing="true"]) {
+        display: -webkit-box;
+        line-clamp: 2;
+        line-height: 1.08;
+        overflow-wrap: anywhere;
+        text-overflow: clip;
+        white-space: normal;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+    }
+</style>

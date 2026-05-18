@@ -55,4 +55,13 @@ describe('NavigationRail Component', () => {
         expect(screen.getByText('Woningdashboard').closest('a')).toHaveAttribute('href', '/dashboard');
         expect(screen.getByText('Instellingen').closest('a')).toHaveAttribute('href', '/settings');
     });
+
+    it('keeps the full translated label available on constrained rail links', () => {
+        render(NavigationRail);
+
+        expect(screen.getByText('Woningdashboard').closest('a')).toHaveAttribute(
+            'title',
+            'Woningdashboard',
+        );
+    });
 });
