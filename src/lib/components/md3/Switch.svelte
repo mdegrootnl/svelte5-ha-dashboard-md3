@@ -54,14 +54,14 @@
     <!-- Checked: size 24, translate to end, On-Primary colored. -->
     <div
         class="
-        absolute left-[8px] top-[8px]
+        absolute left-[8px] top-1/2 -translate-y-1/2
         bg-m3-outline
         w-4 h-4
         rounded-full
         transition-all duration-200
         peer-checked:translate-x-5
         peer-checked:bg-m3-on-primary
-        peer-checked:w-6 peer-checked:h-6 peer-checked:top-[4px] peer-checked:left-[4px]
+        peer-checked:w-6 peer-checked:h-6 peer-checked:left-[4px]
         peer-checked:transform
     "
     >
