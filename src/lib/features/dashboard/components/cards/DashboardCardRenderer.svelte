@@ -6,6 +6,7 @@
     } from "$lib/types/dashboard";
     import ButtonCard from "./ButtonCard.svelte";
     import CalendarAgendaCard from "./CalendarAgendaCard.svelte";
+    import CameraCard from "./CameraCard.svelte";
     import DevicePanelCard from "./DevicePanelCard.svelte";
     import EnergyFlowCard from "./EnergyFlowCard.svelte";
     import EntityCollectionCard from "./EntityCollectionCard.svelte";
@@ -183,6 +184,18 @@
         bind:color={item.color}
         bind:backgroundColor={item.backgroundColor}
         bind:options={item.options.weather}
+        {surfaceStyle}
+        ondelete={remove}
+    />
+{:else if item.cardType === "camera" && item.options}
+    <CameraCard
+        id={item.id}
+        bind:entityId={item.entityId}
+        bind:name={item.name}
+        bind:icon={item.icon}
+        bind:color={item.color}
+        bind:backgroundColor={item.backgroundColor}
+        bind:options={item.options.camera}
         {surfaceStyle}
         ondelete={remove}
     />

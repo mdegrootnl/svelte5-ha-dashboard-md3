@@ -32,6 +32,7 @@
     import {
         resolveCardSurfaceStyle,
     } from "$lib/features/dashboard/utils/cardSurface";
+    import { shouldHideDashboardItem } from "$lib/features/dashboard/utils/cardVisibility";
 
     interface Props {
         config: TabCardConfig;
@@ -289,6 +290,7 @@
                             profileLayout={itemLayout}
                             class={(item.cardType === "title" ? "z-10 " : "") +
                                 "group/grid-item"}
+                            hidden={shouldHideDashboardItem(item, isGlobalEditing)}
                             isInteractive={item.cardType === "tabs" &&
                                 dashboardEditorStore.isItemAncestorOfFocus(
                                     item.id,

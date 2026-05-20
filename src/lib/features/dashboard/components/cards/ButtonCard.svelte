@@ -1,8 +1,14 @@
 <script lang="ts">
     import { haStore } from "$lib/stores/ha.svelte";
+    import { themeStore } from "$lib/stores/theme.svelte";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import { executeCardAction } from "$lib/domain/cardActions";
-    import { getDomain, getEntityName, supportsBrightness } from "$lib/utils/entity";
+    import {
+        formatEntityStateLabel,
+        getDomain,
+        getEntityName,
+        supportsBrightness,
+    } from "$lib/utils/entity";
     import { calculatePercentage, shouldThrottle } from "$lib/utils/gestures";
     import IconEdit from "~icons/material-symbols/edit";
     import IconLightbulb from "~icons/material-symbols/lightbulb";
@@ -92,16 +98,22 @@
             }
 
             // Update State & Active
+            const formattedState = formatEntityStateLabel(entity.state, {
+                entityId,
+                attributes: entity.attributes,
+                language: themeStore.language,
+            });
+
             if (entity.state === "on") {
                 isActive = true;
-                displayState = "On";
+                displayState = formattedState;
                 if (!isSlider) value = 100;
             } else if (entity.state === "off") {
                 isActive = false;
-                displayState = "Off";
+                displayState = formattedState;
                 if (!isSlider) value = 0;
             } else {
-                displayState = entity.state;
+                displayState = formattedState;
                 isActive =
                     entity.state !== "unavailable" &&
                     entity.state !== "unknown";
@@ -428,8 +440,8 @@
                     class="text-[clamp(0.8125rem,max(5.5cqb,1.4cqi),1rem)] opacity-75 leading-tight truncate transition-opacity"
                 >
                     {#if isSlider && isActive}
-                        {displayState === "On" || !displayState.includes("%")
-                            ? `On - ${value}%`
+                        {entity?.state === "on" || !displayState.includes("%")
+                            ? `${displayState} - ${value}%`
                             : displayState}
                     {:else}
                         {displayState}

@@ -41,6 +41,8 @@
     import IconPushPin from "~icons/material-symbols/push-pin";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import { resolveCardSurfaceStyle } from "$lib/features/dashboard/utils/cardSurface";
+    import { shouldHideDashboardItem } from "$lib/features/dashboard/utils/cardVisibility";
+    import { resolveMaterialIconName } from "$lib/utils/materialIcon";
 
     let { data } = $props();
 
@@ -313,21 +315,7 @@
     }
 
     function normalizeHeaderIcon(icon: string | null | undefined, fallback: string) {
-        if (!icon) return fallback;
-        const normalized = icon.replace(/^mdi:/, "").replace(/-/g, "_");
-        const materialMap: Record<string, string> = {
-            chef_hat: "restaurant",
-            countertop: "countertops",
-            dining: "dining",
-            dining_room: "dining",
-            fridge: "kitchen",
-            home_floor_0: "layers",
-            home_floor_1: "layers",
-            silverware_fork_knife: "restaurant",
-            sofa: "chair",
-            television: "tv",
-        };
-        return materialMap[normalized] ?? normalized;
+        return resolveMaterialIconName(icon, fallback);
     }
 
     function openCleanGenerationSheet() {
@@ -747,6 +735,7 @@
                             profileLayout={itemLayout}
                             class={(item.cardType === "title" ? "z-10 " : "") +
                                 "group/grid-item"}
+                            hidden={shouldHideDashboardItem(item, isEditing)}
                             isInteractive={item.cardType === "tabs" &&
                                 dashboardEditorStore.isItemAncestorOfFocus(
                                     item.id,

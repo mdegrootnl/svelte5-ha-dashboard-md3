@@ -33,6 +33,11 @@ const smartCardCases = [
         options: { weather: { source: 'auto' } },
     },
     {
+        name: 'Camera',
+        type: 'camera',
+        options: { camera: { source: 'auto', refreshSeconds: 10 } },
+    },
+    {
         name: 'Remote',
         type: 'remote',
         options: { remote: { preset: 'tv' } },

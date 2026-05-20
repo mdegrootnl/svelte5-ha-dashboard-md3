@@ -32,8 +32,9 @@ function ensureItemDefaults(item: DashboardItem): DashboardItem {
     if (item.cardType === "weather") item.options.weather ??= { source: "auto" };
     if (item.cardType === "remote") item.options.remote ??= { preset: "tv" };
     if (item.cardType === "device_panel") item.options.device_panel ??= { preset: "auto" };
+    if (item.cardType === "camera") item.options.camera ??= { source: "auto", refreshSeconds: 10 };
 
-    if (item.cardType === "weather" && item.generationState === "generated") {
+    if ((item.cardType === "weather" || item.cardType === "camera") && item.generationState === "generated") {
         ensureMinimumRowSpan(item, 3);
     }
 

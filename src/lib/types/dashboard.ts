@@ -30,7 +30,8 @@ export type DashboardCardType =
     | "calendar"
     | "weather"
     | "remote"
-    | "device_panel";
+    | "device_panel"
+    | "camera";
 
 export type GraphChartType = "area" | "line" | "bar" | "step";
 
@@ -312,6 +313,14 @@ export interface DevicePanelCardOptions {
     actions?: CardAction[];
 }
 
+export interface CameraCardOptions {
+    source?: SmartSourceConfig;
+    entityIds?: string[];
+    query?: EntityQueryConfig;
+    activeStates?: string[];
+    refreshSeconds?: number;
+}
+
 export interface DashboardCardOptions {
     button?: ButtonCardOptions;
     navigation?: NavigationCardOptions;
@@ -322,6 +331,7 @@ export interface DashboardCardOptions {
     weather?: WeatherCardOptions;
     remote?: RemoteCardOptions;
     device_panel?: DevicePanelCardOptions;
+    camera?: CameraCardOptions;
 }
 
 /**
@@ -710,7 +720,8 @@ export function createDefaultItemLayout(
         cardType === "thermostat" ||
         cardType === "title" ||
         cardType === "calendar" ||
-        cardType === "device_panel"
+        cardType === "device_panel" ||
+        cardType === "camera"
     ) ? 4 : 6;
     const mobileSpan = (
         cardType === "button" ||
@@ -730,7 +741,8 @@ export function createDefaultItemLayout(
         cardType === "graph" ||
         cardType === "room" ||
         cardType === "calendar" ||
-        cardType === "device_panel"
+        cardType === "device_panel" ||
+        cardType === "camera"
     ) ? 2 : (cardSize === 'condensed' ? 1 : cardSize === 'standard' ? 2 : 3);
 
     const layout = {

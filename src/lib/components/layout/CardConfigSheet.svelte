@@ -14,6 +14,7 @@
     import EnergyFlowCard from "$lib/features/dashboard/components/cards/EnergyFlowCard.svelte";
     import CalendarAgendaCard from "$lib/features/dashboard/components/cards/CalendarAgendaCard.svelte";
     import WeatherOverviewCard from "$lib/features/dashboard/components/cards/WeatherOverviewCard.svelte";
+    import CameraCard from "$lib/features/dashboard/components/cards/CameraCard.svelte";
     import RemotePanelCard from "$lib/features/dashboard/components/cards/RemotePanelCard.svelte";
     import DevicePanelCard from "$lib/features/dashboard/components/cards/DevicePanelCard.svelte";
     import IconLightbulb from "~icons/material-symbols/lightbulb";
@@ -26,6 +27,7 @@
     import IconHdrAuto from "~icons/material-symbols/hdr-auto";
     import IconViewModule from "~icons/material-symbols/view-module";
     import IconShowChart from "~icons/material-symbols/show-chart";
+    import IconVideocam from "~icons/material-symbols/videocam";
     import IconLink from "~icons/material-symbols/link";
     import IconAdd from "~icons/material-symbols/add";
     import IconBrush from "~icons/material-symbols/brush";
@@ -41,6 +43,7 @@
     import type {
         ButtonCardOptions,
         CalendarCardOptions,
+        CameraCardOptions,
         CardSize,
         CardAction,
         CollectionCardOptions,
@@ -78,6 +81,7 @@
             | "energy"
             | "calendar"
             | "weather"
+            | "camera"
             | "remote"
             | "device_panel";
         secondaryEntityId: string;
@@ -151,6 +155,7 @@
     let isEnergyCard = $derived(cardEditorStore.config?.type === "energy");
     let isCalendarCard = $derived(cardEditorStore.config?.type === "calendar");
     let isWeatherCard = $derived(cardEditorStore.config?.type === "weather");
+    let isCameraCard = $derived(cardEditorStore.config?.type === "camera");
     let isRemoteCard = $derived(cardEditorStore.config?.type === "remote");
     let isDevicePanelCard = $derived(cardEditorStore.config?.type === "device_panel");
     let isSmartCard = $derived(
@@ -159,6 +164,7 @@
             isEnergyCard ||
             isCalendarCard ||
             isWeatherCard ||
+            isCameraCard ||
             isRemoteCard ||
             isDevicePanelCard,
     );
@@ -179,6 +185,7 @@
             };
         }
         if (isWeatherCard) tempConfig.options.weather ??= { source: "auto" };
+        if (isCameraCard) tempConfig.options.camera ??= { source: "auto", refreshSeconds: 10 };
         if (isRemoteCard) tempConfig.options.remote ??= { preset: "tv" };
         if (isDevicePanelCard) {
             tempConfig.options.device_panel ??= { preset: "auto" };
@@ -231,6 +238,7 @@
         if (isEnergyCard) return IconShowChart;
         if (isCalendarCard) return IconHdrAuto;
         if (isWeatherCard) return IconDevices;
+        if (isCameraCard) return IconVideocam;
         if (isRemoteCard) return IconPlayCircle;
         if (isDevicePanelCard) return IconDevices;
 
@@ -513,6 +521,7 @@
         if (isEnergyCard) return "electric_bolt";
         if (isCalendarCard) return "calendar_month";
         if (isWeatherCard) return "partly_cloudy_day";
+        if (isCameraCard) return "videocam";
         if (isRemoteCard) return "settings_remote";
         if (isDevicePanelCard) return "developer_board";
         if (isTitleCard) return "title";
@@ -547,6 +556,9 @@
             options.calendar = { source: "auto", daysToShow: 7, maxEvents: 4 };
         }
         if (isWeatherCard && !options.weather) options.weather = { source: "auto" };
+        if (isCameraCard && !options.camera) {
+            options.camera = { source: "auto", refreshSeconds: 10 };
+        }
         if (isRemoteCard && !options.remote) options.remote = { preset: "tv" };
         if (isDevicePanelCard && !options.device_panel) {
             options.device_panel = { preset: "auto" };
@@ -805,6 +817,41 @@
         });
     }
 
+    function ensureCameraOptions(): CameraCardOptions {
+        tempConfig.options ??= {};
+        tempConfig.options.camera ??= { source: "auto", refreshSeconds: 10 };
+        return tempConfig.options.camera as CameraCardOptions;
+    }
+
+    function updateCameraOptions(patch: Partial<CameraCardOptions>) {
+        tempConfig.options.camera = {
+            ...ensureCameraOptions(),
+            ...patch,
+        };
+    }
+
+    function setCameraEntity(index: number, value: string) {
+        const current = ensureCameraOptions();
+        const entityIds = [...(current.entityIds ?? [])];
+        entityIds[index] = value;
+        updateCameraOptions({ source: "manual", entityIds });
+    }
+
+    function addCameraEntity() {
+        const current = ensureCameraOptions();
+        updateCameraOptions({
+            source: "manual",
+            entityIds: [...(current.entityIds ?? []), ""],
+        });
+    }
+
+    function removeCameraEntity(index: number) {
+        const current = ensureCameraOptions();
+        updateCameraOptions({
+            entityIds: (current.entityIds ?? []).filter((_, i) => i !== index),
+        });
+    }
+
     function ensureRemoteOptions(): RemoteCardOptions {
         tempConfig.options ??= {};
         tempConfig.options.remote ??= { preset: "tv" };
@@ -938,6 +985,7 @@
         if (isEnergyCard) return themeStore.t("cardConfig.editEnergyCard");
         if (isCalendarCard) return themeStore.t("cardConfig.editCalendarCard");
         if (isWeatherCard) return themeStore.t("cardConfig.editWeatherCard");
+        if (isCameraCard) return themeStore.t("cardConfig.editCameraCard");
         if (isRemoteCard) return themeStore.t("cardConfig.editRemoteCard");
         if (isDevicePanelCard) return themeStore.t("cardConfig.editDevicePanel");
         return themeStore.t("cardConfig.editCard");
@@ -1098,6 +1146,15 @@
                             color={tempConfig.color}
                             backgroundColor={tempConfig.backgroundColor}
                             options={tempConfig.options.weather || { source: "auto" }}
+                        />
+                    {:else if isCameraCard}
+                        <CameraCard
+                            entityId={tempConfig.entityId}
+                            name={tempConfig.name}
+                            icon={tempConfig.icon}
+                            color={tempConfig.color}
+                            backgroundColor={tempConfig.backgroundColor}
+                            options={tempConfig.options.camera || { source: "auto", refreshSeconds: 10 }}
                         />
                     {:else if isRemoteCard}
                         <RemotePanelCard
@@ -2483,6 +2540,66 @@
                                     />
                                 {/each}
                             </div>
+                        </div>
+                    {/if}
+
+                    {#if isCameraCard}
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center justify-between">
+                                <span
+                                    class="text-m3-label-medium text-m3-on-surface-variant"
+                                    >Camera Entities</span
+                                >
+                                <Button
+                                    variant="tonal"
+                                    onclick={addCameraEntity}
+                                    icon={IconAdd}
+                                >
+                                    Add
+                                </Button>
+                            </div>
+                            {#each tempConfig.options.camera?.entityIds ?? [] as cameraEntityId, idx}
+                                <div class="flex items-start gap-2">
+                                    <EntityPicker
+                                        label="Camera"
+                                        placeholder="camera.front_door"
+                                        value={cameraEntityId}
+                                        domainFilter="camera"
+                                        onchange={(value) =>
+                                            setCameraEntity(idx, value)}
+                                        class="flex-1"
+                                    />
+                                    <IconButton
+                                        onclick={() => removeCameraEntity(idx)}
+                                        title="Remove"
+                                        icon={IconDelete}
+                                        class="text-m3-error mt-2"
+                                    />
+                                </div>
+                            {/each}
+                            {#if (tempConfig.options.camera?.entityIds ?? []).length === 0}
+                                <p class="text-m3-body-small text-m3-on-surface-variant opacity-70">
+                                    Leave empty to watch all active cameras.
+                                </p>
+                            {/if}
+
+                            <TextField
+                                variant="outlined"
+                                label="Snapshot refresh"
+                                type="number"
+                                value={(tempConfig.options.camera?.refreshSeconds ?? 10).toString()}
+                                oninput={(e: Event) =>
+                                    updateCameraOptions({
+                                        refreshSeconds: Math.max(
+                                            1,
+                                            parseInt(
+                                                (e.target as HTMLInputElement)
+                                                    .value,
+                                            ) || 10,
+                                        ),
+                                    })}
+                                class="w-full"
+                            />
                         </div>
                     {/if}
 

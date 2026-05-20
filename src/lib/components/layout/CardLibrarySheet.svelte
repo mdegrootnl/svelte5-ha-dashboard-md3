@@ -17,6 +17,7 @@
     import IconRemote from "~icons/material-symbols/settings-remote";
     import IconDevicePanel from "~icons/material-symbols/developer-board";
     import IconShowChart from "~icons/material-symbols/show-chart";
+    import IconVideocam from "~icons/material-symbols/videocam";
 
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import type { CardConfig } from "$lib/types";
@@ -189,6 +190,17 @@
             domain: "weather",
             section: "smart",
             options: { weather: { source: "auto" } },
+        },
+        {
+            id: "camera",
+            configType: "camera",
+            name: "cardLibrary.camera.name",
+            description: "cardLibrary.camera.description",
+            sourcePattern: "cardLibrary.pattern.activeCamera",
+            icon: IconVideocam,
+            domain: "camera",
+            section: "smart",
+            options: { camera: { source: "auto", refreshSeconds: 10 } },
         },
         {
             id: "remote",

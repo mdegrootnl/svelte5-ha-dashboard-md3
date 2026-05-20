@@ -33,7 +33,7 @@ import {
     VIEWPORT_PROFILES,
 } from '$lib/types/dashboard';
 import type { DashboardItem, DashboardCardOptions } from '$lib/types/dashboard';
-import type { CollectionCardOptions } from '$lib/types/dashboard';
+import type { CameraCardOptions, CollectionCardOptions } from '$lib/types/dashboard';
 import { generateUUID } from '$lib/utils/uuid';
 import { getGeneratedRoomPreviewUrl, resolveRoomVisualProfile } from './roomVisualProfile';
 import { translate, type TranslationParams } from '$lib/i18n';
@@ -211,6 +211,16 @@ const MOTION_STATUS_TERMS = [
     'beweging',
     'aanwezig',
     'pir',
+];
+const OPENING_STATUS_TERMS = [
+    'door',
+    'window',
+    'opening',
+    'garage',
+    'gate',
+    'deur',
+    'raam',
+    'poort',
 ];
 const INFORMATIONAL_SWITCH_TERMS = [
     ...MOTION_STATUS_TERMS,
@@ -613,6 +623,10 @@ function analyzeEntityImportance(entity: ResolvedEntity, areaId?: string): Entit
             score += 16;
             reasons.push('media domain');
             break;
+        case 'camera':
+            score += 16;
+            reasons.push('camera domain');
+            break;
         case 'binary_sensor':
             score += 14;
             reasons.push('status domain');
@@ -729,6 +743,35 @@ function isRoomStatusEntity(entity: ResolvedEntity) {
         (ROOM_STATUS_DEVICE_CLASSES.has(entity.deviceClass ?? '') || isMotionOrPresenceEntity(entity));
 }
 
+function isSecurityDashboardEntity(entity: ResolvedEntity) {
+    if (entity.hidden || entity.diagnostic) return false;
+    if (entity.domain === 'lock' || entity.domain === 'alarm_control_panel') return true;
+    if (isInformationalSwitchEntity(entity)) return true;
+    if (entity.domain === 'cover') {
+        return ['door', 'window', 'opening', 'garage_door'].includes(entity.deviceClass ?? '') ||
+            entityHasAnyTerm(entity, OPENING_STATUS_TERMS);
+    }
+    return entity.domain === 'binary_sensor' &&
+        (ROOM_STATUS_DEVICE_CLASSES.has(entity.deviceClass ?? '') ||
+            isMotionOrPresenceEntity(entity) ||
+            entityHasAnyTerm(entity, OPENING_STATUS_TERMS));
+}
+
+function getSecurityDashboardIcon(entity: ResolvedEntity) {
+    if (entity.domain === 'alarm_control_panel') return 'security';
+    if (entity.domain === 'lock') return entity.state === 'locked' ? 'lock' : 'lock_open';
+    if (['door', 'window', 'opening', 'garage_door'].includes(entity.deviceClass ?? '') ||
+        entity.domain === 'cover' ||
+        entityHasAnyTerm(entity, OPENING_STATUS_TERMS)) {
+        return 'sensor_door';
+    }
+    if (isMotionOrPresenceEntity(entity)) return 'motion_sensor_active';
+    if (entity.deviceClass === 'smoke') return 'detector_smoke';
+    if (entity.deviceClass === 'moisture') return 'water_drop';
+    if (entity.deviceClass === 'gas') return 'gas_meter';
+    return 'shield_alert';
+}
+
 function getEntityAccent(entity: ResolvedEntity) {
     if (PROBLEM_STATES.has(entity.state) || entity.domain === 'lock' || entity.domain === 'alarm_control_panel') {
         return ACCENT_ERROR;
@@ -814,6 +857,8 @@ function getEntityTypeIcon(domain?: string, deviceClass?: string) {
             return 'partly_cloudy_day';
         case 'calendar':
             return 'calendar_month';
+        case 'camera':
+            return 'videocam';
         case 'update':
             return 'system_update_alt';
         case 'scene':
@@ -857,6 +902,72 @@ function getLabelTitle(labelId?: string) {
 function getAreaName(context: InventoryContext, areaId?: string) {
     if (!areaId) return 'Room';
     return context.areas?.find((area) => area.area_id === areaId)?.name ?? areaId;
+}
+
+interface SecurityRoomGroup {
+    areaId: string | null;
+    name: string;
+    sortName: string;
+    entities: ResolvedEntity[];
+    sourceType: DashboardGenerationMetadata['sourceType'];
+    sourceId: string;
+}
+
+function compareNaturalName(a: string, b: string) {
+    return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+}
+
+function getSecurityRoomCountLabel(options: DashboardGenerationOptions, count: number) {
+    return gt(
+        options,
+        count === 1
+            ? 'dashboardGeneration.output.securityRoomCount'
+            : 'dashboardGeneration.output.securityRoomCountPlural',
+        { count },
+    );
+}
+
+function groupSecurityEntitiesByRoom(
+    context: InventoryContext,
+    entities: ResolvedEntity[],
+    options: DashboardGenerationOptions,
+) {
+    const unassignedKey = '__unassigned__';
+    const groups = new Map<string, SecurityRoomGroup>();
+
+    for (const entity of entities) {
+        const areaId = entity.areaId ?? null;
+        const key = areaId ?? unassignedKey;
+        const existing = groups.get(key);
+
+        if (existing) {
+            existing.entities.push(entity);
+            continue;
+        }
+
+        const name = areaId
+            ? getAreaName(context, areaId)
+            : gt(options, 'dashboardGeneration.output.unassignedRoom');
+        groups.set(key, {
+            areaId,
+            name,
+            sortName: areaId ? name : '\uffff',
+            entities: [entity],
+            sourceType: areaId ? 'area' : 'house',
+            sourceId: areaId ?? `${HOUSE_OVERVIEW_ID}:unassigned-security`,
+        });
+    }
+
+    return [...groups.values()]
+        .sort((a, b) => {
+            if (!a.areaId && b.areaId) return 1;
+            if (a.areaId && !b.areaId) return -1;
+            return compareNaturalName(a.sortName, b.sortName);
+        })
+        .map((group) => ({
+            ...group,
+            entities: sortEntitiesByImportance(group.entities),
+        }));
 }
 
 function getFloorName(context: InventoryContext, floorId?: string) {
@@ -1933,15 +2044,115 @@ function generateHouseDashboard(
         gt(options, 'dashboardGeneration.output.reason.houseOverview'),
     );
     const homeTab = createGeneratedTab(gt(options, 'dashboardGeneration.output.tab.home'), 'home', options, gt(options, 'dashboardGeneration.output.reason.houseHomeTab'), 'house', HOUSE_OVERVIEW_ID);
+    const securityTab = createGeneratedTab(gt(options, 'dashboardGeneration.output.tab.security'), 'security', options, gt(options, 'dashboardGeneration.output.reason.houseSecurityTab'), 'house', HOUSE_OVERVIEW_ID);
     const statisticsTab = createGeneratedTab(gt(options, 'dashboardGeneration.output.tab.statistics'), 'monitoring', options, gt(options, 'dashboardGeneration.output.reason.houseStatisticsTab'), 'house', HOUSE_OVERVIEW_ID);
     const mediaTab = createGeneratedTab(gt(options, 'dashboardGeneration.output.tab.media'), 'play_circle', options, gt(options, 'dashboardGeneration.output.reason.houseMediaTab'), 'house', HOUSE_OVERVIEW_ID);
     const maintenanceTab = createGeneratedTab(gt(options, 'dashboardGeneration.output.tab.maintenance'), 'build', options, gt(options, 'dashboardGeneration.output.reason.houseMaintenanceTab'), 'house', HOUSE_OVERVIEW_ID);
     setGeneratedTabColumns(homeTab, ROOM_OVERVIEW_TAB_COLUMNS, ROOM_OVERVIEW_TAB_COLUMN_PROFILES);
+    setGeneratedTabColumns(securityTab, MAINTENANCE_TAB_COLUMNS, MAINTENANCE_TAB_COLUMN_PROFILES);
     setGeneratedTabColumns(maintenanceTab, MAINTENANCE_TAB_COLUMNS, MAINTENANCE_TAB_COLUMN_PROFILES);
     const homePlacer = createPlacer();
+    const securityPlacer = createPlacer();
     const statisticsPlacer = createPlacer();
     const mediaPlacer = createPlacer();
     const maintenancePlacer = createPlacer();
+
+    const securityEntities = sortEntitiesByImportance(
+        queryEntities(context, inventory, {
+            domains: ['alarm_control_panel', 'lock', 'binary_sensor', 'cover', 'switch'],
+        }).filter(isSecurityDashboardEntity),
+    );
+    const securityRoomGroups = groupSecurityEntitiesByRoom(context, securityEntities, options);
+    const cameraEntities = sortEntitiesByImportance(
+        queryEntities(context, inventory, {
+            domains: ['camera'],
+            limit: 24,
+        }).filter(isUsableGeneratedEntity),
+    );
+
+    if (securityEntities.length > 0 || cameraEntities.length > 0) {
+        addTitle(
+            securityTab,
+            securityPlacer,
+            gt(options, 'dashboardGeneration.output.homeSecurity'),
+            gt(options, 'dashboardGeneration.output.subtitle.security'),
+            options,
+            'house',
+            HOUSE_OVERVIEW_ID,
+        );
+    }
+
+    for (const group of securityRoomGroups) {
+        addTitle(
+            securityTab,
+            securityPlacer,
+            group.name,
+            getSecurityRoomCountLabel(options, group.entities.length),
+            options,
+            group.sourceType,
+            group.sourceId,
+        );
+
+        for (const entity of group.entities) {
+            addCard(
+                securityTab,
+                securityPlacer,
+                {
+                    cardType: 'button',
+                    name: entity.name,
+                    entityId: entity.entityId,
+                    icon: getSecurityDashboardIcon(entity),
+                    domainFilter: entity.domain,
+                    desktopSpan: 3,
+                    mobileSpan: 2,
+                    rowSpan: 2,
+                    mobileRowSpan: 2,
+                    color: getEntityAccent(entity),
+                    options: {
+                        button: {
+                            control: 'none',
+                            showState: true,
+                            stateColor: true,
+                        },
+                    },
+                    reason: gt(options, 'dashboardGeneration.output.reason.houseSecurityTab'),
+                    sourceType: 'house',
+                    sourceId: HOUSE_OVERVIEW_ID,
+                },
+                options,
+                includedEntities,
+            );
+        }
+    }
+
+    if (cameraEntities.length > 0) {
+        const cameraOptions: CameraCardOptions = {
+            source: 'manual',
+            entityIds: cameraEntities.map((entity) => entity.entityId),
+            refreshSeconds: 10,
+        };
+        addCard(
+            securityTab,
+            securityPlacer,
+            {
+                cardType: 'camera',
+                name: gt(options, 'dashboardGeneration.output.activeCameras'),
+                icon: 'videocam',
+                desktopSpan: 6,
+                mobileSpan: 4,
+                rowSpan: 3,
+                mobileRowSpan: 3,
+                color: ACCENT_SECONDARY,
+                options: { camera: cameraOptions },
+                reason: gt(options, 'dashboardGeneration.output.reason.activeCameras'),
+                sourceType: 'house',
+                sourceId: HOUSE_OVERVIEW_ID,
+            },
+            options,
+            includedEntities,
+            cameraOptions.entityIds,
+        );
+    }
 
     addAttentionSection(
         maintenanceTab,
@@ -1950,42 +2161,6 @@ function generateHouseDashboard(
         options,
         includedEntities,
         [
-            {
-                mode: 'security',
-                name: gt(options, 'dashboardGeneration.output.securityAlerts'),
-                icon: 'shield_alert',
-                reason: gt(options, 'dashboardGeneration.output.reason.securityAlerts'),
-                presentation: 'summary',
-                desktopSpan: 3,
-                mobileSpan: 2,
-                rowSpan: 1,
-                sourceType: 'house',
-                sourceId: HOUSE_OVERVIEW_ID,
-            },
-            {
-                mode: 'openings',
-                name: gt(options, 'dashboardGeneration.output.openings'),
-                icon: 'sensor_door',
-                reason: gt(options, 'dashboardGeneration.output.reason.openings'),
-                presentation: 'summary',
-                desktopSpan: 3,
-                mobileSpan: 2,
-                rowSpan: 1,
-                sourceType: 'house',
-                sourceId: HOUSE_OVERVIEW_ID,
-            },
-            {
-                mode: 'motion',
-                name: gt(options, 'dashboardGeneration.output.motionPresence'),
-                icon: 'motion_sensor_active',
-                reason: gt(options, 'dashboardGeneration.output.reason.motionPresence'),
-                presentation: 'summary',
-                desktopSpan: 3,
-                mobileSpan: 2,
-                rowSpan: 1,
-                sourceType: 'house',
-                sourceId: HOUSE_OVERVIEW_ID,
-            },
             {
                 mode: 'media_playing',
                 name: gt(options, 'dashboardGeneration.output.mediaPlaying'),
@@ -2264,7 +2439,7 @@ function generateHouseDashboard(
         warnings.push(gt(options, 'dashboardGeneration.output.warning.sparseHouse'));
     }
 
-    setGeneratedTabs(config, [homeTab, statisticsTab, mediaTab, maintenanceTab], homeTab, options, {
+    setGeneratedTabs(config, [homeTab, securityTab, statisticsTab, mediaTab, maintenanceTab], homeTab, options, {
         name: gt(options, 'dashboardGeneration.output.homeSections'),
         icon: 'tab',
         reason: gt(options, 'dashboardGeneration.output.reason.houseTabSurface'),

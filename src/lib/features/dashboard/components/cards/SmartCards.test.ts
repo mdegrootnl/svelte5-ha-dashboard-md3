@@ -1,13 +1,14 @@
-import { render, screen, fireEvent } from '@testing-library/svelte';
+import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CalendarAgendaCard from './CalendarAgendaCard.svelte';
+import CameraCard from './CameraCard.svelte';
 import DevicePanelCard from './DevicePanelCard.svelte';
 import EnergyFlowCard from './EnergyFlowCard.svelte';
 import EntityCollectionCard from './EntityCollectionCard.svelte';
 import RemotePanelCard from './RemotePanelCard.svelte';
 import RoomSummaryCard from './RoomSummaryCard.svelte';
 import WeatherOverviewCard from './WeatherOverviewCard.svelte';
-import { haRegistryStore, haStore } from '$lib';
+import { dashboardEditorStore, haRegistryStore, haStore, themeStore } from '$lib';
 import { inventoryStore } from '$lib/stores/inventory.svelte';
 
 function state(entity_id: string, value: string, attributes = {}) {
@@ -81,12 +82,21 @@ describe('smart dashboard cards', () => {
                 friendly_name: 'Hall Motion',
                 device_class: 'motion',
             }),
+            'camera.front_door': state('camera.front_door', 'recording', {
+                friendly_name: 'Front Door Camera',
+                entity_picture: '/api/camera_proxy/camera.front_door',
+            }),
+            'camera.garden': state('camera.garden', 'idle', {
+                friendly_name: 'Garden Camera',
+            }),
         } as any;
         haStore.entityCount = Object.keys(haStore.states).length;
         haStore.connected = false;
         haStore.auth = null;
         haStore.statesVersion += 1;
         haRegistryStore.version += 1;
+        dashboardEditorStore.isEditing = false;
+        themeStore.language = 'en';
     });
 
     it('renders a room summary from manual entities', () => {
@@ -169,6 +179,53 @@ describe('smart dashboard cards', () => {
             },
         });
         expect(screen.getByText('Hall Motion')).toBeInTheDocument();
+    });
+
+    it('renders only active cameras in the camera card', async () => {
+        vi.spyOn(haStore, 'fetchProxiedBlobUrl').mockResolvedValue('/camera-front.jpg');
+
+        render(CameraCard, {
+            props: {
+                name: 'Active Cameras',
+                options: {
+                    source: 'manual',
+                    entityIds: ['camera.front_door', 'camera.garden'],
+                    refreshSeconds: 10,
+                },
+            },
+        });
+
+        expect(screen.getByText('Active Cameras')).toBeInTheDocument();
+        expect(screen.getByText('Front Door Camera')).toBeInTheDocument();
+        expect(screen.queryByText('Garden Camera')).not.toBeInTheDocument();
+        expect(screen.getAllByTestId('camera-tile')).toHaveLength(1);
+
+        await waitFor(() =>
+            expect(screen.getByAltText('Front Door Camera')).toBeInTheDocument(),
+        );
+    });
+
+    it('hides inactive camera cards outside edit mode', () => {
+        const inactiveRender = render(CameraCard, {
+            props: {
+                name: 'Active Cameras',
+                options: { source: 'manual', entityIds: ['camera.garden'] },
+            },
+        });
+
+        expect(screen.queryByTestId('camera-card')).not.toBeInTheDocument();
+        inactiveRender.unmount();
+
+        dashboardEditorStore.isEditing = true;
+        render(CameraCard, {
+            props: {
+                name: 'Active Cameras',
+                options: { source: 'manual', entityIds: ['camera.garden'] },
+            },
+        });
+
+        expect(screen.getByTestId('camera-card')).toBeInTheDocument();
+        expect(screen.getAllByText('No active cameras').length).toBeGreaterThan(0);
     });
 
     it('renders energy, weather, and calendar data', () => {

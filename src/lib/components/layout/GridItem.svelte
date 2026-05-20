@@ -23,6 +23,8 @@
         class?: string;
         /** If true, overlay is suppressed and content is interactive */
         isInteractive?: boolean;
+        /** If true, item is removed from normal dashboard rendering */
+        hidden?: boolean;
         /** Optional controls to render on top of the item in edit mode */
         // eslint-disable-next-line no-undef
         controls?: Snippet;
@@ -38,6 +40,7 @@
         children,
         class: className = "",
         isInteractive = false,
+        hidden = false,
         controls,
     }: Props = $props();
 
@@ -145,6 +148,7 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
     class="grid-item h-full w-full {className}"
+    class:hidden={hidden}
     class:selected={isSelected && isEditing && !isInteractive}
     class:editing={isEditing}
     class:dragging={isDragging}
@@ -233,6 +237,10 @@
         transition:
             transform 0.15s ease,
             box-shadow 0.15s ease;
+    }
+
+    .grid-item.hidden {
+        display: none;
     }
 
     .content-wrapper {

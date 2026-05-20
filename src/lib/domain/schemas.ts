@@ -59,7 +59,8 @@ export const DashboardCardTypeSchema = z.enum([
     "calendar",
     "weather",
     "remote",
-    "device_panel"
+    "device_panel",
+    "camera",
 ]);
 
 const DashboardCardSurfaceStyleSchema = z.enum(["md3", "glass", "soft"]);
@@ -249,6 +250,13 @@ const DashboardCardOptionsSchema = z.object({
         entityId: z.string().optional(),
         entityIds: z.array(z.string()).optional(),
         actions: z.array(CardActionSchema).optional(),
+    }).passthrough().optional(),
+    camera: z.object({
+        source: SmartSourceSchema.optional(),
+        entityIds: z.array(z.string()).optional(),
+        query: EntityQueryConfigSchema.optional(),
+        activeStates: z.array(z.string()).optional(),
+        refreshSeconds: z.number().min(1).optional(),
     }).passthrough().optional(),
 }).passthrough();
 

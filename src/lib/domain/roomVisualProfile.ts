@@ -1,4 +1,5 @@
 import type { RoomVisualAudience, RoomVisualKind } from '$lib/types/dashboard';
+import { resolveMaterialIconName } from '$lib/utils/materialIcon';
 
 export interface RoomVisualProfile {
     kind: RoomVisualKind;
@@ -16,7 +17,7 @@ interface RoomVisualRule {
     promptSeed: string;
 }
 
-const GENERIC_ROOM_ICONS = new Set(['', 'area', 'door_front', 'meeting_room', 'room']);
+const GENERIC_ROOM_ICONS = new Set(['', 'area', 'devices', 'door_front', 'meeting_room', 'room']);
 
 const ROOM_VISUAL_RULES: RoomVisualRule[] = [
     {
@@ -113,7 +114,8 @@ const ROOM_VISUAL_RULES: RoomVisualRule[] = [
 ];
 
 export function normalizeMaterialIcon(icon?: string | null) {
-    return icon?.replace(/^mdi:/, '').replace(/-/g, '_').trim() ?? '';
+    if (!icon?.trim()) return '';
+    return resolveMaterialIconName(icon, '');
 }
 
 function normalizeRoomText(value: string) {

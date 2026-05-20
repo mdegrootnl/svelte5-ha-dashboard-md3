@@ -85,6 +85,7 @@ function normalizeCardType(type: string | undefined): DashboardCardType {
         case "weather":
         case "remote":
         case "device_panel":
+        case "camera":
             return type;
         default:
             return "button";

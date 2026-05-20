@@ -90,6 +90,7 @@ function getGeneratedEntityIds(config: RoomDashboardConfig) {
         item.entityId,
         ...(item.shortcuts?.map((shortcut) => shortcut.entityId) ?? []),
         ...(item.options?.collection?.entityIds ?? []),
+        ...(item.options?.camera?.entityIds ?? []),
     ]);
 }
 
@@ -135,6 +136,18 @@ const richContext: InventoryContext = {
             friendly_name: 'Kitchen Window',
             device_class: 'window',
         }),
+        'binary_sensor.back_door': entity('binary_sensor.back_door', 'off', {
+            friendly_name: 'Back Door',
+            device_class: 'door',
+        }),
+        'binary_sensor.hall_motion': entity('binary_sensor.hall_motion', 'off', {
+            friendly_name: 'Hall Motion',
+            device_class: 'motion',
+        }),
+        'binary_sensor.office_presence': entity('binary_sensor.office_presence', 'off', {
+            friendly_name: 'Office Presence',
+            device_class: 'presence',
+        }),
         'media_player.living_tv': entity('media_player.living_tv', 'playing', { friendly_name: 'Living TV' }),
         'remote.living_tv': entity('remote.living_tv', 'on', { friendly_name: 'Living Remote' }),
         'scene.good_night': entity('scene.good_night', 'unknown', { friendly_name: 'Good Night' }),
@@ -146,6 +159,13 @@ const richContext: InventoryContext = {
         'binary_sensor.water_leak': entity('binary_sensor.water_leak', 'on', {
             friendly_name: 'Water Leak',
             device_class: 'moisture',
+        }),
+        'camera.front_door': entity('camera.front_door', 'recording', {
+            friendly_name: 'Front Door Camera',
+            entity_picture: '/api/camera_proxy/camera.front_door',
+        }),
+        'camera.garden': entity('camera.garden', 'idle', {
+            friendly_name: 'Garden Camera',
         }),
         'weather.home': entity('weather.home', 'sunny', { friendly_name: 'Home Weather' }),
         'sensor.solar_power': entity('sensor.solar_power', '2400', {
@@ -172,6 +192,9 @@ const richContext: InventoryContext = {
         diagnosticRegistry('sensor.kitchen_battery', 'kitchen'),
         registry('binary_sensor.kitchen_motion', 'kitchen'),
         registry('binary_sensor.kitchen_window', 'kitchen'),
+        registry('binary_sensor.back_door', 'living_room'),
+        registry('binary_sensor.hall_motion', null),
+        registry('binary_sensor.office_presence', 'office'),
         registry('media_player.living_tv', 'living_room'),
         registry('remote.living_tv', 'living_room'),
         registry('scene.good_night', null),
@@ -181,6 +204,8 @@ const richContext: InventoryContext = {
         registry('button.random_helper', null),
         registry('button.dashboard_refresh', null, ['house_action']),
         registry('binary_sensor.water_leak', null),
+        registry('camera.front_door', null),
+        registry('camera.garden', null),
         registry('weather.home', null),
         registry('sensor.solar_power', null),
         registry('sensor.home_power', null),
@@ -206,7 +231,7 @@ describe('dashboardGenerator', () => {
         expect(result.config.tabs).toHaveLength(1);
         expect(result.config.tabs[0].items.map((item) => item.cardType)).toContain('tabs');
         expect(getNestedTabs(result.config).map((tab) => tab.name)).toEqual(
-            expect.arrayContaining(['Home', 'Statistics', 'Media', 'Maintenance']),
+            expect.arrayContaining(['Home', 'Security', 'Statistics', 'Media', 'Maintenance']),
         );
         expect(result.summary.cards).toBeGreaterThan(5);
 
@@ -220,6 +245,8 @@ describe('dashboardGenerator', () => {
         expect(cardTypes).toContain('energy');
         expect(cardTypes).toContain('calendar');
         expect(cardTypes).toContain('collection');
+        expect(cardTypes).toContain('camera');
+        const securityItems = getNestedItems(result.config, 'Security');
         const maintenanceItems = getNestedItems(result.config, 'Maintenance');
         const itemNames = homeItems.map((item) => item.name);
         expect(itemNames).not.toContain('Attention');
@@ -245,11 +272,11 @@ describe('dashboardGenerator', () => {
         const attentionPresentations = maintenanceItems
             .filter((item) => item.generatedBy?.sourceType === 'house' && item.cardType === 'collection')
             .map((item) => item.options?.collection?.presentation);
+        const maintenanceCollectionModes = maintenanceItems
+            .filter((item) => item.cardType === 'collection')
+            .map((item) => item.options?.collection?.mode);
         expect(collectionModes).toEqual(
             expect.arrayContaining([
-                'security',
-                'openings',
-                'motion',
                 'media_playing',
                 'lights_on',
                 'low_battery',
@@ -257,7 +284,46 @@ describe('dashboardGenerator', () => {
                 'updates',
             ]),
         );
+        expect(collectionModes).not.toContain('security');
+        expect(collectionModes).not.toContain('openings');
+        expect(collectionModes).not.toContain('motion');
+        expect(maintenanceCollectionModes).not.toContain('security');
+        expect(maintenanceCollectionModes).not.toContain('openings');
+        expect(maintenanceCollectionModes).not.toContain('motion');
         expect(attentionPresentations).toEqual(expect.arrayContaining(['summary']));
+        const securityStatusCards = securityItems.filter((item) => item.cardType === 'button');
+        expect(securityStatusCards.map((item) => item.entityId)).toEqual(
+            expect.arrayContaining([
+                'binary_sensor.water_leak',
+                'binary_sensor.kitchen_motion',
+                'binary_sensor.kitchen_window',
+                'binary_sensor.back_door',
+                'binary_sensor.hall_motion',
+                'binary_sensor.office_presence',
+            ]),
+        );
+        expect(securityStatusCards).toHaveLength(6);
+        expect(securityStatusCards.every((item) => item.options?.button?.control === 'none')).toBe(true);
+        const securityTitles = securityItems.filter((item) => item.cardType === 'title');
+        expect(securityTitles.map((item) => item.name)).toEqual(
+            expect.arrayContaining(['Home Security', 'Kitchen', 'Living Room', 'Werkkamer', 'Unassigned']),
+        );
+        expect(securityTitles.find((item) => item.name === 'Kitchen')?.subtitle).toBe('2 sensors');
+        expect(securityTitles.find((item) => item.name === 'Unassigned')?.subtitle).toBe('2 sensors');
+        const securityOrder = securityItems.map((item) => item.name);
+        expect(securityOrder.indexOf('Kitchen')).toBeLessThan(securityOrder.indexOf('Kitchen Motion'));
+        expect(securityOrder.indexOf('Kitchen Window')).toBeLessThan(securityOrder.indexOf('Living Room'));
+        expect(securityOrder.indexOf('Living Room')).toBeLessThan(securityOrder.indexOf('Back Door'));
+        expect(securityOrder.indexOf('Back Door')).toBeLessThan(securityOrder.indexOf('Werkkamer'));
+        expect(securityOrder.indexOf('Werkkamer')).toBeLessThan(securityOrder.indexOf('Office Presence'));
+        expect(securityOrder.indexOf('Office Presence')).toBeLessThan(securityOrder.indexOf('Unassigned'));
+        expect(securityOrder.indexOf('Unassigned')).toBeLessThan(securityOrder.indexOf('Water Leak'));
+        const cameraItems = securityItems.filter((item) => item.cardType === 'camera');
+        expect(cameraItems).toHaveLength(1);
+        expect(cameraItems[0]?.name).toBe('Active Cameras');
+        expect(cameraItems[0]?.options?.camera?.entityIds).toEqual(
+            expect.arrayContaining(['camera.front_door', 'camera.garden']),
+        );
         expect(result.relatedConfigs).toHaveLength(3);
         expect(result.relatedConfigs?.map((config) => config.id)).toEqual(
             expect.arrayContaining(['dashboard_ground_kitchen', 'dashboard_ground_living_room', 'dashboard_ground_office']),
@@ -327,13 +393,16 @@ describe('dashboardGenerator', () => {
 
         expect(result.summary.title).toBe('Woningoverzicht');
         expect(getNestedTabs(result.config).map((tab) => tab.name)).toEqual(
-            expect.arrayContaining(['Start', 'Statistieken', 'Media', 'Onderhoud']),
+            expect.arrayContaining(['Start', 'Beveiliging', 'Statistieken', 'Media', 'Onderhoud']),
         );
         expect(getNestedItems(result.config, 'Start').map((item) => item.name)).toEqual(
             expect.arrayContaining(['Ruimtes', 'Snelle acties']),
         );
         expect(getNestedItems(result.config, 'Onderhoud').map((item) => item.name)).toEqual(
             expect.arrayContaining(['Lage batterijen', 'Niet beschikbaar', 'Updates']),
+        );
+        expect(getNestedItems(result.config, 'Beveiliging').map((item) => item.name)).toEqual(
+            expect.arrayContaining(['Woningbeveiliging', 'Actieve camera\'s']),
         );
     });
 

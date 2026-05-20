@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { resolveMaterialIconName } from "$lib/utils/materialIcon";
+
     /**
      * DynamicIcon - Renders Material Symbols icons by name
      *
@@ -17,6 +19,8 @@
         class?: string;
         style?: string;
     } = $props();
+
+    let resolvedName = $derived(resolveMaterialIconName(name));
 </script>
 
 <span
@@ -26,6 +30,6 @@
     <span
         class="material-symbols-outlined block select-none leading-none"
         style="font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; font-size: clamp(0.875rem, max(78cqmin, 1em), 3rem);"
-        >{name}</span
+        >{resolvedName}</span
     >
 </span>

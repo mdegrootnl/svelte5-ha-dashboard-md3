@@ -4,6 +4,9 @@ import { getGeneratedRoomPreviewUrl, normalizeMaterialIcon, resolveRoomVisualPro
 describe('roomVisualProfile', () => {
     it('normalizes Home Assistant material icons', () => {
         expect(normalizeMaterialIcon('mdi:door-open')).toBe('door_open');
+        expect(normalizeMaterialIcon('mdi:door-closed')).toBe('door_front');
+        expect(normalizeMaterialIcon('mdi:sofa')).toBe('weekend');
+        expect(normalizeMaterialIcon('mdi:room')).toBe('meeting_room');
         expect(normalizeMaterialIcon('kitchen')).toBe('kitchen');
         expect(normalizeMaterialIcon(null)).toBe('');
     });
@@ -59,7 +62,7 @@ describe('roomVisualProfile', () => {
         const profile = resolveRoomVisualProfile({ name: 'Woonkamer', icon: 'mdi:sofa' });
 
         expect(profile.kind).toBe('living_room');
-        expect(profile.icon).toBe('sofa');
+        expect(profile.icon).toBe('weekend');
         expect(profile.promptSeed).toContain('living room');
     });
 

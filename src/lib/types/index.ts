@@ -20,6 +20,7 @@ import type {
     DashboardBackgroundConfig,
     DashboardBackgroundSource,
     DashboardImageAttribution,
+    CameraCardOptions,
     DevicePanelCardOptions,
     EnergyCardOptions,
     GraphChartType,
@@ -31,6 +32,7 @@ import type {
 export type {
     ButtonCardOptions,
     CalendarCardOptions,
+    CameraCardOptions,
     CollectionCardOptions,
     DashboardCardOptions,
     DashboardCardSurfaceStyle,
@@ -267,6 +269,7 @@ export interface LabelValueCardConfig extends BaseCardConfig {
         | 'calendar'
         | 'weather'
         | 'remote'
-        | 'device_panel';
+        | 'device_panel'
+        | 'camera';
     options?: DashboardCardOptions;
 }

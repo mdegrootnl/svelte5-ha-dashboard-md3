@@ -6,7 +6,7 @@
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import { inventoryStore } from "$lib/stores/inventory.svelte";
     import { themeStore } from "$lib/stores/theme.svelte";
-    import { getDomain } from "$lib/utils/entity";
+    import { formatEntityStateLabel, getDomain } from "$lib/utils/entity";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import type { CollectionCardOptions } from "$lib/types";
     import type { DashboardCardSurfaceStyle } from "$lib/types/dashboard";
@@ -178,48 +178,14 @@
         return domainIcon(entity.domain || getDomain(entity.entityId));
     }
 
-    function friendlyStateLabel(state: string) {
-        const normalized = state.trim().toLowerCase();
-        switch (normalized) {
-            case "on":
-                return "On";
-            case "off":
-                return "Off";
-            case "open":
-                return "Open";
-            case "opening":
-                return "Opening";
-            case "closed":
-                return "Closed";
-            case "closing":
-                return "Closing";
-            case "playing":
-                return "Playing";
-            case "paused":
-                return "Paused";
-            case "unavailable":
-                return "Unavailable";
-            case "unknown":
-                return "Unknown";
-            case "home":
-                return "Home";
-            case "active":
-                return "Active";
-            case "locked":
-                return "Locked";
-            case "unlocked":
-                return "Unlocked";
-            default:
-                return state.replaceAll("_", " ");
-        }
-    }
-
     function formatEntityState(entity: ResolvedEntity) {
-        const state = entity.state.trim();
-        const unit = entity.unit?.trim() ?? "";
-        if (!state) return "";
-        if (unit) return `${state}${unit}`;
-        return friendlyStateLabel(state);
+        return formatEntityStateLabel(entity.state, {
+            entityId: entity.entityId,
+            domain: entity.domain,
+            deviceClass: entity.deviceClass,
+            unit: entity.unit,
+            language: themeStore.language,
+        });
     }
 
     function formatEntityTitle(entity: ResolvedEntity, stateLabel: string) {
@@ -364,7 +330,7 @@
                         </span>
                         {#if options?.showState !== false}
                             <span class="shrink-0 text-[clamp(0.75rem,max(4.2cqb,1.1cqi),0.875rem)] text-m3-on-surface-variant">
-                                {entity.state}{entity.unit || ""}
+                                {formatEntityState(entity)}
                             </span>
                         {/if}
                     </div>

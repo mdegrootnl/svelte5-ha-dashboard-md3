@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { supportsBrightness, getDomain, getEntityName, isEntityActive } from './entity';
+import {
+    formatEntityStateLabel,
+    supportsBrightness,
+    getDomain,
+    getEntityName,
+    isEntityActive,
+} from './entity';
 
 describe('entity utils', () => {
     describe('supportsBrightness', () => {
@@ -65,6 +71,46 @@ describe('entity utils', () => {
             expect(isEntityActive('playing')).toBe(true);
             expect(isEntityActive('home')).toBe(true);
             expect(isEntityActive('locked')).toBe(true);
+        });
+    });
+
+    describe('formatEntityStateLabel', () => {
+        it('uses Dutch opening labels for door and window sensors', () => {
+            expect(formatEntityStateLabel('on', {
+                entityId: 'binary_sensor.front_door',
+                attributes: { device_class: 'door' },
+                language: 'nl',
+            })).toBe('Open');
+            expect(formatEntityStateLabel('off', {
+                entityId: 'binary_sensor.kitchen_window',
+                attributes: { device_class: 'window' },
+                language: 'nl',
+            })).toBe('Gesloten');
+        });
+
+        it('uses Dutch motion labels for motion sensors', () => {
+            expect(formatEntityStateLabel('on', {
+                entityId: 'binary_sensor.hall_motion',
+                attributes: { device_class: 'motion' },
+                language: 'nl',
+            })).toBe('Beweging');
+            expect(formatEntityStateLabel('off', {
+                entityId: 'binary_sensor.hall_motion',
+                attributes: { device_class: 'motion' },
+                language: 'nl',
+            })).toBe('Geen beweging');
+        });
+
+        it('uses the selected app language for generic states', () => {
+            expect(formatEntityStateLabel('on', { language: 'en' })).toBe('On');
+            expect(formatEntityStateLabel('off', { language: 'de' })).toBe('Aus');
+        });
+
+        it('keeps measurement states numeric with their unit', () => {
+            expect(formatEntityStateLabel('21.4', {
+                attributes: { unit_of_measurement: '°C' },
+                language: 'nl',
+            })).toBe('21.4°C');
         });
     });
 });

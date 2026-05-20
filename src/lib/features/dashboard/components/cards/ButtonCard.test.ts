@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ButtonCard from './ButtonCard.svelte';
-import { haStore, cardEditorStore } from '$lib';
+import { haStore, cardEditorStore, themeStore } from '$lib';
 
 describe('ButtonCard Component', () => {
     beforeEach(() => {
@@ -10,6 +10,7 @@ describe('ButtonCard Component', () => {
         vi.spyOn(haStore, 'getEntity').mockReturnValue(undefined as any);
         vi.spyOn(haStore, 'callService').mockResolvedValue({ ok: true, value: undefined });
         vi.spyOn(cardEditorStore, 'open').mockImplementation(() => { });
+        themeStore.language = 'en';
     });
 
     it('renders manually provided title and state', () => {
@@ -30,6 +31,31 @@ describe('ButtonCard Component', () => {
 
         expect(screen.getByText('Test Device')).toBeInTheDocument();
         expect(screen.getByText('On')).toBeInTheDocument();
+    });
+
+    it('shows localized motion states for Dutch binary sensors', async () => {
+        themeStore.language = 'nl';
+        vi.spyOn(haStore, 'getEntity').mockReturnValue({
+            entity_id: 'binary_sensor.hall_motion',
+            state: 'off',
+            attributes: {
+                friendly_name: 'Hal Beweging',
+                device_class: 'motion',
+            },
+        } as any);
+
+        render(ButtonCard, {
+            props: {
+                entityId: 'binary_sensor.hall_motion',
+                title: '',
+                name: '',
+                domainFilter: 'binary_sensor',
+                options: { control: 'none', showState: true },
+            },
+        });
+
+        expect(screen.getByText('Hal Beweging')).toBeInTheDocument();
+        expect(screen.getByText('Geen beweging')).toBeInTheDocument();
     });
 
     it('calls HA toggle service on switch click', async () => {
