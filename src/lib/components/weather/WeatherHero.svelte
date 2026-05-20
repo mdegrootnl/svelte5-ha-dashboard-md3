@@ -4,6 +4,7 @@
     import { haStore } from "$lib/stores/ha.svelte";
     import Card from "$lib/components/md3/Card.svelte";
     import { fade } from "svelte/transition";
+    import { withBase } from "$lib/utils/appBase";
 
     // Derived state for current weather
     let current = $derived(weatherStore.data?.current);
@@ -96,7 +97,7 @@
     let videoName = $derived(
         current ? getVideoSrc(current.weather_code, isDayTime) : "clear_day",
     );
-    let videoUrl = $derived(`/weather-videos/${videoName}.mp4`);
+    let videoUrl = $derived(withBase(`/weather-videos/${videoName}.mp4`));
 </script>
 
 <div class="w-full">

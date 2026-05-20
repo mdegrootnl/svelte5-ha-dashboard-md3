@@ -1,7 +1,10 @@
 import type { Handle } from '@sveltejs/kit';
 import { dev } from '$app/environment';
+import { getDeploymentInfo } from '$lib/server/deployment';
 
 export const handle: Handle = async ({ event, resolve }) => {
+    const deployment = getDeploymentInfo(event.request, event.url);
+
     if (event.url.pathname.startsWith('/api') && !['GET', 'HEAD', 'OPTIONS'].includes(event.request.method.toUpperCase())) {
         const origin = event.request.headers.get('origin');
         const secFetchSite = event.request.headers.get('sec-fetch-site');
@@ -29,6 +32,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     // Security Headers - only apply CSP in production
     // In development, Vite injects inline scripts for HMR that would be blocked
     if (!dev) {
+        const frameAncestors = deployment.mode === 'ha-addon' ? "'self'" : "'none'";
         response.headers.set(
             'Content-Security-Policy',
             [
@@ -38,7 +42,7 @@ export const handle: Handle = async ({ event, resolve }) => {
                 "font-src 'self' https://fonts.gstatic.com",
                 "connect-src 'self' ws: wss: http: https:",
                 "img-src 'self' data: http: https:",
-                "frame-ancestors 'none'",
+                `frame-ancestors ${frameAncestors}`,
                 "base-uri 'self'",
                 "form-action 'self'"
             ].join('; ')
@@ -47,7 +51,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
     // Additional security headers
     response.headers.set('X-Content-Type-Options', 'nosniff');
-    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set('X-Frame-Options', deployment.mode === 'ha-addon' ? 'SAMEORIGIN' : 'DENY');
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     response.headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
 

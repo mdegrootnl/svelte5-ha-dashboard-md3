@@ -4,8 +4,9 @@
     import DarkMode from "~icons/material-symbols/dark-mode";
     import { themeStore } from "$lib/stores/theme.svelte";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
+    import { getRoutePath, withBase } from "$lib/utils/appBase";
 
-    let currentPath = $derived($page.url.pathname);
+    let currentPath = $derived(getRoutePath($page.url.pathname));
 </script>
 
 <!-- 
@@ -38,7 +39,7 @@
             {@const label = themeStore.navigationLabel(link)}
 
             <a
-                href={link.href}
+                href={withBase(link.href)}
                 class="
                     group relative flex items-center justify-center
                     size-12 rounded-full

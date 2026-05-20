@@ -321,6 +321,7 @@ describe('DashboardGenerationSheet', () => {
         const appliedConfig = onapply.mock.calls[0][0] as RoomDashboardConfig;
         const [roomConfig] = onapply.mock.calls[0][1] as RoomDashboardConfig[];
         const homeTab = getNestedTab(appliedConfig, 'Home') ?? appliedConfig.tabs[0];
+        const securityTab = getNestedTab(appliedConfig, 'Security');
         const statisticsTab = getNestedTab(appliedConfig, 'Statistics');
         const maintenanceTab = getNestedTab(appliedConfig, 'Maintenance');
         const roomTab = getNestedTab(roomConfig, 'Room') ?? roomConfig.tabs[0];
@@ -329,6 +330,11 @@ describe('DashboardGenerationSheet', () => {
         const maintenanceModes = maintenanceTab?.items
             .map((item) => item.options?.collection?.mode)
             .filter(Boolean) ?? [];
+        const securityEntityIds = securityTab
+            ? getGridItems(securityTab)
+                .map((item) => item.entityId)
+                .filter(Boolean)
+            : [];
         const roomSections = roomTab.items
             .filter((item) => item.cardType === 'title')
             .map((item) => item.name);
@@ -338,10 +344,14 @@ describe('DashboardGenerationSheet', () => {
 
         expect(rootNames).not.toContain('Attention');
         expect(rootNames).toContain('Rooms');
+        expect(securityTab?.items.map((item) => item.name)).toContain('Home Security');
+        expect(securityEntityIds).toEqual(
+            expect.arrayContaining(['binary_sensor.kitchen_window', 'binary_sensor.kitchen_motion']),
+        );
         expect(maintenanceTab?.items.map((item) => item.name)).toContain('Attention');
         expect(statisticsTab?.items.map((item) => item.name)).toContain('Context');
         expect(maintenanceModes).toEqual(
-            expect.arrayContaining(['openings', 'motion', 'media_playing', 'lights_on']),
+            expect.arrayContaining(['media_playing', 'lights_on']),
         );
         expect(roomSections).not.toContain('Attention');
         expect(roomSections).toContain('Primary Controls');

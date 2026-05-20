@@ -2,6 +2,7 @@ import { readFile } from 'fs/promises';
 import { resolve, sep } from 'path';
 import type { RequestHandler } from './$types';
 import { error } from '@sveltejs/kit';
+import { getDataPath } from '$lib/server/dataDir';
 
 const CONTENT_TYPES: Record<string, string> = {
     jpg: 'image/jpeg',
@@ -18,7 +19,7 @@ export const GET: RequestHandler = async ({ params }) => {
         throw error(400, 'Invalid filename');
     }
 
-    const uploadDir = resolve(process.cwd(), 'data', 'uploads');
+    const uploadDir = resolve(getDataPath('uploads'));
     const filePath = resolve(uploadDir, filename);
     if (!filePath.startsWith(`${uploadDir}${sep}`)) {
         throw error(400, 'Invalid filename');

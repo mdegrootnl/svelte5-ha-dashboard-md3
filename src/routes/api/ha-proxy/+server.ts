@@ -1,14 +1,11 @@
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { fetchSupervisorCore, shouldUseSupervisorProxy } from '$lib/server/supervisorProxy';
 
 export const GET: RequestHandler = async ({ url, request, fetch }) => {
     const haUrlFromHeader = request.headers.get('x-ha-url');
     const authHeader = request.headers.get('Authorization');
     const resourcePath = url.searchParams.get('path');
-
-    if (!haUrlFromHeader) {
-        throw error(400, 'Missing x-ha-url header');
-    }
 
     if (!authHeader) {
         throw error(401, 'Missing Authorization header');
@@ -19,6 +16,27 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
     }
 
     try {
+        if (shouldUseSupervisorProxy(authHeader)) {
+            const res = await fetchSupervisorCore(fetch, resourcePath);
+            if (!res.ok) {
+                return new Response(JSON.stringify({ error: 'Upstream Error' }), { status: res.status });
+            }
+
+            const contentType = res.headers.get('Content-Type') || 'application/octet-stream';
+            const data = await res.arrayBuffer();
+
+            return new Response(data, {
+                headers: {
+                    'Content-Type': contentType,
+                    'Cache-Control': 'private, max-age=3600'
+                }
+            });
+        }
+
+        if (!haUrlFromHeader) {
+            throw error(400, 'Missing x-ha-url header');
+        }
+
         const baseUrl = new URL(haUrlFromHeader);
         if (!['http:', 'https:'].includes(baseUrl.protocol)) {
             throw error(400, 'Invalid Home Assistant URL');

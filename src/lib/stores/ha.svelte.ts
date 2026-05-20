@@ -19,6 +19,8 @@ import { haRegistryStore } from './haRegistry.svelte';
 import { createLogger } from '$lib/utils/logger';
 import { ok, err, type Result } from '$lib/utils/result';
 import { perfCount, perfMeasure } from '$lib/utils/perf';
+import { DEFAULT_DEPLOYMENT_INFO, type DeploymentInfo } from '$lib/shared/deployment';
+import { withBase } from '$lib/utils/appBase';
 
 const logger = createLogger('HAStore');
 
@@ -49,6 +51,8 @@ export class HAStore {
     // Connection state tracking for UI feedback
     connectionState = $state<ConnectionState>('disconnected');
     connectionError = $state<string | null>(null);
+    deployment = $state<DeploymentInfo>(DEFAULT_DEPLOYMENT_INFO);
+    private initStarted = false;
 
     // History cache: key is "entityIds:startTime", value is HistoryData[]
     private historyCache = new Map<string, { data: HistoryData[], timestamp: number }>();
@@ -56,16 +60,18 @@ export class HAStore {
     private statisticsCache = new Map<string, { data: HistoryData[], timestamp: number }>();
     private statisticsInflight = new Map<string, Promise<Result<HistoryData[], Error>>>();
 
-    constructor() {
-        if (browser) {
-            this.init();
-        }
-    }
+    constructor() {}
 
-    async init() {
+    async init(deployment?: DeploymentInfo) {
+        if (deployment) {
+            this.deployment = deployment;
+        }
+        if (this.initStarted) return;
+        this.initStarted = true;
+
         try {
             logger.info('[HAStore] Initializing...');
-            const auth = await HAAuthService.initialize();
+            const auth = await HAAuthService.initialize(this.deployment);
             if (auth) {
                 logger.info('[HAStore] Auth found, connecting...');
                 this.auth = auth;
@@ -113,7 +119,9 @@ export class HAStore {
 
             // Persist the successful URL
             if (browser && this.url) {
-                StorageProvider.saveLastUrl(this.url);
+                if (this.deployment.mode !== 'ha-addon') {
+                    StorageProvider.saveLastUrl(this.url);
+                }
             }
 
             this.connectionState = 'connected';
@@ -403,7 +411,7 @@ export class HAStore {
             });
 
             // Use local proxy to avoid CORS issues in production and Vite proxy collisions
-            const proxyUrl = `/ha-history?${params.toString()}`;
+            const proxyUrl = withBase(`/ha-history?${params.toString()}`);
             logger.debug("Request URL (Proxy):", proxyUrl);
 
             const response = await fetch(

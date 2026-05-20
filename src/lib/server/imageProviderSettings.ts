@@ -1,6 +1,7 @@
 import { env } from '$env/dynamic/private';
 import fs from 'fs/promises';
 import path from 'path';
+import { getResolvedDataDir } from '$lib/server/dataDir';
 
 interface RuntimeImageProviderSettings {
     unsplashAccessKey?: string;
@@ -15,15 +16,6 @@ export interface ImageProviderStatus {
 const CONFIG_FILE = 'image-provider-secrets.json';
 
 let saveLock: Promise<void> = Promise.resolve();
-
-function getDataDir() {
-    return env.DASHBOARD_DATA_DIR?.trim() || 'data';
-}
-
-function getResolvedDataDir() {
-    const dataDir = getDataDir();
-    return path.isAbsolute(dataDir) ? dataDir : path.join(process.cwd(), dataDir);
-}
 
 function getConfigPath() {
     return path.join(getResolvedDataDir(), CONFIG_FILE);

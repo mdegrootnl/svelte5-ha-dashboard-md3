@@ -8,6 +8,7 @@
     import IconPicker from "$lib/components/common/IconPicker.svelte";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import type { DashboardPage, RoomDashboardConfig } from "$lib/types/dashboard";
+    import { withBase } from "$lib/utils/appBase";
 
     import Add from "~icons/material-symbols/add";
     import Delete from "~icons/material-symbols/delete";
@@ -252,7 +253,7 @@
 
                 <div class="flex shrink-0 gap-1">
                     <a
-                        href={entry.href}
+                        href={withBase(entry.href)}
                         class="rounded-full p-2 transition-colors hover:bg-m3-surface-container-highest"
                         title={themeStore.t("dashboardSettings.openDashboard")}
                     >

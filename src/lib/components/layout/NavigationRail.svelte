@@ -4,8 +4,9 @@
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import LightMode from "~icons/material-symbols/light-mode";
     import DarkMode from "~icons/material-symbols/dark-mode";
+    import { getRoutePath, withBase } from "$lib/utils/appBase";
 
-    let currentPath = $derived($page.url.pathname);
+    let currentPath = $derived(getRoutePath($page.url.pathname));
 
     function detectTextOverflow(node: HTMLElement, _label = "") {
         let frame = 0;
@@ -58,7 +59,7 @@
         {@const label = themeStore.navigationLabel(link)}
 
         <a
-            href={link.href}
+            href={withBase(link.href)}
             class="flex min-h-16 flex-col items-center justify-center gap-1 group no-underline text-center w-full touch-manipulation px-1"
             aria-current={isActive ? "page" : undefined}
             title={label}

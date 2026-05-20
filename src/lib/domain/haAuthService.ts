@@ -3,8 +3,11 @@ import {
     type Auth,
     ERR_HASS_HOST_REQUIRED
 } from 'home-assistant-js-websocket';
+import { browser } from '$app/environment';
 import { StorageProvider } from '../utils/storageProvider';
 import { createLogger } from '../utils/logger';
+import { ADDON_BROWSER_TOKEN, type DeploymentInfo } from '$lib/shared/deployment';
+import { makeAppWebSocketUrl, withBase } from '$lib/utils/appBase';
 
 const logger = createLogger('HAAuthService');
 
@@ -15,7 +18,11 @@ export class HAAuthService {
     /**
      * Attempt to initialize authentication from stored tokens.
      */
-    static async initialize(): Promise<Auth | null> {
+    static async initialize(deployment?: DeploymentInfo): Promise<Auth | null> {
+        if (deployment?.mode === 'ha-addon' && deployment.zeroConfigAvailable) {
+            return this.createAddonAuth();
+        }
+
         try {
             const auth = await getAuth({
                 saveTokens: (tokens) => StorageProvider.saveTokens(tokens),
@@ -48,6 +55,32 @@ export class HAAuthService {
         }
     }
 
+    static createAddonAuth(): Auth {
+        const hassUrl = browser ? window.location.origin : 'http://localhost';
+
+        return {
+            data: {
+                hassUrl,
+                clientId: 'ha-dashboard-md3-addon',
+                expires: Number.MAX_SAFE_INTEGER,
+                refresh_token: '',
+                access_token: ADDON_BROWSER_TOKEN,
+                expires_in: Number.MAX_SAFE_INTEGER
+            },
+            get wsUrl() {
+                return makeAppWebSocketUrl('/api/addon/core/websocket');
+            },
+            get accessToken() {
+                return ADDON_BROWSER_TOKEN;
+            },
+            get expired() {
+                return false;
+            },
+            refreshAccessToken: async () => undefined,
+            revoke: async () => undefined
+        } as Auth;
+    }
+
     /**
      * Format a URL with protocol and port.
      */
@@ -75,7 +108,7 @@ export class HAAuthService {
         }
 
         if (path.startsWith('/api/uploads/') || path.startsWith('/api/room-previews/')) {
-            return { path, shouldProxy: false };
+            return { path: withBase(path), shouldProxy: false };
         }
 
         return { path, shouldProxy: true };
@@ -83,7 +116,7 @@ export class HAAuthService {
 
     static getProxiedUrl(path: string | null, baseUrl: string | null, token: string | undefined): string | null {
         if (!path) return null;
-        if (!token || !baseUrl) return path;
+        if (!token || !baseUrl) return withBase(path);
 
         // Debug logging for MA images
         if (path.includes('music_assistant') || path.includes('mass')) {
@@ -93,19 +126,35 @@ export class HAAuthService {
         const normalized = this.normalizeResourcePath(path, baseUrl);
         if (!normalized.shouldProxy) return normalized.path;
 
-        const proxied = `/api/ha-proxy?path=${encodeURIComponent(normalized.path)}`;
+        const proxied = withBase(`/api/ha-proxy?path=${encodeURIComponent(normalized.path)}`);
         if (path.includes('music_assistant')) logger.debug('Proxied result:', proxied);
         return proxied;
     }
 
     static async fetchProxiedBlobUrl(path: string | null, baseUrl: string | null, token: string | undefined): Promise<string | null> {
         if (!path) return null;
-        if (!token || !baseUrl) return path;
+        if (!token || !baseUrl) return withBase(path);
+
+        if (path.startsWith('/api/ha-proxy')) {
+            const response = await fetch(withBase(path), {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'x-ha-url': baseUrl
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch proxied resource: ${response.status}`);
+            }
+
+            const blob = await response.blob();
+            return URL.createObjectURL(blob);
+        }
 
         const normalized = this.normalizeResourcePath(path, baseUrl);
         if (!normalized.shouldProxy) return normalized.path;
 
-        const response = await fetch(`/api/ha-proxy?path=${encodeURIComponent(normalized.path)}`, {
+        const response = await fetch(withBase(`/api/ha-proxy?path=${encodeURIComponent(normalized.path)}`), {
             headers: {
                 Authorization: `Bearer ${token}`,
                 'x-ha-url': baseUrl

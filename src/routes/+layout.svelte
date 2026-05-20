@@ -8,6 +8,7 @@
 	import { themeStore } from "$lib/stores/theme.svelte";
 	import { dashboardStore } from "$lib/features/dashboard/stores/dashboard.svelte";
 	import { musicLibraryStore } from "$lib/features/music/stores/musicLibrary.svelte";
+	import { setAppBasePath } from "$lib/utils/appBase";
 
 	import { browser } from "$app/environment";
 
@@ -57,9 +58,9 @@
 
 	$effect(() => {
 		if (!browser) return;
+		setAppBasePath(data.deployment?.ingressPath || "");
 		lockScreenStore.init(data.config.lockScreen);
-		// Force HA init if lazy loaded elsewhere, though checking access triggers it if singleton
-		const _ = haStore.connection;
+		haStore.init(data.deployment);
 	});
 	// NOTE: Real-time sync via SSE has been removed.
 	// Changes save to localStorage immediately and sync to server with 2s debounce.

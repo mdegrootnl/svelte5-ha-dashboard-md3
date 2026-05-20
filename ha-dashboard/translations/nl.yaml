@@ -1,0 +1,3 @@
+configuration: {}
+network:
+  3000/TCP: "Optionele directe webinterfacepoort. Ingress wordt standaard gebruikt."

@@ -12,6 +12,9 @@ const config = {
 	},
 
 	kit: {
+		paths: {
+			relative: true
+		},
 		adapter: adapter(),
 		alias: {
 			"$components": "src/lib/components",

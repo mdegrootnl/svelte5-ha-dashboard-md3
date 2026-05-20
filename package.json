@@ -15,7 +15,9 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"test": "vitest",
-		"test:ui": "vitest --ui"
+		"test:ui": "vitest --ui",
+		"test:e2e": "playwright test",
+		"preview:addon": "node scripts/preview-addon.mjs"
 	},
 	"devDependencies": {
 		"@iconify-json/material-symbols": "^1.2.50",
@@ -30,6 +32,7 @@
 		"@types/d3-shape": "^3.1.7",
 		"@types/leaflet": "^1.9.21",
 		"@types/node": "^24.0.0",
+		"@types/ws": "^8.18.1",
 		"@vitest/coverage-v8": "^4.0.16",
 		"jsdom": "^27.4.0",
 		"svelte": "^5.45.6",
@@ -51,6 +54,7 @@
 		"leaflet": "^1.9.4",
 		"pexels": "^1.4.0",
 		"tailwindcss": "^4.1.18",
+		"ws": "^8.20.1",
 		"zod": "^4.3.5"
 	}
 }

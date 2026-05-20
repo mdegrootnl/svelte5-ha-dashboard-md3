@@ -15,6 +15,7 @@
     import IconInfo from "~icons/material-symbols/info";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import AuthenticatedImage from "$lib/components/common/AuthenticatedImage.svelte";
+    import { withBase } from "$lib/utils/appBase";
 
     interface Props {
         id?: string;
@@ -240,7 +241,7 @@
     }
 </script>
 
-<a href={path} class="{baseStyles} {getCardSurfaceClasses(surfaceStyle)} {className} @container" style="container-type: size; {cardStyle}">
+<a href={withBase(path || "#")} class="{baseStyles} {getCardSurfaceClasses(surfaceStyle)} {className} @container" style="container-type: size; {cardStyle}">
     {#if iconType === "image" && imageUrl}
         <!-- Full-bleed Image Mode -->
         <AuthenticatedImage

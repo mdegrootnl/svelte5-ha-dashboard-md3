@@ -3,6 +3,7 @@ import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
 import type { RequestHandler } from './$types';
+import { getDataPath } from '$lib/server/dataDir';
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const EXT_BY_MIME: Record<string, string> = {
@@ -87,7 +88,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
         const filename = `${randomUUID()}_${safeName}.${ext}`;
 
-        const uploadDir = join(process.cwd(), 'data', 'uploads');
+        const uploadDir = getDataPath('uploads');
         await mkdir(uploadDir, { recursive: true });
 
         const filePath = join(uploadDir, filename);

@@ -1,0 +1,3 @@
+configuration: {}
+network:
+  3000/TCP: "Optional direct web interface port. Ingress is used by default."

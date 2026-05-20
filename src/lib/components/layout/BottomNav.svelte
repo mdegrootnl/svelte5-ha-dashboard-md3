@@ -2,8 +2,9 @@
     import { page } from "$app/stores";
     import { themeStore } from "$lib/stores/theme.svelte";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
+    import { getRoutePath, withBase } from "$lib/utils/appBase";
 
-    let currentPath = $derived($page.url.pathname);
+    let currentPath = $derived(getRoutePath($page.url.pathname));
 </script>
 
 <nav
@@ -17,7 +18,7 @@
         {@const label = themeStore.navigationLabel(link)}
 
         <a
-            href={link.href}
+            href={withBase(link.href)}
             class="group flex min-w-[4.5rem] min-h-16 flex-1 flex-col items-center justify-center gap-1 no-underline text-center touch-manipulation"
             aria-current={isActive ? "page" : undefined}
         >

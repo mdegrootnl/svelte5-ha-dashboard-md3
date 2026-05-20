@@ -152,7 +152,17 @@ Configuration (themes, layouts, dashboards) is stored server-side in a JSON file
   -v $(pwd)/data:/app/data
   ```
 
-See [Deployment Guide](./deployment.md) for full details.
+### Home Assistant Add-On
+
+This repository can also be added directly to the Home Assistant add-on store:
+
+```text
+https://github.com/mdegrootnl/svelte5-ha-dashboard-md3
+```
+
+The add-on lives in [`ha-dashboard/`](./ha-dashboard/), opens through Home Assistant Ingress in the sidebar, persists data in `/data`, and uses server-side Supervisor API access for zero-config Home Assistant connectivity. Standalone Docker/OAuth deployment remains supported.
+
+Image publishing is handled by [`publish-addon-image.yml`](./.github/workflows/publish-addon-image.yml), which publishes `amd64` and `aarch64` images to `ghcr.io/mdegrootnl/svelte5-ha-dashboard-md3`.
 
 ## Documentation
 

@@ -1,14 +1,12 @@
 import fs from 'fs/promises';
-import path from 'path';
 import { type AppConfig, DEFAULT_CONFIG } from '$lib/types/config';
+import { getDataPath, getResolvedDataDir } from '$lib/server/dataDir';
 
 type DeepPartial<T> = {
     [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
 
-const DATA_DIR = 'data';
 const CONFIG_FILE = 'config.json';
-const CONFIG_PATH = path.join(process.cwd(), DATA_DIR, CONFIG_FILE);
 
 // Simple mutex to prevent concurrent writes causing race conditions
 let saveLock: Promise<void> = Promise.resolve();
@@ -16,7 +14,7 @@ let saveLock: Promise<void> = Promise.resolve();
 export class JsonStorageService {
     private static async ensureDir() {
         try {
-            await fs.mkdir(path.join(process.cwd(), DATA_DIR), { recursive: true });
+            await fs.mkdir(getResolvedDataDir(), { recursive: true });
         } catch (e) {
             // Ignore error if it exists
         }
@@ -25,7 +23,7 @@ export class JsonStorageService {
     static async load(): Promise<AppConfig> {
         try {
             await this.ensureDir();
-            const content = await fs.readFile(CONFIG_PATH, 'utf-8');
+            const content = await fs.readFile(getDataPath(CONFIG_FILE), 'utf-8');
 
             // Handle empty file
             if (!content.trim()) {
@@ -53,7 +51,7 @@ export class JsonStorageService {
     static async save(config: AppConfig): Promise<void> {
         try {
             await this.ensureDir();
-            await fs.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
+            await fs.writeFile(getDataPath(CONFIG_FILE), JSON.stringify(config, null, 2), 'utf-8');
         } catch (error) {
             console.error('[JsonStorageService] Failed to save config:', error);
             throw error;

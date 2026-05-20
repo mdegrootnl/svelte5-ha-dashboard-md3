@@ -2,6 +2,7 @@ import type { RequestHandler } from './$types';
 import { dev } from '$app/environment';
 import dns from 'node:dns';
 import { promisify } from 'util';
+import { fetchSupervisorCore, shouldUseSupervisorProxy } from '$lib/server/supervisorProxy';
 
 const lookup = promisify(dns.lookup);
 const DNS_CACHE_TTL = 5 * 60 * 1000;
@@ -27,10 +28,6 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
         const haUrl = request.headers.get('x-ha-url');
         const auth = request.headers.get('Authorization');
 
-        if (!haUrl) {
-            return new Response(JSON.stringify({ error: 'Missing x-ha-url header' }), { status: 400 });
-        }
-
         if (!auth) {
             return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401 });
         }
@@ -41,6 +38,33 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
 
         if (!timestamp) {
             return new Response(JSON.stringify({ error: 'Missing timestamp' }), { status: 400 });
+        }
+
+        if (shouldUseSupervisorProxy(auth)) {
+            const targetPath = new URLSearchParams();
+            if (endTime) targetPath.set('end_time', endTime);
+            if (filter) targetPath.set('filter_entity_id', filter);
+            const query = targetPath.toString();
+
+            const res = await fetchSupervisorCore(
+                fetch,
+                `/api/history/period/${timestamp}${query ? `?${query}` : ''}`,
+                {
+                    headers: { 'Content-Type': 'application/json' }
+                }
+            );
+
+            const body = await res.arrayBuffer();
+            return new Response(body, {
+                status: res.status,
+                headers: {
+                    'Content-Type': res.headers.get('Content-Type') || 'application/json'
+                }
+            });
+        }
+
+        if (!haUrl) {
+            return new Response(JSON.stringify({ error: 'Missing x-ha-url header' }), { status: 400 });
         }
 
         // Normalize URL: remove trailing slash if present

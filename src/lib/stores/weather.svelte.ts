@@ -5,6 +5,7 @@ import { HAEntityStateSchema } from '$lib/domain/schemas';
 import { ok, err, type Result } from '$lib/utils/result';
 import { StorageProvider } from '$lib/utils/storageProvider';
 import { createLogger } from '$lib/utils/logger';
+import { withBase } from '$lib/utils/appBase';
 
 const logger = createLogger('WeatherStore');
 
@@ -544,7 +545,7 @@ export class WeatherStore {
         }
 
         const themeFolder = isDarkTheme ? 'dark' : 'light';
-        return `/weather/icons/${themeFolder}/${base}.svg`;
+        return withBase(`/weather/icons/${themeFolder}/${base}.svg`);
     }
 }
 

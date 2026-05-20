@@ -5,6 +5,7 @@
     import { themeStore } from "$lib/stores/theme.svelte";
     import type { DashboardImageAttribution } from "$lib/types/dashboard";
     import { extractAccentColorFromImageUrl } from "$lib/utils/imageAccent";
+    import { withBase } from "$lib/utils/appBase";
     import Upload from "~icons/material-symbols/upload";
     import Image from "~icons/material-symbols/image";
     import Delete from "~icons/material-symbols/delete";
@@ -94,7 +95,7 @@
         if (!browser || !url || url === lastExtractedValue) return;
         lastExtractedValue = url;
 
-        const extractedAccent = await extractAccentColorFromImageUrl(url);
+        const extractedAccent = await extractAccentColorFromImageUrl(withBase(url));
         if (extractedAccent) {
             accentColor = extractedAccent;
         }
@@ -122,7 +123,7 @@
                     value = data.url;
                     attribution = undefined;
                     attributionImageUrl = "";
-                    await extractAccentFromImage(data.url);
+                    await extractAccentFromImage(withBase(value));
                     onchange?.();
                 } else {
                     const errorData = await res.json().catch(() => ({}));
@@ -267,7 +268,7 @@
         >
             {#if value}
                 <img
-                    src={value}
+                    src={withBase(value)}
                     alt={ip("preview")}
                     class="w-full h-full object-cover"
                 />
