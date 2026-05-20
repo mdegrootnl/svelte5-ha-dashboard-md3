@@ -53,6 +53,7 @@
 		"home-assistant-js-websocket": "^9.6.0",
 		"leaflet": "^1.9.4",
 		"pexels": "^1.4.0",
+		"playwright-core": "^1.60.0",
 		"tailwindcss": "^4.1.18",
 		"ws": "^8.20.1",
 		"zod": "^4.3.5"

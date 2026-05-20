@@ -20,6 +20,7 @@
     import Key from "~icons/material-symbols/key";
     import OpenInNew from "~icons/material-symbols/open-in-new";
     import MusicIcon from "~icons/material-symbols/music-note";
+    import RestaurantIcon from "~icons/material-symbols/restaurant";
     import Palette from "~icons/material-symbols/palette";
     import LockClock from "~icons/material-symbols/lock-clock";
     import Translate from "~icons/material-symbols/translate";
@@ -28,6 +29,7 @@
     import { lockScreenStore } from "$lib/features/lockscreen/stores/lockscreen.svelte";
     import DashboardSettings from "$lib/components/settings/DashboardSettings.svelte";
     import DashboardIcon from "~icons/material-symbols/dashboard";
+    import { withBase } from "$lib/utils/appBase";
 
     let host = $state("http://homeassistant.local");
     let port = $state("8123");
@@ -42,6 +44,22 @@
     let pexelsApiKey = $state("");
     let imageProviderSaving = $state(false);
     let imageProviderMessage = $state("");
+    let mealieStatus = $state({
+        configured: false,
+        baseUrl: "",
+        tokenConfigured: false,
+        source: "none",
+    } as {
+        configured: boolean;
+        baseUrl: string;
+        tokenConfigured: boolean;
+        source: "runtime" | "env" | "mixed" | "none";
+    });
+    let mealieBaseUrl = $state("");
+    let mealieApiToken = $state("");
+    let mealieSaving = $state(false);
+    let mealieTesting = $state(false);
+    let mealieMessage = $state("");
 
     onMount(async () => {
         const lastUrl = await haStore.getLastUsedUrl();
@@ -78,7 +96,7 @@
             }
         }
 
-        await loadImageProviderStatus();
+        await Promise.all([loadImageProviderStatus(), loadMealieSettings()]);
     });
 
     // Input validation patterns
@@ -233,6 +251,111 @@
             imageProviderMessage = themeStore.t("settings.providers.unavailable");
         } finally {
             imageProviderSaving = false;
+        }
+    }
+
+    async function loadMealieSettings() {
+        try {
+            const response = await fetch("/api/mealie/settings");
+            const data = await response.json().catch(() => ({}));
+            if (response.ok && data.settings) {
+                mealieStatus = data.settings;
+                mealieBaseUrl = data.settings.baseUrl || "";
+            }
+        } catch (err) {
+            console.warn("Mealie settings unavailable", err);
+        }
+    }
+
+    function formatMealieStatus() {
+        if (!mealieStatus.baseUrl) return themeStore.t("common.notConfigured");
+        if (!mealieStatus.tokenConfigured) return themeStore.t("settings.mealie.tokenMissing");
+        return mealieStatus.source === "env"
+            ? themeStore.t("settings.providers.configuredEnvironment")
+            : themeStore.t("settings.providers.configuredSettings");
+    }
+
+    async function saveMealieSettings() {
+        if (!mealieBaseUrl.trim()) {
+            mealieMessage = themeStore.t("settings.mealie.enterUrl");
+            return;
+        }
+
+        const payload: Record<string, string> = {
+            baseUrl: mealieBaseUrl.trim(),
+        };
+        if (mealieApiToken.trim()) payload.apiToken = mealieApiToken.trim();
+
+        mealieSaving = true;
+        mealieMessage = "";
+        try {
+            const response = await fetch("/api/mealie/settings", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                mealieMessage = data.error || themeStore.t("settings.mealie.saveFailed");
+                return;
+            }
+            mealieStatus = data.settings;
+            mealieBaseUrl = data.settings.baseUrl || mealieBaseUrl;
+            mealieApiToken = "";
+            mealieMessage = themeStore.t("settings.mealie.saved");
+        } catch {
+            mealieMessage = themeStore.t("settings.mealie.unavailable");
+        } finally {
+            mealieSaving = false;
+        }
+    }
+
+    async function clearRuntimeMealieSettings() {
+        mealieSaving = true;
+        mealieMessage = "";
+        try {
+            const response = await fetch("/api/mealie/settings", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({
+                    baseUrl: null,
+                    apiToken: null,
+                }),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                mealieMessage = data.error || themeStore.t("settings.mealie.clearFailed");
+                return;
+            }
+            mealieStatus = data.settings;
+            mealieBaseUrl = data.settings.baseUrl || "";
+            mealieApiToken = "";
+            mealieMessage = themeStore.t("settings.mealie.cleared");
+        } catch {
+            mealieMessage = themeStore.t("settings.mealie.unavailable");
+        } finally {
+            mealieSaving = false;
+        }
+    }
+
+    async function testMealieConnection() {
+        mealieTesting = true;
+        mealieMessage = "";
+        try {
+            const response = await fetch("/api/mealie/test");
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.ok) {
+                mealieMessage = data.error || themeStore.t("settings.mealie.testFailed");
+                return;
+            }
+            mealieMessage = themeStore.t("settings.mealie.connectedAs", {
+                email: data.user?.email || themeStore.t("common.unknown"),
+            });
+            await loadMealieSettings();
+        } catch {
+            mealieMessage = themeStore.t("settings.mealie.unavailable");
+        } finally {
+            mealieTesting = false;
         }
     }
 
@@ -783,6 +906,109 @@
                 </Card>
             </section>
 
+            <!-- Mealie Section -->
+            <section>
+                <Card variant="outlined" class="w-full">
+                    <div class="p-6 flex flex-col gap-5">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="w-10 h-10 rounded-lg bg-m3-primary/10 flex items-center justify-center"
+                            >
+                                <RestaurantIcon class="w-6 h-6 text-m3-primary" />
+                            </div>
+                            <div class="flex-1">
+                                <h2
+                                    class="text-m3-title-large text-m3-on-surface"
+                                >
+                                    {themeStore.t("settings.mealie.title")}
+                                </h2>
+                                <p
+                                    class="text-m3-body-medium text-m3-on-surface-variant"
+                                >
+                                    {themeStore.t("settings.mealie.description")}
+                                </p>
+                            </div>
+
+                            {#if mealieStatus.configured}
+                                <div
+                                    class="flex items-center gap-2 text-green-500 bg-green-500/10 px-3 py-1 rounded-full"
+                                >
+                                    <CheckCircle class="w-5 h-5" />
+                                    <span class="text-sm font-medium"
+                                        >{themeStore.t("common.connected")}</span
+                                    >
+                                </div>
+                            {:else}
+                                <div
+                                    class="flex items-center gap-2 text-m3-on-surface-variant bg-m3-surface-container px-3 py-1 rounded-full"
+                                >
+                                    <LinkOff class="w-5 h-5" />
+                                    <span class="text-sm font-medium"
+                                        >{themeStore.t("common.notConfigured")}</span
+                                    >
+                                </div>
+                            {/if}
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <TextField
+                                label={themeStore.t("settings.mealie.baseUrl")}
+                                placeholder="http://192.168.0.113:9925"
+                                bind:value={mealieBaseUrl}
+                                supportingText={formatMealieStatus()}
+                            />
+                            <TextField
+                                label={themeStore.t("settings.mealie.apiToken")}
+                                type="password"
+                                placeholder={themeStore.t("settings.mealie.pasteToken")}
+                                bind:value={mealieApiToken}
+                                supportingText={themeStore.t("settings.mealie.tokenHelp")}
+                            />
+                        </div>
+
+                        {#if mealieMessage}
+                            <p class="text-m3-body-small text-m3-on-surface-variant">
+                                {mealieMessage}
+                            </p>
+                        {/if}
+
+                        <div class="flex flex-wrap justify-end gap-2">
+                            <Button
+                                variant="outlined"
+                                onclick={clearRuntimeMealieSettings}
+                                disabled={mealieSaving || mealieTesting}
+                            >
+                                {themeStore.t("settings.mealie.clearRuntime")}
+                            </Button>
+                            <Button
+                                variant="outlined"
+                                onclick={testMealieConnection}
+                                disabled={mealieSaving || mealieTesting || !mealieStatus.baseUrl}
+                                icon={Sync}
+                            >
+                                {mealieTesting ? themeStore.t("common.checking") : themeStore.t("settings.mealie.test")}
+                            </Button>
+                            <Button
+                                variant="filled"
+                                onclick={saveMealieSettings}
+                                disabled={mealieSaving || mealieTesting}
+                                icon={RestaurantIcon}
+                            >
+                                {mealieSaving ? themeStore.t("common.saving") : themeStore.t("settings.mealie.save")}
+                            </Button>
+                            {#if mealieStatus.configured}
+                                <a
+                                    href={withBase("/meals")}
+                                    class="touch-target inline-flex items-center justify-center gap-2 px-6 rounded-full text-m3-label-large font-medium bg-m3-secondary-container text-m3-on-secondary-container hover:bg-m3-secondary-container/92 transition-colors"
+                                >
+                                    {themeStore.t("settings.mealie.openMeals")}
+                                </a>
+                            {/if}
+                        </div>
+                    </div>
+                </Card>
+            </section>
+
             <!-- Music Assistant Section -->
             <section>
                 <Card variant="outlined" class="w-full">
@@ -885,7 +1111,7 @@
                             </div>
                             <div class="flex justify-end">
                                 <a
-                                    href="/music"
+                                    href={withBase("/music")}
                                     class="inline-flex items-center justify-center h-10 px-6 rounded-full text-m3-label-large font-medium bg-m3-primary text-m3-on-primary hover:bg-m3-primary/92 transition-colors"
                                 >
                                     {themeStore.t("settings.musicAssistant.openMusic")}

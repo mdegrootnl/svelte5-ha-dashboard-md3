@@ -4,6 +4,7 @@
 .svelte-kit
 build
 coverage
+data
 node_modules
 npm-debug.log
 playwright-report

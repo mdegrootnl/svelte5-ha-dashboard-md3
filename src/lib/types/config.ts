@@ -54,6 +54,7 @@ export const DEFAULT_CONFIG: AppConfig = {
             { id: 'home', label: 'Start', icon: 'home', href: '/' },
             { id: 'dashboard', label: 'Woningdashboard', icon: 'home', href: '/dashboard' },
             { id: 'music', label: 'Muziek', icon: 'music_note', href: '/music' },
+            { id: 'meals', label: 'Maaltijden', icon: 'restaurant', href: '/meals' },
             { id: 'weather', label: 'Weer', icon: 'partly_cloudy_day', href: '/weather' },
             { id: 'library', label: 'Bibliotheek', icon: 'widgets', href: '/library' },
             { id: 'theme', label: 'Thema', icon: 'palette', href: '/theme' },

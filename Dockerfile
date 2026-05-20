@@ -10,6 +10,7 @@ FROM node:24-alpine
 ARG BUILD_VERSION=0.0.1
 ARG BUILD_ARCH=amd64
 WORKDIR /app
+RUN apk add --no-cache ca-certificates chromium freetype harfbuzz nss ttf-freefont
 COPY --from=builder /app/build build/
 COPY --from=builder /app/node_modules node_modules/
 COPY package.json .
@@ -18,6 +19,7 @@ EXPOSE 3000
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV DASHBOARD_DATA_DIR=/app/data
+ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser
 LABEL io.hass.version="${BUILD_VERSION}" \
       io.hass.type="app" \
       io.hass.arch="${BUILD_ARCH}" \
