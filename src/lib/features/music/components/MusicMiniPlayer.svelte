@@ -67,7 +67,7 @@
         ></div>
     </div>
 
-    <div class="flex items-center gap-3 p-3">
+    <div class="mx-auto flex w-full max-w-6xl items-center gap-3 p-3">
         <!-- Album Art or Player Icon -->
         {#if artwork}
             <AuthenticatedImage
@@ -118,8 +118,47 @@
             {/if}
         </div>
 
+        <!-- Volume Control (centered on tablet/desktop) -->
+        {#if nowPlaying}
+            <div
+                class="hidden min-w-0 flex-1 items-center justify-center gap-3 px-2 md:flex"
+                onclick={(e) => e.stopPropagation()}
+            >
+                <button
+                    onclick={() => maStore.toggleMute()}
+                    class="touch-target-compact rounded-full text-m3-on-surface-variant hover:text-m3-on-surface transition-colors"
+                    aria-label={themeStore.t("music.mute")}
+                >
+                    {#if nowPlaying.isMuted || nowPlaying.volume === 0}
+                        <VolumeOff class="w-5 h-5" />
+                    {:else}
+                        <VolumeUp class="w-5 h-5" />
+                    {/if}
+                </button>
+
+                <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={(nowPlaying.volume || 0) * 100}
+                    oninput={(e) =>
+                        maStore.setVolume(
+                            parseInt(e.currentTarget.value) / 100,
+                        )}
+                    style={volumeRangeStyle}
+                    class="touch-range w-full min-w-40 max-w-72 rounded-full appearance-none cursor-pointer
+                        [&::-webkit-slider-thumb]:appearance-none
+                        [&::-webkit-slider-thumb]:w-3
+                        [&::-webkit-slider-thumb]:h-3
+                        [&::-webkit-slider-thumb]:bg-m3-primary
+                        [&::-webkit-slider-thumb]:rounded-full"
+                    aria-label={themeStore.t("music.volume")}
+                />
+            </div>
+        {/if}
+
         <!-- Player Controls -->
-        <div class="flex items-center gap-2">
+        <div class="flex shrink-0 items-center gap-2">
             <!-- Previous -->
             {#if nowPlaying && nowPlaying.supported_features & 16}
                 <button
@@ -162,43 +201,5 @@
             {/if}
         </div>
 
-        <!-- Volume Control (Compact) -->
-        {#if nowPlaying}
-            <div
-                class="hidden sm:flex items-center gap-2 ml-2"
-                onclick={(e) => e.stopPropagation()}
-            >
-                <button
-                    onclick={() => maStore.toggleMute()}
-                    class="touch-target-compact rounded-full text-m3-on-surface-variant hover:text-m3-on-surface transition-colors"
-                    aria-label={themeStore.t("music.mute")}
-                >
-                    {#if nowPlaying.isMuted || nowPlaying.volume === 0}
-                        <VolumeOff class="w-5 h-5" />
-                    {:else}
-                        <VolumeUp class="w-5 h-5" />
-                    {/if}
-                </button>
-
-                <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={(nowPlaying.volume || 0) * 100}
-                    oninput={(e) =>
-                        maStore.setVolume(
-                            parseInt(e.currentTarget.value) / 100,
-                        )}
-                    style={volumeRangeStyle}
-                    class="touch-range w-24 rounded-full appearance-none cursor-pointer
-                        [&::-webkit-slider-thumb]:appearance-none
-                        [&::-webkit-slider-thumb]:w-3
-                        [&::-webkit-slider-thumb]:h-3
-                        [&::-webkit-slider-thumb]:bg-m3-primary
-                        [&::-webkit-slider-thumb]:rounded-full"
-                    aria-label={themeStore.t("music.volume")}
-                />
-            </div>
-        {/if}
     </div>
 </div>

@@ -296,7 +296,7 @@
         </div>
 
         <!-- Volume Slider -->
-        <div class="flex items-center gap-3 px-8 mt-6 mb-8">
+        <div class="mx-auto mt-6 mb-8 flex w-full max-w-2xl items-center justify-center gap-4 px-6 sm:px-8">
             <button
                 onclick={() => maStore.toggleMute()}
                 class="touch-target-compact rounded-full text-white/60 hover:text-white transition-colors"
@@ -316,7 +316,7 @@
                 value={volumeValue}
                 oninput={handleVolumeChange}
                 style={volumeRangeStyle}
-                class="touch-range flex-1 rounded-full appearance-none cursor-pointer
+                class="touch-range min-w-0 flex-1 rounded-full appearance-none cursor-pointer
                     [&::-webkit-slider-thumb]:appearance-none
                     [&::-webkit-slider-thumb]:w-3
                     [&::-webkit-slider-thumb]:h-3

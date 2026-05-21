@@ -43,6 +43,8 @@
     import { resolveCardSurfaceStyle } from "$lib/features/dashboard/utils/cardSurface";
     import { shouldHideDashboardItem } from "$lib/features/dashboard/utils/cardVisibility";
     import { resolveMaterialIconName } from "$lib/utils/materialIcon";
+    import { withBase } from "$lib/utils/appBase";
+    import IconArrowBack from "~icons/material-symbols/arrow-back";
 
     let { data } = $props();
 
@@ -188,6 +190,9 @@
     let currentDashboardId = $derived(
         DashboardStore.deriveConfigId(floor || undefined, room || undefined),
     );
+    let dashboardBackFallback = $derived(
+        room && floor ? `/dashboard/${floor}` : "/dashboard",
+    );
     let routeAreaId = $derived.by(() => {
         if (!room) return null;
         const exact = haRegistryStore.areas.find((area) => area.area_id === room);
@@ -253,6 +258,17 @@
             | undefined,
     ) {
         return Boolean(target?.generatedBy || target?.generationState);
+    }
+
+    function goBack() {
+        if (!browser) return;
+
+        if (window.history.length > 1) {
+            window.history.back();
+            return;
+        }
+
+        window.location.href = withBase(dashboardBackFallback);
     }
 
     function findItemInGrid(
@@ -461,6 +477,17 @@
     {/if}
 
     {#snippet actions()}
+        <button
+            type="button"
+            onclick={goBack}
+            class="touch-target inline-flex items-center justify-center gap-2 rounded-full bg-m3-surface-container-high px-4 text-m3-label-large font-medium text-m3-on-surface hover:bg-m3-surface-container-highest transition-colors"
+            title={themeStore.t("common.back")}
+            aria-label={themeStore.t("common.back")}
+        >
+            <IconArrowBack class="size-5" />
+            <span class="hidden md:inline">{themeStore.t("common.back")}</span>
+        </button>
+
         {#if haStore.connected}
             <!-- Edit Mode Controls -->
             {#if isEditing}

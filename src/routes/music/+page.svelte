@@ -212,7 +212,7 @@
             <!-- Mini Player (visible when a player is selected) -->
             {#if showMiniPlayer}
                 <div
-                    class="fixed bottom-0 left-0 right-0 md:left-20 z-40 pb-20 md:pb-0"
+                    class="fixed inset-x-0 bottom-24 z-40 px-3 sm:px-4 xl:bottom-0 xl:left-28 xl:px-0"
                 >
                     <MusicMiniPlayer onclick={() => (showFullPlayer = true)} />
                 </div>
