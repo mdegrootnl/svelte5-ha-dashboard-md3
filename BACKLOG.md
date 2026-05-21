@@ -10,9 +10,9 @@ Last documentation pass: May 21, 2026.
 
 - Completed roadmap slices: Trust And Acceptance, For You / Attention Surface, Bubble-Style Detail Sheets, Specialist Cards, and Graph Analytics.
 - In-progress roadmap slices: Presence And Household Context, Tablet / Kiosk Mode, Adaptive Text Readability, and live generated-dashboard acceptance.
-- Latest local validation after the kiosk per-device profile pass: focused kiosk store tests, `npm run check`, `npm test -- --run`, `npm run build`, and `npm run test:visual` passed. Visual smoke covers dashboard, attention, presence, settings, music, and meals under a simulated Home Assistant ingress path across desktop, tablet, and phone viewports, including page overflow, key label contrast, and image-label protection checks.
+- Latest local validation after the adaptive text-readability regression pass: `npm run check` and `npm run test:visual` passed. Visual smoke covers dashboard, attention, presence, settings, music, and meals under a simulated Home Assistant ingress path across desktop, tablet, and phone viewports, including page overflow, key label contrast, screenshot-sampled image-label contrast, and image-label protection checks.
 - Known local visual-test noise: Supervisor DNS warnings are expected outside the Home Assistant add-on runtime and did not fail the smoke suite.
-- Recent targeted fixes: card editor and entity detail side sheets are now hosted by the root app shell so reusable card actions work outside `/dashboard`; navigation-card edit controls now share the shortcut action row instead of overlapping top-right shortcuts; Home Assistant to-do cards no longer visibly churn from broad state polling; the library route now has live specialist-card examples; AH export review preserves grouped Mealie source lines before deduplicated export.
+- Recent targeted fixes: card editor and entity detail side sheets are now hosted by the root app shell so reusable card actions work outside `/dashboard`; navigation-card edit controls now share the shortcut action row instead of overlapping top-right shortcuts; a library navigation-card visual regression now proves shortcuts and edit controls stay separated; Home Assistant to-do cards no longer visibly churn from broad state polling; the library route now has live specialist-card examples; AH export review preserves grouped Mealie source lines before deduplicated export.
 
 ### Open Work Summary
 
@@ -25,8 +25,8 @@ This is the current short list of what is still genuinely open.
 
 2. Adaptive text readability:
    - Audit all image-backed cards, detail-sheet hero areas, generated room cards, and shortcut-heavy cards for dark-on-dark or light-on-light text.
-   - Add regional image/background contrast sampling for labels that sit on photos or generated room previews.
-   - Extend Playwright checks beyond obvious labels so problematic text/background pairs are caught before release.
+   - Validate a freshly generated real dashboard with room-preview images and promote any remaining contrast issue into a focused regression.
+   - Keep extending the screenshot-sampled Playwright checks when new image-backed cards or hero treatments are added.
 
 3. Bubble-style detail sheets:
    - Baseline is complete: entity detail sheets are now global root-shell surfaces and reusable cards can open them outside `/dashboard`.
@@ -174,7 +174,7 @@ Acceptance:
 
 #### Cross-Cutting: Adaptive Text Readability
 
-Status: in progress; local helpers and tests exist, but full visual acceptance remains open.
+Status: mostly implemented; live generated-dashboard acceptance remains open.
 
 Problem:
 
@@ -199,12 +199,13 @@ Completed so far:
 - Added focused tests for contrast helpers, card-surface readable foreground styles, and image navigation readability affordances.
 - Added Playwright visual smoke coverage for obvious key-label contrast regressions and missing image-text protection classes.
 - Navigation-card shortcut/action overlap was fixed by moving the edit affordance into the same top action row as shortcuts.
+- Added screenshot-sampled regional image-label contrast checks so protected labels are tested against rendered local pixels, not just DOM classes.
+- Added a library navigation-card visual regression that exercises image-backed room links on a phone viewport and verifies shortcut/edit controls do not overlap.
 
 Open:
 
-- Add regional contrast sampling for labels on images/generated previews instead of only checking obvious text tokens.
-- Audit every card with image, custom background, or top-right action clusters.
-- Add visual regression coverage for shortcut/edit-control overlap on navigation cards and other action-heavy cards.
+- Audit remaining image/custom-background cards and future top-right action clusters as they are added.
+- Validate the checks against a real freshly regenerated kitchen/room dashboard, not only library examples and current smoke routes.
 
 Acceptance:
 
