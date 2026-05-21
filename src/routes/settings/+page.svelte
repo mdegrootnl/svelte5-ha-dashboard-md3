@@ -21,6 +21,7 @@
     import OpenInNew from "~icons/material-symbols/open-in-new";
     import MusicIcon from "~icons/material-symbols/music-note";
     import RestaurantIcon from "~icons/material-symbols/restaurant";
+    import StorefrontIcon from "~icons/material-symbols/storefront";
     import Palette from "~icons/material-symbols/palette";
     import LockClock from "~icons/material-symbols/lock-clock";
     import Translate from "~icons/material-symbols/translate";
@@ -30,6 +31,7 @@
     import DashboardSettings from "$lib/components/settings/DashboardSettings.svelte";
     import DashboardIcon from "~icons/material-symbols/dashboard";
     import { withBase } from "$lib/utils/appBase";
+    import type { AhSettingsStatus } from "$lib/types/ah";
 
     let host = $state("http://homeassistant.local");
     let port = $state("8123");
@@ -60,6 +62,14 @@
     let mealieSaving = $state(false);
     let mealieTesting = $state(false);
     let mealieMessage = $state("");
+    let ahStatus = $state<AhSettingsStatus>({
+        configured: false,
+        authenticated: false,
+        needsReconnect: false,
+    });
+    let ahSaving = $state(false);
+    let ahTesting = $state(false);
+    let ahMessage = $state("");
 
     onMount(async () => {
         const lastUrl = await haStore.getLastUsedUrl();
@@ -96,7 +106,12 @@
             }
         }
 
-        await Promise.all([loadImageProviderStatus(), loadMealieSettings()]);
+        await Promise.all([loadImageProviderStatus(), loadMealieSettings(), loadAhSettings()]);
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("ah") === "connected") {
+            activeTabId = "connections";
+            ahMessage = themeStore.t("settings.ah.connected");
+        }
     });
 
     // Input validation patterns
@@ -356,6 +371,84 @@
             mealieMessage = themeStore.t("settings.mealie.unavailable");
         } finally {
             mealieTesting = false;
+        }
+    }
+
+    async function loadAhSettings() {
+        try {
+            const response = await fetch("/api/ah/settings");
+            const data = await response.json().catch(() => ({}));
+            if (response.ok && data.settings) {
+                ahStatus = data.settings;
+            }
+        } catch (err) {
+            console.warn("Albert Heijn settings unavailable", err);
+        }
+    }
+
+    function formatAhStatus() {
+        if (!ahStatus.configured) return themeStore.t("common.notConfigured");
+        if (ahStatus.needsReconnect) return themeStore.t("settings.ah.reconnectNeeded");
+        if (ahStatus.authenticated) return themeStore.t("common.connected");
+        return themeStore.t("common.unavailable");
+    }
+
+    async function startAhLogin() {
+        ahSaving = true;
+        ahMessage = "";
+        try {
+            const response = await fetch("/api/ah/auth/start", { method: "POST" });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.url) {
+                ahMessage = data.error || themeStore.t("settings.ah.startFailed");
+                return;
+            }
+            window.location.href = withBase(data.url);
+        } catch {
+            ahMessage = themeStore.t("settings.ah.unavailable");
+        } finally {
+            ahSaving = false;
+        }
+    }
+
+    async function disconnectAh() {
+        ahSaving = true;
+        ahMessage = "";
+        try {
+            const response = await fetch("/api/ah/auth/logout", { method: "POST" });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                ahMessage = data.error || themeStore.t("settings.ah.disconnectFailed");
+                return;
+            }
+            ahStatus = data.settings;
+            ahMessage = themeStore.t("settings.ah.disconnected");
+        } catch {
+            ahMessage = themeStore.t("settings.ah.unavailable");
+        } finally {
+            ahSaving = false;
+        }
+    }
+
+    async function testAhConnection() {
+        ahTesting = true;
+        ahMessage = "";
+        try {
+            const response = await fetch("/api/ah/test");
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.ok) {
+                ahStatus = data.settings || ahStatus;
+                ahMessage = data.error || themeStore.t("settings.ah.testFailed");
+                return;
+            }
+            ahStatus = data.settings || ahStatus;
+            ahMessage = themeStore.t("settings.ah.connectedAs", {
+                name: data.member?.firstName || data.member?.email || themeStore.t("common.unknown"),
+            });
+        } catch {
+            ahMessage = themeStore.t("settings.ah.unavailable");
+        } finally {
+            ahTesting = false;
         }
     }
 
@@ -1004,6 +1097,108 @@
                                     {themeStore.t("settings.mealie.openMeals")}
                                 </a>
                             {/if}
+                        </div>
+                    </div>
+                </Card>
+            </section>
+
+            <!-- Albert Heijn Section -->
+            <section>
+                <Card variant="outlined" class="w-full">
+                    <div class="p-6 flex flex-col gap-5">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="w-10 h-10 rounded-lg bg-m3-primary/10 flex items-center justify-center"
+                            >
+                                <StorefrontIcon class="w-6 h-6 text-m3-primary" />
+                            </div>
+                            <div class="flex-1">
+                                <h2
+                                    class="text-m3-title-large text-m3-on-surface"
+                                >
+                                    {themeStore.t("settings.ah.title")}
+                                </h2>
+                                <p
+                                    class="text-m3-body-medium text-m3-on-surface-variant"
+                                >
+                                    {themeStore.t("settings.ah.description")}
+                                </p>
+                            </div>
+
+                            {#if ahStatus.authenticated && !ahStatus.needsReconnect}
+                                <div
+                                    class="flex items-center gap-2 text-green-500 bg-green-500/10 px-3 py-1 rounded-full"
+                                >
+                                    <CheckCircle class="w-5 h-5" />
+                                    <span class="text-sm font-medium"
+                                        >{themeStore.t("common.connected")}</span
+                                    >
+                                </div>
+                            {:else if ahStatus.needsReconnect}
+                                <div
+                                    class="flex items-center gap-2 text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full"
+                                >
+                                    <Warning class="w-5 h-5" />
+                                    <span class="text-sm font-medium"
+                                        >{themeStore.t("settings.ah.reconnectNeeded")}</span
+                                    >
+                                </div>
+                            {:else}
+                                <div
+                                    class="flex items-center gap-2 text-m3-on-surface-variant bg-m3-surface-container px-3 py-1 rounded-full"
+                                >
+                                    <LinkOff class="w-5 h-5" />
+                                    <span class="text-sm font-medium"
+                                        >{themeStore.t("common.notConfigured")}</span
+                                    >
+                                </div>
+                            {/if}
+                        </div>
+
+                        <div class="rounded-lg bg-m3-surface-container p-4 text-m3-body-medium text-m3-on-surface-variant">
+                            {themeStore.t("settings.ah.loginHelp")}
+                            <div class="mt-2 text-m3-label-large text-m3-on-surface">
+                                {formatAhStatus()}
+                            </div>
+                        </div>
+
+                        {#if ahMessage}
+                            <p class="text-m3-body-small text-m3-on-surface-variant">
+                                {ahMessage}
+                            </p>
+                        {/if}
+
+                        <div class="flex flex-wrap justify-end gap-2">
+                            {#if ahStatus.configured}
+                                <Button
+                                    variant="outlined"
+                                    onclick={disconnectAh}
+                                    disabled={ahSaving || ahTesting}
+                                    icon={LinkOff}
+                                >
+                                    {themeStore.t("settings.ah.disconnect")}
+                                </Button>
+                                <Button
+                                    variant="outlined"
+                                    onclick={testAhConnection}
+                                    disabled={ahSaving || ahTesting}
+                                    icon={Sync}
+                                >
+                                    {ahTesting ? themeStore.t("common.checking") : themeStore.t("settings.ah.test")}
+                                </Button>
+                            {/if}
+                            <Button
+                                variant="filled"
+                                onclick={startAhLogin}
+                                disabled={ahSaving || ahTesting}
+                                icon={StorefrontIcon}
+                            >
+                                {ahSaving
+                                    ? themeStore.t("common.connecting")
+                                    : ahStatus.configured
+                                      ? themeStore.t("settings.ah.reconnect")
+                                      : themeStore.t("settings.ah.connect")}
+                            </Button>
                         </div>
                     </div>
                 </Card>

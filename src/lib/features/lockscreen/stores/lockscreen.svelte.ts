@@ -33,12 +33,12 @@ export class LockScreenStore {
             // Try to load from local storage or use defaults
             const localConfig = this.loadFromLocalStorage();
             if (localConfig) {
-                this.applyConfig(localConfig);
+                this.applyServerConfig(localConfig);
             } else {
-                this.applyConfig(DEFAULT_CONFIG.lockScreen!);
+                this.applyServerConfig(DEFAULT_CONFIG.lockScreen!);
             }
         } else {
-            this.applyConfig(config);
+            this.applyServerConfig(config);
         }
 
         // Always start locked if enabled? 
@@ -51,7 +51,7 @@ export class LockScreenStore {
         }
     }
 
-    private applyConfig(config: LockScreenConfig) {
+    applyServerConfig(config: LockScreenConfig) {
         this.enabled = config.enabled;
         this.timeout = config.timeout;
         this.backgroundLandscape = config.backgroundLandscape;

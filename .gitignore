@@ -25,6 +25,8 @@ vite.config.ts.timestamp-*
 
 # Local runtime data
 data/config.json
+data/ah-settings.json
+data/ah-product-mappings.json
 data/image-provider-secrets.json
 data/mealie-settings.json
 data/uploads/

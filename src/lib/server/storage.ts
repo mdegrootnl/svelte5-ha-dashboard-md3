@@ -8,8 +8,17 @@ type DeepPartial<T> = {
 
 const CONFIG_FILE = 'config.json';
 
-// Simple mutex to prevent concurrent writes causing race conditions
+// Simple mutex to prevent concurrent writes causing race conditions.
 let saveLock: Promise<void> = Promise.resolve();
+
+async function withSaveLock<T>(task: () => Promise<T>): Promise<T> {
+    const next = saveLock.then(task, task);
+    saveLock = next.then(
+        () => undefined,
+        () => undefined,
+    );
+    return next;
+}
 
 export class JsonStorageService {
     private static async ensureDir() {
@@ -59,8 +68,7 @@ export class JsonStorageService {
     }
 
     static async savePartial(partial: DeepPartial<AppConfig>): Promise<void> {
-        // Use mutex to prevent concurrent read-modify-write cycles
-        saveLock = saveLock.then(async () => {
+        return withSaveLock(async () => {
             const current = await this.load();
             const newConfig: AppConfig = {
                 ...current,
@@ -78,10 +86,15 @@ export class JsonStorageService {
             };
             console.log('[JsonStorageService] Saving new config with lockScreen:', newConfig.lockScreen);
             await this.save(newConfig);
-        }).catch(err => {
-            console.error('[JsonStorageService] Save failed:', err);
         });
+    }
 
-        return saveLock;
+    static async update(mutator: (current: AppConfig) => AppConfig | Promise<AppConfig>): Promise<AppConfig> {
+        return withSaveLock(async () => {
+            const current = await this.load();
+            const nextConfig = await mutator(current);
+            await this.save(nextConfig);
+            return nextConfig;
+        });
     }
 }

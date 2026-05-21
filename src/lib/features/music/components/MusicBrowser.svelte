@@ -214,20 +214,28 @@
             <button
                 class="flex items-center gap-2 px-4 py-2 rounded-full bg-m3-surface-container-high text-m3-on-surface hover:bg-m3-surface-container-highest transition-colors disabled:opacity-50"
                 onclick={() => musicLibraryStore.syncFromMA(maStore)}
-                disabled={musicLibraryStore.loading}
+                disabled={musicLibraryStore.loading || musicLibraryStore.syncing}
             >
                 <Sync
-                    class="w-5 h-5 {musicLibraryStore.loading
+                    class="w-5 h-5 {musicLibraryStore.loading || musicLibraryStore.syncing
                         ? 'animate-spin'
                         : ''}"
                 />
                 <span class="text-m3-label-large">
-                    {musicLibraryStore.loading
+                    {musicLibraryStore.loading || musicLibraryStore.syncing
                         ? themeStore.t("music.library.syncing")
                         : themeStore.t("music.library.sync")}
                 </span>
             </button>
         </div>
+
+        {#if musicLibraryStore.syncError}
+            <div
+                class="mb-6 rounded-lg border border-m3-error/40 bg-m3-error-container px-4 py-3 text-m3-body-medium text-m3-on-error-container"
+            >
+                {musicLibraryStore.syncError}
+            </div>
+        {/if}
 
         <MusicSection title={themeStore.t("music.sections.favoriteTracks")} items={localTracks} {onPlay} />
         <MusicSection title={themeStore.t("music.sections.favoriteAlbums")} items={localAlbums} {onPlay} />

@@ -14,6 +14,13 @@
         scaleIngredientText,
         servingScale,
     } from "$lib/features/meals/servings";
+    import {
+        ahSearchQueryForIngredient,
+    } from "$lib/features/meals/ahMatching";
+    import {
+        buildAhShoppingExportRows,
+        type AhShoppingExportRow,
+    } from "$lib/features/meals/shoppingExport";
     import type {
         MealiePagination,
         MealiePlanEntry,
@@ -23,6 +30,11 @@
         MealieShoppingList,
         MealieShoppingListItem,
     } from "$lib/types/mealie";
+    import type {
+        AhProduct,
+        AhProductMapping,
+        AhSettingsStatus,
+    } from "$lib/types/ah";
 
     import Restaurant from "~icons/material-symbols/restaurant";
     import Search from "~icons/material-symbols/search";
@@ -35,6 +47,7 @@
     import Add from "~icons/material-symbols/add";
     import DeleteIcon from "~icons/material-symbols/delete";
     import UploadFile from "~icons/material-symbols/upload-file";
+    import Storefront from "~icons/material-symbols/storefront";
 
     type Tab = "today" | "planner" | "recipes" | "shopping";
 
@@ -62,7 +75,9 @@
     let recipeShoppingListId = $state("");
     let recipeDetailMessage = $state("");
     let addingRecipeToShopping = $state(false);
+    let repairingRecipeImage = $state(false);
     let brokenRecipeImageIds = $state<Record<string, boolean>>({});
+    let recipeImageRevisions = $state<Record<string, number>>({});
     let todayEntries = $state<MealiePlanEntry[]>([]);
     let plannerEntries = $state<MealiePlanEntry[]>([]);
     let plannerStartDate = $state(toDateInput(new Date()));
@@ -85,6 +100,20 @@
     let activeShoppingListId = $state("");
     let activeShoppingList = $state<MealieShoppingList | null>(null);
     let shoppingBusyItemId = $state("");
+    let creatingShoppingList = $state(false);
+    let shoppingMessage = $state("");
+    let ahStatus = $state<AhSettingsStatus>({
+        configured: false,
+        authenticated: false,
+        needsReconnect: false,
+    });
+    let ahExportRows = $state<AhShoppingExportRow[]>([]);
+    let ahExportOpen = $state(false);
+    let ahExportMessage = $state("");
+    let ahExporting = $state(false);
+    let ahPreparingExport = $state(false);
+    let ahProductResults = $state<Record<string, AhProduct[]>>({});
+    let ahProductLoading = $state<Record<string, boolean>>({});
 
     const tabs = $derived([
         { id: "today", label: themeStore.t("meals.tabs.today"), icon: CalendarMonth },
@@ -115,6 +144,9 @@
         recipes.find((recipe) => recipe.id === planRecipeId) ?? null,
     );
     const selectedRecipeScale = $derived(servingScale(selectedRecipe?.recipeServings, recipePeople));
+    const selectedRecipeImageMissing = $derived(
+        selectedRecipe?.id ? Boolean(brokenRecipeImageIds[selectedRecipe.id]) : false,
+    );
     const parsedImportUrls = $derived(parseRecipeImportUrls(importUrlsText));
     const activeShoppingItems = $derived(activeShoppingList?.listItems ?? []);
     const openShoppingItems = $derived(activeShoppingItems.filter((item) => !item.checked));
@@ -256,6 +288,17 @@
     function handlePlanRecipeChange() {
         const recipe = recipes.find((current) => current.id === planRecipeId);
         if (recipe) planPeople = normalizeServings(recipe.recipeServings);
+    }
+
+    function planSelectedRecipeFromDetail() {
+        if (!selectedRecipe?.id) return;
+        planRecipeId = selectedRecipe.id;
+        planPeople = recipePeople;
+        planDate = planDate || toDateInput(new Date());
+        planEntryType = "dinner";
+        activeTab = "planner";
+        selectedRecipe = null;
+        plannerMessage = themeStore.t("meals.recipes.readyToPlan");
     }
 
     async function createPlanEntry() {
@@ -423,6 +466,169 @@
         activeShoppingList = await mealieFetch<MealieShoppingList>(
             `households/shopping/lists/${id}`,
         );
+        shoppingMessage = "";
+    }
+
+    async function loadAhStatus() {
+        const response = await fetch("/api/ah/settings");
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || themeStore.t("meals.shopping.ahStatusFailed"));
+        ahStatus = data.settings;
+        return ahStatus;
+    }
+
+    async function loadAhMappings() {
+        const response = await fetch("/api/ah/mappings");
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) return {};
+        return (data.mappings ?? {}) as Record<string, AhProductMapping>;
+    }
+
+    async function openAhExportReview() {
+        ahPreparingExport = true;
+        ahExportMessage = "";
+        ahProductResults = {};
+        ahProductLoading = {};
+        try {
+            const [status, mappings] = await Promise.all([loadAhStatus(), loadAhMappings()]);
+            const rows = buildAhShoppingExportRows(openShoppingItems, mappings);
+            ahExportRows = rows;
+            ahExportOpen = true;
+            if (!status.authenticated || status.needsReconnect) {
+                ahExportMessage = themeStore.t("meals.shopping.ahNotConnected");
+                return;
+            }
+            if (!rows.length) {
+                ahExportMessage = themeStore.t("meals.shopping.ahNoItems");
+                return;
+            }
+            await searchAhProductsForRows(rows);
+        } catch (err) {
+            ahExportMessage = err instanceof Error ? err.message : themeStore.t("meals.shopping.ahPrepareFailed");
+            ahExportOpen = true;
+        } finally {
+            ahPreparingExport = false;
+        }
+    }
+
+    async function searchAhProductsForRows(rows: AhShoppingExportRow[]) {
+        for (const row of rows.slice(0, 30)) {
+            if (row.item.mode === "product" && row.item.productId) continue;
+            await searchAhProducts(row);
+        }
+    }
+
+    async function searchAhProducts(row: AhShoppingExportRow) {
+        const query = ahSearchQueryForIngredient(row.item.displayText || row.key);
+        if (!query) return;
+        ahProductLoading = { ...ahProductLoading, [row.key]: true };
+        try {
+            const response = await fetch(`/api/ah/products/search?query=${encodeURIComponent(query)}&limit=5`);
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                ahExportMessage = data.error || themeStore.t("meals.shopping.ahSearchFailed");
+                return;
+            }
+            ahProductResults = {
+                ...ahProductResults,
+                [row.key]: data.products ?? [],
+            };
+        } catch {
+            ahExportMessage = themeStore.t("meals.shopping.ahSearchFailed");
+        } finally {
+            ahProductLoading = { ...ahProductLoading, [row.key]: false };
+        }
+    }
+
+    function updateAhExportRow(key: string, update: (row: AhShoppingExportRow) => AhShoppingExportRow) {
+        ahExportRows = ahExportRows.map((row) => (row.key === key ? update(row) : row));
+    }
+
+    function setAhRowFreeText(row: AhShoppingExportRow) {
+        updateAhExportRow(row.key, (current) => ({
+            ...current,
+            item: {
+                ...current.item,
+                mode: "freeText",
+                productId: undefined,
+                product: undefined,
+            },
+        }));
+    }
+
+    function setAhRowProduct(row: AhShoppingExportRow, product: AhProduct) {
+        updateAhExportRow(row.key, (current) => ({
+            ...current,
+            item: {
+                ...current.item,
+                mode: "product",
+                productId: product.id,
+                product,
+                quantity: current.item.quantity || 1,
+            },
+        }));
+    }
+
+    function setAhRowQuantity(row: AhShoppingExportRow, value: string) {
+        const quantity = Math.max(1, Math.min(999, Math.round(Number(value) || 1)));
+        updateAhExportRow(row.key, (current) => ({
+            ...current,
+            item: {
+                ...current.item,
+                quantity,
+            },
+        }));
+    }
+
+    async function exportAhShoppingList() {
+        if (!ahExportRows.length) return;
+        ahExporting = true;
+        ahExportMessage = "";
+        try {
+            const response = await fetch("/api/ah/shopping-list/export", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ items: ahExportRows.map((row) => row.item) }),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                ahExportMessage = data.error || themeStore.t("meals.shopping.ahExportFailed");
+                return;
+            }
+            ahExportMessage = themeStore.t("meals.shopping.ahExported", { count: data.count ?? ahExportRows.length });
+        } catch {
+            ahExportMessage = themeStore.t("meals.shopping.ahExportFailed");
+        } finally {
+            ahExporting = false;
+        }
+    }
+
+    async function createShoppingList(name = themeStore.t("meals.shopping.defaultList")) {
+        const created = await mealieFetch<MealieShoppingList>("households/shopping/lists", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ name }),
+        });
+        shoppingLists = [...shoppingLists, created].sort((a, b) =>
+            (a.name || "").localeCompare(b.name || ""),
+        );
+        activeShoppingListId = created.id;
+        activeShoppingList = created;
+        recipeShoppingListId = created.id;
+        return created;
+    }
+
+    async function handleCreateShoppingList() {
+        creatingShoppingList = true;
+        shoppingMessage = "";
+        try {
+            await createShoppingList();
+            shoppingMessage = themeStore.t("meals.shopping.created");
+        } catch (err) {
+            shoppingMessage = err instanceof Error ? err.message : themeStore.t("meals.shopping.createFailed");
+        } finally {
+            creatingShoppingList = false;
+        }
     }
 
     async function setShoppingItemChecked(item: MealieShoppingListItem, checked: boolean) {
@@ -453,12 +659,24 @@
 
     function recipeImageUrl(recipe: MealieRecipeSummary | null | undefined) {
         if (!recipe?.id || brokenRecipeImageIds[recipe.id]) return "";
-        return withBase(`/api/mealie/media/recipes/${recipe.id}/images/min-original.webp`);
+        const revision = recipeImageRevisions[recipe.id];
+        const suffix = revision ? `?v=${revision}` : "";
+        return withBase(`/api/mealie/media/recipes/${recipe.id}/images/min-original.webp${suffix}`);
     }
 
     function markRecipeImageBroken(recipe: MealieRecipeSummary | null | undefined) {
         if (!recipe?.id) return;
         brokenRecipeImageIds = { ...brokenRecipeImageIds, [recipe.id]: true };
+    }
+
+    function markRecipeImageRepaired(recipe: MealieRecipeSummary) {
+        if (!recipe.id) return;
+        const { [recipe.id]: _removed, ...remaining } = brokenRecipeImageIds;
+        brokenRecipeImageIds = remaining;
+        recipeImageRevisions = {
+            ...recipeImageRevisions,
+            [recipe.id]: Date.now(),
+        };
     }
 
     function formatDuration(value: string | null | undefined) {
@@ -516,16 +734,15 @@
 
     async function addSelectedRecipeToShoppingList() {
         if (!selectedRecipe?.id) return;
-        if (!recipeShoppingListId) {
-            recipeDetailMessage = themeStore.t("meals.recipes.noShoppingList");
-            return;
-        }
 
         addingRecipeToShopping = true;
         recipeDetailMessage = "";
         try {
+            const targetShoppingList = recipeShoppingListId
+                ? { id: recipeShoppingListId }
+                : await createShoppingList();
             const updated = await mealieFetch<MealieShoppingList>(
-                `households/shopping/lists/${recipeShoppingListId}/recipe`,
+                `households/shopping/lists/${targetShoppingList.id}/recipe`,
                 {
                     method: "POST",
                     headers: { "content-type": "application/json" },
@@ -538,13 +755,40 @@
                     ]),
                 },
             );
-            activeShoppingListId = recipeShoppingListId;
+            activeShoppingListId = targetShoppingList.id;
             activeShoppingList = updated;
+            shoppingLists = shoppingLists.map((list) => (list.id === updated.id ? { ...list, ...updated } : list));
             recipeDetailMessage = themeStore.t("meals.recipes.addedToShopping", { count: recipePeople });
         } catch (err) {
             recipeDetailMessage = err instanceof Error ? err.message : themeStore.t("meals.error.request");
         } finally {
             addingRecipeToShopping = false;
+        }
+    }
+
+    async function repairSelectedRecipeImage() {
+        if (!selectedRecipe?.slug || !selectedRecipe.orgURL) {
+            recipeDetailMessage = themeStore.t("meals.recipes.noImageSource");
+            return;
+        }
+
+        repairingRecipeImage = true;
+        recipeDetailMessage = "";
+        try {
+            await mealieFetch<{ success: boolean; imageImported: boolean }>("import/recipe-image", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({
+                    slug: selectedRecipe.slug,
+                    url: selectedRecipe.orgURL,
+                }),
+            });
+            markRecipeImageRepaired(selectedRecipe);
+            recipeDetailMessage = themeStore.t("meals.recipes.imageRepaired");
+        } catch (err) {
+            recipeDetailMessage = err instanceof Error ? err.message : themeStore.t("meals.recipes.imageRepairFailed");
+        } finally {
+            repairingRecipeImage = false;
         }
     }
 
@@ -1013,8 +1257,8 @@
                                         {/if}
                                     </div>
 
-                                    <div class="grid gap-3 rounded-xl bg-m3-surface-container p-4 md:grid-cols-[1fr_140px]">
-                                        <div class="flex flex-col justify-center gap-1">
+                                    <div class="grid gap-4 rounded-xl bg-m3-surface-container p-4">
+                                        <div class="flex flex-col gap-1">
                                             <div class="text-m3-title-small text-m3-on-surface">
                                                 {themeStore.t("meals.recipes.baseServings", {
                                                     count: normalizeServings(selectedRecipe.recipeServings),
@@ -1024,18 +1268,68 @@
                                                 {themeStore.t("meals.recipes.scalingHelp")}
                                             </div>
                                         </div>
-                                        <label class="flex flex-col gap-1">
-                                            <span class="text-m3-label-large text-m3-on-surface-variant">
-                                                {themeStore.t("meals.recipes.people")}
-                                            </span>
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                max="99"
-                                                bind:value={recipePeople}
-                                                class="min-h-14 rounded-md border border-m3-outline bg-m3-surface px-4 text-m3-body-large text-m3-on-surface"
-                                            />
-                                        </label>
+                                        <div class="grid gap-3 md:grid-cols-[120px_1fr]">
+                                            <label class="flex flex-col gap-1">
+                                                <span class="text-m3-label-large text-m3-on-surface-variant">
+                                                    {themeStore.t("meals.recipes.people")}
+                                                </span>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    max="99"
+                                                    bind:value={recipePeople}
+                                                    class="min-h-14 rounded-md border border-m3-outline bg-m3-surface px-4 text-m3-body-large text-m3-on-surface"
+                                                />
+                                            </label>
+                                            {#if shoppingLists.length}
+                                                <label class="flex flex-col gap-1">
+                                                    <span class="text-m3-label-large text-m3-on-surface-variant">
+                                                        {themeStore.t("meals.recipes.shoppingList")}
+                                                    </span>
+                                                    <select
+                                                        bind:value={recipeShoppingListId}
+                                                        class="min-h-14 rounded-md border border-m3-outline bg-m3-surface px-4 text-m3-body-large text-m3-on-surface"
+                                                    >
+                                                        {#each shoppingLists as list (list.id)}
+                                                            <option value={list.id}>
+                                                                {list.name || themeStore.t("meals.shopping.list")}
+                                                            </option>
+                                                        {/each}
+                                                    </select>
+                                                </label>
+                                            {/if}
+                                        </div>
+                                        <div class="flex flex-wrap gap-2">
+                                            <Button
+                                                variant="filled"
+                                                onclick={addSelectedRecipeToShoppingList}
+                                                disabled={addingRecipeToShopping || !selectedRecipe.recipeIngredient?.length}
+                                                icon={ShoppingCart}
+                                            >
+                                                {addingRecipeToShopping
+                                                    ? themeStore.t("common.saving")
+                                                    : themeStore.t("meals.recipes.addToShopping")}
+                                            </Button>
+                                            <Button
+                                                variant="tonal"
+                                                onclick={planSelectedRecipeFromDetail}
+                                                icon={CalendarMonth}
+                                            >
+                                                {themeStore.t("meals.recipes.planMeal")}
+                                            </Button>
+                                            {#if selectedRecipeImageMissing && selectedRecipe.orgURL}
+                                                <Button
+                                                    variant="outlined"
+                                                    onclick={repairSelectedRecipeImage}
+                                                    disabled={repairingRecipeImage}
+                                                    icon={Refresh}
+                                                >
+                                                    {repairingRecipeImage
+                                                        ? themeStore.t("common.saving")
+                                                        : themeStore.t("meals.recipes.repairImage")}
+                                                </Button>
+                                            {/if}
+                                        </div>
                                     </div>
 
                                     {#if selectedRecipe.recipeIngredient?.length}
@@ -1050,36 +1344,6 @@
                                                     </div>
                                                 {/each}
                                             </div>
-                                        </section>
-                                    {/if}
-
-                                    {#if selectedRecipe.recipeIngredient?.length && shoppingLists.length}
-                                        <section class="grid gap-3 rounded-xl border border-m3-outline-variant p-4 md:grid-cols-[1fr_auto] md:items-end">
-                                            <label class="flex flex-col gap-1">
-                                                <span class="text-m3-label-large text-m3-on-surface-variant">
-                                                    {themeStore.t("meals.recipes.shoppingList")}
-                                                </span>
-                                                <select
-                                                    bind:value={recipeShoppingListId}
-                                                    class="min-h-14 rounded-md border border-m3-outline bg-m3-surface px-4 text-m3-body-large text-m3-on-surface"
-                                                >
-                                                    {#each shoppingLists as list (list.id)}
-                                                        <option value={list.id}>
-                                                            {list.name || themeStore.t("meals.shopping.list")}
-                                                        </option>
-                                                    {/each}
-                                                </select>
-                                            </label>
-                                            <Button
-                                                variant="filled"
-                                                onclick={addSelectedRecipeToShoppingList}
-                                                disabled={addingRecipeToShopping}
-                                                icon={ShoppingCart}
-                                            >
-                                                {addingRecipeToShopping
-                                                    ? themeStore.t("common.saving")
-                                                    : themeStore.t("meals.recipes.addToShopping")}
-                                            </Button>
                                         </section>
                                     {/if}
 
@@ -1120,19 +1384,212 @@
                     {/if}
                 {:else if activeTab === "shopping"}
                     {#if shoppingLists.length}
-                        <div class="mb-4 flex gap-2 overflow-x-auto">
-                            {#each shoppingLists as list (list.id)}
-                                <button
-                                    class="touch-target rounded-full px-4 text-m3-label-large font-medium whitespace-nowrap transition-colors
-                                        {activeShoppingListId === list.id
-                                        ? 'bg-m3-secondary-container text-m3-on-secondary-container'
-                                        : 'bg-m3-surface-container text-m3-on-surface-variant hover:bg-m3-surface-container-highest'}"
-                                    onclick={() => loadShoppingList(list.id)}
-                                >
-                                    {list.name || themeStore.t("meals.shopping.list")}
-                                </button>
-                            {/each}
+                        <div class="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div class="flex gap-2 overflow-x-auto">
+                                {#each shoppingLists as list (list.id)}
+                                    <button
+                                        class="touch-target rounded-full px-4 text-m3-label-large font-medium whitespace-nowrap transition-colors
+                                            {activeShoppingListId === list.id
+                                            ? 'bg-m3-secondary-container text-m3-on-secondary-container'
+                                            : 'bg-m3-surface-container text-m3-on-surface-variant hover:bg-m3-surface-container-highest'}"
+                                        onclick={() => loadShoppingList(list.id)}
+                                    >
+                                        {list.name || themeStore.t("meals.shopping.list")}
+                                    </button>
+                                {/each}
+                            </div>
+                            <Button
+                                variant="tonal"
+                                onclick={openAhExportReview}
+                                disabled={ahPreparingExport || !openShoppingItems.length}
+                                icon={Storefront}
+                            >
+                                {ahPreparingExport
+                                    ? themeStore.t("common.loading")
+                                    : themeStore.t("meals.shopping.ahExport")}
+                            </Button>
                         </div>
+
+                        {#if shoppingMessage}
+                            <p class="mb-3 text-m3-body-small text-m3-on-surface-variant">
+                                {shoppingMessage}
+                            </p>
+                        {/if}
+
+                        {#if ahExportOpen}
+                            <div
+                                class="fixed inset-0 z-[70] flex items-end p-0 md:items-center md:justify-center md:p-6"
+                                role="dialog"
+                                aria-modal="true"
+                                aria-label={themeStore.t("meals.shopping.ahExportTitle")}
+                            >
+                                <button
+                                    type="button"
+                                    class="absolute inset-0 bg-black/40"
+                                    aria-label={themeStore.t("common.close")}
+                                    onclick={() => (ahExportOpen = false)}
+                                ></button>
+                                <div class="relative max-h-[92vh] w-full max-w-5xl overflow-auto rounded-t-3xl bg-m3-surface p-6 shadow-2xl md:rounded-3xl">
+                                    <div class="mb-5 flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                                        <div>
+                                            <h2 class="text-m3-headline-small text-m3-on-surface">
+                                                {themeStore.t("meals.shopping.ahExportTitle")}
+                                            </h2>
+                                            <p class="mt-1 text-m3-body-medium text-m3-on-surface-variant">
+                                                {themeStore.t("meals.shopping.ahExportDescription")}
+                                            </p>
+                                        </div>
+                                        <Button variant="outlined" onclick={() => (ahExportOpen = false)}>
+                                            {themeStore.t("common.close")}
+                                        </Button>
+                                    </div>
+
+                                    {#if ahExportMessage}
+                                        <div class="mb-4 rounded-lg bg-m3-surface-container p-3 text-m3-body-medium text-m3-on-surface-variant">
+                                            {ahExportMessage}
+                                        </div>
+                                    {/if}
+
+                                    {#if !ahStatus.authenticated || ahStatus.needsReconnect}
+                                        <div class="grid gap-4 rounded-xl border border-m3-outline-variant p-4">
+                                            <div class="text-m3-body-large text-m3-on-surface">
+                                                {themeStore.t("meals.shopping.ahNotConnected")}
+                                            </div>
+                                            <div class="flex justify-end">
+                                                <a
+                                                    href={withBase("/settings")}
+                                                    class="touch-target inline-flex items-center justify-center gap-2 rounded-full bg-m3-primary px-6 text-m3-label-large font-medium text-m3-on-primary transition-colors hover:bg-m3-primary/92"
+                                                >
+                                                    {themeStore.t("common.openSettings")}
+                                                </a>
+                                            </div>
+                                        </div>
+                                    {:else if ahExportRows.length}
+                                        <div class="mb-4 text-m3-body-small text-m3-on-surface-variant">
+                                            {themeStore.t("meals.shopping.ahReviewHelp", {
+                                                count: ahExportRows.length,
+                                            })}
+                                        </div>
+
+                                        <div class="grid gap-3">
+                                            {#each ahExportRows as row (row.key)}
+                                                <div class="grid gap-3 rounded-xl border border-m3-outline-variant p-4">
+                                                    <div class="flex flex-col gap-1 md:flex-row md:items-start md:justify-between">
+                                                        <div class="min-w-0">
+                                                            <div class="text-m3-title-small text-m3-on-surface">
+                                                                {row.item.displayText}
+                                                            </div>
+                                                            {#if row.sourceCount > 1}
+                                                                <div class="text-m3-body-small text-m3-on-surface-variant">
+                                                                    {themeStore.t("meals.shopping.ahGrouped", {
+                                                                        count: row.sourceCount,
+                                                                    })}
+                                                                </div>
+                                                            {/if}
+                                                        </div>
+                                                        <label class="flex w-28 flex-col gap-1">
+                                                            <span class="text-m3-label-small text-m3-on-surface-variant">
+                                                                {themeStore.t("meals.shopping.ahQuantity")}
+                                                            </span>
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                max="999"
+                                                                value={row.item.quantity}
+                                                                oninput={(event) => setAhRowQuantity(row, event.currentTarget.value)}
+                                                                class="min-h-11 rounded-md border border-m3-outline bg-m3-surface px-3 text-m3-body-medium text-m3-on-surface"
+                                                            />
+                                                        </label>
+                                                    </div>
+
+                                                    <div class="flex flex-wrap gap-2">
+                                                        <Button
+                                                            variant={row.item.mode === "freeText" ? "filled" : "outlined"}
+                                                            onclick={() => setAhRowFreeText(row)}
+                                                        >
+                                                            {themeStore.t("meals.shopping.ahFreeText")}
+                                                        </Button>
+                                                        <Button
+                                                            variant="outlined"
+                                                            onclick={() => searchAhProducts(row)}
+                                                            disabled={ahProductLoading[row.key]}
+                                                            icon={Search}
+                                                        >
+                                                            {ahProductLoading[row.key]
+                                                                ? themeStore.t("common.loading")
+                                                                : themeStore.t("meals.shopping.ahSearchProducts")}
+                                                        </Button>
+                                                    </div>
+
+                                                    {#if row.item.mode === "product" && row.item.product}
+                                                        <div class="rounded-lg bg-m3-secondary-container p-3 text-m3-body-medium text-m3-on-secondary-container">
+                                                            {themeStore.t("meals.shopping.ahSelectedProduct", {
+                                                                product: row.item.product.title,
+                                                            })}
+                                                        </div>
+                                                    {/if}
+
+                                                    {#if ahProductResults[row.key]?.length}
+                                                        <div class="grid gap-2 md:grid-cols-2">
+                                                            {#each ahProductResults[row.key] as product (product.id)}
+                                                                <button
+                                                                    class="flex min-h-16 items-center gap-3 rounded-lg bg-m3-surface-container p-3 text-left transition-colors hover:bg-m3-surface-container-high"
+                                                                    type="button"
+                                                                    onclick={() => setAhRowProduct(row, product)}
+                                                                >
+                                                                    {#if product.image?.url}
+                                                                        <img
+                                                                            src={product.image.url}
+                                                                            alt=""
+                                                                            class="size-12 rounded-md object-cover"
+                                                                        />
+                                                                    {/if}
+                                                                    <span class="min-w-0 flex-1">
+                                                                        <span class="block truncate text-m3-body-medium text-m3-on-surface">
+                                                                            {product.title}
+                                                                        </span>
+                                                                        <span class="block truncate text-m3-label-medium text-m3-on-surface-variant">
+                                                                            {[product.brand, product.unitSize].filter(Boolean).join(" - ")}
+                                                                        </span>
+                                                                    </span>
+                                                                    <span class="text-m3-label-large text-m3-on-surface">
+                                                                        &euro;{product.price.now.toFixed(2)}
+                                                                    </span>
+                                                                </button>
+                                                            {/each}
+                                                        </div>
+                                                    {:else if ahProductLoading[row.key]}
+                                                        <div class="text-m3-body-small text-m3-on-surface-variant">
+                                                            {themeStore.t("common.loading")}
+                                                        </div>
+                                                    {/if}
+                                                </div>
+                                            {/each}
+                                        </div>
+
+                                        <div class="mt-5 flex flex-wrap justify-end gap-2">
+                                            <Button variant="outlined" onclick={() => (ahExportOpen = false)}>
+                                                {themeStore.t("common.close")}
+                                            </Button>
+                                            <Button
+                                                variant="filled"
+                                                onclick={exportAhShoppingList}
+                                                disabled={ahExporting || !ahExportRows.length}
+                                                icon={Storefront}
+                                            >
+                                                {ahExporting
+                                                    ? themeStore.t("common.saving")
+                                                    : themeStore.t("meals.shopping.ahExportNow")}
+                                            </Button>
+                                        </div>
+                                    {:else}
+                                        <div class="flex h-40 items-center justify-center text-center text-m3-on-surface-variant">
+                                            {themeStore.t("meals.shopping.ahNoItems")}
+                                        </div>
+                                    {/if}
+                                </div>
+                            </div>
+                        {/if}
 
                         <div class="grid gap-3">
                             {#each openShoppingItems as item (item.id)}
@@ -1154,7 +1611,7 @@
                                     </div>
                                 </div>
                             {/each}
-
+                            
                             {#if checkedShoppingItems.length}
                                 <h2 class="mt-4 text-m3-title-small text-m3-on-surface-variant">
                                     {themeStore.t("meals.shopping.checked")}
@@ -1180,8 +1637,21 @@
                             {/if}
                         </div>
                     {:else}
-                        <div class="flex h-full items-center justify-center p-8 text-center text-m3-on-surface-variant">
-                            {themeStore.t("meals.shopping.noLists")}
+                        <div class="flex h-full flex-col items-center justify-center gap-4 p-8 text-center text-m3-on-surface-variant">
+                            <div>{themeStore.t("meals.shopping.noLists")}</div>
+                            <Button
+                                variant="filled"
+                                onclick={handleCreateShoppingList}
+                                disabled={creatingShoppingList}
+                                icon={Add}
+                            >
+                                {creatingShoppingList
+                                    ? themeStore.t("meals.shopping.creatingList")
+                                    : themeStore.t("meals.shopping.createList")}
+                            </Button>
+                            {#if shoppingMessage}
+                                <div class="text-m3-body-small">{shoppingMessage}</div>
+                            {/if}
                         </div>
                     {/if}
                 {/if}

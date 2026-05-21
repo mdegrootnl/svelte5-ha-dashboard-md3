@@ -1,26 +1,11 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import {
-    BrowserRecipeImportError,
-    type BrowserRecipeImage,
-    extractRecipeWithBrowser,
-} from "$lib/server/browserRecipeImporter";
+import { BrowserRecipeImportError, extractRecipeWithBrowser } from "$lib/server/browserRecipeImporter";
+import { formatMealieError, uploadRecipeImageToMealie } from "$lib/server/mealieRecipeImage";
 import { MealieProxyError, proxyMealieRequest } from "$lib/server/mealieProxy";
 
 function normalizeBoolean(value: unknown) {
     return typeof value === "boolean" ? value : false;
-}
-
-function formatMealieError(data: unknown) {
-    if (!data || typeof data !== "object") return undefined;
-    const record = data as Record<string, unknown>;
-    if (typeof record.error === "string") return record.error;
-    if (typeof record.detail === "string") return record.detail;
-    if (record.detail && typeof record.detail === "object") {
-        const detail = record.detail as Record<string, unknown>;
-        if (typeof detail.message === "string") return detail.message;
-    }
-    return undefined;
 }
 
 export const POST: RequestHandler = async ({ request, fetch }) => {
@@ -67,7 +52,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 
         const slug = typeof data === "string" ? data : String(data ?? "");
         const imageResult = slug && image
-            ? await uploadRecipeImage({ slug, image, request, fetch })
+            ? await uploadRecipeImageToMealie({ slug, image, request, fetch })
             : { imported: false };
 
         return json({
@@ -87,47 +72,3 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
         return json({ error: "Browser-assisted import failed." }, { status: 500 });
     }
 };
-
-async function uploadRecipeImage({
-    slug,
-    image,
-    request,
-    fetch,
-}: {
-    slug: string;
-    image: BrowserRecipeImage;
-    request: Request;
-    fetch: typeof globalThis.fetch;
-}) {
-    const form = new FormData();
-    const imageBody = image.bytes.buffer.slice(
-        image.bytes.byteOffset,
-        image.bytes.byteOffset + image.bytes.byteLength,
-    ) as ArrayBuffer;
-    form.set("extension", image.extension);
-    form.set(
-        "image",
-        new Blob([imageBody], { type: image.contentType }),
-        `recipe.${image.extension}`,
-    );
-
-    const imageRequest = new Request(request.url, {
-        method: "PUT",
-        body: form,
-    });
-
-    const response = await proxyMealieRequest({
-        path: `recipes/${slug}/image`,
-        request: imageRequest,
-        url: new URL(request.url),
-        fetch,
-    });
-
-    if (response.ok) return { imported: true };
-
-    const data = await response.json().catch(() => null);
-    return {
-        imported: false,
-        error: formatMealieError(data) || "Mealie could not attach the recipe image.",
-    };
-}

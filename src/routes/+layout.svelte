@@ -8,24 +8,79 @@
 	import { themeStore } from "$lib/stores/theme.svelte";
 	import { dashboardStore } from "$lib/features/dashboard/stores/dashboard.svelte";
 	import { musicLibraryStore } from "$lib/features/music/stores/musicLibrary.svelte";
-	import { setAppBasePath } from "$lib/utils/appBase";
+	import { setAppBasePath, withBase } from "$lib/utils/appBase";
+	import type { AppConfig } from "$lib/types/config";
 
 	import { browser } from "$app/environment";
+	import LockScreen from "$lib/features/lockscreen/components/LockScreen.svelte";
+	import { lockScreenStore } from "$lib/features/lockscreen/stores/lockscreen.svelte";
+	import { haStore } from "$lib/stores/ha.svelte"; // Ensure HA initializes
 
 	let { data, children } = $props();
 
 	// Track if stores have been initialized (prevents re-init on every render)
 	let initialized = false;
+	let configRefresh: Promise<void> | null = null;
+
+	function applyConfigFromServer(config: AppConfig) {
+		themeStore.applyServerConfig(config.theme);
+		dashboardStore.applyServerConfig(config.dashboards, config.pages);
+
+		if (config.musicLibrary) {
+			musicLibraryStore.applyServerConfig(config.musicLibrary);
+		}
+
+		if (config.lockScreen) {
+			lockScreenStore.applyServerConfig(config.lockScreen);
+		}
+	}
+
+	async function refreshConfigFromServer() {
+		if (configRefresh) return configRefresh;
+
+		configRefresh = (async () => {
+			const response = await fetch(withBase("/api/settings"));
+			if (!response.ok) {
+				throw new Error(`Config refresh failed (${response.status})`);
+			}
+
+			const config = (await response.json()) as AppConfig;
+			applyConfigFromServer(config);
+		})().finally(() => {
+			configRefresh = null;
+		});
+
+		return configRefresh;
+	}
 
 	// Initialize stores with server data (runs ONCE on initial load)
 	$effect(() => {
 		if (initialized) return;
 		initialized = true;
 
+		if (browser) {
+			setAppBasePath(data.deployment?.ingressPath || "");
+		}
+
 		themeStore.init(data.config.theme);
 		dashboardStore.init(data.config.dashboards, data.config.pages);
 		if (data.config.musicLibrary) {
 			musicLibraryStore.init(data.config.musicLibrary);
+		}
+		lockScreenStore.init(data.config.lockScreen);
+		if (browser) {
+			haStore.init(data.deployment);
+
+			const events = new EventSource(withBase("/api/events"));
+			events.addEventListener("update", () => {
+				refreshConfigFromServer().catch((error) => {
+					console.error("Failed to refresh config from server:", error);
+				});
+			});
+
+			return () => {
+				events.close();
+			};
 		}
 	});
 
@@ -51,19 +106,8 @@
 		const _ = themeStore.theme;
 	});
 
-	// Lock Screen
-	import LockScreen from "$lib/features/lockscreen/components/LockScreen.svelte";
-	import { lockScreenStore } from "$lib/features/lockscreen/stores/lockscreen.svelte";
-	import { haStore } from "$lib/stores/ha.svelte"; // Ensure HA initializes
-
-	$effect(() => {
-		if (!browser) return;
-		setAppBasePath(data.deployment?.ingressPath || "");
-		lockScreenStore.init(data.config.lockScreen);
-		haStore.init(data.deployment);
-	});
-	// NOTE: Real-time sync via SSE has been removed.
-	// Changes save to localStorage immediately and sync to server with 2s debounce.
+	// Backend config is shared live through /api/events. Stores only persist on
+	// explicit user mutations, so applying a server refresh does not write back.
 </script>
 
 <svelte:head>

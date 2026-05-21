@@ -69,6 +69,10 @@ export class ThemeStore {
      * Server is the source of truth - always use it.
      */
     init(config: ThemeConfig) {
+        this.applyServerConfig(config);
+    }
+
+    applyServerConfig(config: ThemeConfig) {
         this.sourceColor = config.sourceColor;
         this.isDark = config.isDark;
         this.language = normalizeLanguage(config.language);

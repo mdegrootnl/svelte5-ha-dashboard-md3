@@ -238,13 +238,22 @@ export class DashboardStore {
             return;
         }
 
-        this.savedConfigs = normalizeDashboardConfigs(configs);
-        this.pages = pages;
+        this.applyServerConfig(configs, pages);
         this.initialized = true;
         this.lastInitConfigs = configs;
         this.lastInitPages = pages;
 
         // Don't save to localStorage here - only save on user-initiated changes
+    }
+
+    applyServerConfig(configs: Record<string, RoomDashboardConfig>, pages: DashboardPage[] = []) {
+        const activeConfigId = this.config?.id;
+        this.savedConfigs = normalizeDashboardConfigs(configs);
+        this.pages = pages;
+
+        if (activeConfigId && this.savedConfigs[activeConfigId]) {
+            this.config = this.savedConfigs[activeConfigId];
+        }
     }
 
     /**
