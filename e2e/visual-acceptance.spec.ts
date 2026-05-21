@@ -775,6 +775,50 @@ async function assertNavigationActionRowsDoNotOverlap(page: Page) {
     ).toEqual([]);
 }
 
+async function assertMusicMiniPlayerDockClearsNavigation(page: Page) {
+    const failures = await page.evaluate(() => {
+        const dock = document.createElement("div");
+        dock.className = "music-mini-player-dock";
+        dock.style.height = "72px";
+        dock.style.pointerEvents = "none";
+        document.body.appendChild(dock);
+
+        const style = getComputedStyle(dock);
+        const rect = dock.getBoundingClientRect();
+        const zIndex = Number.parseInt(style.zIndex || "0", 10);
+        const bottomClearance = window.innerHeight - rect.bottom;
+        const failures: string[] = [];
+
+        if (zIndex < 60) {
+            failures.push(`dock z-index ${style.zIndex} is not above route controls`);
+        }
+
+        if (window.innerWidth < 1280) {
+            if (bottomClearance < 104) {
+                failures.push(
+                    `dock bottom clearance ${Math.round(bottomClearance)}px is too small for bottom navigation`,
+                );
+            }
+        } else {
+            if (rect.left < 104) {
+                failures.push(
+                    `dock left offset ${Math.round(rect.left)}px is too small for navigation rail`,
+                );
+            }
+            if (bottomClearance > 2) {
+                failures.push(
+                    `dock bottom clearance ${Math.round(bottomClearance)}px should reset when navigation is a rail`,
+                );
+            }
+        }
+
+        dock.remove();
+        return failures;
+    });
+
+    expect(failures, failures.join("\n")).toEqual([]);
+}
+
 async function attachScreenshot(page: Page, testInfo: TestInfo, name: string) {
     await testInfo.attach(name, {
         body: await page.screenshot({ fullPage: true }),
@@ -803,6 +847,9 @@ test.describe("visual acceptance smoke", () => {
                 await assertReadableComputedContrast(page);
                 await assertNoVisibleTextEscapesContainers(page);
                 await assertImageTextProtection(page);
+                if (route.name === "music") {
+                    await assertMusicMiniPlayerDockClearsNavigation(page);
+                }
                 await attachScreenshot(page, testInfo, `${viewport.name}-${route.name}`);
             }
 
