@@ -8,7 +8,7 @@
 </script>
 
 <nav
-    class="flex h-20 w-full items-center gap-1 overflow-x-auto overscroll-x-contain bg-m3-surface-container/88 border-t border-m3-outline-variant px-2 backdrop-blur-md"
+    class="route-nav-surface flex h-20 w-full items-center gap-1 overflow-x-auto overscroll-x-contain bg-m3-surface-container/88 border-t border-m3-outline-variant px-2 backdrop-blur-md"
     aria-label={themeStore.t("nav.primary")}
 >
     {#each themeStore.navigationItems as link (link.id)}

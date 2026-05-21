@@ -777,37 +777,59 @@ async function assertNavigationActionRowsDoNotOverlap(page: Page) {
 
 async function assertMusicMiniPlayerDockClearsNavigation(page: Page) {
     const failures = await page.evaluate(() => {
+        function overlapArea(a: DOMRect, b: DOMRect) {
+            const width = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left));
+            const height = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+            return width * height;
+        }
+
+        const shell = document.querySelector(".kiosk-shell") ?? document.body;
         const dock = document.createElement("div");
         dock.className = "music-mini-player-dock";
         dock.style.height = "72px";
         dock.style.pointerEvents = "none";
-        document.body.appendChild(dock);
+        shell.appendChild(dock);
 
         const style = getComputedStyle(dock);
         const rect = dock.getBoundingClientRect();
         const zIndex = Number.parseInt(style.zIndex || "0", 10);
         const bottomClearance = window.innerHeight - rect.bottom;
+        const leftClearance = rect.left;
+        const rightClearance = window.innerWidth - rect.right;
+        const navSurfaces = Array.from(document.querySelectorAll(".route-nav-surface"))
+            .filter((element): element is HTMLElement => element instanceof HTMLElement)
+            .map((element) => element.getBoundingClientRect())
+            .filter((navRect) => navRect.width > 0 && navRect.height > 0);
         const failures: string[] = [];
 
-        if (zIndex < 60) {
-            failures.push(`dock z-index ${style.zIndex} is not above route controls`);
+        if (zIndex < 50) {
+            failures.push(`dock z-index ${style.zIndex} is too low for the now-playing dock`);
         }
 
-        if (window.innerWidth < 1280) {
-            if (bottomClearance < 104) {
+        if (leftClearance > 2 || rightClearance > 2) {
+            failures.push(
+                `dock is not full width: left=${Math.round(leftClearance)}px, right=${Math.round(rightClearance)}px`,
+            );
+        }
+
+        if (bottomClearance > 2) {
+            failures.push(`dock bottom ${Math.round(bottomClearance)}px is not anchored to the screen bottom`);
+        }
+
+        for (const navRect of navSurfaces) {
+            const navIsBottomBar = navRect.width >= navRect.height;
+            const overlap = overlapArea(rect, navRect);
+
+            if (overlap > 1) {
                 failures.push(
-                    `dock bottom clearance ${Math.round(bottomClearance)}px is too small for bottom navigation`,
+                    `dock overlaps route navigation by ${Math.round(overlap)}px2`,
                 );
+                continue;
             }
-        } else {
-            if (rect.left < 104) {
+
+            if (navIsBottomBar && rect.top < navRect.bottom + 8) {
                 failures.push(
-                    `dock left offset ${Math.round(rect.left)}px is too small for navigation rail`,
-                );
-            }
-            if (bottomClearance > 2) {
-                failures.push(
-                    `dock bottom clearance ${Math.round(bottomClearance)}px should reset when navigation is a rail`,
+                    `dock top ${Math.round(rect.top)}px is too close to bottom navigation bottom ${Math.round(navRect.bottom)}px`,
                 );
             }
         }

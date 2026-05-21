@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { browser } from "$app/environment";
     import PageShell from "$lib/components/layout/PageShell.svelte";
     import { maStore } from "$lib/features/music/stores/maStore.svelte";
     import { haStore } from "$lib/stores/ha.svelte";
@@ -46,6 +47,20 @@
     // Apply default player on mount
     $effect(() => {
         maStore.initializePlayer(true);
+    });
+
+    $effect(() => {
+        if (!browser) return;
+
+        if (showMiniPlayer) {
+            document.documentElement.dataset.musicMiniPlayer = "true";
+        } else {
+            delete document.documentElement.dataset.musicMiniPlayer;
+        }
+
+        return () => {
+            delete document.documentElement.dataset.musicMiniPlayer;
+        };
     });
 </script>
 

@@ -15,10 +15,11 @@
     Mobile: Horizontal floating pill on the bottom
 -->
 <div
-    class="pointer-events-none fixed inset-0 z-50 flex flex-col items-center justify-end p-4 pb-5 sm:p-6 sm:pb-6 xl:items-start xl:justify-center xl:pl-6 xl:pb-0"
+    class="route-nav-layer pointer-events-none fixed inset-0 z-50 flex flex-col items-center justify-end p-4 pb-5 sm:p-6 sm:pb-6 xl:items-start xl:justify-center xl:pl-6 xl:pb-0"
 >
     <nav
         class="
+            route-nav-surface
             pointer-events-auto
             flex items-center gap-1 p-2
             bg-m3-surface-container-high/80 backdrop-blur-md

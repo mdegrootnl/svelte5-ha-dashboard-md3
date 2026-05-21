@@ -287,26 +287,21 @@
 
 .music-mini-player-dock {
     position: fixed;
-    left: 0.75rem;
-    right: 0.75rem;
-    bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
-    z-index: 70;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    z-index: 60;
 }
 
-@media (min-width: 640px) {
-    .music-mini-player-dock {
-        left: 1rem;
-        right: 1rem;
-        bottom: calc(7.25rem + env(safe-area-inset-bottom, 0px));
-    }
+:root[data-music-mini-player="true"] .route-nav-layer,
+.kiosk-shell:has(.music-mini-player-dock) .route-nav-layer {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
 }
 
-@media (min-width: 1280px) {
-    .music-mini-player-dock {
-        left: 7rem;
-        right: 0;
-        bottom: 0;
-    }
+:root[data-music-mini-player="true"] .kiosk-bottom-navigation,
+.kiosk-shell:has(.music-mini-player-dock) .kiosk-bottom-navigation {
+    bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
 }
 
 @media (prefers-reduced-motion: reduce) {
