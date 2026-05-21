@@ -24,6 +24,7 @@
 </script>
 
 <span
+    aria-hidden="true"
     class="inline-flex items-center justify-center overflow-hidden leading-none {className}"
     style="container-type: size; {customStyle}"
 >

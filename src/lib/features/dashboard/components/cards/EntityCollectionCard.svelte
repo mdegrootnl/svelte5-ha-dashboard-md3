@@ -4,6 +4,8 @@
         type ResolvedEntity,
     } from "$lib/domain/haInventory";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
+    import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
+    import { entityDetailStore } from "$lib/features/dashboard/stores/entityDetail.svelte";
     import { inventoryStore } from "$lib/stores/inventory.svelte";
     import { themeStore } from "$lib/stores/theme.svelte";
     import { formatEntityStateLabel, getDomain } from "$lib/utils/entity";
@@ -63,7 +65,7 @@
     let summaryStatus = $derived(summaryStatusLabel(options?.mode, resolvedEntities.length));
     let summaryDetail = $derived(
         resolvedEntities.length === 0
-            ? "Nothing needs attention"
+            ? themeStore.t("collection.summary.empty")
             : resolvedEntities
                   .slice(0, 2)
                   .map((entity) => {
@@ -73,79 +75,42 @@
                   .join(", "),
     );
 
-    function modeLabel(mode = "auto") {
+    function modeKey(mode: CollectionCardOptions["mode"] = "auto") {
         switch (mode) {
             case "lights_on":
-                return "Active Devices";
+                return "lightsOn";
             case "low_battery":
-                return "Low Batteries";
+                return "lowBattery";
             case "unavailable":
-                return "Unavailable";
+                return "unavailable";
             case "updates":
-                return "Updates";
+                return "updates";
             case "openings":
-                return "Openings";
+                return "openings";
             case "motion":
-                return "Motion & Presence";
+                return "motion";
             case "media_playing":
-                return "Media Playing";
+                return "mediaPlaying";
             case "security":
-                return "Security Alerts";
+                return "security";
             case "custom":
-                return "Collection";
+                return "custom";
             default:
-                return "Smart Collection";
+                return "auto";
         }
     }
 
-    function summaryModeLabel(mode = "auto") {
-        switch (mode) {
-            case "lights_on":
-                return "Active";
-            case "low_battery":
-                return "Batteries";
-            case "unavailable":
-                return "Offline";
-            case "updates":
-                return "Updates";
-            case "openings":
-                return "Open";
-            case "motion":
-                return "Motion";
-            case "media_playing":
-                return "Media";
-            case "security":
-                return "Security";
-            case "custom":
-                return "Collection";
-            default:
-                return "Smart";
-        }
+    function modeLabel(mode: CollectionCardOptions["mode"] = "auto") {
+        return themeStore.t(`collection.mode.${modeKey(mode)}`);
+    }
+
+    function summaryModeLabel(mode: CollectionCardOptions["mode"] = "auto") {
+        return themeStore.t(`collection.summaryMode.${modeKey(mode)}`);
     }
 
     function summaryStatusLabel(mode: CollectionCardOptions["mode"] = "auto", count: number) {
-        if (count === 0) return "Clear";
-
-        switch (mode) {
-            case "lights_on":
-                return `${count} on`;
-            case "low_battery":
-                return `${count} low`;
-            case "unavailable":
-                return `${count} offline`;
-            case "updates":
-                return `${count} update${count === 1 ? "" : "s"}`;
-            case "openings":
-                return `${count} open`;
-            case "motion":
-                return `${count} active`;
-            case "media_playing":
-                return `${count} playing`;
-            case "security":
-                return `${count} alert${count === 1 ? "" : "s"}`;
-            default:
-                return `${count} item${count === 1 ? "" : "s"}`;
-        }
+        if (count === 0) return themeStore.t("collection.status.clear");
+        return themeStore.t(`collection.status.${modeKey(mode)}`, { count });
     }
 
     function domainIcon(domain: string) {
@@ -233,11 +198,38 @@
             onDelete: ondelete,
         });
     }
+
+    function openDetails(e: Event) {
+        if (dashboardEditorStore.isEditing || resolvedEntities.length === 0) return;
+        e.stopPropagation();
+        entityDetailStore.openEntities({
+            title,
+            sourceLabel: summaryStatus,
+            entityIds: resolvedEntities.map((entity) => entity.entityId),
+        });
+    }
+
+    function openEntityDetails(entity: ResolvedEntity, e: Event) {
+        if (dashboardEditorStore.isEditing) return;
+        e.stopPropagation();
+        entityDetailStore.openEntities({
+            title,
+            sourceLabel: summaryStatus,
+            entityIds: resolvedEntities.map((item) => item.entityId),
+            selectedEntityId: entity.entityId,
+        });
+    }
+
 </script>
 
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <article
     class="relative h-full w-full rounded-m3-card text-m3-on-surface overflow-hidden group/card @container {getCardSurfaceClasses(surfaceStyle)} {className}"
+    class:cursor-pointer={!dashboardEditorStore.isEditing && resolvedEntities.length > 0}
     style={`container-type: size;${getCardSurfaceStyle(surfaceStyle, backgroundColor)}`}
+    onclick={openDetails}
 >
     {#if isSummary}
         <div class="collection-summary">
@@ -271,7 +263,12 @@
                 <div class="collection-summary__entities" aria-label={themeStore.t("collection.matchingEntities")}>
                     {#each summaryPreviewEntities as entity (entity.entityId)}
                         {@const stateLabel = formatEntityState(entity)}
-                        <div class="collection-summary__entity" title={formatEntityTitle(entity, stateLabel)}>
+                        <button
+                            type="button"
+                            class="collection-summary__entity"
+                            title={formatEntityTitle(entity, stateLabel)}
+                            onclick={(e) => openEntityDetails(entity, e)}
+                        >
                             <DynamicIcon
                                 name={getEntityIcon(entity)}
                                 class="collection-summary__entity-icon shrink-0 text-m3-on-surface-variant"
@@ -284,7 +281,7 @@
                                     {stateLabel}
                                 </span>
                             {/if}
-                        </div>
+                        </button>
                     {/each}
                     {#if summaryRemainingCount > 0}
                         <div class="collection-summary__more" title={themeStore.t("collection.moreItems", { count: summaryRemainingCount })}>
@@ -320,7 +317,11 @@
 
             <div class="flex-1 min-h-0 flex flex-col gap-[clamp(0.25rem,1.8cqmin,0.625rem)] overflow-hidden">
                 {#each resolvedEntities.slice(0, 6) as entity (entity.entityId)}
-                    <div class="flex items-center gap-[clamp(0.25rem,2cqmin,0.75rem)] min-h-0 rounded-m3-sm bg-m3-surface-container-high px-[clamp(0.375rem,2.5cqmin,0.875rem)] py-[clamp(0.3125rem,2cqmin,0.75rem)]">
+                    <button
+                        type="button"
+                        class="flex items-center gap-[clamp(0.25rem,2cqmin,0.75rem)] min-h-0 rounded-m3-sm bg-m3-surface-container-high px-[clamp(0.375rem,2.5cqmin,0.875rem)] py-[clamp(0.3125rem,2cqmin,0.75rem)] text-left text-m3-on-surface hover:brightness-95"
+                        onclick={(e) => openEntityDetails(entity, e)}
+                    >
                         <DynamicIcon
                             name={getEntityIcon(entity)}
                             class="size-[clamp(0.875rem,3.4cqmin,1.25rem)] shrink-0 text-m3-on-surface-variant"
@@ -333,7 +334,7 @@
                                 {formatEntityState(entity)}
                             </span>
                         {/if}
-                    </div>
+                    </button>
                 {:else}
                     <div class="flex-1 flex items-center justify-center text-center text-[clamp(0.75rem,3.2cqmin,0.95rem)] text-m3-on-surface-variant px-[clamp(0.5rem,3cqmin,1rem)]">
                         {themeStore.t("collection.empty")}
@@ -347,6 +348,7 @@
         class="touch-edit-control collection-edit-button rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover/card:opacity-100 transition-opacity z-20 hover:brightness-110"
         class:collection-edit-button--summary={isSummary}
         onclick={openConfig}
+        onpointerdown={(e) => e.stopPropagation()}
         title={themeStore.t("collection.editTitle")}
     >
         <IconEdit class="size-[clamp(0.875rem,3.5cqmin,1.25rem)]" />
@@ -433,8 +435,12 @@
         display: flex;
         min-width: 0;
         align-items: center;
+        border: 0;
         gap: clamp(0.375rem, 1.6cqi, 0.625rem);
         padding: clamp(0.25rem, 1.2cqi, 0.375rem) clamp(0.5rem, 2cqi, 0.75rem);
+        color: var(--color-m3-on-surface);
+        text-align: left;
+        cursor: pointer;
     }
 
     .collection-summary__entity-icon {

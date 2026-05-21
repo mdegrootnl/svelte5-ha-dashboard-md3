@@ -18,7 +18,8 @@ describe("AH shopping export rows", () => {
             itemIds: ["1", "2"],
             item: {
                 mode: "freeText",
-                displayText: "4 uien",
+                displayText: "4 uien + 2 uien",
+                originalText: "4 uien + 2 uien",
             },
         });
         expect(rows.find((row) => row.key === "pasta")).toMatchObject({
@@ -47,6 +48,23 @@ describe("AH shopping export rows", () => {
             quantity: 2,
             product: {
                 title: "AH Uien",
+            },
+        });
+    });
+
+    it("keeps repeated identical rows visible in the reviewed free-text export", () => {
+        const rows = buildAhShoppingExportRows([
+            { id: "1", checked: false, shoppingListId: "list", display: "1 avocado" },
+            { id: "2", checked: false, shoppingListId: "list", display: "1 avocado" },
+        ] satisfies MealieShoppingListItem[]);
+
+        expect(rows).toHaveLength(1);
+        expect(rows[0]).toMatchObject({
+            sourceCount: 2,
+            sourceTexts: ["1 avocado", "1 avocado"],
+            item: {
+                displayText: "1 avocado (2x)",
+                originalText: "1 avocado (2x)",
             },
         });
     });

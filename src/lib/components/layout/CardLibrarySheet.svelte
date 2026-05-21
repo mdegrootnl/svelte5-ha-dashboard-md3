@@ -18,6 +18,14 @@
     import IconDevicePanel from "~icons/material-symbols/developer-board";
     import IconShowChart from "~icons/material-symbols/show-chart";
     import IconVideocam from "~icons/material-symbols/videocam";
+    import IconGroup from "~icons/material-symbols/group";
+    import IconSecurity from "~icons/material-symbols/security";
+    import IconLock from "~icons/material-symbols/lock";
+    import IconBlinds from "~icons/material-symbols/blinds";
+    import IconFan from "~icons/material-symbols/mode-fan";
+    import IconUpdate from "~icons/material-symbols/system-update-alt";
+    import IconTodo from "~icons/material-symbols/checklist";
+    import IconVacuum from "~icons/material-symbols/cleaning-services";
 
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import type { CardConfig } from "$lib/types";
@@ -31,7 +39,7 @@
 
     let open = $derived(cardEditorStore.mode === "library");
 
-    type LibraryCardId = DashboardCardType | "light" | "switch";
+    type LibraryCardId = DashboardCardType | "light" | "switch" | "utility_graph";
     type LibrarySectionId = "core" | "layout" | "smart" | "specialist";
 
     interface LibraryCardDefinition {
@@ -44,6 +52,7 @@
         domain: string;
         section: LibrarySectionId;
         options?: DashboardCardOptions;
+        defaults?: Partial<CardConfig>;
     }
 
     const cardSections: Array<{
@@ -127,6 +136,28 @@
             section: "layout",
         },
         {
+            id: "utility_graph",
+            configType: "graph",
+            name: "cardLibrary.utilityGraph.name",
+            description: "cardLibrary.utilityGraph.description",
+            sourcePattern: "cardLibrary.pattern.utilityTrends",
+            icon: IconShowChart,
+            domain: "sensor",
+            section: "layout",
+            defaults: {
+                name: "Utility Trends",
+                icon: "query_stats",
+                hours_to_show: 24 * 30,
+                aggregate_func: "last",
+                chartType: "line",
+                comparisonMode: "previous_period",
+                dataSource: "statistics",
+                statisticsPeriod: "day",
+                scaleMode: "normalized",
+                showAnalytics: true,
+            },
+        },
+        {
             id: "navigation",
             configType: "navigation",
             name: "cardLibrary.navigation.name",
@@ -192,6 +223,17 @@
             options: { weather: { source: "auto" } },
         },
         {
+            id: "presence",
+            configType: "presence",
+            name: "cardLibrary.presence.name",
+            description: "cardLibrary.presence.description",
+            sourcePattern: "cardLibrary.pattern.presence",
+            icon: IconGroup,
+            domain: "person",
+            section: "smart",
+            options: { presence: { source: "auto", maxPeople: 4, showGuestMode: true, showEta: true } },
+        },
+        {
             id: "camera",
             configType: "camera",
             name: "cardLibrary.camera.name",
@@ -201,6 +243,83 @@
             domain: "camera",
             section: "smart",
             options: { camera: { source: "auto", refreshSeconds: 10 } },
+        },
+        {
+            id: "security",
+            configType: "security",
+            name: "cardLibrary.security.name",
+            description: "cardLibrary.security.description",
+            sourcePattern: "cardLibrary.pattern.securityCenter",
+            icon: IconSecurity,
+            domain: "alarm_control_panel",
+            section: "specialist",
+            options: { security: { source: "auto", showAlarmControls: true, maxItems: 5 } },
+        },
+        {
+            id: "lock",
+            configType: "lock",
+            name: "cardLibrary.lock.name",
+            description: "cardLibrary.lock.description",
+            sourcePattern: "cardLibrary.pattern.lockControls",
+            icon: IconLock,
+            domain: "lock",
+            section: "specialist",
+            options: { lock: { source: "auto", showLockAll: true, showUnlockControls: false, maxItems: 6 } },
+        },
+        {
+            id: "cover",
+            configType: "cover",
+            name: "cardLibrary.cover.name",
+            description: "cardLibrary.cover.description",
+            sourcePattern: "cardLibrary.pattern.coverControls",
+            icon: IconBlinds,
+            domain: "cover",
+            section: "specialist",
+            options: { cover: { source: "auto", showGroupControls: true, showPosition: true, maxItems: 5 } },
+        },
+        {
+            id: "air",
+            configType: "air",
+            name: "cardLibrary.air.name",
+            description: "cardLibrary.air.description",
+            sourcePattern: "cardLibrary.pattern.airControls",
+            icon: IconFan,
+            domain: "fan",
+            section: "specialist",
+            options: { air: { source: "auto", showPowerControls: true, showSpeed: true, showHumidity: true, maxItems: 5 } },
+        },
+        {
+            id: "update",
+            configType: "update",
+            name: "cardLibrary.update.name",
+            description: "cardLibrary.update.description",
+            sourcePattern: "cardLibrary.pattern.updateControls",
+            icon: IconUpdate,
+            domain: "update",
+            section: "specialist",
+            options: { update: { source: "auto", showCheckControl: true, showInstallControls: true, showVersions: true, showReleaseNotes: true, maxItems: 5 } },
+        },
+        {
+            id: "todo",
+            configType: "todo",
+            name: "cardLibrary.todo.name",
+            description: "cardLibrary.todo.description",
+            sourcePattern: "cardLibrary.pattern.todoList",
+            icon: IconTodo,
+            domain: "todo",
+            section: "specialist",
+            options: { todo: { source: "auto", showAddControl: true, showCompleted: false, showDueDates: true, maxItems: 6 } },
+        },
+        {
+            id: "vacuum",
+            configType: "vacuum",
+            name: "cardLibrary.vacuum.name",
+            description: "cardLibrary.vacuum.description",
+            sourcePattern: "cardLibrary.pattern.vacuumControls",
+            icon: IconVacuum,
+            domain: "vacuum",
+            section: "specialist",
+            options: { vacuum: { source: "auto", showGroupControls: true, showBattery: true, showFanSpeed: true, maxItems: 4 } },
         },
         {
             id: "remote",
@@ -255,6 +374,7 @@
             name: "",
             domainFilter: cardType.domain,
             type: cardType.configType,
+            ...cardType.defaults,
         };
 
         if (cardType.configType === "tabs") {

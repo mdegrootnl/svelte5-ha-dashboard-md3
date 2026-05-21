@@ -15,6 +15,7 @@
         getCardSurfaceStyle,
     } from "$lib/features/dashboard/utils/cardSurface";
     import HistoryGraph from "./thermostat/HistoryGraph.svelte";
+    import EntityDetailButton from "$lib/features/dashboard/components/EntityDetailButton.svelte";
     import IconFire from "~icons/material-symbols/local-fire-department";
     import IconSnowflake from "~icons/material-symbols/ac-unit";
     import IconPower from "~icons/material-symbols/power-settings-new";
@@ -280,6 +281,12 @@
             ? layoutRows >= 3
             : clientHeight === 0 || clientHeight >= CONSTANTS.LAYOUT.EXPANDED_HEIGHT,
     );
+    let detailEntityIds = $derived(
+        [entityId, secondaryEntityId].filter(Boolean),
+    );
+    let detailSourceLabel = $derived(
+        `${formatTemperature(currentTemp)} - ${targetTemp !== null ? targetTemp.toFixed(1) : "--"}`,
+    );
 </script>
 
 <!-- Card Container -->
@@ -503,4 +510,11 @@
     >
         <IconEdit class="size-[clamp(0.875rem,3.5cqmin,1.25rem)]" />
     </button>
+
+    <EntityDetailButton
+        entityIds={detailEntityIds}
+        selectedEntityId={entityId}
+        title={displayName}
+        sourceLabel={detailSourceLabel}
+    />
 </div>

@@ -18,6 +18,7 @@
     import IconPlayCircle from "~icons/material-symbols/play-circle";
     import IconDevices from "~icons/material-symbols/devices";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
+    import EntityDetailButton from "$lib/features/dashboard/components/EntityDetailButton.svelte";
     import type { ButtonCardOptions, CardAction, CardVariant } from "$lib/types";
     import type { DashboardCardSurfaceStyle } from "$lib/types/dashboard";
     import {
@@ -180,7 +181,7 @@
             const fgColor = color || "var(--color-m3-primary)";
             styles += `color: ${fgColor}; `;
         } else {
-            styles += "color: var(--color-m3-on-surface); ";
+            styles += "color: var(--dashboard-card-readable-color, var(--color-m3-on-surface)); ";
         }
 
         return styles;
@@ -481,4 +482,10 @@
     >
         <IconEdit class="size-[clamp(0.875rem,3.5cqmin,1.25rem)]" />
     </button>
+
+    <EntityDetailButton
+        {entityId}
+        title={title}
+        sourceLabel={displayState}
+    />
 </div>

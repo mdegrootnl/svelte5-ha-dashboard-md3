@@ -1,152 +1,119 @@
-# Security Risks & Issues
+# Security Risks And Issues
 
-**Review Date**: January 3, 2026  
-**Status**: 3 issues fixed on January 3, 2026
+Review date: May 21, 2026
 
----
+This file tracks known security posture and gaps. It is intentionally conservative: if a claim depends on deployment shape, it should be described as a current tradeoff rather than as finished hardening.
 
 ## Summary
 
 | Severity | Count | Status |
-|----------|-------|--------|
-| 🔴 High | 0 | - |
-| 🟠 Medium | 3 | ✅ 2 Fixed, 1 Mitigated |
-| 🟡 Low | 6 | ✅ 3 Fixed, 3 Pending |
+| --- | ---: | --- |
+| High | 0 | No known high-severity app issues |
+| Medium | 3 | 2 mitigated, 1 open |
+| Low | 5 | 2 mitigated, 3 open |
 
----
+## Medium Severity
 
-## 🟠 Medium Severity
+### 1. Token Storage In Browser Storage
 
-### 1. [ ] Insecure Token Storage in localStorage
+Status: open for standalone OAuth/token mode.
 
-**File**: `src/lib/stores/ha.svelte.ts` (lines 92-104)
+Issue: standalone Home Assistant auth uses browser-accessible storage, which is vulnerable if an XSS issue is introduced.
 
-**Issue**: Authentication tokens stored in localStorage are vulnerable to XSS attacks.
+Current mitigations:
 
-**Fix**:
-- Consider HttpOnly cookies (requires server component)
-- Implement token rotation with short expiration
-- Add Content Security Policy headers
+- Add-on mode keeps the Supervisor token server-side.
+- API mutations are same-origin guarded.
+- Runtime integration secrets are stored under ignored server-side `data/` files.
 
----
+Possible next steps:
 
-### 2. [x] HTTP Default for Home Assistant Connections ✅ FIXED
+- Investigate HttpOnly cookie/session-backed standalone auth.
+- Continue CSP hardening.
+- Support explicit token revocation on disconnect where Home Assistant exposes it.
 
-**File**: `src/lib/stores/ha.svelte.ts` (lines 43-45)
+### 2. Home Assistant URL Validation
 
-**Issue**: Login defaults to `http://` instead of `https://`, exposing credentials on the network.
+Status: mitigated.
 
-**Fix**:
-```diff
-- const protocol = host.startsWith("http") ? "" : "http://";
-+ const protocol = host.startsWith("http") ? "" : "https://";
-```
+Issue: user-supplied Home Assistant hosts and ports need validation before use.
 
----
+Current state: settings and auth helpers validate/sanitize host and port values. Keep this covered when adding new connection paths.
 
-### 3. [x] No Input Validation on Host/Port Fields ✅ FIXED
+### 3. HTTPS Default
 
-**File**: `src/routes/settings/+page.svelte` (lines 7-16)
+Status: mitigated.
 
-**Issue**: User-supplied host/port values used directly without sanitization.
+Issue: defaulting to plain HTTP can expose credentials on hostile networks.
 
-**Fix**:
-- Validate hostname format (alphanumeric, dots, hyphens)
-- Validate port is numeric (1-65535)
-- Reject URLs with malicious patterns
+Current state: standalone setup defaults to HTTPS unless the user explicitly provides a scheme. Local/home-network HTTP remains possible when chosen by the user.
 
----
+## Low Severity
 
-## 🟡 Low Severity
+### 4. Dependency Vulnerabilities
 
-### 4. [ ] Dependency Vulnerabilities
+Status: open.
 
-**Issue**: 6 low-severity vulnerabilities detected by `npm audit`:
-- `cookie` < 0.7.0 - accepts out-of-bounds characters
-- Transitive deps: `@sveltejs/kit`, `@sveltejs/adapter-auto`, `bits-ui`
+Issue: transitive dependency advisories can appear over time.
 
-**Fix**: Run `npm audit fix` - Note: Full fix requires breaking changes to `@sveltejs/kit`. Safe to defer until next major upgrade.
+Action:
 
----
+- Run `npm audit` before releases.
+- Avoid breaking dependency upgrades mid-feature unless the advisory warrants it.
 
-### 5. [x] Missing Content Security Policy (CSP) ✅ FIXED
+### 5. Content Security Policy
 
-**Issue**: No CSP headers configured, increasing XSS attack surface.
+Status: present, hardening pending.
 
-**Fix**: Create `src/hooks.server.ts`:
-```typescript
-import type { Handle } from '@sveltejs/kit';
+Issue: the app has a production CSP, but it is compatibility-oriented rather than strict. It currently allows inline/eval script behavior and broad `http:`/`https:` connect and image sources for SvelteKit, Home Assistant ingress, media/images, weather, uploads, Mealie, AH, and image-provider flows.
 
-export const handle: Handle = async ({ event, resolve }) => {
-    const response = await resolve(event);
-    response.headers.set('Content-Security-Policy', 
-        "default-src 'self'; " +
-        "script-src 'self'; " +
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-        "font-src 'self' https://fonts.gstatic.com; " +
-        "connect-src 'self' ws: wss:; " +
-        "img-src 'self' data: https://www.home-assistant.io;"
-    );
-    return response;
-};
-```
+Current implementation:
 
----
+- `hooks.server.ts` sets production security headers.
+- Cross-origin API mutations are blocked.
+- Standalone framing is denied.
+- Home Assistant add-on framing is limited to same-origin ingress.
 
-### 6. [ ] No Token Revocation on Disconnect
+Next step: map required sources per deployment mode and replace broad allowances with explicit directives where possible.
 
-**File**: `src/lib/stores/ha.svelte.ts` (lines 81-89)
+### 6. Token Revocation On Disconnect
 
-**Issue**: Tokens remain valid on HA server after local logout.
+Status: open.
 
-**Fix**: Call Home Assistant token revocation endpoint on disconnect.
+Issue: local logout clears local state, but may not revoke Home Assistant tokens server-side.
 
----
+Action: add token revocation where supported by the active Home Assistant auth mode.
 
-### 7. [x] Debug Console Logging ✅ FIXED
+### 7. Debug Logging
 
-**File**: `src/lib/components/cards/ButtonCard.svelte` (line 138)
+Status: mitigated.
 
-**Issue**: `console.log` exposes config data in browser console.
+Issue: debug logging can expose runtime config or entity details in production.
 
-**Fix**: Remove or disable in production builds.
+Action: keep production logging intentional and avoid printing credentials, tokens, or personal data.
 
----
+### 8. Service Call Rate Limiting
 
-### 8. [x] Missing Rate Limiting on Service Calls ✅ FIXED
+Status: mitigated at common UI layers.
 
-**File**: `src/lib/components/cards/ButtonCard.svelte`
+Issue: repeated taps can trigger too many Home Assistant service calls.
 
-**Issue**: Direct service calls (toggle) have no rate limiting.
+Action: keep touch controls debounced/throttled where repeated service calls are possible.
 
-**Fix**: Add debouncing/throttling to all service call handlers.
+### 9. CSRF Protection
 
----
+Status: partially mitigated.
 
-### 9. [ ] No CSRF Protection (Informational)
+Issue: server-side mutation routes exist, so cross-origin writes must stay blocked.
 
-**Issue**: No CSRF protection. Currently not exploitable (no server-side state-changing routes).
+Current mitigation: `hooks.server.ts` rejects cross-origin API mutations using `Origin` and `Sec-Fetch-Site`.
 
-**Fix**: Implement if API routes are added in the future.
+Action: reassess if cookie-backed auth is introduced.
 
----
+## Good Practices
 
-## ✅ Good Practices (No Action Needed)
-
-- [x] No XSS-prone patterns (`innerHTML`, `@html`, `eval`)
-- [x] Proper `.gitignore` for `.env` files
-- [x] No hardcoded secrets in source code
-- [x] TypeScript used throughout
-- [x] External resources loaded with `crossorigin`
-
----
-
-## Priority Order
-
-1. ~~⚡ Switch to HTTPS default~~ ✅ Done
-2. ~~⚡ Add input validation~~ ✅ Done
-3. ~~⚡ Implement CSP~~ ✅ Done
-4. ⚡ Run `npm audit fix`
-5. ~~🔧 Add rate limiting~~ ✅ Done
-6. ~~🔧 Remove console.log statements~~ ✅ Done
-7. 🔧 Implement token revocation
+- No known hardcoded credentials in source.
+- Runtime secrets and tokens are ignored under `data/`.
+- TypeScript and Zod are used at important boundaries.
+- Server-side proxies keep privileged add-on tokens out of the browser.
+- Security claims in docs should stay aligned with the actual code.

@@ -2,6 +2,7 @@ import type {
     DashboardCardSurfaceStyle,
     DashboardGridCardSurfaceStyle,
 } from "$lib/types/dashboard";
+import { readableTextColorForBackground } from "$lib/utils/contrast";
 
 export const CARD_SURFACE_STYLES: DashboardCardSurfaceStyle[] = [
     "md3",
@@ -52,7 +53,14 @@ export function getCardSurfaceStyle(
     _style: DashboardCardSurfaceStyle = "md3",
     backgroundColor?: string,
 ) {
-    return backgroundColor ? `background-color: ${backgroundColor};` : "";
+    if (!backgroundColor) return "";
+
+    const readableTextColor = readableTextColorForBackground(backgroundColor);
+    const readableColorStyle = readableTextColor
+        ? ` --dashboard-card-readable-color: ${readableTextColor}; color: var(--dashboard-card-readable-color);`
+        : "";
+
+    return `background-color: ${backgroundColor};${readableColorStyle}`;
 }
 
 export function getActiveCardSurfaceStyle(

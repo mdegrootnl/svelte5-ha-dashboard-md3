@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import MediaCard from './MediaCard.svelte';
-import { haStore, cardEditorStore } from '$lib';
+import { entityDetailStore, haStore, cardEditorStore } from '$lib';
 import { themeStore } from '$lib/stores/theme.svelte';
 
 describe('MediaCard Component', () => {
@@ -11,6 +11,7 @@ describe('MediaCard Component', () => {
         vi.spyOn(haStore, 'getEntity').mockReturnValue(undefined as any);
         vi.spyOn(haStore, 'callService').mockResolvedValue({ ok: true, value: undefined });
         vi.spyOn(cardEditorStore, 'open').mockImplementation(() => { });
+        entityDetailStore.reset();
     });
 
     it('renders off state correctly', () => {
@@ -103,5 +104,22 @@ describe('MediaCard Component', () => {
         expect(cardEditorStore.open).toHaveBeenCalledWith(expect.objectContaining({
             entityId: 'media_player.test'
         }));
+    });
+
+    it('opens entity details from the detail affordance', async () => {
+        const entity = {
+            entity_id: 'media_player.test',
+            state: 'playing',
+            attributes: { friendly_name: 'Test Speaker', media_title: 'Test Song' }
+        };
+        vi.spyOn(haStore, 'getEntity').mockReturnValue(entity as any);
+
+        render(MediaCard, { props: { entityId: 'media_player.test', name: '', domainFilter: '' } });
+
+        await fireEvent.click(screen.getByTitle('Open details'));
+
+        expect(entityDetailStore.open).toBe(true);
+        expect(entityDetailStore.selectedEntityId).toBe('media_player.test');
+        expect(haStore.callService).not.toHaveBeenCalled();
     });
 });

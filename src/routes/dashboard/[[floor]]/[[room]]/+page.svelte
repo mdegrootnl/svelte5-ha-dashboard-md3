@@ -63,9 +63,6 @@
     let isRenameDialogOpen = $state(false);
     let tabToRenameId = $state<string | null>(null);
     let tabToRenameName = $state("");
-    let CardLibrarySheetComponent = $state<Component<any> | null>(null);
-    let CardConfigSheetComponent = $state<Component<any> | null>(null);
-    let IconPickerComponent = $state<Component<any> | null>(null);
     let DashboardGenerationSheetComponent = $state<Component<any> | null>(null);
     let isGenerationSheetOpen = $state(false);
     let generationCleanGenerated = $state(false);
@@ -110,30 +107,6 @@
     });
 
     $effect(() => {
-        if (cardEditorStore.mode === "library" && !CardLibrarySheetComponent) {
-            import("$lib/components/layout/CardLibrarySheet.svelte").then(
-                (module) => {
-                    CardLibrarySheetComponent = module.default;
-                },
-            );
-        }
-
-        if (cardEditorStore.mode === "config" && !CardConfigSheetComponent) {
-            import("$lib/components/layout/CardConfigSheet.svelte").then(
-                (module) => {
-                    CardConfigSheetComponent = module.default;
-                },
-            );
-        }
-
-        if (cardEditorStore.isIconPickerOpen && !IconPickerComponent) {
-            import("$lib/components/common/IconPicker.svelte").then(
-                (module) => {
-                    IconPickerComponent = module.default;
-                },
-            );
-        }
-
         if (isGenerationSheetOpen && !DashboardGenerationSheetComponent) {
             import("$lib/components/layout/DashboardGenerationSheet.svelte").then(
                 (module) => {
@@ -817,21 +790,6 @@
 <!-- Grid Config Dialog -->
 {#if gridSettingsTarget}
     <GridConfigDialog bind:open={isGridConfigOpen} config={gridSettingsTarget} />
-{/if}
-
-{#if CardLibrarySheetComponent && cardEditorStore.mode === "library"}
-    <CardLibrarySheetComponent />
-{/if}
-
-{#if CardConfigSheetComponent && cardEditorStore.mode === "config"}
-    <CardConfigSheetComponent />
-{/if}
-
-{#if IconPickerComponent && cardEditorStore.isIconPickerOpen}
-    <IconPickerComponent
-        onselect={(icon: string) => cardEditorStore.handleIconSelect(icon)}
-        onclose={() => (cardEditorStore.isIconPickerOpen = false)}
-    />
 {/if}
 
 {#if DashboardGenerationSheetComponent && isGenerationSheetOpen}

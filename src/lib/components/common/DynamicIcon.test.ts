@@ -8,6 +8,7 @@ describe('DynamicIcon', () => {
             props: { name: 'mdi:door-closed' },
         });
 
+        expect(container.firstElementChild).toHaveAttribute('aria-hidden', 'true');
         expect(container.querySelector('.material-symbols-outlined')?.textContent).toBe('door_front');
     });
 });

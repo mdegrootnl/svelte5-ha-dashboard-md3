@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
     getActiveCardSurfaceStyle,
     getCardSurfaceClasses,
+    getCardSurfaceStyle,
     normalizeCardSurfaceStyle,
     normalizeGridCardSurfaceStyle,
     resolveCardSurfaceStyle,
@@ -32,6 +33,18 @@ describe("cardSurface helpers", () => {
         );
         expect(getActiveCardSurfaceStyle("soft", "var(--color-m3-primary)")).toContain(
             "var(--dashboard-card-surface-shadow)",
+        );
+    });
+
+    it("adds readable foreground tokens for explicit custom backgrounds", () => {
+        expect(getCardSurfaceStyle("md3", "#123456")).toContain(
+            "background-color: #123456",
+        );
+        expect(getCardSurfaceStyle("md3", "#123456")).toContain(
+            "--dashboard-card-readable-color: #ffffff",
+        );
+        expect(getCardSurfaceStyle("md3", "#f7e8c8")).toContain(
+            "--dashboard-card-readable-color: #000000",
         );
     });
 });

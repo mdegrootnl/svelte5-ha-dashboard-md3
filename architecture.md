@@ -1,443 +1,194 @@
 # Architecture Overview
 
-**Last Updated**: May 16, 2026
+Last updated: May 21, 2026
 
-A Material Design 3 dashboard for Home Assistant built with **Svelte 5** and **SvelteKit**.
+This app is a standalone SvelteKit dashboard builder for Home Assistant. The architecture favors backend-backed household state, feature-owned routes, Svelte 5 rune stores, preview-first dashboard generation, and a root-owned app shell for wall-tablet behavior.
 
----
+## Runtime Model
 
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Framework | [Svelte 5](https://svelte.dev) with runes (`$state`, `$derived`, `$effect`) |
-| Routing | [SvelteKit](https://kit.svelte.dev) |
-| Styling | [Tailwind CSS 4](https://tailwindcss.com) |
-| Theming | [Material Color Utilities](https://github.com/material-foundation/material-color-utilities) |
-| HA Integration | [home-assistant-js-websocket](https://github.com/home-assistant/home-assistant-js-websocket) |
-| Testing | [Vitest](https://vitest.dev) + [@testing-library/svelte](https://testing-library.com/svelte) |
-| Icons | [Iconify](https://iconify.design) via unplugin-icons |
-| Validation | [Zod](https://zod.dev) (Schema validation) |
-| Error Handling | [Monadic Result](src/lib/utils/result.ts) (Safe error propagation) |
-| Data Viz | [D3.js](https://d3js.org) (Graphs) |
-| Maps | [Leaflet](https://leafletjs.com) (Radar) |
-
----
-
-## Running in Production
-
-To ensure all configurations (like upload limits) are applied correctly, always start the application using the custom server entry point:
-
-```bash
-npm start
-# OR
-node server.js
-```
-
-Runtime dashboard state is intentionally kept outside the git checkout. In the self-hosted Docker deployment, `/app/data` should be mounted from a persistent server directory such as `/srv/ha-dashboard/data`, configured through `DASHBOARD_DATA_DIR`. The live `config.json` and uploaded images belong in that mounted directory; git tracks only `data/config.example.json` as a sanitized starter.
-
-For same-origin API protection, set `DASHBOARD_ORIGIN` to the exact URL used in the browser, for example:
-
-```bash
-DASHBOARD_DATA_DIR=/srv/ha-dashboard/data
-DASHBOARD_ORIGIN=http://192.168.0.113:3000
-```
-
----
+- The root layout owns the global shell: navigation, theme initialization, lock screen, kiosk state, Home Assistant initialization, app base path, and config event subscription.
+- Feature routes own feature UI. New functionality should use `PageShell` and avoid adding feature-specific behavior to the root shell.
+- `data/config.json` is the canonical shared dashboard configuration.
+- Browser `localStorage` is a fast cache and optimistic UI helper, not the source of truth.
+- `/api/events` streams config-change events so other devices can refresh theme, dashboards, lock screen, kiosk, and music library state.
 
 ## Project Structure
 
-```
+```text
 src/
-├── app.css              # Global styles & Tailwind config
-├── app.html             # HTML template
-├── hooks.server.ts      # Security headers (CSP, X-Frame-Options)
-├── lib/
-│   ├── index.ts         # Public exports barrel
-│   ├── components/
-│   │   ├── md3/         # Material Design 3 primitives
-│   │   ├── common/      # Shared utilities (DynamicIcon, IconPicker)
-│   │   ├── layout/      # Page shells, grid system, error boundaries
-│   │   ├── settings/    # Settings page components
-│   │   ├── viz/         # Data visualization (MiniChart)
-│   │   └── weather/     # Weather display components
-│   ├── features/
-│   │   ├── dashboard/   # Dashboard feature (cards, stores)
-│   │   │   ├── components/cards/  # Entity cards
-│   │   │   ├── stores/  # Dashboard-specific stores
-│   │   │   └── utils/   # Layout utilities (gridUtils, gridNavigation)
-│   │   ├── music/       # Music Assistant integration
-│   │   │   ├── components/  # Music browser, player
-│   │   │   └── stores/  # Music-specific stores
-│   │   ├── lockscreen/  # Lockscreen feature
-│   │   │   ├── components/  # Lockscreen component
-│   │   │   └── stores/      # Lockscreen state
-│   │   └── calendar/    # Calendar feature
-│   │       └── stores/      # Calendar sync state
-│   ├── stores/          # Static global stores (HA, Registry, Theme)
-│   ├── types/           # TypeScript interfaces (re-exported)
-│   ├── domain/          # Pure domain logic & services
-│   ├── server/          # Server-side utilities
-│   ├── actions/         # Svelte actions
-│   └── utils/           # Helper functions
-├── routes/
-│   ├── +layout.svelte   # Root layout with NavigationRail
-│   ├── dashboard/       # Main control dashboard
-│   ├── library/         # Component showcase
-│   ├── settings/        # HA connection config
-│   ├── weather/         # Weather dashboard
-│   └── theme/           # Theme customization
-└── tests/               # Test setup & utilities
+  app.css
+  hooks.server.ts
+  lib/
+    components/
+      common/        DynamicIcon, IconPicker, shared utilities
+      layout/        PageShell, dashboard grid UI, editors, sheets
+      md3/           Material Design 3 primitives
+      settings/      Settings-specific components
+      viz/           Data visualization helpers
+      weather/       Weather display components
+    domain/          Pure generation, schema, action, and transform logic
+    features/
+      attention/      For You / Attention classification and route logic
+      dashboard/     Cards, dashboard stores, grid utilities
+      kiosk/         Kiosk mode store and idle/edit-lock behavior
+      music/         Music Assistant components and stores
+      meals/         Recipe, planning, and shopping helpers
+      presence/      Household presence and zone helpers
+      lockscreen/    Lock screen components and store
+      calendar/      Calendar aggregation
+    server/          Storage, deployment, proxy, and integration modules
+    stores/          Global Home Assistant, registry, theme, and weather stores
+    types/           Shared types
+    utils/           Browser and app utilities
+  routes/
+    api/             App, integration, proxy, and config endpoints
+    attention/       For You / Attention route
+    dashboard/       Main dashboard route
+    library/         Card library route
+    meals/           Meals and shopping route
+    music/           Music route
+    presence/        Household presence route
+    settings/        Settings route
+    theme/           Theme route
+    weather/         Weather route
 ```
 
----
+## State And Persistence
 
-## Component Hierarchy
+### Server Config
 
-```mermaid
-graph TD
-        A[+layout.svelte] --> B[NavigationRail]
-        A --> C[CardConfigDialog]
-        A --> D[PageShell]
-        D --> NH[NavigationHub]
-        D --> GC[GridContainer]
-    end
+`JsonStorageService` loads and saves `data/config.json`. Partial settings writes and dedicated music-library writes use a shared write lock to prevent read-modify-write races.
 
-    subgraph MD3 Primitives
-        E[Button]
-        F[Card]
-        G[TextField]
-        H[Switch]
-        I[Checkbox]
-        J[Radio]
-        K[Chip]
-        L[FAB]
-    end
+Shared app state currently includes:
 
-    subgraph Entity Cards
-        M[ButtonCard] --> E
-        M --> H
-        N[MediaCard] --> F
-    end
+- `theme`: color, dark mode, language, navigation, card surface settings
+- `dashboards`: saved room/floor/home dashboard configs
+- `pages`: custom pages
+- `musicLibrary`: favorites, default player, sync timestamp
+- `lockScreen`: idle lock and background settings
+- `kiosk`: opt-in wall-tablet behavior, idle dimming, navigation hiding, and edit-control locking
 
-    subgraph Layout Components
-        D --> O[ErrorBoundary]
-    end
-```
+### Client Stores
 
-### MD3 Primitives (`src/lib/components/md3/`)
+- `ThemeStore` applies MD3 tokens and user language.
+- `DashboardStore` manages saved dashboard configs, active dashboard config, pages, and editor persistence.
+- `MusicLibraryStore` uses backend music-library endpoints for favorites/default player and keeps local cache only for startup.
+- `LockScreenStore` manages idle timeout and lock state.
+- `KioskStore` manages opt-in idle dimming, idle navigation hiding, and temporary edit unlocks.
+- `HAStore` owns Home Assistant auth, websocket connection, entity snapshots, service calls, history, and statistics.
+- `HARegistryStore` owns areas, floors, entities, devices, and labels.
 
-Reusable Material Design 3 components with full theming support:
-
-- **Button** — filled, tonal, outlined, text, elevated variants
-- **Card** — elevated, filled, outlined variants
-- **TextField** — with validation and helper text
-- **Switch, Checkbox, Radio** — form controls
-- **Chip** — filter and action chips
-- **FAB** — floating action button
-
-### Entity Cards (`src/lib/features/dashboard/components/cards/`)
-
-Home Assistant entity control cards:
-
-- **ButtonCard** — switch/slider variants for lights, fans, switches
-- **MediaCard** — standard, poster, condensed variants for media players
-- **ThermostatCard** — climate control with history graph, supports secondary outdoor sensor
-- **TitleCard** — section headers with optional subtitle and alignment
-- **TabCard** — nested grid container with tabbed navigation
-- **GraphCard** — entity history visualization with configurable aggregation
-- **NavigationCard** — navigation links with optional entity shortcuts
-
-### Music Components (`src/lib/features/music/components/`)
-
-- **MusicBrowser** — Full-screen media browser with search and drill-down support.
-- **MusicNowPlaying** — Expanded player view with queue and controls.
-- **MusicMiniPlayer** — Persistent bottom bar player.
-- **MusicPlayerSelector** — Player selection dropdown.
-- **MusicSearch** — Global music search functionality.
-
-
-### Layout (`src/lib/components/layout/`)
-
-- **PageShell** — consistent page wrapper with title
-- **GridContainer/GridItem** — CSS Grid-based dashboard layout engine
-- **ErrorBoundary** — graceful error handling
-
----
-
-## State Management
-
-All stores use Svelte 5 runes for fine-grained reactivity:
-
-### HA Integration Layer
-
-The "God Object" HAStore has been decomposed into specialized, decoupled modules adhering to the Single Responsibility Principle:
-
-- **HAAuthService** (`src/lib/domain/haAuthService.ts`) — Encapsulates OAuth and token refresh logic.
-- **HARegistryStore** (`src/lib/stores/haRegistry.svelte.ts`) — Manages areas, floors, and entity registry metadata.
-- **HAStore** (`src/lib/stores/ha.svelte.ts`) — Unified reactive interface for states and service calls.
-- **StorageProvider** (`src/lib/utils/storageProvider.ts`) — Abstracted persistence for tokens and session data.
-- **HistoryService** (`src/lib/domain/historyService.ts`) — Pure logic for transforming raw HA history into graphable data.
-
-### WeatherStore (`src/lib/stores/weather.svelte.ts`)
-
-Manages weather data fetching (HA integration), caching, and normalization with background polling:
-
-```typescript
-class WeatherStore {
-    data = $state<WeatherData | null>(null);
-    loading = $state(false);
-    
-    fetch(force?); // Fetches from HA weather entities
-    getIconUrl(code, isDay, isDark); // Maps WMO codes to assets
-    // Features: Throttling (30m), Zod-validated response schemas
-}
-```
-
-### Music Assistant Integration
-
-Native integration with Music Assistant via Home Assistant WebSocket:
-
-- **MAStore** (`src/lib/features/music/stores/maStore.svelte.ts`) — Main integration logic.
-    - Handles discovery and connection to `mass` or `music_assistant` domains.
-    - Manages player state (players, queues, now playing).
-    - Proxies library searching and browsing.
-- **MusicLibraryStore** (`src/lib/features/music/stores/musicLibrary.svelte.ts`) — Frontend view state.
-    - Manages local favorites independent of MA backend.
-    - Handles search results and browsing stack.
-
-### Feature Stores (Lockscreen & Calendar)
-
-Specialized features with independent state management:
-
-- **LockScreenStore** (`src/lib/features/lockscreen/stores/lockscreen.svelte.ts`) — Manages idle timeout, lock state, and background imagery.
-- **CalendarStore** (`src/lib/features/calendar/stores/calendar.svelte.ts`) — Syncs and aggregates upcoming events from multiple HA calendar entities.
-
-
-### ThemeStore (`src/lib/stores/theme.svelte.ts`)
-
-Dynamic MD3 theming with CSS custom properties and server persistence:
-
-```typescript
-class ThemeStore {
-    sourceColor = $state('#6750A4');
-    isDark = $state(false);
-    theme = $derived.by(() => themeFromSourceColor(argbFromHex(this.sourceColor)));
-    
-    init(config);              // Load from server on page load
-    toggleDark();              // Toggle + persist
-    setSourceColor(color);     // Update + persist
-    private applyToDocument(); // Sets --color-m3-* CSS variables
-}
-```
-
-**Persistence**: localStorage (immediate) + server sync (2s debounce)
-
-### CardEditorStore (`src/lib/features/dashboard/stores/cardEditor.svelte.ts`)
-
-Dialog state for card configuration.
-
-### DashboardEditorStore (`src/lib/features/dashboard/stores/dashboardEditor.svelte.ts`)
-
-Manages the edit mode for dashboard customization, leveraging specialized managers for layout logic.
-
-### DashboardStore (`src/lib/features/dashboard/stores/dashboard.svelte.ts`)
-
-Manages grid configurations, layout persistence, and responsive breakpoints:
-
-```typescript
-class DashboardStore {
-    config = $state<RoomDashboardConfig | null>(null);
-    savedConfigs = $state<Record<string, RoomDashboardConfig>>({});
-    pages = $state<DashboardPage[]>([]);
-    
-    init(configs, pages);  // Load from server on page load
-    setConfig(config);     // Save + persist changes
-    addPage(name, path);   // Add custom dashboard route
-    persistChanges();      // localStorage (immediate) + server (debounced)
-}
-```
-
-**Persistence Strategy**:
-- **Server**: Source of truth (`/api/settings` → `./data/config.json`)
-- **localStorage**: Fast caching for instant local updates
-- **Debounced sync**: 2-second delay prevents excessive server writes
-
-
----
+Server refresh methods must distinguish "apply server config" from user mutations so remote updates do not schedule write-back loops.
 
 ## Dashboard Generation
 
-Dashboard generation is preview-first. The generator reads Home Assistant state, entity registry, device registry, areas, floors, and optional labels, then creates normal editable dashboard configs. It does not execute Home Assistant services and does not persist anything until the user applies the preview.
+Generation is preview-first. The generator reads Home Assistant state, entity registry, device registry, areas, floors, and optional labels, then creates normal editable dashboard configs. It never persists or calls Home Assistant services until the user explicitly applies the preview.
 
-Generation rules:
+Core rules:
 
-- Root home and floor dashboards stay light: attention summaries first, then room navigation cards, then weather, energy, calendar, media, and maintenance context when entities exist.
-- Room dashboards follow a stable order: attention, primary controls, comfort/climate, media/remote, openings/security/status, sensors/history, then actions.
-- Home Assistant areas are the source of truth for rooms. Device-area fallback and name inference are allowed, but quality hints identify weaker matches.
-- Home Assistant light groups are preferred over their individual member lights. Nested HA light groups remain visible; only individual member lights are suppressed.
-- Entity names are not rewritten by the generator. Repetitive names are reported through quality hints so naming can be fixed in Home Assistant.
-- Unknown and unavailable entities are excluded from normal generated room content, with quality hints for review.
-- A media player with a generated media card suppresses duplicate remotes for the same target. A remote is generated only when it controls a distinct room-relevant target, and the generated card names the controlled target.
-- Only the highest-value primary room control gets a large card by default. Secondary lights, switches, actions, and status summaries use compact MD3 cards.
-- Clean regeneration is explicit: generated cards can be replaced from a fresh draft, while manual and pinned content is preserved. Applying clean regeneration requires a second confirmation in the preview sheet.
+- Home and floor dashboards stay light: attention summaries, room navigation, weather, energy, calendar, media, and maintenance context.
+- Room dashboards use a stable order: attention, primary controls, comfort/climate, media/remote, openings/security/status, sensors/history, and actions.
+- Home Assistant areas are the source of truth for rooms.
+- Real Home Assistant light groups are preferred over individual member lights.
+- Entity names stay as configured in Home Assistant; naming issues are surfaced as quality hints.
+- Unknown and unavailable entities are excluded from normal generated content and surfaced through quality hints or attention views.
+- Clean regeneration replaces generated content while preserving manual and pinned content.
 
-Performance rules:
+## Card Library
 
-- Generation builds one inventory index per run and passes that index through helper functions.
-- Card render paths must use indexed/manual entity lookups and must not scan the full inventory per card.
-- The generator never starts route polling, history fetches, service calls, or persistence from render paths.
+Dashboard cards live in `src/lib/features/dashboard/components/cards/`. Current card families include:
 
----
+- Button, media, thermostat, title, tabs, graph, navigation
+- Room summary and entity collection
+- Energy, calendar, weather, remote, device panel, camera
+- Presence, security, lock, cover/blinds, air/fan/humidifier, vacuum, update, and to-do/shopping
 
-## Routing
+New card families must be represented in the card-library picker, `/library` live examples, editor/config flow, renderer, schemas, generation rules where applicable, and focused tests. This keeps the dashboard builder discoverable as functionality grows.
 
-| Route | Purpose |
-|-------|---------|
-| `/` | Landing / redirect |
-| `/dashboard` | Main control interface (Home) |
-| `/dashboard/[[floor]]/[[room]]` | Dynamic floor & room dashboards |
-| `/library` | Component showcase |
-| `/settings` | Home Assistant connection |
-| `/theme` | Theme builder |
-| `/weather` | Weather dashboard & Rain radar |
-| `/api/ha-proxy` | Secure generic proxy for HA resources (images/icons) |
-| `/ha-history` | Proxy for Home Assistant history API |
+## Global Shell And Kiosk Mode
 
----
+The root layout is the only owner of global shell behavior. It initializes shared config, subscribes to `/api/events`, owns navigation wrappers, owns reusable card editor and entity detail sheets, and applies kiosk state through shell data attributes:
+
+- `data-kiosk-dimmed`
+- `data-kiosk-nav-hidden`
+- `data-kiosk-edit-locked`
+
+CSS then dims the main surface, hides navigation while idle, and suppresses `.touch-edit-control` affordances when kiosk editing is locked. Feature cards do not need bespoke kiosk logic unless they introduce a new global affordance.
+
+Reference projects such as Mushroom, Bubble Card, ApexCharts Card, Auto Entities, and Dwains Dashboard are product-pattern references only. We keep the implementation in the SvelteKit/TypeScript stack.
+
+## Integrations
+
+### Home Assistant
+
+Standalone mode uses OAuth or long-lived tokens. Add-on mode uses Home Assistant ingress and server-side Supervisor API access so the browser never receives the Supervisor token.
+
+### Music Assistant
+
+Music Assistant is reached through Home Assistant. Music favorites and default player are app-level household settings stored server-side so they sync across devices.
+
+### Meals
+
+Mealie remains the canonical recipe, meal-planning, and shopping-list backend. The dashboard adds Dutch-friendly import helpers, recipe image repair, servings scaling, meal planning, and optional Albert Heijn export.
+
+### Albert Heijn
+
+Albert Heijn support is optional and Dutch-context only. Tokens are stored in ignored server-side runtime files and are never exposed to the browser. Export is review-first: users review matched products/free-text rows before writing to AH. The AH review starts from the Mealie shopping list, deduplicates rows by normalized ingredient key, and preserves grouped source lines so duplicate ingredients do not hide recipe context.
 
 ## Security
 
-Security measures implemented in `hooks.server.ts`:
+Implemented:
 
-| Header | Value |
-|--------|-------|
-| Content-Security-Policy | Strict CSP with required exceptions |
-| X-Content-Type-Options | `nosniff` |
-| X-Frame-Options | `DENY` |
-| Referrer-Policy | `strict-origin-when-cross-origin` |
-| Permissions-Policy | Restricts geolocation, microphone, camera |
+- Cross-origin API mutations are blocked in `hooks.server.ts`.
+- Security headers are set in production.
+- Home Assistant add-on framing is limited to same-origin ingress; standalone framing is denied.
+- Runtime secrets are ignored under `data/`.
+- API payloads use Zod validation where practical.
 
-Additional hardening:
-- HTTPS default for HA connections
-- Input validation on host/port fields
-- Rate limiting (debounce) on service calls
-- No XSS-prone patterns (`innerHTML`, `@html`, `eval`)
+Known gap:
 
-See [securityrisks.md](./securityrisks.md) for the full security audit.
-
----
+- CSP exists but is not strict yet. It currently allows inline/eval script behavior and broad image/connect sources for compatibility with SvelteKit, Home Assistant ingress, media/images, and integrations. The backlog tracks CSP tightening or more precise documentation.
 
 ## Testing
 
-Test infrastructure using Vitest with Testing Library:
+The project uses Vitest, Testing Library, and Playwright.
+
+Run:
 
 ```bash
-npm test        # Run tests in watch mode
-npm test -- --run --coverage  # Run with coverage
+npm run check
+npm test -- --run
+npm run build
+npm run test:visual
+npm run test:e2e
 ```
 
-### Coverage
+Coverage is broad but not one-to-one for every card. Current expectations:
 
-All components have corresponding `.test.ts` files:
-
-- `src/lib/components/md3/*.test.ts` — MD3 primitives
-- `src/lib/components/cards/*.test.ts` — Entity cards
-- `src/lib/components/layout/*.test.ts` — Layout components
-- `src/lib/stores/*.test.ts` — Store unit tests
-- `src/lib/utils/*.test.ts` — Utility functions
-
----
-
-## Data Flow
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant ButtonCard
-    participant HAStore
-    participant HA as Home Assistant
-
-    User->>ButtonCard: Toggle switch
-    ButtonCard->>HAStore: callService('light', 'toggle', {entity_id})
-    HAStore->>HA: WebSocket message
-    HA-->>HAStore: State update (subscribeEntities)
-    HAStore-->>ButtonCard: states[entity_id] reactive update
-    ButtonCard-->>User: UI reflects new state
-```
-
-### Dashboard Loading Flow
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant Router
-    participant Store as DashboardStore
-    participant UI as GridContainer
-
-    User->>Router: Navigate to /dashboard/living-room
-    Router->>Store: loadConfig('dashboard_living-room')
-    Store-->>UI: Render Grid (empty or saved)
-```
-
-```
-
----
+- Pure domain logic gets unit tests.
+- Server integration modules get route or module tests.
+- Shared stores get unit tests for persistence and sync behavior.
+- Risky UI flows get component or Playwright coverage.
+- Visual acceptance smoke runs through Playwright against the simulated Home Assistant ingress path across dashboard, attention, presence, settings, music, and meals on desktop, tablet, and phone viewports.
 
 ## Adding New Card Types
 
-To maintain type safety and correct board behavior, adding a new card type requires updates in three locations:
+Adding a card type generally requires:
 
-### 1. Type Definition (`src/lib/types/dashboard.ts`)
-- Update `DashboardCardType` union.
-- Update `DashboardItem` with any card-specific properties (use optional types).
-- Update `createDefaultItemLayout` with appropriate default `desktopSpan` and `mobileSpan`.
+1. Update dashboard types and schemas.
+2. Update editor creation/configuration mapping.
+3. Add the renderer branch.
+4. Add card configuration UI.
+5. Add focused tests for domain logic, rendering behavior, and any service calls.
 
-### 2. Editor Mapping (`src/lib/features/dashboard/stores/dashboardEditor.svelte.ts`)
-- Update `createItemFromSelection` and `addItem`:
-  - Add the type mapping (e.g., `if (itemConfig.type === "new_type") cardType = "new_type";`).
-  - Ensure all card-specific properties are passed when creating the `newItem` object.
-  - **Failure to map the type will result in the card defaulting to a "button" card.**
+## Product Direction
 
-### 3. Rendering Logic
-- **Card Rendering**: Update `DashboardCardRenderer.svelte` to switch on the new type and render the corresponding component. Root dashboard cards and nested tab cards should use this shared renderer.
-- **Config Rendering**: Update `CardConfigSheet.svelte` to show appropriate fields for the new card type and update the preview logic.
+Near-term product work is tracked in `BACKLOG.md`. The main direction is:
 
----
-
-## Card Library Direction
-
-The `/library` route should stay a polished runtime showcase, not a roadmap board. It should render finished MD3-native card examples with realistic Home Assistant data, empty states, and compact/wide layout checks.
-
-Reference projects are used for product patterns only:
-
-- Mushroom and Button Card: entity tiles, sub-actions, state-aware controls.
-- Mini Media Player: compact playback, source, grouping, and volume patterns.
-- Mini Graph and ApexCharts: graph presets and multi-series data surfaces.
-- Bubble Card: section navigation, room actions, and mobile-first controls.
-- Auto Entities: dynamic collections such as active lights, low batteries, unavailable devices, and updates.
-- Power Flow Plus: energy flow and daily usage summaries.
-- Calendar Card Pro and Atomic Calendar Revive: agenda and family calendar surfaces.
-- Universal Remote and Vacuum Card: specialist control panels.
-
-Build order remains reuse-first: extend Button, Media, Graph, Navigation, and Tab behavior where possible, then add specialist card types only for distinct jobs.
-
----
-
-## Perfect Project Standards
-
-1. **Domain-Driven Design (DDD)** — Complex logic is extracted from stores into pure, testable domain services.
-2. **Type Sovereignty** — Use of `Zod` schemas at all data boundaries (APIs, LocalStorage).
-3. **Monadic Error Handling** — Consistent use of the `Result` type to prevent swallowed exceptions.
-4. **Fine-Grained Reactivity** — Pure Svelte 5 Runes architecture for predictable state updates.
-5. **Decoupled Architecture** — Singleton stores are decomposed into specialized modules to avoid God Objects.
-
----
-
-## Key Design Decisions
-
-1. **Svelte 5 Runes** — Fine-grained reactivity without stores boilerplate
-2. **Class-based Stores** — Encapsulated state with methods, exported as singletons
-3. **MD3 Dynamic Theming** — Real-time theme generation from any source color
-4. **Component-First Architecture** — Reusable MD3 primitives composed into entity cards
-5. **CSP-First Security** — Strict Content Security Policy from day one
+- For You / Attention surface
+- Presence and household context
+- Bubble-style detail sheets
+- Dedicated specialist cards
+- Better graph analytics
+- Tablet/kiosk mode
+- Adaptive text readability for image-backed and dark surfaces

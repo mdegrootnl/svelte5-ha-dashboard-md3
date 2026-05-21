@@ -88,9 +88,21 @@ function getNestedItems(config: RoomDashboardConfig, name?: string): DashboardIt
 function getGeneratedEntityIds(config: RoomDashboardConfig) {
     return getAllItems(config).flatMap((item) => [
         item.entityId,
+        ...(item.graphEntities?.map((entity) => entity.entity_id) ?? []),
         ...(item.shortcuts?.map((shortcut) => shortcut.entityId) ?? []),
         ...(item.options?.collection?.entityIds ?? []),
         ...(item.options?.camera?.entityIds ?? []),
+        item.options?.security?.alarmEntityId,
+        ...(item.options?.security?.lockEntityIds ?? []),
+        ...(item.options?.security?.openingEntityIds ?? []),
+        ...(item.options?.security?.motionEntityIds ?? []),
+        ...(item.options?.security?.safetyEntityIds ?? []),
+        ...(item.options?.lock?.entityIds ?? []),
+        ...(item.options?.cover?.entityIds ?? []),
+        ...(item.options?.air?.entityIds ?? []),
+        ...(item.options?.update?.entityIds ?? []),
+        ...(item.options?.todo?.entityIds ?? []),
+        ...(item.options?.vacuum?.entityIds ?? []),
     ]);
 }
 
@@ -176,7 +188,23 @@ const richContext: InventoryContext = {
             friendly_name: 'Home Power',
             device_class: 'power',
         }),
+        'sensor.energy_today': entity('sensor.energy_today', '8.4', {
+            friendly_name: 'Energy Today',
+            device_class: 'energy',
+            unit_of_measurement: 'kWh',
+        }),
+        'sensor.gas_today': entity('sensor.gas_today', '1.2', {
+            friendly_name: 'Gas Today',
+            device_class: 'gas',
+            unit_of_measurement: 'm3',
+        }),
+        'sensor.water_today': entity('sensor.water_today', '126', {
+            friendly_name: 'Water Today',
+            device_class: 'water',
+            unit_of_measurement: 'L',
+        }),
         'calendar.family': entity('calendar.family', 'on', { friendly_name: 'Family Calendar' }),
+        'todo.shopping_list': entity('todo.shopping_list', '3', { friendly_name: 'Shopping List' }),
         'update.router': entity('update.router', 'on', { friendly_name: 'Router Update' }),
         'sensor.unavailable_device': entity('sensor.unavailable_device', 'unavailable', {
             friendly_name: 'Unavailable Device',
@@ -209,7 +237,11 @@ const richContext: InventoryContext = {
         registry('weather.home', null),
         registry('sensor.solar_power', null),
         registry('sensor.home_power', null),
+        registry('sensor.energy_today', null),
+        registry('sensor.gas_today', null),
+        registry('sensor.water_today', null),
         registry('calendar.family', null),
+        registry('todo.shopping_list', null),
         registry('update.router', null),
         registry('sensor.unavailable_device', null),
         registry('light.office_desk', 'office'),
@@ -244,13 +276,24 @@ describe('dashboardGenerator', () => {
         expect(cardTypes).toContain('weather');
         expect(cardTypes).toContain('energy');
         expect(cardTypes).toContain('calendar');
+        expect(cardTypes).toContain('todo');
         expect(cardTypes).toContain('collection');
+        expect(cardTypes).toContain('security');
         expect(cardTypes).toContain('camera');
+        const generatedTodo = allItems.find((item) => item.cardType === 'todo');
+        expect(generatedTodo?.options?.todo?.entityIds).toEqual(['todo.shopping_list']);
+        expect(generatedTodo?.options?.todo).toMatchObject({
+            showAddControl: false,
+            showCompleted: false,
+            maxItems: 2,
+        });
+        expect(generatedTodo?.layout.desktop.rowSpan).toBe(2);
         const securityItems = getNestedItems(result.config, 'Security');
         const maintenanceItems = getNestedItems(result.config, 'Maintenance');
         const itemNames = homeItems.map((item) => item.name);
-        expect(itemNames).not.toContain('Attention');
         expect(itemNames).toContain('Rooms');
+        expect(itemNames).not.toContain('Attention');
+        expect(homeItems.some((item) => item.cardType === 'collection')).toBe(false);
         expect(itemNames.indexOf('Quick Actions')).toBeGreaterThan(itemNames.indexOf('Rooms'));
         expect(itemNames).toContain('Good Night');
         expect(itemNames).toContain('Away Mode');
@@ -262,6 +305,22 @@ describe('dashboardGenerator', () => {
         const weatherItem = statisticsItems.find((item) => item.cardType === 'weather');
         expect(weatherItem?.layout.desktop.rowSpan).toBe(3);
         expect(weatherItem?.layout.mobile.rowSpan).toBe(3);
+        const utilityTrend = statisticsItems.find((item) => item.name === 'Utility Trends');
+        expect(utilityTrend).toMatchObject({
+            cardType: 'graph',
+            entityId: 'sensor.energy_today',
+            chartType: 'line',
+            dataSource: 'statistics',
+            statisticsPeriod: 'day',
+            comparisonMode: 'previous_period',
+            scaleMode: 'normalized',
+        });
+        expect(utilityTrend?.graphEntities).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ entity_id: 'sensor.gas_today' }),
+                expect.objectContaining({ entity_id: 'sensor.water_today' }),
+            ]),
+        );
         const quickActions = homeItems.filter(
             (item) => item.cardType === 'button' && item.generatedBy?.sourceType === 'house',
         );
@@ -277,6 +336,9 @@ describe('dashboardGenerator', () => {
             .map((item) => item.options?.collection?.mode);
         expect(collectionModes).toEqual(
             expect.arrayContaining([
+                'security',
+                'openings',
+                'motion',
                 'media_playing',
                 'lights_on',
                 'low_battery',
@@ -284,12 +346,9 @@ describe('dashboardGenerator', () => {
                 'updates',
             ]),
         );
-        expect(collectionModes).not.toContain('security');
-        expect(collectionModes).not.toContain('openings');
-        expect(collectionModes).not.toContain('motion');
-        expect(maintenanceCollectionModes).not.toContain('security');
-        expect(maintenanceCollectionModes).not.toContain('openings');
-        expect(maintenanceCollectionModes).not.toContain('motion');
+        expect(maintenanceCollectionModes).toEqual(
+            expect.arrayContaining(['security', 'openings', 'motion', 'media_playing', 'lights_on', 'low_battery', 'unavailable', 'updates']),
+        );
         expect(attentionPresentations).toEqual(expect.arrayContaining(['summary']));
         const securityStatusCards = securityItems.filter((item) => item.cardType === 'button');
         expect(securityStatusCards.map((item) => item.entityId)).toEqual(
@@ -381,6 +440,83 @@ describe('dashboardGenerator', () => {
             result.qualityHints.find((hint) => hint.code === 'missing_area_picture')?.message,
         ).toContain('Living Room');
         expect(allItems.every((item) => item.generatedBy?.recipe === 'house')).toBe(true);
+    });
+
+    it('adds a dedicated lock card to generated house security when locks exist', () => {
+        const result = generateDashboard(
+            {
+                ...richContext,
+                states: {
+                    ...richContext.states,
+                    'lock.front_door': entity('lock.front_door', 'unlocked', {
+                        friendly_name: 'Front Door Lock',
+                    }),
+                },
+                entities: [
+                    ...richContext.entities,
+                    registry('lock.front_door', 'living_room'),
+                ],
+            },
+            {
+                recipe: 'house',
+                targetDashboardId: 'dashboard_home',
+                applyMode: 'replace_draft',
+            },
+        );
+
+        const lockCard = getNestedItems(result.config, 'Security').find((item) => item.cardType === 'lock');
+
+        expect(lockCard?.name).toBe('Locks');
+        expect(lockCard?.options?.lock?.entityIds).toEqual(['lock.front_door']);
+        expect(lockCard?.layout.desktop.rowSpan).toBe(3);
+    });
+
+    it('adds a household presence card to generated house dashboards when people exist', () => {
+        const contextWithPresence = {
+            ...richContext,
+            states: {
+                ...richContext.states,
+                'person.mila': entity('person.mila', 'home', { friendly_name: 'Mila' }),
+                'person.sam': entity('person.sam', 'work', { friendly_name: 'Sam' }),
+                'zone.work': entity('zone.work', '1', { friendly_name: 'Office' }),
+            },
+            entities: [
+                ...richContext.entities,
+                registry('person.mila', null),
+                registry('person.sam', null),
+                registry('zone.work', null),
+            ],
+        };
+
+        const result = generateDashboard(contextWithPresence, {
+            recipe: 'house',
+            targetDashboardId: 'dashboard_home',
+            applyMode: 'replace_draft',
+        });
+
+        const homeItems = getNestedItems(result.config, 'Home');
+        const itemNames = homeItems.map((item) => item.name);
+        const presenceItem = homeItems.find((item) => item.cardType === 'presence');
+
+        expect(presenceItem).toMatchObject({
+            name: 'Presence',
+            layout: {
+                desktop: expect.objectContaining({ rowSpan: 1 }),
+                mobile: expect.objectContaining({ rowSpan: 1 }),
+            },
+            options: {
+                presence: {
+                    maxPeople: 2,
+                    showGuestMode: false,
+                    showEta: false,
+                },
+            },
+        });
+        expect(itemNames).not.toContain('Attention');
+        expect(itemNames.indexOf('Rooms')).toBeLessThan(itemNames.indexOf('Presence'));
+        expect(result.includedEntities.map((entity) => entity.entityId)).toEqual(
+            expect.arrayContaining(['person.mila', 'person.sam']),
+        );
     });
 
     it('localizes generated dashboard tabs and system card names', () => {
@@ -579,6 +715,38 @@ describe('dashboardGenerator', () => {
         expect(result.includedEntities.map((item) => item.entityId)).toContain('sensor.kitchen_battery');
     });
 
+    it('adds analytics defaults to generated graph sensor cards', () => {
+        const result = generateDashboard(richContext, {
+            recipe: 'entity_type',
+            targetDashboardId: 'dashboard_entity_sensor_temperature',
+            entityDomain: 'sensor',
+            entityDeviceClass: 'temperature',
+            applyMode: 'replace_draft',
+        });
+
+        const graphCard = result.config.tabs[0].items.find((item) => item.cardType === 'graph');
+        expect(graphCard?.entityId).toBe('sensor.kitchen_temperature');
+        expect(graphCard?.comparisonMode).toBe('previous_period');
+        expect(graphCard?.dataSource).toBe('auto');
+        expect(graphCard?.showAnalytics).toBe(true);
+        expect(graphCard?.rangeBands?.[0]).toEqual(expect.objectContaining({ min: 18, max: 24 }));
+        expect(graphCard?.color_thresholds?.[0]).toEqual(expect.objectContaining({ value: 27 }));
+    });
+
+    it('uses a dedicated update card for update entity dashboards', () => {
+        const result = generateDashboard(richContext, {
+            recipe: 'entity_type',
+            targetDashboardId: 'dashboard_entity_update',
+            entityDomain: 'update',
+            applyMode: 'replace_draft',
+        });
+
+        const updateCard = result.config.tabs[0].items.find((item) => item.cardType === 'update');
+        expect(result.config.name).toBe('Updates');
+        expect(updateCard?.options?.update?.entityIds).toEqual(['update.router']);
+        expect(result.config.tabs[0].items.some((item) => item.cardType === 'collection')).toBe(false);
+    });
+
     it('creates a label dashboard from explicitly labeled entities', () => {
         const labeledContext: InventoryContext = {
             ...richContext,
@@ -619,6 +787,8 @@ describe('dashboardGenerator', () => {
         expect(result.config.name).toBe('Maintenance');
         expect(result.config.generatedBy?.sourceType).toBe('maintenance');
         expect(cardNames).toEqual(expect.arrayContaining(['Unavailable', 'Low Batteries', 'Updates']));
+        expect(result.config.tabs[0].items.some((item) => item.cardType === 'update')).toBe(true);
+        expect(result.config.tabs[0].items.find((item) => item.cardType === 'update')?.options?.update?.entityIds).toContain('update.router');
         expect(included).toEqual(
             expect.arrayContaining(['sensor.unavailable_device', 'sensor.kitchen_battery', 'update.router']),
         );
@@ -642,7 +812,7 @@ describe('dashboardGenerator', () => {
         const maintenanceTab = getNestedTab(result.config, 'Maintenance')!;
         const allItems = getAllItems(result.config);
         expect(allItems.map((item) => item.cardType)).toEqual(
-            expect.arrayContaining(['button', 'thermostat', 'device_panel', 'collection']),
+            expect.arrayContaining(['button', 'thermostat', 'cover', 'collection']),
         );
         const sectionNames = tab.items.filter((item) => item.cardType === 'title').map((item) => item.name);
         const maintenanceSectionNames = maintenanceTab.items.filter((item) => item.cardType === 'title').map((item) => item.name);
@@ -671,10 +841,104 @@ describe('dashboardGenerator', () => {
         expect(primaryControls.filter((item) => item.layout.desktop.rowSpan > 1)).toHaveLength(1);
         expect(primaryControls.some((item) => item.layout.desktop.rowSpan === 1)).toBe(true);
         expect(tab.items.some((item) => item.cardType === 'button' && item.entityId === 'cover.kitchen_blinds')).toBe(false);
-        expect(tab.items.some((item) => item.cardType === 'device_panel' && item.entityId === 'cover.kitchen_blinds')).toBe(true);
+        const coverCard = tab.items.find((item) => item.cardType === 'cover' && item.entityId === 'cover.kitchen_blinds');
+        expect(coverCard).toBeTruthy();
+        expect(coverCard?.options?.cover?.entityIds).toEqual(['cover.kitchen_blinds']);
+        expect(coverCard?.layout.desktop.rowSpan).toBe(3);
         expect(result.includedEntities.map((item) => item.entityId)).toContain('light.kitchen_table');
         expect(result.qualityHints.map((hint) => hint.code)).toContain('area_matched');
         expect(allItems.every((item) => item.generationState === 'generated')).toBe(true);
+    });
+
+    it('uses a dedicated air card for room fans and humidifiers', () => {
+        const airContext: InventoryContext = {
+            states: {
+                'fan.kitchen_fan': entity('fan.kitchen_fan', 'on', {
+                    friendly_name: 'Kitchen Fan',
+                    percentage: 66,
+                }),
+                'humidifier.kitchen_humidifier': entity('humidifier.kitchen_humidifier', 'off', {
+                    friendly_name: 'Kitchen Humidifier',
+                    current_humidity: 42,
+                    humidity: 48,
+                }),
+            },
+            entities: [
+                registry('fan.kitchen_fan', 'kitchen'),
+                registry('humidifier.kitchen_humidifier', 'kitchen'),
+            ],
+            devices,
+            areas,
+            floors,
+        };
+
+        const result = generateDashboard(airContext, {
+            recipe: 'room',
+            targetDashboardId: 'dashboard_ground_kitchen',
+            areaId: 'kitchen',
+            applyMode: 'replace_draft',
+        });
+
+        const roomTab = getNestedTab(result.config, 'Room')!;
+        const airCard = roomTab.items.find((item) => item.cardType === 'air');
+
+        expect(airCard).toBeTruthy();
+        expect(airCard?.options?.air?.entityIds).toEqual(['fan.kitchen_fan', 'humidifier.kitchen_humidifier']);
+        expect(airCard?.layout.desktop.rowSpan).toBe(3);
+        expect(roomTab.items.some((item) => item.cardType === 'device_panel')).toBe(false);
+        expect(getGeneratedEntityIds(result.config)).toEqual(
+            expect.arrayContaining(['fan.kitchen_fan', 'humidifier.kitchen_humidifier']),
+        );
+    });
+
+    it('uses a dedicated vacuum card for room robot vacuums', () => {
+        const vacuumContext: InventoryContext = {
+            states: {
+                'vacuum.kitchen_robot': entity('vacuum.kitchen_robot', 'cleaning', {
+                    friendly_name: 'Kitchen Robot',
+                    battery_level: 78,
+                    fan_speed: 'Turbo',
+                }),
+            },
+            entities: [
+                registry('vacuum.kitchen_robot', 'kitchen'),
+            ],
+            devices,
+            areas,
+            floors,
+        };
+
+        const result = generateDashboard(vacuumContext, {
+            recipe: 'room',
+            targetDashboardId: 'dashboard_ground_kitchen',
+            areaId: 'kitchen',
+            applyMode: 'replace_draft',
+        });
+
+        const roomTab = getNestedTab(result.config, 'Room')!;
+        const vacuumCard = roomTab.items.find((item) => item.cardType === 'vacuum');
+
+        expect(vacuumCard).toBeTruthy();
+        expect(vacuumCard?.options?.vacuum?.entityIds).toEqual(['vacuum.kitchen_robot']);
+        expect(vacuumCard?.layout.desktop.rowSpan).toBe(3);
+        expect(roomTab.items.some((item) => item.cardType === 'device_panel')).toBe(false);
+        expect(getGeneratedEntityIds(result.config)).toContain('vacuum.kitchen_robot');
+    });
+
+    it('uses a dedicated todo card for todo entity dashboards', () => {
+        const result = generateDashboard(richContext, {
+            recipe: 'entity_type',
+            targetDashboardId: 'dashboard_todo',
+            entityDomain: 'todo',
+            applyMode: 'replace_draft',
+        });
+
+        const todoCard = result.config.tabs[0].items.find((item) => item.cardType === 'todo');
+
+        expect(todoCard).toBeTruthy();
+        expect(todoCard?.options?.todo?.entityIds).toEqual(['todo.shopping_list']);
+        expect(todoCard?.layout.desktop.rowSpan).toBe(3);
+        expect(getGeneratedEntityIds(result.config)).toContain('todo.shopping_list');
     });
 
     it('uses weak-name area inference for room dashboards when area assignment is missing', () => {

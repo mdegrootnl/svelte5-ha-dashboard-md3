@@ -18,6 +18,8 @@ export function discoverRoutes(): RouteOption[] {
     });
     const routes: RouteOption[] = [
         { path: '/dashboard', label: 'Main Dashboard', category: 'System' },
+        { path: '/attention', label: 'For You / Attention', category: 'System' },
+        { path: '/presence', label: 'Presence', category: 'System' },
         { path: '/weather', label: 'Weather', category: 'System' },
         { path: '/calendar', label: 'Calendar', category: 'System' },
         { path: '/music', label: 'Music Assistant', category: 'System' },

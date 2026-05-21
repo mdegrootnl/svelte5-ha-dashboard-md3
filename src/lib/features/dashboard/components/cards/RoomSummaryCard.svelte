@@ -2,6 +2,8 @@
     import { executeCardAction } from "$lib/domain/cardActions";
     import { isActiveState } from "$lib/domain/haInventory";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
+    import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
+    import { entityDetailStore } from "$lib/features/dashboard/stores/entityDetail.svelte";
     import { inventoryStore } from "$lib/stores/inventory.svelte";
     import { haStore } from "$lib/stores/ha.svelte";
     import { themeStore } from "$lib/stores/theme.svelte";
@@ -156,11 +158,44 @@
         const action = options?.actions?.find((item) => item.id === actionId);
         if (action) executeCardAction(action, entityId);
     }
+
+    function openDetails(e: Event) {
+        if (dashboardEditorStore.isEditing || roomEntities.length === 0) return;
+        e.stopPropagation();
+        entityDetailStore.openEntities({
+            title: areaName,
+            sourceLabel: themeStore.t("roomSummary.activeSummary", {
+                active: activeCount,
+                count: roomEntities.length,
+            }),
+            entityIds: roomEntities.map((item) => item.entity_id),
+        });
+    }
+
+    function openEntityDetails(entity: StoreEntity, e: Event) {
+        if (dashboardEditorStore.isEditing) return;
+        e.stopPropagation();
+        entityDetailStore.openEntities({
+            title: areaName,
+            sourceLabel: themeStore.t("roomSummary.activeSummary", {
+                active: activeCount,
+                count: roomEntities.length,
+            }),
+            entityIds: roomEntities.map((item) => item.entity_id),
+            selectedEntityId: entity.entity_id,
+        });
+    }
+
 </script>
 
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <article
     class="relative h-full w-full rounded-m3-card text-m3-on-surface overflow-hidden group/card @container {getCardSurfaceClasses(surfaceStyle)} {className}"
+    class:cursor-pointer={!dashboardEditorStore.isEditing && roomEntities.length > 0}
     style={`container-type: size;${getCardSurfaceStyle(surfaceStyle, backgroundColor)}`}
+    onclick={openDetails}
 >
     <div class="flex h-full flex-col gap-[clamp(0.375rem,4cqmin,1.25rem)] p-[clamp(0.625rem,5cqmin,1.75rem)]">
         <div class="flex items-start justify-between gap-[clamp(0.375rem,3cqmin,1rem)]">
@@ -213,16 +248,20 @@
 
         <div class="flex flex-wrap gap-[clamp(0.25rem,2.2cqmin,0.75rem)] min-h-0 overflow-hidden">
             {#each highlights as item (item.entity_id)}
-                <span class="inline-flex items-center gap-[clamp(0.25rem,1.6cqmin,0.5rem)] max-w-full px-[clamp(0.375rem,2.5cqmin,0.875rem)] py-[clamp(0.125rem,1.4cqmin,0.375rem)] rounded-m3-full bg-m3-surface-container-high text-[clamp(0.625rem,2.9cqmin,0.8125rem)] text-m3-on-surface-variant">
+                <button
+                    type="button"
+                    class="inline-flex items-center gap-[clamp(0.25rem,1.6cqmin,0.5rem)] max-w-full px-[clamp(0.375rem,2.5cqmin,0.875rem)] py-[clamp(0.125rem,1.4cqmin,0.375rem)] rounded-m3-full bg-m3-surface-container-high text-[clamp(0.625rem,2.9cqmin,0.8125rem)] text-m3-on-surface-variant text-left hover:brightness-95"
+                    onclick={(e) => openEntityDetails(item, e)}
+                >
                     <DynamicIcon name={entityIcon(item)} class="size-[clamp(0.75rem,3.2cqmin,1rem)] shrink-0" />
                     <span class="truncate">{getEntityName(item.entity_id, item.attributes)}</span>
-                </span>
+                </button>
             {:else}
                 <span class="text-m3-body-small text-m3-on-surface-variant">{themeStore.t("roomSummary.noEntities")}</span>
             {/each}
         </div>
 
-        {#if options?.actions && options.actions.length > 0}
+        {#if !dashboardEditorStore.isEditing && options?.actions && options.actions.length > 0}
             <div class="mt-auto flex gap-[clamp(0.25rem,2.4cqmin,0.75rem)]">
                 {#each options.actions.slice(0, 4) as action (action.id)}
                     <button
@@ -240,6 +279,7 @@
     <button
         class="touch-edit-control absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover/card:opacity-100 transition-opacity z-20 hover:brightness-110"
         onclick={openConfig}
+        onpointerdown={(e) => e.stopPropagation()}
         title={themeStore.t("roomSummary.editTitle")}
     >
         <IconEdit class="size-[clamp(0.875rem,3.5cqmin,1.25rem)]" />

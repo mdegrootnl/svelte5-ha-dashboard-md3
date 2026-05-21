@@ -1,5 +1,6 @@
 <script lang="ts">
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
+    import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
     import { haStore } from "$lib/stores/ha.svelte";
     import { getDomain } from "$lib/utils/entity";
     import type {
@@ -64,7 +65,7 @@
         if (backgroundColor) {
             styles += getCardSurfaceStyle(surfaceStyle, backgroundColor);
         }
-        styles += "color: var(--color-m3-on-surface); ";
+        styles += "color: var(--dashboard-card-readable-color, var(--color-m3-on-surface)); ";
         return styles;
     });
 
@@ -249,35 +250,48 @@
             alt={name}
             class="absolute inset-0 z-0 h-full w-full object-cover"
         />
-        <!-- Theme-led scrim for image readability -->
-        <div
-            class="absolute inset-0 z-10"
-            style="background: linear-gradient(180deg, color-mix(in srgb, var(--color-m3-scrim) 34%, transparent), color-mix(in srgb, var(--color-m3-scrim) 16%, transparent) 42%, color-mix(in srgb, var(--color-m3-scrim) 62%, transparent));"
-        ></div>
+        <div class="readable-edge-gradient-top absolute inset-x-0 top-0 z-10 h-[40%]"></div>
+        <div class="readable-edge-gradient-bottom absolute inset-x-0 bottom-0 z-10 h-[58%]"></div>
         <div
             class="relative z-20 flex h-full w-full flex-col justify-between gap-[clamp(0.75rem,4cqmin,1.25rem)] p-[clamp(0.85rem,4cqmin,1.35rem)] pointer-events-none"
         >
             <div class="flex min-w-0 items-start justify-between gap-[clamp(0.5rem,2.5cqmin,1rem)]">
-                <button
-                    class="flex items-center justify-center size-[clamp(2.75rem,22cqmin,4.5rem)] rounded-full cursor-pointer active:scale-95 transition-all duration-200 pointer-events-auto bg-white/12 backdrop-blur-[2px]"
-                    onclick={toggleAllShortcuts}
-                    title="Toggle all"
-                >
-                    <DynamicIcon
-                        name={icon || "link"}
-                        class="size-[58%] drop-shadow-lg {anyShortcutActive
-                            ? ''
-                            : 'text-white/70'}"
-                        style={anyShortcutActive
-                            ? `color: ${color || "var(--color-m3-primary)"}; `
-                            : ""}
-                    />
-                </button>
-
-                {#if shortcuts && shortcuts.length > 0}
+                {#if dashboardEditorStore.isEditing}
                     <div
-                        class="flex max-w-[64%] shrink-0 flex-wrap items-start justify-end gap-[clamp(0.35rem,2cqmin,0.65rem)] pointer-events-auto"
+                        class="flex items-center justify-center size-[clamp(2.75rem,22cqmin,4.5rem)] rounded-full bg-white/12 backdrop-blur-[2px]"
                     >
+                        <DynamicIcon
+                            name={icon || "link"}
+                            class="size-[58%] drop-shadow-lg {anyShortcutActive
+                                ? ''
+                                : 'text-white/70'}"
+                            style={anyShortcutActive
+                                ? `color: ${color || "var(--color-m3-primary)"}; `
+                                : ""}
+                        />
+                    </div>
+                {:else}
+                    <button
+                        class="flex items-center justify-center size-[clamp(2.75rem,22cqmin,4.5rem)] rounded-full cursor-pointer active:scale-95 transition-all duration-200 pointer-events-auto bg-white/12 backdrop-blur-[2px]"
+                        onclick={toggleAllShortcuts}
+                        title="Toggle all"
+                    >
+                        <DynamicIcon
+                            name={icon || "link"}
+                            class="size-[58%] drop-shadow-lg {anyShortcutActive
+                                ? ''
+                                : 'text-white/70'}"
+                            style={anyShortcutActive
+                                ? `color: ${color || "var(--color-m3-primary)"}; `
+                                : ""}
+                        />
+                    </button>
+                {/if}
+
+                <div
+                    class="flex max-w-[72%] shrink-0 flex-wrap items-start justify-end gap-[clamp(0.35rem,2cqmin,0.65rem)] pointer-events-auto"
+                >
+                    {#if shortcuts && shortcuts.length > 0 && !dashboardEditorStore.isEditing}
                         {#each shortcuts.slice(0, 3) as shortcut (shortcut.id)}
                             {@const isActive = getShortcutState(shortcut.entityId)}
                             <button
@@ -295,18 +309,27 @@
                                 />
                             </button>
                         {/each}
-                    </div>
-                {/if}
+                    {/if}
+                    <button
+                        type="button"
+                        class="touch-edit-control flex-shrink-0 size-[clamp(2rem,13cqmin,2.75rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover/card:opacity-100 transition-opacity hover:brightness-110"
+                        onclick={openConfig}
+                        onpointerdown={(e) => e.stopPropagation()}
+                        title="Edit Navigation"
+                    >
+                        <IconEdit class="size-[58%]" />
+                    </button>
+                </div>
             </div>
 
             <div
-                class="min-w-0"
+                class="readable-label-stack readable-on-image min-w-0"
                 style:padding-left={showAttribution
                     ? "clamp(1.85rem,7cqmin,2.35rem)"
                     : "0"}
             >
                 <span
-                    class="block truncate text-[clamp(1.15rem,max(6.6cqb,2.1cqi),1.55rem)] font-bold leading-tight text-white drop-shadow-lg"
+                    class="block truncate text-[clamp(1.15rem,max(6.6cqb,2.1cqi),1.55rem)] font-bold leading-tight"
                 >
                     {name || "Navigate"}
                 </span>
@@ -314,7 +337,7 @@
                     <div class="mt-[clamp(0.25rem,1.5cqmin,0.5rem)] flex min-w-0 flex-wrap gap-[clamp(0.25rem,1.5cqmin,0.5rem)] overflow-hidden">
                         {#each subtitleParts.slice(0, 3) as part}
                             <span
-                                class="max-w-full truncate rounded-m3-full bg-white/14 px-[clamp(0.5rem,2cqmin,0.75rem)] py-[clamp(0.125rem,0.8cqmin,0.25rem)] text-[clamp(0.75rem,max(4.8cqb,1.1cqi),0.9rem)] text-white/85 backdrop-blur-[2px]"
+                                class="readable-chip max-w-full truncate rounded-m3-full px-[clamp(0.5rem,2cqmin,0.75rem)] py-[clamp(0.125rem,0.8cqmin,0.25rem)] text-[clamp(0.75rem,max(4.8cqb,1.1cqi),0.9rem)]"
                             >
                                 {part}
                             </span>
@@ -328,17 +351,26 @@
             class="relative z-10 flex h-full w-full flex-col justify-between gap-[clamp(0.75rem,4cqmin,1.25rem)] p-[clamp(0.85rem,4cqmin,1.35rem)]"
         >
             <div class="flex min-w-0 items-start justify-between gap-[clamp(0.5rem,2.5cqmin,1rem)]">
-                <button
-                    class="flex items-center justify-center size-[clamp(2.75rem,22cqmin,4.5rem)] rounded-full shrink-0 transition-all duration-200 overflow-hidden cursor-pointer active:scale-95 pointer-events-auto"
-                    style={iconContainerStyle}
-                    onclick={toggleAllShortcuts}
-                    title="Toggle all"
-                >
-                    <DynamicIcon name={icon || "link"} class="size-[60%]" />
-                </button>
+                {#if dashboardEditorStore.isEditing}
+                    <div
+                        class="flex items-center justify-center size-[clamp(2.75rem,22cqmin,4.5rem)] rounded-full shrink-0 overflow-hidden"
+                        style={iconContainerStyle}
+                    >
+                        <DynamicIcon name={icon || "link"} class="size-[60%]" />
+                    </div>
+                {:else}
+                    <button
+                        class="flex items-center justify-center size-[clamp(2.75rem,22cqmin,4.5rem)] rounded-full shrink-0 transition-all duration-200 overflow-hidden cursor-pointer active:scale-95 pointer-events-auto"
+                        style={iconContainerStyle}
+                        onclick={toggleAllShortcuts}
+                        title="Toggle all"
+                    >
+                        <DynamicIcon name={icon || "link"} class="size-[60%]" />
+                    </button>
+                {/if}
 
-                {#if shortcuts && shortcuts.length > 0}
-                    <div class="flex max-w-[64%] shrink-0 flex-wrap items-start justify-end gap-[clamp(0.35rem,2cqmin,0.65rem)] pointer-events-auto">
+                <div class="flex max-w-[72%] shrink-0 flex-wrap items-start justify-end gap-[clamp(0.35rem,2cqmin,0.65rem)] pointer-events-auto">
+                    {#if shortcuts && shortcuts.length > 0 && !dashboardEditorStore.isEditing}
                         {#each shortcuts.slice(0, 3) as shortcut (shortcut.id)}
                             {@const isActive = getShortcutState(shortcut.entityId)}
                             <button
@@ -354,8 +386,17 @@
                                 />
                             </button>
                         {/each}
-                    </div>
-                {/if}
+                    {/if}
+                    <button
+                        type="button"
+                        class="touch-edit-control flex-shrink-0 size-[clamp(2rem,13cqmin,2.75rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover/card:opacity-100 transition-opacity hover:brightness-110"
+                        onclick={openConfig}
+                        onpointerdown={(e) => e.stopPropagation()}
+                        title="Edit Navigation"
+                    >
+                        <IconEdit class="size-[58%]" />
+                    </button>
+                </div>
             </div>
 
             <div class="min-w-0 pointer-events-none">
@@ -403,12 +444,4 @@
         </button>
     {/if}
 
-    <!-- Edit FAB -->
-    <button
-        class="touch-edit-control absolute top-[clamp(0.25rem,2cqmin,0.75rem)] right-[clamp(0.25rem,2cqmin,0.75rem)] p-[clamp(0.25rem,1.7cqmin,0.5rem)] rounded-full bg-m3-primary-container text-m3-on-primary-container shadow-sm opacity-0 group-hover/card:opacity-100 transition-opacity z-30 hover:brightness-110 pointer-events-auto"
-        onclick={openConfig}
-        title="Edit Navigation"
-    >
-        <IconEdit class="size-[clamp(0.875rem,3.5cqmin,1.25rem)]" />
-    </button>
 </a>

@@ -4,6 +4,7 @@
     import { inventoryStore } from "$lib/stores/inventory.svelte";
     import { haStore } from "$lib/stores/ha.svelte";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
+    import EntityDetailButton from "$lib/features/dashboard/components/EntityDetailButton.svelte";
     import type { CardAction, RemoteCardOptions } from "$lib/types";
     import type { DashboardCardSurfaceStyle } from "$lib/types/dashboard";
     import {
@@ -41,6 +42,15 @@
 
     let smartOptions = $derived(inventoryStore.smartRemoteOptions(options, entityId));
     let controlledEntityId = $derived(smartOptions.mediaPlayerEntityId || smartOptions.remoteEntityId || entityId);
+    let detailEntityIds = $derived(
+        Array.from(
+            new Set(
+                [controlledEntityId, smartOptions.remoteEntityId].filter(
+                    (id): id is string => typeof id === "string" && id.length > 0,
+                ),
+            ),
+        ),
+    );
     let controlledEntity = $derived(controlledEntityId ? haStore.getEntity(controlledEntityId) : null);
     let remoteEntity = $derived(smartOptions.remoteEntityId ? haStore.getEntity(smartOptions.remoteEntityId) : null);
     let controlledLabel = $derived(getEntityLabel(controlledEntityId, controlledEntity));
@@ -168,4 +178,11 @@
     >
         <IconEdit class="size-[clamp(0.875rem,3.5cqmin,1.25rem)]" />
     </button>
+
+    <EntityDetailButton
+        entityIds={detailEntityIds}
+        selectedEntityId={controlledEntityId}
+        title={name || controlledLabel || "Remote"}
+        sourceLabel={stateLabel ? `${controlledLabel} - ${stateLabel}` : controlledLabel}
+    />
 </article>

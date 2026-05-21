@@ -1,173 +1,150 @@
 # Home Assistant Dashboard
 
-A modern Material Design 3 dashboard for Home Assistant with dynamic theming, built with **Svelte 5** and **SvelteKit**.
+A Material Design 3 dashboard builder for Home Assistant, built with Svelte 5 and SvelteKit.
+
+This project is not a Lovelace theme. It is a standalone dashboard app with editable layouts, generated room dashboards, Home Assistant add-on support, Music Assistant controls, weather, meals, shopping, attention/presence surfaces, and server-side configuration persistence.
 
 ## Features
 
-### 🏠 Home Assistant Integration
-- Real-time entity sync via WebSocket
-- Entity Registry support for automatic dashboard generation
+### Home Assistant Integration
+
+- Real-time entity sync through the Home Assistant WebSocket API
+- Entity, area, device, floor, and label-aware dashboard generation
 - Floor and room-based navigation
-- History API integration for graphs and charts
+- History and recorder statistics support for graphs
+- Standalone OAuth/long-lived-token deployment and Home Assistant add-on ingress deployment
+- Home Assistant add-on zero-config access through server-side Supervisor REST/WebSocket proxying
 
-### 🎨 Dynamic MD3 Theming
-- Generate themes from any source color
-- Real-time theme preview and customization
-- Persistent dark mode preferences
-- Full MD3 color token support
+### Dashboard Engine
 
-### 🎛️ Dashboard Engine
-- **Decoupled Architecture** — Clean separation between Auth, Registry, and Component state.
-- **Monadic Error Handling** — Robust error propagation using the `Result` type.
-- **Type Sovereignty** — Zod-validated data boundaries for ultimate reliability.
-- **Configurable Grid** — Full drag-and-drop support with responsive breakpoints.
-- **Auto-Generation** — Intelligent layout generation from Entity Registry metadata.
+- Preview-first dashboard generation
+- Editable responsive grid layouts for desktop, tablet, and phone profiles
+- Generated, user-modified, and pinned dashboard states
+- Card library with picker entries and live examples for button, media, thermostat, title, tabs, graph, navigation, room, collection, energy, calendar, weather, remote, device panel, camera, presence, security, lock, cover, air, vacuum, update, and to-do cards
+- Touch-focused editing and navigation controls, including optional kiosk mode with per-device density/navigation, idle dimming, wake-tap protection, and an idle clock/weather/media overlay for wall tablets
+- Bubble-style entity detail sheets for richer controls without oversized cards
+- Graph analytics with threshold lines, range bands, previous-period comparison, normalized multi-series trends, and compact metric summaries
 
-### 🎛️ Entity Cards
-- **Button Card** — Switch/slider variants for lights, fans, and switches
-- **Media Card** — Secure artwork proxying for reliable production display
-- **Thermostat Card** — Fully resizable climate control with integrated history graphs
+### Integrations
 
-### 🌤️ Weather Dashboard
-- Weather hero display with current conditions
-- Hourly and daily forecast strips
-- Interactive rain radar (Leaflet + Buienradar)
-- Rain precipitation graph
-- Specialized widgets:
-  - UV Index
-  - Wind speed and direction
-  - Atmospheric pressure
-  - Humidity
-  - Sunrise/Sunset
-  - Air Quality Index (AQI)
+- Music Assistant browsing, player control, favorites, and default player selection
+- Backend-backed music favorites shared across devices
+- Weather dashboard with forecast, rain radar, precipitation graph, and environmental widgets
+- Mealie recipes, meal planning, shopping lists, and import helpers
+- Optional Albert Heijn shopping export for Dutch households, using a review-first deduplicated Mealie shopping list
 
-### 🎵 Music Assistant
-- **Native Integration** — Direct control of Music Assistant via HA WebSocket.
-- **Media Browsing** — Browse Artists, Albums, Tracks, Playlists, and Radio.
-- **Unified Player** — Control all MA-enabled players with a rich UI.
-- **Global Search** — Search your entire music library instantly.
+### Theming And UI
 
-### ✏️ Dashboard Editor
-- **Drag & Drop** — Rearrange cards effortlessly.
-- **Live Configuration** — Edit card settings directly on the dashboard.
+- Dynamic Material Design 3 color generation
+- Dark mode, navigation style, card radius, and card surface settings
+- Multilingual UI with Dutch as the primary dashboard language
+- MD3 primitives for buttons, cards, text fields, switches, checkboxes, radios, chips, and FABs
+- Lock screen and kiosk controls for shared idle behavior plus per-device wall-tablet preferences
 
+### Security Posture
 
-### 🎨 MD3 Component Library
-- Button (filled, tonal, outlined, text, elevated)
-- Card (elevated, filled, outlined)
-- TextField with validation and outlined variant
-- Switch, Checkbox, Radio controls
-- Chip (filter and action variants)
-- FAB (floating action button)
-- EntityPicker for entity selection
-
-### 🔐 Security Hardened
-- Strict CSP headers
-- Input validation
-- Rate limiting on service calls
-- HTTPS by default
+- Production security headers are set in `src/hooks.server.ts`
+- API mutations are blocked for cross-origin requests
+- Runtime settings, tokens, uploads, and integration secrets are kept outside git in `data/`
+- API payloads are validated with Zod where practical
+- CSP is present, but currently permissive for Home Assistant ingress, development constraints, media, images, and external integrations. CSP hardening is tracked in the backlog.
 
 ## Getting Started
 
 ```bash
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
+```
 
-# Run tests
-npm test
+Useful checks:
 
-# Type check
+```bash
 npm run check
+npm test -- --run
+npm run test:visual
+npm run build
+```
 
-# Docker
+`npm run test:visual` runs the Playwright visual smoke suite against a simulated Home Assistant ingress base path across desktop, tablet landscape, tablet portrait, and phone viewports. It checks local route failures, page overflow, key label contrast, and image-label protection.
+
+Docker:
+
+```bash
 docker compose up --build
 ```
 
 ## Project Structure
 
-```
+```text
 src/
-├── lib/
-│   ├── components/
-│   │   ├── md3/          # Material Design 3 primitives
-│   │   ├── cards/        # Entity cards (Button, Media, Thermostat)
-│   │   ├── layout/       # Navigation, grids, dialogs
-│   │   └── weather/      # Weather components and widgets
-│   ├── stores/           # Svelte 5 rune-based stores
-│   ├── types/            # TypeScript interfaces
-│   └── utils/            # Helper functions
-├── routes/
-│   ├── dashboard/        # Main dashboard with floor/room routing
-│   ├── music/            # Music Assistant browser
-│   ├── weather/          # Weather dashboard
-
-│   ├── library/          # Component showcase
-│   ├── settings/         # HA connection config
-│   └── theme/            # Theme builder
-└── tests/                # Test setup
+  lib/
+    components/        Shared UI primitives and layout components
+    features/          Dashboard, attention, presence, music, kiosk, lock screen, meals, calendar features
+    domain/            Pure domain logic and schemas
+    server/            Server-side config, proxy, and integration helpers
+    stores/            Global Svelte 5 rune stores
+    types/             Shared TypeScript types
+    utils/             Browser and app utilities
+  routes/
+    dashboard/         Main floor and room dashboard routes
+    attention/         For You / Attention surface
+    presence/          Household presence surface
+    music/             Music Assistant experience
+    meals/             Mealie and shopping experience
+    settings/          Connections and app settings
+    theme/             Theme builder
+    weather/           Weather dashboard
 ```
 
 ## Configuration
 
-1. Navigate to **Settings**
-2. Enter your Home Assistant URL (e.g., `homeassistant.local`)
-3. Choose authentication method:
-   - **OAuth** — Redirects to HA for authentication
-   - **Long-Lived Token** — Paste a token from HA profile settings
-4. Click **Connect**
+1. Open Settings.
+2. Connect Home Assistant using OAuth, a long-lived token, or the Home Assistant add-on zero-config path.
+3. Configure optional integrations such as Mealie, image providers, and Albert Heijn.
+4. Tune navigation, lock screen, optional kiosk settings, and per-device tablet preferences.
+5. Generate or edit dashboards from the dashboard route.
 
-## Tech Stack
+## Deployment And Persistence
 
-| Layer | Technology |
-|-------|------------|
-| Framework | [Svelte 5](https://svelte.dev) with runes (`$state`, `$derived`, `$effect`) |
-| Routing | [SvelteKit](https://kit.svelte.dev) |
-| Styling | [Tailwind CSS 4](https://tailwindcss.com) |
-| Theming | [Material Color Utilities](https://github.com/material-foundation/material-color-utilities) |
-| HA Integration | [home-assistant-js-websocket](https://github.com/home-assistant/home-assistant-js-websocket) |
-| Validation | [Zod](https://zod.dev) |
-| Testing | [Vitest](https://vitest.dev) + [@testing-library/svelte](https://testing-library.com/svelte) |
-| Icons | [Iconify](https://iconify.design) via unplugin-icons |
-| Data Viz | [D3.js](https://d3js.org) |
-| Maps | [Leaflet](https://leafletjs.com) |
+Configuration is stored server-side in `data/config.json`. Browser `localStorage` is used only as a fast cache for startup, optimistic UI, and explicitly local per-device tablet preferences.
 
+In Docker, mount a persistent data volume:
 
-## 🚀 Deployment & Persistence
+```bash
+-v $(pwd)/data:/app/data
+```
 
-Configuration (themes, layouts, dashboards) is stored server-side in a JSON file with localStorage caching:
+You can also set:
 
-### How It Works
-- **Page load**: Server provides config from `./data/config.json`
-- **User changes**: Saved to localStorage immediately, then synced to server after 2 seconds
-- **Page refresh**: Server config is loaded (source of truth)
-- **Cross-device**: Changes persist across all browsers/devices
-
-### Deployment Requirements
-- **Node.js**: Ensure the process has write permissions to `./data/`
-- **Docker**: You **MUST** mount a volume to persist settings:
-  ```bash
-  -v $(pwd)/data:/app/data
-  ```
+```bash
+DASHBOARD_DATA_DIR=/srv/ha-dashboard/data
+```
 
 ### Home Assistant Add-On
 
-This repository can also be added directly to the Home Assistant add-on store:
+This repository can be added to the Home Assistant add-on store:
 
 ```text
 https://github.com/mdegrootnl/svelte5-ha-dashboard-md3
 ```
 
-The add-on lives in [`ha-dashboard/`](./ha-dashboard/), opens through Home Assistant Ingress in the sidebar, persists data in `/data`, and uses server-side Supervisor API access for zero-config Home Assistant connectivity. Standalone Docker/OAuth deployment remains supported.
+The add-on lives in `ha-dashboard/`, opens through Home Assistant ingress, persists data in `/data`, and uses server-side Supervisor API access for zero-config Home Assistant connectivity. Standalone Docker deployment remains supported.
 
-Image publishing is handled by [`publish-addon-image.yml`](./.github/workflows/publish-addon-image.yml), which publishes `amd64` and `aarch64` images to `ghcr.io/mdegrootnl/svelte5-ha-dashboard-md3`.
+For a local ingress-style preview, run:
+
+```bash
+npm run preview:addon
+```
+
+## Current Status
+
+The maturity roadmap in `BACKLOG.md` is the source of truth. As of the latest docs pass, Trust/Acceptance, Attention, Bubble-style Detail Sheets, Specialist Cards, and Graph Analytics are complete; Presence, Tablet/Kiosk Mode, Adaptive Text Readability, and live generated-dashboard acceptance are in progress.
 
 ## Documentation
 
-- [Architecture Overview](./architecture.md) — Detailed technical documentation
-- [Security Risks](./securityrisks.md) — Security audit and hardening measures
+- [Architecture Overview](./architecture.md)
+- [Security Risks](./securityrisks.md)
+- [Backlog](./BACKLOG.md)
 
 ## License
 

@@ -5,6 +5,7 @@
     import { haStore } from "$lib/stores/ha.svelte";
     import { getDomain } from "$lib/utils/entity";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
+    import EntityDetailButton from "$lib/features/dashboard/components/EntityDetailButton.svelte";
     import type { CardAction, DevicePanelCardOptions } from "$lib/types";
     import type { DashboardCardSurfaceStyle } from "$lib/types/dashboard";
     import {
@@ -41,6 +42,9 @@
 
     let smartOptions = $derived(inventoryStore.smartDevicePanelOptions(options, entityId));
     let targetEntityId = $derived(smartOptions.entityId || entityId || smartOptions.entityIds?.[0] || "");
+    let detailEntityIds = $derived(
+        Array.from(new Set([targetEntityId, ...(smartOptions.entityIds ?? [])].filter(Boolean))),
+    );
     let entity = $derived(targetEntityId ? haStore.getEntity(targetEntityId) : null);
     let domain = $derived(targetEntityId ? getDomain(targetEntityId) : "");
     let preset = $derived(smartOptions.preset && smartOptions.preset !== "auto" ? smartOptions.preset : domain || "device");
@@ -177,4 +181,11 @@
     >
         <IconEdit class="size-[clamp(0.875rem,3.5cqmin,1.25rem)]" />
     </button>
+
+    <EntityDetailButton
+        entityIds={detailEntityIds}
+        selectedEntityId={targetEntityId}
+        title={name || entity?.attributes.friendly_name || "Device"}
+        sourceLabel={`${preset} - ${entity?.state || "not configured"}`}
+    />
 </article>

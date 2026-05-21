@@ -10,6 +10,23 @@ export interface AhShoppingExportRow {
     item: ShoppingExportItem;
 }
 
+function mergedSourceText(sourceTexts: string[]) {
+    const uniqueTexts = Array.from(new Set(sourceTexts.map((text) => text.trim()).filter(Boolean)));
+    if (uniqueTexts.length === 0) return "";
+    if (uniqueTexts.length === 1 && sourceTexts.length > 1) return `${uniqueTexts[0]} (${sourceTexts.length}x)`;
+    return uniqueTexts.join(" + ");
+}
+
+function refreshMergedItemText(row: AhShoppingExportRow) {
+    const displayText = mergedSourceText(row.sourceTexts);
+    if (!displayText) return;
+    row.item = {
+        ...row.item,
+        originalText: displayText,
+        displayText,
+    };
+}
+
 export function mealieShoppingItemText(item: MealieShoppingListItem) {
     return item.display || item.note || item.food?.name || "";
 }
@@ -30,6 +47,7 @@ export function buildAhShoppingExportRows(
             existing.sourceCount += 1;
             existing.sourceTexts.push(text);
             existing.itemIds.push(item.id);
+            refreshMergedItemText(existing);
             continue;
         }
 

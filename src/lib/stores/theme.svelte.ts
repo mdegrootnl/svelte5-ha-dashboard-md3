@@ -23,6 +23,47 @@ import {
 const logger = createLogger('ThemeStore');
 const STORAGE_KEY = 'theme-config';
 const SYNC_DEBOUNCE_MS = 2000;
+const LEGACY_DEFAULT_NAVIGATION_IDS = [
+    'home',
+    'dashboard',
+    'music',
+    'meals',
+    'weather',
+    'library',
+    'theme',
+    'calendar',
+    'settings',
+];
+
+const ATTENTION_DEFAULT_NAVIGATION_IDS = [
+    'home',
+    'dashboard',
+    'attention',
+    'music',
+    'meals',
+    'weather',
+    'library',
+    'theme',
+    'calendar',
+    'settings',
+];
+
+function matchesNavigationOrder(items: NavigationItem[], ids: string[]) {
+    if (items.length !== ids.length) return false;
+    return items.every((item, index) => item.id === ids[index]);
+}
+
+function isKnownDefaultNavigation(items: NavigationItem[]) {
+    return matchesNavigationOrder(items, LEGACY_DEFAULT_NAVIGATION_IDS) ||
+        matchesNavigationOrder(items, ATTENTION_DEFAULT_NAVIGATION_IDS) ||
+        matchesNavigationOrder(items, DEFAULT_CONFIG.theme.navigationItems.map((item) => item.id));
+}
+
+function normalizeNavigationItems(items: NavigationItem[] | undefined) {
+    if (!items?.length) return DEFAULT_CONFIG.theme.navigationItems;
+    if (!isKnownDefaultNavigation(items)) return items;
+    return DEFAULT_CONFIG.theme.navigationItems;
+}
 
 export class ThemeStore {
     // Source color for the theme (default: M3 Blue)
@@ -82,12 +123,9 @@ export class ThemeStore {
         this.tabPillRadius = this.normalizeTabPillRadius(config.tabPillRadius);
         this.cardSurfaceStyle = normalizeCardSurfaceStyle(config.cardSurfaceStyle);
 
-        // Load items or fall back to filtered defaults (in case of deep merge issues)
-        if (config.navigationItems && Array.isArray(config.navigationItems) && config.navigationItems.length > 0) {
-            this.navigationItems = config.navigationItems;
-        } else {
-            this.navigationItems = DEFAULT_CONFIG.theme.navigationItems;
-        }
+        // Load items or fall back to defaults. Legacy uncustomized navigation
+        // gets the new Attention surface without disturbing custom nav layouts.
+        this.navigationItems = normalizeNavigationItems(config.navigationItems);
 
         // Don't save to localStorage here - only save on user-initiated changes
     }

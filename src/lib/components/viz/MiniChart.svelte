@@ -10,6 +10,36 @@
         isFilled?: boolean;
         strokeWidth?: number;
         chartType?: GraphChartType;
+        strokeDasharray?: string;
+        opacity?: number;
+    }
+
+    interface ChartThreshold {
+        value: number;
+        color?: string;
+        label?: string;
+    }
+
+    interface ChartRangeBand {
+        min: number;
+        max: number;
+        color?: string;
+        label?: string;
+    }
+
+    interface ChartBandRect {
+        id: string;
+        y: number;
+        height: number;
+        color: string;
+        label?: string;
+    }
+
+    interface ChartThresholdLine {
+        id: string;
+        y: number;
+        color: string;
+        label?: string;
     }
 
     interface Props {
@@ -23,6 +53,8 @@
         startTime?: Date;
         endTime?: Date;
         chartType?: GraphChartType;
+        thresholds?: ChartThreshold[];
+        rangeBands?: ChartRangeBand[];
     }
 
     let {
@@ -35,6 +67,8 @@
         startTime,
         endTime,
         chartType = "area",
+        thresholds = [],
+        rangeBands = [],
     }: Props = $props();
 
     function extendToEdges(
@@ -162,6 +196,22 @@
             }
         }
 
+        for (const threshold of thresholds) {
+            if (!Number.isFinite(threshold.value)) continue;
+            hasValues = true;
+            if (threshold.value < minValue) minValue = threshold.value;
+            if (threshold.value > maxValue) maxValue = threshold.value;
+        }
+
+        for (const band of rangeBands) {
+            const min = Math.min(band.min, band.max);
+            const max = Math.max(band.min, band.max);
+            if (!Number.isFinite(min) || !Number.isFinite(max)) continue;
+            hasValues = true;
+            if (min < minValue) minValue = min;
+            if (max > maxValue) maxValue = max;
+        }
+
         return {
             minTime,
             maxTime,
@@ -236,6 +286,8 @@
                 strokeWidth: s.strokeWidth ?? strokeWidth,
                 chartType: seriesChartType,
                 gradientId: `${gradientId}-${idx}`,
+                strokeDasharray: s.strokeDasharray,
+                opacity: s.opacity ?? 1,
             };
         })),
     );
@@ -281,6 +333,39 @@
             );
         }),
     );
+
+    const bandRects = $derived.by(() => {
+        const currentHeight = trackedHeight || height;
+
+        return rangeBands.flatMap((band, index): ChartBandRect[] => {
+                const min = Math.min(band.min, band.max);
+                const max = Math.max(band.min, band.max);
+                if (!Number.isFinite(min) || !Number.isFinite(max)) return [];
+                const top = Math.max(0, Math.min(currentHeight, y(max)));
+                const bottom = Math.max(0, Math.min(currentHeight, y(min)));
+                return [{
+                    id: `band-${index}`,
+                    y: top,
+                    height: Math.max(1, bottom - top),
+                    color: band.color || "var(--color-m3-primary)",
+                    label: band.label,
+                }];
+            });
+    });
+
+    const thresholdLines = $derived.by(() => {
+        const currentHeight = trackedHeight || height;
+
+        return thresholds.flatMap((threshold, index): ChartThresholdLine[] => {
+                if (!Number.isFinite(threshold.value)) return [];
+                return [{
+                    id: `threshold-${index}`,
+                    y: Math.max(0, Math.min(currentHeight, y(threshold.value))),
+                    color: threshold.color || "var(--color-m3-error)",
+                    label: threshold.label,
+                }];
+            });
+    });
 </script>
 
 <div bind:this={container} class="chart-container">
@@ -310,6 +395,20 @@
                 {/each}
             </defs>
 
+            {#if bandRects.length > 0}
+                {#each bandRects as band}
+                    <rect
+                        data-testid="chart-range-band"
+                        x="0"
+                        y={band.y}
+                        width={width}
+                        height={band.height}
+                        fill={band.color}
+                        opacity="0.1"
+                    />
+                {/each}
+            {/if}
+
             {#if barRects.length > 0}
                 {#each barRects as bar}
                     <rect
@@ -336,8 +435,39 @@
                     stroke-width={p.strokeWidth}
                     stroke-linecap="round"
                     stroke-linejoin="round"
+                    stroke-dasharray={p.strokeDasharray}
+                    opacity={p.opacity}
                 />
             {/each}
+
+            {#if thresholdLines.length > 0}
+                {#each thresholdLines as line}
+                    <g data-testid="chart-threshold-line">
+                        <line
+                            x1="0"
+                            x2={width}
+                            y1={line.y}
+                            y2={line.y}
+                            stroke={line.color}
+                            stroke-width="1.5"
+                            stroke-dasharray="5 5"
+                            opacity="0.78"
+                        />
+                        {#if line.label}
+                            <text
+                                x={Math.max(6, width - 6)}
+                                y={Math.max(10, line.y - 4)}
+                                text-anchor="end"
+                                fill={line.color}
+                                font-size="10"
+                                font-weight="700"
+                            >
+                                {line.label}
+                            </text>
+                        {/if}
+                    </g>
+                {/each}
+            {/if}
         </svg>
     {/if}
 </div>

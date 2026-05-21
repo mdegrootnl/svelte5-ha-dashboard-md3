@@ -12,6 +12,14 @@
     import DevicePanelCard from "$lib/features/dashboard/components/cards/DevicePanelCard.svelte";
     import ThermostatCard from "$lib/features/dashboard/components/cards/ThermostatCard.svelte";
     import TitleCard from "$lib/features/dashboard/components/cards/TitleCard.svelte";
+    import PresenceSummaryCard from "$lib/features/dashboard/components/cards/PresenceSummaryCard.svelte";
+    import SecurityStatusCard from "$lib/features/dashboard/components/cards/SecurityStatusCard.svelte";
+    import LockStatusCard from "$lib/features/dashboard/components/cards/LockStatusCard.svelte";
+    import CoverControlCard from "$lib/features/dashboard/components/cards/CoverControlCard.svelte";
+    import AirControlCard from "$lib/features/dashboard/components/cards/AirControlCard.svelte";
+    import UpdateStatusCard from "$lib/features/dashboard/components/cards/UpdateStatusCard.svelte";
+    import TodoListCard from "$lib/features/dashboard/components/cards/TodoListCard.svelte";
+    import VacuumControlCard from "$lib/features/dashboard/components/cards/VacuumControlCard.svelte";
     import DeferredRender from "$lib/components/common/DeferredRender.svelte";
     import PageShell from "$lib/components/layout/PageShell.svelte";
     import Button from "$lib/components/md3/Button.svelte";
@@ -38,6 +46,8 @@
         "sensor.library_temperature",
         "sensor.library_humidity",
         "sensor.library_energy",
+        "sensor.library_gas",
+        "sensor.library_water",
         "sensor.library_solar_power",
         "sensor.library_home_power",
         "sensor.library_grid_power",
@@ -51,6 +61,20 @@
         "calendar.family",
         "media_player.library_tv",
         "cover.library_blinds",
+        "person.miel",
+        "person.guest",
+        "alarm_control_panel.library_alarm",
+        "lock.library_front_door",
+        "lock.library_back_door",
+        "cover.library_kitchen_blinds",
+        "fan.library_ceiling",
+        "humidifier.library_bedroom",
+        "update.library_core",
+        "update.library_router",
+        "todo.library_shopping",
+        "todo.library_tasks",
+        "vacuum.library_downstairs",
+        "vacuum.library_upstairs",
     ] as const;
 
     type LibrarySection =
@@ -62,6 +86,7 @@
         | "graph"
         | "navigation"
         | "smart"
+        | "specialist"
         | "tabs";
 
     const librarySections: Array<{ id: LibrarySection; label: string }> = [
@@ -73,6 +98,7 @@
         { id: "graph", label: "Graphs" },
         { id: "navigation", label: "Navigation" },
         { id: "smart", label: "Smart" },
+        { id: "specialist", label: "Specialist" },
         { id: "tabs", label: "Tabs" },
     ];
 
@@ -361,6 +387,14 @@
                 friendly_name: "Today Energy",
                 unit_of_measurement: "kWh",
             }),
+            "sensor.library_gas": mockState("sensor.library_gas", "1.2", {
+                friendly_name: "Today Gas",
+                unit_of_measurement: "m3",
+            }),
+            "sensor.library_water": mockState("sensor.library_water", "126", {
+                friendly_name: "Today Water",
+                unit_of_measurement: "L",
+            }),
             "sensor.library_solar_power": mockState(
                 "sensor.library_solar_power",
                 "1820",
@@ -451,6 +485,70 @@
             ),
             "cover.library_blinds": mockState("cover.library_blinds", "open", {
                 friendly_name: "Living Room Blinds",
+            }),
+            "person.miel": mockState("person.miel", "home", {
+                friendly_name: "Miel",
+                source: "device_tracker.miel_phone",
+            }),
+            "person.guest": mockState("person.guest", "not_home", {
+                friendly_name: "Guest",
+                source: "device_tracker.guest_phone",
+            }),
+            "alarm_control_panel.library_alarm": mockState(
+                "alarm_control_panel.library_alarm",
+                "disarmed",
+                {
+                    friendly_name: "Home Alarm",
+                    supported_features: 15,
+                },
+            ),
+            "lock.library_front_door": mockState("lock.library_front_door", "unlocked", {
+                friendly_name: "Front Door",
+            }),
+            "lock.library_back_door": mockState("lock.library_back_door", "locked", {
+                friendly_name: "Back Door",
+            }),
+            "cover.library_kitchen_blinds": mockState("cover.library_kitchen_blinds", "opening", {
+                friendly_name: "Kitchen Blinds",
+                current_position: 42,
+            }),
+            "fan.library_ceiling": mockState("fan.library_ceiling", "on", {
+                friendly_name: "Ceiling Fan",
+                percentage: 55,
+                percentage_step: 5,
+            }),
+            "humidifier.library_bedroom": mockState("humidifier.library_bedroom", "on", {
+                friendly_name: "Bedroom Humidifier",
+                humidity: 45,
+                min_humidity: 30,
+                max_humidity: 80,
+            }),
+            "update.library_core": mockState("update.library_core", "on", {
+                friendly_name: "Home Assistant Core",
+                installed_version: "2026.4.2",
+                latest_version: "2026.5.0",
+                release_summary: "Security and dashboard fixes",
+            }),
+            "update.library_router": mockState("update.library_router", "off", {
+                friendly_name: "Router Firmware",
+                installed_version: "1.8.2",
+                latest_version: "1.8.2",
+            }),
+            "todo.library_shopping": mockState("todo.library_shopping", "3", {
+                friendly_name: "Shopping",
+            }),
+            "todo.library_tasks": mockState("todo.library_tasks", "2", {
+                friendly_name: "House Tasks",
+            }),
+            "vacuum.library_downstairs": mockState("vacuum.library_downstairs", "cleaning", {
+                friendly_name: "Downstairs Vacuum",
+                battery_level: 72,
+                fan_speed: "balanced",
+            }),
+            "vacuum.library_upstairs": mockState("vacuum.library_upstairs", "docked", {
+                friendly_name: "Upstairs Vacuum",
+                battery_level: 100,
+                fan_speed: "quiet",
             }),
         });
     }
@@ -925,6 +1023,44 @@
                     </DeferredRender>
                 </div>
             </div>
+
+            <div class="flex flex-col gap-2">
+                <span class="text-m3-label-medium text-m3-on-surface-variant"
+                    >Utility trends</span
+                >
+                <div class="h-48">
+                    <DeferredRender class="h-full">
+                        <GraphCard
+                            entityId="sensor.library_energy"
+                            name="Utility Trends"
+                            chartType="line"
+                            hours_to_show={24 * 30}
+                            aggregate_func="last"
+                            icon="query_stats"
+                            color="var(--color-m3-graph-1)"
+                            fetchHistory={false}
+                            dataSource="statistics"
+                            statisticsPeriod="day"
+                            comparisonMode="previous_period"
+                            scaleMode="normalized"
+                            graphEntities={[
+                                {
+                                    entity_id: "sensor.library_gas",
+                                    name: "Gas",
+                                    chartType: "line",
+                                    color: "var(--color-m3-graph-2)",
+                                },
+                                {
+                                    entity_id: "sensor.library_water",
+                                    name: "Water",
+                                    chartType: "line",
+                                    color: "var(--color-m3-graph-3)",
+                                },
+                            ]}
+                        />
+                    </DeferredRender>
+                </div>
+            </div>
         </div>
         </section>
     {/if}
@@ -1237,6 +1373,201 @@
                 </div>
             </div>
         </div>
+        </section>
+    {/if}
+
+    {#if activeSection === "specialist"}
+        <section>
+            <h2 class="text-m3-title-large text-m3-on-surface mb-4">
+                Specialist Cards
+            </h2>
+            <p class="mb-4 max-w-3xl text-m3-body-medium text-m3-on-surface-variant">
+                Daily-use cards that should stay small on dashboards while opening richer detail sheets when needed.
+            </p>
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+                <div class="flex flex-col gap-2">
+                    <span class="text-m3-label-medium text-m3-on-surface-variant">
+                        Presence
+                    </span>
+                    <div class="h-32">
+                        <DeferredRender class="h-full">
+                            <PresenceSummaryCard
+                                name="Household"
+                                icon="group"
+                                color="#2563eb"
+                                options={{
+                                    source: "auto",
+                                    maxPeople: 2,
+                                    showGuestMode: false,
+                                    showEta: false,
+                                }}
+                            />
+                        </DeferredRender>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <span class="text-m3-label-medium text-m3-on-surface-variant">
+                        Security
+                    </span>
+                    <div class="h-64">
+                        <DeferredRender class="h-full">
+                            <SecurityStatusCard
+                                name="Security"
+                                icon="security"
+                                color="#dc2626"
+                                options={{
+                                    source: "manual",
+                                    alarmEntityId: "alarm_control_panel.library_alarm",
+                                    lockEntityIds: ["lock.library_front_door", "lock.library_back_door"],
+                                    openingEntityIds: ["binary_sensor.library_window"],
+                                    motionEntityIds: ["binary_sensor.library_motion"],
+                                    safetyEntityIds: ["binary_sensor.library_leak"],
+                                    showAlarmControls: true,
+                                    maxItems: 5,
+                                }}
+                            />
+                        </DeferredRender>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <span class="text-m3-label-medium text-m3-on-surface-variant">
+                        Locks
+                    </span>
+                    <div class="h-56">
+                        <DeferredRender class="h-full">
+                            <LockStatusCard
+                                name="Locks"
+                                icon="lock"
+                                color="#f97316"
+                                options={{
+                                    source: "manual",
+                                    entityIds: ["lock.library_front_door", "lock.library_back_door"],
+                                    showLockAll: true,
+                                    showUnlockControls: false,
+                                    maxItems: 4,
+                                }}
+                            />
+                        </DeferredRender>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <span class="text-m3-label-medium text-m3-on-surface-variant">
+                        Covers
+                    </span>
+                    <div class="h-56">
+                        <DeferredRender class="h-full">
+                            <CoverControlCard
+                                name="Covers"
+                                icon="blinds"
+                                color="#0ea5e9"
+                                options={{
+                                    source: "manual",
+                                    entityIds: ["cover.library_blinds", "cover.library_kitchen_blinds"],
+                                    showGroupControls: true,
+                                    showPosition: true,
+                                    maxItems: 4,
+                                }}
+                            />
+                        </DeferredRender>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <span class="text-m3-label-medium text-m3-on-surface-variant">
+                        Air
+                    </span>
+                    <div class="h-56">
+                        <DeferredRender class="h-full">
+                            <AirControlCard
+                                name="Air"
+                                icon="mode_fan"
+                                color="#22c55e"
+                                options={{
+                                    source: "manual",
+                                    entityIds: ["fan.library_ceiling", "humidifier.library_bedroom"],
+                                    showPowerControls: true,
+                                    showSpeed: true,
+                                    showHumidity: true,
+                                    maxItems: 4,
+                                }}
+                            />
+                        </DeferredRender>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <span class="text-m3-label-medium text-m3-on-surface-variant">
+                        Updates
+                    </span>
+                    <div class="h-56">
+                        <DeferredRender class="h-full">
+                            <UpdateStatusCard
+                                name="Updates"
+                                icon="system_update_alt"
+                                color="#7c3aed"
+                                options={{
+                                    source: "manual",
+                                    entityIds: ["update.library_core", "update.library_router"],
+                                    showCheckControl: true,
+                                    showInstallControls: true,
+                                    showVersions: true,
+                                    showReleaseNotes: true,
+                                    maxItems: 4,
+                                }}
+                            />
+                        </DeferredRender>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <span class="text-m3-label-medium text-m3-on-surface-variant">
+                        To-do & Shopping
+                    </span>
+                    <div class="h-52">
+                        <DeferredRender class="h-full">
+                            <TodoListCard
+                                name="To-do & Shopping"
+                                icon="checklist"
+                                color="#16a34a"
+                                options={{
+                                    source: "manual",
+                                    entityIds: ["todo.library_shopping", "todo.library_tasks"],
+                                    showAddControl: false,
+                                    showCompleted: false,
+                                    showDueDates: true,
+                                    maxItems: 2,
+                                }}
+                            />
+                        </DeferredRender>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <span class="text-m3-label-medium text-m3-on-surface-variant">
+                        Vacuums
+                    </span>
+                    <div class="h-56">
+                        <DeferredRender class="h-full">
+                            <VacuumControlCard
+                                name="Vacuums"
+                                icon="cleaning_services"
+                                color="#0891b2"
+                                options={{
+                                    source: "manual",
+                                    entityIds: ["vacuum.library_downstairs", "vacuum.library_upstairs"],
+                                    showGroupControls: true,
+                                    showBattery: true,
+                                    showFanSpeed: true,
+                                    maxItems: 4,
+                                }}
+                            />
+                        </DeferredRender>
+                    </div>
+                </div>
+            </div>
         </section>
     {/if}
 

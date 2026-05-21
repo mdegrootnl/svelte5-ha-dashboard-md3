@@ -136,6 +136,46 @@ describe('CardConfigSheet', () => {
         );
     });
 
+    it('persists graph analytics options', async () => {
+        const onSave = vi.fn();
+        render(CardConfigSheet);
+
+        cardEditorStore.openConfig({
+            type: 'graph',
+            entityId: 'sensor.energy_today',
+            name: 'Energy Today',
+            dataSource: 'history',
+            comparisonMode: 'none',
+            scaleMode: 'absolute',
+            showAnalytics: false,
+            color_thresholds: [{ value: 25, label: 'High' }],
+            rangeBands: [{ min: 10, max: 20, label: 'Normal' }],
+            onSave,
+        });
+
+        const dataSource = (await screen.findByLabelText('Data Source')) as HTMLSelectElement;
+        const statisticsPeriod = screen.getByLabelText('Statistics Period') as HTMLSelectElement;
+        const scaleMode = screen.getByLabelText('Scale Mode') as HTMLSelectElement;
+        await fireEvent.change(dataSource, { target: { value: 'statistics' } });
+        await fireEvent.change(statisticsPeriod, { target: { value: 'day' } });
+        await fireEvent.change(scaleMode, { target: { value: 'normalized' } });
+        await fireEvent.click(screen.getByLabelText('Compare previous period'));
+        await fireEvent.click(screen.getByLabelText('Show analytics callout'));
+        await fireEvent.click(screen.getByText('Save'));
+
+        expect(onSave).toHaveBeenCalledWith(
+            expect.objectContaining({
+                dataSource: 'statistics',
+                statisticsPeriod: 'day',
+                scaleMode: 'normalized',
+                comparisonMode: 'previous_period',
+                showAnalytics: true,
+                color_thresholds: [expect.objectContaining({ value: 25 })],
+                rangeBands: [expect.objectContaining({ min: 10, max: 20 })],
+            }),
+        );
+    });
+
     it('persists energy card mode and pinned device sensors', async () => {
         const onSave = vi.fn();
         render(CardConfigSheet);

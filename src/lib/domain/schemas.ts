@@ -60,6 +60,14 @@ export const DashboardCardTypeSchema = z.enum([
     "weather",
     "remote",
     "device_panel",
+    "presence",
+    "security",
+    "lock",
+    "cover",
+    "air",
+    "update",
+    "todo",
+    "vacuum",
     "camera",
 ]);
 
@@ -251,6 +259,69 @@ const DashboardCardOptionsSchema = z.object({
         entityIds: z.array(z.string()).optional(),
         actions: z.array(CardActionSchema).optional(),
     }).passthrough().optional(),
+    presence: z.object({
+        source: SmartSourceSchema.optional(),
+        maxPeople: z.number().min(1).optional(),
+        showGuestMode: z.boolean().optional(),
+        showEta: z.boolean().optional(),
+    }).passthrough().optional(),
+    security: z.object({
+        source: SmartSourceSchema.optional(),
+        alarmEntityId: z.string().optional(),
+        lockEntityIds: z.array(z.string()).optional(),
+        openingEntityIds: z.array(z.string()).optional(),
+        motionEntityIds: z.array(z.string()).optional(),
+        safetyEntityIds: z.array(z.string()).optional(),
+        showAlarmControls: z.boolean().optional(),
+        maxItems: z.number().min(1).optional(),
+    }).passthrough().optional(),
+    lock: z.object({
+        source: SmartSourceSchema.optional(),
+        entityIds: z.array(z.string()).optional(),
+        showLockAll: z.boolean().optional(),
+        showUnlockControls: z.boolean().optional(),
+        maxItems: z.number().min(1).optional(),
+    }).passthrough().optional(),
+    cover: z.object({
+        source: SmartSourceSchema.optional(),
+        entityIds: z.array(z.string()).optional(),
+        showGroupControls: z.boolean().optional(),
+        showPosition: z.boolean().optional(),
+        maxItems: z.number().min(1).optional(),
+    }).passthrough().optional(),
+    air: z.object({
+        source: SmartSourceSchema.optional(),
+        entityIds: z.array(z.string()).optional(),
+        showPowerControls: z.boolean().optional(),
+        showSpeed: z.boolean().optional(),
+        showHumidity: z.boolean().optional(),
+        maxItems: z.number().min(1).optional(),
+    }).passthrough().optional(),
+    update: z.object({
+        source: SmartSourceSchema.optional(),
+        entityIds: z.array(z.string()).optional(),
+        showCheckControl: z.boolean().optional(),
+        showInstallControls: z.boolean().optional(),
+        showVersions: z.boolean().optional(),
+        showReleaseNotes: z.boolean().optional(),
+        maxItems: z.number().min(1).optional(),
+    }).passthrough().optional(),
+    todo: z.object({
+        source: SmartSourceSchema.optional(),
+        entityIds: z.array(z.string()).optional(),
+        showAddControl: z.boolean().optional(),
+        showCompleted: z.boolean().optional(),
+        showDueDates: z.boolean().optional(),
+        maxItems: z.number().min(1).optional(),
+    }).passthrough().optional(),
+    vacuum: z.object({
+        source: SmartSourceSchema.optional(),
+        entityIds: z.array(z.string()).optional(),
+        showGroupControls: z.boolean().optional(),
+        showBattery: z.boolean().optional(),
+        showFanSpeed: z.boolean().optional(),
+        maxItems: z.number().min(1).optional(),
+    }).passthrough().optional(),
     camera: z.object({
         source: SmartSourceSchema.optional(),
         entityIds: z.array(z.string()).optional(),
@@ -268,6 +339,21 @@ const NavigationShortcutSchema = z.object({
 }).passthrough();
 
 const GraphChartTypeSchema = z.enum(["area", "line", "bar", "step"]);
+const GraphComparisonModeSchema = z.enum(["none", "previous_period"]);
+const GraphDataSourceModeSchema = z.enum(["auto", "history", "statistics"]);
+const GraphStatisticsPeriodSchema = z.enum(["5minute", "hour", "day", "month"]);
+const GraphScaleModeSchema = z.enum(["absolute", "normalized"]);
+const GraphThresholdSchema = z.object({
+    value: z.number(),
+    color: z.string().optional(),
+    label: z.string().optional(),
+}).passthrough();
+const GraphRangeBandSchema = z.object({
+    min: z.number(),
+    max: z.number(),
+    color: z.string().optional(),
+    label: z.string().optional(),
+}).passthrough();
 
 const GraphCardEntitySchema = z.object({
     entity_id: z.string(),
@@ -302,6 +388,13 @@ export const DashboardItemSchema: z.ZodTypeAny = z.lazy(() => z.object({
     aggregate_func: z.enum(['avg', 'min', 'max', 'last']).optional(),
     chartType: GraphChartTypeSchema.optional(),
     graphEntities: z.array(GraphCardEntitySchema).optional(),
+    color_thresholds: z.array(GraphThresholdSchema).optional(),
+    rangeBands: z.array(GraphRangeBandSchema).optional(),
+    comparisonMode: GraphComparisonModeSchema.optional(),
+    dataSource: GraphDataSourceModeSchema.optional(),
+    statisticsPeriod: GraphStatisticsPeriodSchema.optional(),
+    scaleMode: GraphScaleModeSchema.optional(),
+    showAnalytics: z.boolean().optional(),
     fetchHistory: z.boolean().optional(),
 
     path: z.string().optional(),
@@ -321,6 +414,11 @@ export const GraphCardConfigSchema = z.object({
     points_per_hour: z.number().default(0.5),
     aggregate_func: z.enum(['avg', 'min', 'max', 'last']).default('avg'),
     chartType: GraphChartTypeSchema.default("area"),
+    comparisonMode: GraphComparisonModeSchema.default("none"),
+    dataSource: GraphDataSourceModeSchema.default("auto"),
+    statisticsPeriod: GraphStatisticsPeriodSchema.optional(),
+    scaleMode: GraphScaleModeSchema.default("absolute"),
+    showAnalytics: z.boolean().default(true),
     group_by: z.enum(['date', 'hour']).optional(),
     line_color: z.union([z.string(), z.array(z.string())]).optional(),
     show: z.object({
@@ -336,10 +434,8 @@ export const GraphCardConfigSchema = z.object({
         state: true,
         fill: true,
     }),
-    color_thresholds: z.array(z.object({
-        value: z.number(),
-        color: z.string(),
-    })).optional(),
+    color_thresholds: z.array(GraphThresholdSchema).optional(),
+    rangeBands: z.array(GraphRangeBandSchema).optional(),
 });
 
 /**
@@ -430,12 +526,23 @@ const LockScreenConfigPartialSchema = z.object({
     backgroundPortrait: z.string().optional(),
 }).strict();
 
+const KioskConfigPartialSchema = z.object({
+    enabled: z.boolean().optional(),
+    idleTimeout: z.number().min(5).max(3600).optional(),
+    dimOnIdle: z.boolean().optional(),
+    hideNavigationOnIdle: z.boolean().optional(),
+    showScreensaver: z.boolean().optional(),
+    hideEditControls: z.boolean().optional(),
+    editUnlockMinutes: z.number().min(1).max(120).optional(),
+}).strict();
+
 export const AppConfigPartialSchema = z.object({
     theme: ThemeConfigPartialSchema.optional(),
     dashboards: z.record(z.string(), RoomDashboardConfigSchema).optional(),
     pages: z.array(DashboardPageSchema).optional(),
     musicLibrary: MusicLibraryConfigPartialSchema.optional(),
     lockScreen: LockScreenConfigPartialSchema.optional(),
+    kiosk: KioskConfigPartialSchema.optional(),
 }).strict();
 
 /**

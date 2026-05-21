@@ -94,6 +94,149 @@ describe('DashboardItemSchema card options', () => {
         expect(parsed.options.collection.presentation).toBe('summary');
     });
 
+    it('accepts presence card options', () => {
+        const parsed = DashboardItemSchema.parse({
+            ...baseItem,
+            cardType: 'presence',
+            options: {
+                presence: {
+                    source: 'auto',
+                    maxPeople: 4,
+                    showGuestMode: true,
+                    showEta: true,
+                },
+            },
+        }) as typeof baseItem & { options: { presence: { maxPeople: number } } };
+
+        expect(parsed.cardType).toBe('presence');
+        expect(parsed.options.presence.maxPeople).toBe(4);
+    });
+
+    it('accepts lock card options', () => {
+        const parsed = DashboardItemSchema.parse({
+            ...baseItem,
+            cardType: 'lock',
+            options: {
+                lock: {
+                    source: 'manual',
+                    entityIds: ['lock.front_door'],
+                    showLockAll: true,
+                    showUnlockControls: false,
+                    maxItems: 4,
+                },
+            },
+        }) as typeof baseItem & { options: { lock: { entityIds: string[]; maxItems: number } } };
+
+        expect(parsed.cardType).toBe('lock');
+        expect(parsed.options.lock.entityIds).toEqual(['lock.front_door']);
+        expect(parsed.options.lock.maxItems).toBe(4);
+    });
+
+    it('accepts cover card options', () => {
+        const parsed = DashboardItemSchema.parse({
+            ...baseItem,
+            cardType: 'cover',
+            options: {
+                cover: {
+                    source: 'manual',
+                    entityIds: ['cover.kitchen_blinds'],
+                    showGroupControls: true,
+                    showPosition: true,
+                    maxItems: 4,
+                },
+            },
+        }) as typeof baseItem & { options: { cover: { entityIds: string[]; maxItems: number } } };
+
+        expect(parsed.cardType).toBe('cover');
+        expect(parsed.options.cover.entityIds).toEqual(['cover.kitchen_blinds']);
+        expect(parsed.options.cover.maxItems).toBe(4);
+    });
+
+    it('accepts air card options', () => {
+        const parsed = DashboardItemSchema.parse({
+            ...baseItem,
+            cardType: 'air',
+            options: {
+                air: {
+                    source: 'manual',
+                    entityIds: ['fan.ceiling_fan', 'humidifier.bedroom'],
+                    showPowerControls: true,
+                    showSpeed: true,
+                    showHumidity: true,
+                    maxItems: 4,
+                },
+            },
+        }) as typeof baseItem & { options: { air: { entityIds: string[]; maxItems: number } } };
+
+        expect(parsed.cardType).toBe('air');
+        expect(parsed.options.air.entityIds).toEqual(['fan.ceiling_fan', 'humidifier.bedroom']);
+        expect(parsed.options.air.maxItems).toBe(4);
+    });
+
+    it('accepts vacuum card options', () => {
+        const parsed = DashboardItemSchema.parse({
+            ...baseItem,
+            cardType: 'vacuum',
+            options: {
+                vacuum: {
+                    source: 'manual',
+                    entityIds: ['vacuum.downstairs'],
+                    showGroupControls: true,
+                    showBattery: true,
+                    showFanSpeed: true,
+                    maxItems: 3,
+                },
+            },
+        }) as typeof baseItem & { options: { vacuum: { entityIds: string[]; maxItems: number } } };
+
+        expect(parsed.cardType).toBe('vacuum');
+        expect(parsed.options.vacuum.entityIds).toEqual(['vacuum.downstairs']);
+        expect(parsed.options.vacuum.maxItems).toBe(3);
+    });
+
+    it('accepts update card options', () => {
+        const parsed = DashboardItemSchema.parse({
+            ...baseItem,
+            cardType: 'update',
+            options: {
+                update: {
+                    source: 'manual',
+                    entityIds: ['update.home_assistant_core', 'binary_sensor.addon_update'],
+                    showCheckControl: true,
+                    showInstallControls: true,
+                    showVersions: true,
+                    showReleaseNotes: true,
+                    maxItems: 5,
+                },
+            },
+        }) as typeof baseItem & { options: { update: { entityIds: string[]; maxItems: number } } };
+
+        expect(parsed.cardType).toBe('update');
+        expect(parsed.options.update.entityIds).toEqual(['update.home_assistant_core', 'binary_sensor.addon_update']);
+        expect(parsed.options.update.maxItems).toBe(5);
+    });
+
+    it('accepts todo card options', () => {
+        const parsed = DashboardItemSchema.parse({
+            ...baseItem,
+            cardType: 'todo',
+            options: {
+                todo: {
+                    source: 'manual',
+                    entityIds: ['todo.shopping_list'],
+                    showAddControl: true,
+                    showCompleted: false,
+                    showDueDates: true,
+                    maxItems: 6,
+                },
+            },
+        }) as typeof baseItem & { options: { todo: { entityIds: string[]; maxItems: number } } };
+
+        expect(parsed.cardType).toBe('todo');
+        expect(parsed.options.todo.entityIds).toEqual(['todo.shopping_list']);
+        expect(parsed.options.todo.maxItems).toBe(6);
+    });
+
     it('accepts navigation visual profile options', () => {
         const parsed = DashboardItemSchema.parse({
             ...baseItem,
@@ -130,15 +273,35 @@ describe('DashboardItemSchema card options', () => {
             cardType: 'graph',
             entityId: 'sensor.energy_today',
             chartType: 'bar',
+            comparisonMode: 'previous_period',
+            dataSource: 'statistics',
+            statisticsPeriod: 'day',
+            scaleMode: 'normalized',
+            showAnalytics: true,
+            color_thresholds: [{ value: 27, label: 'Warm' }],
+            rangeBands: [{ min: 18, max: 24, label: 'Comfort' }],
             graphEntities: [
                 {
                     entity_id: 'sensor.temperature',
                     chartType: 'line',
                 },
             ],
-        }) as typeof baseItem & { chartType: string; graphEntities: Array<{ chartType: string }> };
+        }) as typeof baseItem & {
+            chartType: string;
+            comparisonMode: string;
+            dataSource: string;
+            scaleMode: string;
+            color_thresholds: Array<{ value: number }>;
+            rangeBands: Array<{ max: number }>;
+            graphEntities: Array<{ chartType: string }>;
+        };
 
         expect(parsed.chartType).toBe('bar');
+        expect(parsed.comparisonMode).toBe('previous_period');
+        expect(parsed.dataSource).toBe('statistics');
+        expect(parsed.scaleMode).toBe('normalized');
+        expect(parsed.color_thresholds[0].value).toBe(27);
+        expect(parsed.rangeBands[0].max).toBe(24);
         expect(parsed.graphEntities[0].chartType).toBe('line');
 
         const legacyParsed = DashboardItemSchema.parse({
@@ -149,6 +312,9 @@ describe('DashboardItemSchema card options', () => {
 
         expect(legacyParsed.chartType).toBeUndefined();
         expect(GraphCardConfigSchema.parse({}).chartType).toBe('area');
+        expect(GraphCardConfigSchema.parse({}).dataSource).toBe('auto');
+        expect(GraphCardConfigSchema.parse({}).comparisonMode).toBe('none');
+        expect(GraphCardConfigSchema.parse({}).scaleMode).toBe('absolute');
     });
 
     it('accepts card surface style config and rejects invalid values', () => {
@@ -338,18 +504,30 @@ describe('DashboardItemSchema card options', () => {
                         },
                     ],
                 },
+                security: {
+                    source: 'manual',
+                    alarmEntityId: 'alarm_control_panel.home',
+                    lockEntityIds: ['lock.front_door'],
+                    openingEntityIds: ['binary_sensor.kitchen_window'],
+                    motionEntityIds: ['binary_sensor.hall_motion'],
+                    safetyEntityIds: ['binary_sensor.smoke'],
+                    showAlarmControls: true,
+                    maxItems: 5,
+                },
             },
         }) as typeof baseItem & {
             options: {
                 button: { control: string };
                 remote: { mediaPlayerEntityId: string };
                 device_panel: { entityId: string };
+                security: { alarmEntityId: string };
             };
         };
 
         expect(parsed.options.button.control).toBe('brightness');
         expect(parsed.options.remote.mediaPlayerEntityId).toBe('media_player.tv');
         expect(parsed.options.device_panel.entityId).toBe('cover.blinds');
+        expect(parsed.options.security.alarmEntityId).toBe('alarm_control_panel.home');
     });
 
     it('accepts generation metadata on generated cards', () => {
@@ -371,6 +549,33 @@ describe('DashboardItemSchema card options', () => {
 });
 
 describe('AppConfigPartialSchema theme options', () => {
+    it('accepts kiosk mode settings and rejects out-of-range values', () => {
+        const parsed = AppConfigPartialSchema.parse({
+            kiosk: {
+                enabled: true,
+                idleTimeout: 120,
+                dimOnIdle: true,
+                hideNavigationOnIdle: true,
+                showScreensaver: true,
+                hideEditControls: true,
+                editUnlockMinutes: 10,
+            },
+        });
+
+        expect(parsed.kiosk?.enabled).toBe(true);
+        expect(parsed.kiosk?.idleTimeout).toBe(120);
+        expect(parsed.kiosk?.showScreensaver).toBe(true);
+        expect(parsed.kiosk?.editUnlockMinutes).toBe(10);
+
+        expect(() =>
+            AppConfigPartialSchema.parse({
+                kiosk: {
+                    idleTimeout: 1,
+                },
+            }),
+        ).toThrow();
+    });
+
     it('accepts English as an app language', () => {
         const parsed = AppConfigPartialSchema.parse({
             theme: {

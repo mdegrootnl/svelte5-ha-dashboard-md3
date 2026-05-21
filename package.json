@@ -17,6 +17,7 @@
 		"test": "vitest",
 		"test:ui": "vitest --ui",
 		"test:e2e": "playwright test",
+		"test:visual": "playwright test e2e/visual-acceptance.spec.ts --project=chromium",
 		"preview:addon": "node scripts/preview-addon.mjs"
 	},
 	"devDependencies": {

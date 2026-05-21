@@ -19,6 +19,10 @@ describe('material icon utilities', () => {
         expect(resolveMaterialIconName('mdi:sofa')).toBe('weekend');
         expect(resolveMaterialIconName('mdi:room')).toBe('meeting_room');
         expect(resolveMaterialIconName('mdi:silverware-fork-knife')).toBe('restaurant');
+        expect(resolveMaterialIconName('mdi:robot-vacuum')).toBe('cleaning_services');
+        expect(resolveMaterialIconName('mdi:update')).toBe('system_update_alt');
+        expect(resolveMaterialIconName('mdi:shopping')).toBe('shopping_cart');
+        expect(resolveMaterialIconName('mdi:clipboard-list')).toBe('checklist');
     });
 
     it('falls back by semantic hints before using the default fallback', () => {

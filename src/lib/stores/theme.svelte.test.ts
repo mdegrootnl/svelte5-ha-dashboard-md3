@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ThemeStore } from './theme.svelte';
+import { DEFAULT_CONFIG } from '$lib/types/config';
 
 describe('ThemeStore', () => {
     beforeEach(() => {
@@ -92,6 +93,56 @@ describe('ThemeStore', () => {
             icon: 'music_note',
             href: '/music',
         })).toBe('Audio');
+    });
+
+    it('adds default roadmap navigation items for legacy uncustomized navigation', () => {
+        const store = new ThemeStore();
+        const legacyItems = DEFAULT_CONFIG.theme.navigationItems.filter((item) => !['attention', 'presence'].includes(item.id));
+
+        store.init({
+            ...DEFAULT_CONFIG.theme,
+            navigationItems: legacyItems,
+        });
+
+        expect(store.navigationItems.map((item) => item.id)).toEqual([
+            'home',
+            'dashboard',
+            'attention',
+            'presence',
+            'music',
+            'meals',
+            'weather',
+            'library',
+            'theme',
+            'calendar',
+            'settings',
+        ]);
+    });
+
+    it('adds Presence to the previous Attention default navigation', () => {
+        const store = new ThemeStore();
+        const attentionDefaultItems = DEFAULT_CONFIG.theme.navigationItems.filter((item) => item.id !== 'presence');
+
+        store.init({
+            ...DEFAULT_CONFIG.theme,
+            navigationItems: attentionDefaultItems,
+        });
+
+        expect(store.navigationItems.map((item) => item.id)).toEqual(DEFAULT_CONFIG.theme.navigationItems.map((item) => item.id));
+    });
+
+    it('does not add roadmap items to customized navigation layouts', () => {
+        const store = new ThemeStore();
+
+        store.init({
+            ...DEFAULT_CONFIG.theme,
+            navigationItems: [
+                { id: 'dashboard', label: 'My Board', icon: 'home', href: '/dashboard' },
+                { id: 'music', label: 'Audio', icon: 'music_note', href: '/music' },
+            ],
+        });
+
+        expect(store.navigationItems.map((item) => item.id)).toEqual(['dashboard', 'music']);
     });
 
     it('should clamp card radius changes', () => {

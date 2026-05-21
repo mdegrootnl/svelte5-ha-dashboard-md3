@@ -4,6 +4,7 @@
     import { getCameraSnapshotSource, isCameraEntityActive } from "$lib/domain/camera";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
+    import EntityDetailButton from "$lib/features/dashboard/components/EntityDetailButton.svelte";
     import {
         getCardSurfaceClasses,
         getCardSurfaceStyle,
@@ -196,6 +197,13 @@
         >
             <IconEdit class="size-[clamp(0.875rem,3.5cqmin,1.25rem)]" />
         </button>
+
+        <EntityDetailButton
+            entityIds={activeCameras.map((camera) => camera.entity_id)}
+            selectedEntityId={visibleCameras[0]?.entity_id}
+            {title}
+            sourceLabel={countLabel}
+        />
     </article>
 {/if}
 

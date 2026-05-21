@@ -9,6 +9,7 @@
     import TitleCard from "$lib/features/dashboard/components/cards/TitleCard.svelte";
     import GraphCard from "$lib/features/dashboard/components/cards/GraphCard.svelte";
     import NavigationCard from "$lib/features/dashboard/components/cards/NavigationCard.svelte";
+    import PresenceSummaryCard from "$lib/features/dashboard/components/cards/PresenceSummaryCard.svelte";
     import RoomSummaryCard from "$lib/features/dashboard/components/cards/RoomSummaryCard.svelte";
     import EntityCollectionCard from "$lib/features/dashboard/components/cards/EntityCollectionCard.svelte";
     import EnergyFlowCard from "$lib/features/dashboard/components/cards/EnergyFlowCard.svelte";
@@ -17,6 +18,13 @@
     import CameraCard from "$lib/features/dashboard/components/cards/CameraCard.svelte";
     import RemotePanelCard from "$lib/features/dashboard/components/cards/RemotePanelCard.svelte";
     import DevicePanelCard from "$lib/features/dashboard/components/cards/DevicePanelCard.svelte";
+    import SecurityStatusCard from "$lib/features/dashboard/components/cards/SecurityStatusCard.svelte";
+    import LockStatusCard from "$lib/features/dashboard/components/cards/LockStatusCard.svelte";
+    import CoverControlCard from "$lib/features/dashboard/components/cards/CoverControlCard.svelte";
+    import AirControlCard from "$lib/features/dashboard/components/cards/AirControlCard.svelte";
+    import UpdateStatusCard from "$lib/features/dashboard/components/cards/UpdateStatusCard.svelte";
+    import TodoListCard from "$lib/features/dashboard/components/cards/TodoListCard.svelte";
+    import VacuumControlCard from "$lib/features/dashboard/components/cards/VacuumControlCard.svelte";
     import IconLightbulb from "~icons/material-symbols/lightbulb";
     import IconThermostat from "~icons/material-symbols/thermostat";
     import IconDevices from "~icons/material-symbols/devices";
@@ -28,6 +36,13 @@
     import IconViewModule from "~icons/material-symbols/view-module";
     import IconShowChart from "~icons/material-symbols/show-chart";
     import IconVideocam from "~icons/material-symbols/videocam";
+    import IconSecurity from "~icons/material-symbols/security";
+    import IconLock from "~icons/material-symbols/lock";
+    import IconBlinds from "~icons/material-symbols/blinds";
+    import IconFan from "~icons/material-symbols/mode-fan";
+    import IconUpdate from "~icons/material-symbols/system-update-alt";
+    import IconTodo from "~icons/material-symbols/checklist";
+    import IconVacuum from "~icons/material-symbols/cleaning-services";
     import IconLink from "~icons/material-symbols/link";
     import IconAdd from "~icons/material-symbols/add";
     import IconBrush from "~icons/material-symbols/brush";
@@ -41,21 +56,29 @@
     import { themeStore } from "$lib/stores/theme.svelte";
     import { getDomain } from "$lib/utils/entity";
     import type {
+        AirCardOptions,
         ButtonCardOptions,
         CalendarCardOptions,
         CameraCardOptions,
         CardSize,
         CardAction,
         CollectionCardOptions,
+        CoverCardOptions,
         DashboardImageAttribution,
         DevicePanelCardOptions,
         EnergyCardOptions,
         EntityQueryConfig,
         GraphCardEntity,
         GraphChartType,
+        GraphScaleMode,
+        LockCardOptions,
         NavigationCardShortcut,
         RemoteCardOptions,
         RoomCardOptions,
+        SecurityCardOptions,
+        TodoCardOptions,
+        UpdateCardOptions,
+        VacuumCardOptions,
         WeatherCardOptions,
     } from "$lib/types";
 
@@ -83,7 +106,15 @@
             | "weather"
             | "camera"
             | "remote"
-            | "device_panel";
+            | "device_panel"
+            | "presence"
+            | "security"
+            | "lock"
+            | "cover"
+            | "air"
+            | "update"
+            | "todo"
+            | "vacuum";
         secondaryEntityId: string;
         secondaryName: string;
         domainFilter?: string;
@@ -93,6 +124,13 @@
         hours_to_show: number;
         aggregate_func: "avg" | "min" | "max" | "last";
         chartType: GraphChartType;
+        comparisonMode: "none" | "previous_period";
+        dataSource: "auto" | "history" | "statistics";
+        statisticsPeriod?: "5minute" | "hour" | "day" | "month";
+        scaleMode: GraphScaleMode;
+        showAnalytics: boolean;
+        color_thresholds: Array<{ value: number; color?: string; label?: string }>;
+        rangeBands: Array<{ min: number; max: number; color?: string; label?: string }>;
         graphEntities: GraphCardEntity[];
         color: string;
         backgroundColor: string;
@@ -116,6 +154,13 @@
         hours_to_show: 24,
         aggregate_func: "avg",
         chartType: "area",
+        comparisonMode: "none",
+        dataSource: "auto",
+        statisticsPeriod: undefined,
+        scaleMode: "absolute",
+        showAnalytics: true,
+        color_thresholds: [],
+        rangeBands: [],
         graphEntities: [],
         color: "",
         backgroundColor: "",
@@ -158,6 +203,14 @@
     let isCameraCard = $derived(cardEditorStore.config?.type === "camera");
     let isRemoteCard = $derived(cardEditorStore.config?.type === "remote");
     let isDevicePanelCard = $derived(cardEditorStore.config?.type === "device_panel");
+    let isPresenceCard = $derived(cardEditorStore.config?.type === "presence");
+    let isSecurityCard = $derived(cardEditorStore.config?.type === "security");
+    let isLockCard = $derived(cardEditorStore.config?.type === "lock");
+    let isCoverCard = $derived(cardEditorStore.config?.type === "cover");
+    let isAirCard = $derived(cardEditorStore.config?.type === "air");
+    let isUpdateCard = $derived(cardEditorStore.config?.type === "update");
+    let isTodoCard = $derived(cardEditorStore.config?.type === "todo");
+    let isVacuumCard = $derived(cardEditorStore.config?.type === "vacuum");
     let isSmartCard = $derived(
         isRoomCard ||
             isCollectionCard ||
@@ -166,7 +219,15 @@
             isWeatherCard ||
             isCameraCard ||
             isRemoteCard ||
-            isDevicePanelCard,
+            isDevicePanelCard ||
+            isPresenceCard ||
+            isSecurityCard ||
+            isLockCard ||
+            isCoverCard ||
+            isAirCard ||
+            isUpdateCard ||
+            isTodoCard ||
+            isVacuumCard,
     );
 
     $effect(() => {
@@ -190,6 +251,30 @@
         if (isDevicePanelCard) {
             tempConfig.options.device_panel ??= { preset: "auto" };
         }
+        if (isPresenceCard) {
+            tempConfig.options.presence ??= { source: "auto", maxPeople: 4, showGuestMode: true, showEta: true };
+        }
+        if (isSecurityCard) {
+            tempConfig.options.security ??= { source: "auto", showAlarmControls: true, maxItems: 5 };
+        }
+        if (isLockCard) {
+            tempConfig.options.lock ??= { source: "auto", showLockAll: true, showUnlockControls: false, maxItems: 6 };
+        }
+        if (isCoverCard) {
+            tempConfig.options.cover ??= { source: "auto", showGroupControls: true, showPosition: true, maxItems: 5 };
+        }
+        if (isAirCard) {
+            tempConfig.options.air ??= { source: "auto", showPowerControls: true, showSpeed: true, showHumidity: true, maxItems: 5 };
+        }
+        if (isUpdateCard) {
+            tempConfig.options.update ??= { source: "auto", showCheckControl: true, showInstallControls: true, showVersions: true, showReleaseNotes: true, maxItems: 5 };
+        }
+        if (isTodoCard) {
+            tempConfig.options.todo ??= { source: "auto", showAddControl: true, showCompleted: false, showDueDates: true, maxItems: 6 };
+        }
+        if (isVacuumCard) {
+            tempConfig.options.vacuum ??= { source: "auto", showGroupControls: true, showBattery: true, showFanSpeed: true, maxItems: 4 };
+        }
     });
 
     // Sync when opening
@@ -209,6 +294,17 @@
                 hours_to_show: (config as any).hours_to_show ?? 24,
                 aggregate_func: (config as any).aggregate_func ?? "avg",
                 chartType: (config as any).chartType ?? "area",
+                comparisonMode: (config as any).comparisonMode ?? "none",
+                dataSource: (config as any).dataSource ?? "auto",
+                statisticsPeriod: (config as any).statisticsPeriod,
+                scaleMode: (config as any).scaleMode ?? "absolute",
+                showAnalytics: (config as any).showAnalytics ?? true,
+                color_thresholds: JSON.parse(
+                    JSON.stringify((config as any).color_thresholds || []),
+                ),
+                rangeBands: JSON.parse(
+                    JSON.stringify((config as any).rangeBands || []),
+                ),
                 graphEntities: JSON.parse(
                     JSON.stringify((config as any).graphEntities || []),
                 ),
@@ -241,6 +337,13 @@
         if (isCameraCard) return IconVideocam;
         if (isRemoteCard) return IconPlayCircle;
         if (isDevicePanelCard) return IconDevices;
+        if (isSecurityCard) return IconSecurity;
+        if (isLockCard) return IconLock;
+        if (isCoverCard) return IconBlinds;
+        if (isAirCard) return IconFan;
+        if (isUpdateCard) return IconUpdate;
+        if (isTodoCard) return IconTodo;
+        if (isVacuumCard) return IconVacuum;
 
         switch (domain) {
             case "light":
@@ -480,6 +583,25 @@
         { value: "step", label: "Step" },
     ];
 
+    const graphDataSourceOptions = [
+        { value: "auto", label: "Auto statistics/history" },
+        { value: "history", label: "History only" },
+        { value: "statistics", label: "Recorder statistics first" },
+    ] as const;
+
+    const graphStatisticsPeriodOptions = [
+        { value: "", label: "Auto period" },
+        { value: "5minute", label: "5 minute" },
+        { value: "hour", label: "Hour" },
+        { value: "day", label: "Day" },
+        { value: "month", label: "Month" },
+    ] as const;
+
+    const graphScaleModeOptions: Array<{ value: GraphScaleMode; label: string }> = [
+        { value: "absolute", label: "Absolute values" },
+        { value: "normalized", label: "Normalized trends" },
+    ];
+
     type ColorOption = {
         value: string;
         label: string;
@@ -524,6 +646,14 @@
         if (isCameraCard) return "videocam";
         if (isRemoteCard) return "settings_remote";
         if (isDevicePanelCard) return "developer_board";
+        if (isPresenceCard) return "group";
+        if (isSecurityCard) return "security";
+        if (isLockCard) return "lock";
+        if (isCoverCard) return "blinds";
+        if (isAirCard) return "mode_fan";
+        if (isUpdateCard) return "system_update_alt";
+        if (isTodoCard) return "checklist";
+        if (isVacuumCard) return "cleaning_services";
         if (isTitleCard) return "title";
         if (isTabCard) return "view_module";
 
@@ -562,6 +692,30 @@
         if (isRemoteCard && !options.remote) options.remote = { preset: "tv" };
         if (isDevicePanelCard && !options.device_panel) {
             options.device_panel = { preset: "auto" };
+        }
+        if (isPresenceCard && !options.presence) {
+            options.presence = { source: "auto", maxPeople: 4, showGuestMode: true, showEta: true };
+        }
+        if (isSecurityCard && !options.security) {
+            options.security = { source: "auto", showAlarmControls: true, maxItems: 5 };
+        }
+        if (isLockCard && !options.lock) {
+            options.lock = { source: "auto", showLockAll: true, showUnlockControls: false, maxItems: 6 };
+        }
+        if (isCoverCard && !options.cover) {
+            options.cover = { source: "auto", showGroupControls: true, showPosition: true, maxItems: 5 };
+        }
+        if (isAirCard && !options.air) {
+            options.air = { source: "auto", showPowerControls: true, showSpeed: true, showHumidity: true, maxItems: 5 };
+        }
+        if (isUpdateCard && !options.update) {
+            options.update = { source: "auto", showCheckControl: true, showInstallControls: true, showVersions: true, showReleaseNotes: true, maxItems: 5 };
+        }
+        if (isTodoCard && !options.todo) {
+            options.todo = { source: "auto", showAddControl: true, showCompleted: false, showDueDates: true, maxItems: 6 };
+        }
+        if (isVacuumCard && !options.vacuum) {
+            options.vacuum = { source: "auto", showGroupControls: true, showBattery: true, showFanSpeed: true, maxItems: 4 };
         }
         if (isNavigationCard) {
             options.navigation ??= {};
@@ -878,6 +1032,229 @@
         };
     }
 
+    function ensureSecurityOptions(): SecurityCardOptions {
+        tempConfig.options ??= {};
+        tempConfig.options.security ??= { source: "auto", showAlarmControls: true, maxItems: 5 };
+        return tempConfig.options.security as SecurityCardOptions;
+    }
+
+    function updateSecurityOptions(patch: Partial<SecurityCardOptions>) {
+        tempConfig.options.security = {
+            ...ensureSecurityOptions(),
+            ...patch,
+        };
+    }
+
+    function ensureLockOptions(): LockCardOptions {
+        tempConfig.options ??= {};
+        tempConfig.options.lock ??= { source: "auto", showLockAll: true, showUnlockControls: false, maxItems: 6 };
+        return tempConfig.options.lock as LockCardOptions;
+    }
+
+    function updateLockOptions(patch: Partial<LockCardOptions>) {
+        tempConfig.options.lock = {
+            ...ensureLockOptions(),
+            ...patch,
+        };
+    }
+
+    function setLockEntity(index: number, value: string) {
+        const current = ensureLockOptions();
+        const entityIds = [...(current.entityIds ?? [])];
+        entityIds[index] = value;
+        updateLockOptions({ source: "manual", entityIds });
+    }
+
+    function addLockEntity() {
+        const current = ensureLockOptions();
+        updateLockOptions({
+            source: "manual",
+            entityIds: [...(current.entityIds ?? []), ""],
+        });
+    }
+
+    function removeLockEntity(index: number) {
+        const current = ensureLockOptions();
+        updateLockOptions({
+            entityIds: (current.entityIds ?? []).filter((_, i) => i !== index),
+        });
+    }
+
+    function ensureCoverOptions(): CoverCardOptions {
+        tempConfig.options ??= {};
+        tempConfig.options.cover ??= { source: "auto", showGroupControls: true, showPosition: true, maxItems: 5 };
+        return tempConfig.options.cover as CoverCardOptions;
+    }
+
+    function updateCoverOptions(patch: Partial<CoverCardOptions>) {
+        tempConfig.options.cover = {
+            ...ensureCoverOptions(),
+            ...patch,
+        };
+    }
+
+    function setCoverEntity(index: number, value: string) {
+        const current = ensureCoverOptions();
+        const entityIds = [...(current.entityIds ?? [])];
+        entityIds[index] = value;
+        updateCoverOptions({ source: "manual", entityIds });
+    }
+
+    function addCoverEntity() {
+        const current = ensureCoverOptions();
+        updateCoverOptions({
+            source: "manual",
+            entityIds: [...(current.entityIds ?? []), ""],
+        });
+    }
+
+    function removeCoverEntity(index: number) {
+        const current = ensureCoverOptions();
+        updateCoverOptions({
+            entityIds: (current.entityIds ?? []).filter((_, i) => i !== index),
+        });
+    }
+
+    function ensureAirOptions(): AirCardOptions {
+        tempConfig.options ??= {};
+        tempConfig.options.air ??= { source: "auto", showPowerControls: true, showSpeed: true, showHumidity: true, maxItems: 5 };
+        return tempConfig.options.air as AirCardOptions;
+    }
+
+    function updateAirOptions(patch: Partial<AirCardOptions>) {
+        tempConfig.options.air = {
+            ...ensureAirOptions(),
+            ...patch,
+        };
+    }
+
+    function setAirEntity(index: number, value: string) {
+        const current = ensureAirOptions();
+        const entityIds = [...(current.entityIds ?? [])];
+        entityIds[index] = value;
+        updateAirOptions({ source: "manual", entityIds });
+    }
+
+    function addAirEntity() {
+        const current = ensureAirOptions();
+        updateAirOptions({
+            source: "manual",
+            entityIds: [...(current.entityIds ?? []), ""],
+        });
+    }
+
+    function removeAirEntity(index: number) {
+        const current = ensureAirOptions();
+        updateAirOptions({
+            entityIds: (current.entityIds ?? []).filter((_, i) => i !== index),
+        });
+    }
+
+    function ensureUpdateOptions(): UpdateCardOptions {
+        tempConfig.options ??= {};
+        tempConfig.options.update ??= { source: "auto", showCheckControl: true, showInstallControls: true, showVersions: true, showReleaseNotes: true, maxItems: 5 };
+        return tempConfig.options.update as UpdateCardOptions;
+    }
+
+    function updateUpdateOptions(patch: Partial<UpdateCardOptions>) {
+        tempConfig.options.update = {
+            ...ensureUpdateOptions(),
+            ...patch,
+        };
+    }
+
+    function setUpdateEntity(index: number, value: string) {
+        const current = ensureUpdateOptions();
+        const entityIds = [...(current.entityIds ?? [])];
+        entityIds[index] = value;
+        updateUpdateOptions({ source: "manual", entityIds });
+    }
+
+    function addUpdateEntity() {
+        const current = ensureUpdateOptions();
+        updateUpdateOptions({
+            source: "manual",
+            entityIds: [...(current.entityIds ?? []), ""],
+        });
+    }
+
+    function removeUpdateEntity(index: number) {
+        const current = ensureUpdateOptions();
+        updateUpdateOptions({
+            entityIds: (current.entityIds ?? []).filter((_, i) => i !== index),
+        });
+    }
+
+    function ensureTodoOptions(): TodoCardOptions {
+        tempConfig.options ??= {};
+        tempConfig.options.todo ??= { source: "auto", showAddControl: true, showCompleted: false, showDueDates: true, maxItems: 6 };
+        return tempConfig.options.todo as TodoCardOptions;
+    }
+
+    function updateTodoOptions(patch: Partial<TodoCardOptions>) {
+        tempConfig.options.todo = {
+            ...ensureTodoOptions(),
+            ...patch,
+        };
+    }
+
+    function setTodoEntity(index: number, value: string) {
+        const current = ensureTodoOptions();
+        const entityIds = [...(current.entityIds ?? [])];
+        entityIds[index] = value;
+        updateTodoOptions({ source: "manual", entityIds });
+    }
+
+    function addTodoEntity() {
+        const current = ensureTodoOptions();
+        updateTodoOptions({
+            source: "manual",
+            entityIds: [...(current.entityIds ?? []), ""],
+        });
+    }
+
+    function removeTodoEntity(index: number) {
+        const current = ensureTodoOptions();
+        updateTodoOptions({
+            entityIds: (current.entityIds ?? []).filter((_, i) => i !== index),
+        });
+    }
+
+    function ensureVacuumOptions(): VacuumCardOptions {
+        tempConfig.options ??= {};
+        tempConfig.options.vacuum ??= { source: "auto", showGroupControls: true, showBattery: true, showFanSpeed: true, maxItems: 4 };
+        return tempConfig.options.vacuum as VacuumCardOptions;
+    }
+
+    function updateVacuumOptions(patch: Partial<VacuumCardOptions>) {
+        tempConfig.options.vacuum = {
+            ...ensureVacuumOptions(),
+            ...patch,
+        };
+    }
+
+    function setVacuumEntity(index: number, value: string) {
+        const current = ensureVacuumOptions();
+        const entityIds = [...(current.entityIds ?? [])];
+        entityIds[index] = value;
+        updateVacuumOptions({ source: "manual", entityIds });
+    }
+
+    function addVacuumEntity() {
+        const current = ensureVacuumOptions();
+        updateVacuumOptions({
+            source: "manual",
+            entityIds: [...(current.entityIds ?? []), ""],
+        });
+    }
+
+    function removeVacuumEntity(index: number) {
+        const current = ensureVacuumOptions();
+        updateVacuumOptions({
+            entityIds: (current.entityIds ?? []).filter((_, i) => i !== index),
+        });
+    }
+
     function getActions(owner: ActionOwner): CardAction[] {
         if (owner === "button") return tempConfig.options.button?.actions ?? [];
         return owner === "remote"
@@ -988,6 +1365,13 @@
         if (isCameraCard) return themeStore.t("cardConfig.editCameraCard");
         if (isRemoteCard) return themeStore.t("cardConfig.editRemoteCard");
         if (isDevicePanelCard) return themeStore.t("cardConfig.editDevicePanel");
+        if (isSecurityCard) return themeStore.t("cardConfig.editSecurityCard");
+        if (isLockCard) return themeStore.t("cardConfig.editLockCard");
+        if (isCoverCard) return themeStore.t("cardConfig.editCoverCard");
+        if (isAirCard) return themeStore.t("cardConfig.editAirCard");
+        if (isUpdateCard) return themeStore.t("cardConfig.editUpdateCard");
+        if (isTodoCard) return themeStore.t("cardConfig.editTodoCard");
+        if (isVacuumCard) return themeStore.t("cardConfig.editVacuumCard");
         return themeStore.t("cardConfig.editCard");
     }
 </script>
@@ -1174,6 +1558,78 @@
                             backgroundColor={tempConfig.backgroundColor}
                             options={tempConfig.options.device_panel || { preset: "auto" }}
                         />
+                    {:else if isPresenceCard}
+                        <PresenceSummaryCard
+                            entityId={tempConfig.entityId}
+                            name={tempConfig.name}
+                            icon={tempConfig.icon}
+                            color={tempConfig.color}
+                            backgroundColor={tempConfig.backgroundColor}
+                            options={tempConfig.options.presence || { source: "auto", maxPeople: 4, showGuestMode: true, showEta: true }}
+                        />
+                    {:else if isSecurityCard}
+                        <SecurityStatusCard
+                            entityId={tempConfig.entityId}
+                            name={tempConfig.name}
+                            icon={tempConfig.icon}
+                            color={tempConfig.color}
+                            backgroundColor={tempConfig.backgroundColor}
+                            options={tempConfig.options.security || { source: "auto", showAlarmControls: true, maxItems: 5 }}
+                        />
+                    {:else if isLockCard}
+                        <LockStatusCard
+                            entityId={tempConfig.entityId}
+                            name={tempConfig.name}
+                            icon={tempConfig.icon}
+                            color={tempConfig.color}
+                            backgroundColor={tempConfig.backgroundColor}
+                            options={tempConfig.options.lock || { source: "auto", showLockAll: true, showUnlockControls: false, maxItems: 6 }}
+                        />
+                    {:else if isCoverCard}
+                        <CoverControlCard
+                            entityId={tempConfig.entityId}
+                            name={tempConfig.name}
+                            icon={tempConfig.icon}
+                            color={tempConfig.color}
+                            backgroundColor={tempConfig.backgroundColor}
+                            options={tempConfig.options.cover || { source: "auto", showGroupControls: true, showPosition: true, maxItems: 5 }}
+                        />
+                    {:else if isAirCard}
+                        <AirControlCard
+                            entityId={tempConfig.entityId}
+                            name={tempConfig.name}
+                            icon={tempConfig.icon}
+                            color={tempConfig.color}
+                            backgroundColor={tempConfig.backgroundColor}
+                            options={tempConfig.options.air || { source: "auto", showPowerControls: true, showSpeed: true, showHumidity: true, maxItems: 5 }}
+                        />
+                    {:else if isUpdateCard}
+                        <UpdateStatusCard
+                            entityId={tempConfig.entityId}
+                            name={tempConfig.name}
+                            icon={tempConfig.icon}
+                            color={tempConfig.color}
+                            backgroundColor={tempConfig.backgroundColor}
+                            options={tempConfig.options.update || { source: "auto", showCheckControl: true, showInstallControls: true, showVersions: true, showReleaseNotes: true, maxItems: 5 }}
+                        />
+                    {:else if isTodoCard}
+                        <TodoListCard
+                            entityId={tempConfig.entityId}
+                            name={tempConfig.name}
+                            icon={tempConfig.icon}
+                            color={tempConfig.color}
+                            backgroundColor={tempConfig.backgroundColor}
+                            options={tempConfig.options.todo || { source: "auto", showAddControl: true, showCompleted: false, showDueDates: true, maxItems: 6 }}
+                        />
+                    {:else if isVacuumCard}
+                        <VacuumControlCard
+                            entityId={tempConfig.entityId}
+                            name={tempConfig.name}
+                            icon={tempConfig.icon}
+                            color={tempConfig.color}
+                            backgroundColor={tempConfig.backgroundColor}
+                            options={tempConfig.options.vacuum || { source: "auto", showGroupControls: true, showBattery: true, showFanSpeed: true, maxItems: 4 }}
+                        />
                     {:else if isMediaCard}
                         <MediaCard
                             entityId={tempConfig.entityId}
@@ -1237,6 +1693,13 @@
                             hours_to_show={tempConfig.hours_to_show}
                             aggregate_func={tempConfig.aggregate_func}
                             chartType={tempConfig.chartType}
+                            comparisonMode={tempConfig.comparisonMode}
+                            dataSource={tempConfig.dataSource}
+                            statisticsPeriod={tempConfig.statisticsPeriod}
+                            scaleMode={tempConfig.scaleMode}
+                            showAnalytics={tempConfig.showAnalytics}
+                            color_thresholds={tempConfig.color_thresholds}
+                            rangeBands={tempConfig.rangeBands}
                             graphEntities={tempConfig.graphEntities}
                             color={tempConfig.color}
                             backgroundColor={tempConfig.backgroundColor}
@@ -2603,6 +3066,694 @@
                         </div>
                     {/if}
 
+                    {#if isSecurityCard}
+                        <div class="flex flex-col gap-3">
+                            <EntityPicker
+                                label="Alarm Entity"
+                                placeholder="alarm_control_panel.home"
+                                value={tempConfig.options.security?.alarmEntityId ?? ""}
+                                domainFilter="alarm_control_panel"
+                                onchange={(value) =>
+                                    updateSecurityOptions({
+                                        source: value ? "manual" : "auto",
+                                        alarmEntityId: value || undefined,
+                                    })}
+                                class="w-full"
+                            />
+
+                            <TextField
+                                variant="outlined"
+                                label="Visible rows"
+                                type="number"
+                                value={(tempConfig.options.security?.maxItems ?? 5).toString()}
+                                oninput={(e: Event) =>
+                                    updateSecurityOptions({
+                                        maxItems: Math.max(
+                                            1,
+                                            parseInt(
+                                                (e.target as HTMLInputElement)
+                                                    .value,
+                                            ) || 5,
+                                        ),
+                                    })}
+                                class="w-full"
+                            />
+
+                            <button
+                                class="flex items-center justify-between rounded-m3-md bg-m3-surface-container-high px-4 py-3 text-left transition-colors hover:bg-m3-surface-container-highest"
+                                onclick={() =>
+                                    updateSecurityOptions({
+                                        showAlarmControls:
+                                            tempConfig.options.security
+                                                ?.showAlarmControls === false,
+                                    })}
+                            >
+                                <span class="text-m3-label-large text-m3-on-surface">
+                                    Show alarm controls
+                                </span>
+                                <span class="rounded-m3-full bg-m3-secondary-container px-3 py-1 text-m3-label-medium text-m3-on-secondary-container">
+                                    {tempConfig.options.security?.showAlarmControls === false ? "Off" : "On"}
+                                </span>
+                            </button>
+
+                            <p class="text-m3-body-small text-m3-on-surface-variant opacity-70">
+                                Leave entity groups empty to auto-discover alarm panels, locks, openings, motion, and safety sensors.
+                            </p>
+                        </div>
+                    {/if}
+
+                    {#if isLockCard}
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="min-w-0">
+                                    <span class="block text-m3-label-large text-m3-on-surface">
+                                        Lock entities
+                                    </span>
+                                    <span class="block text-m3-body-small text-m3-on-surface-variant opacity-70">
+                                        Leave empty to auto-discover all locks.
+                                    </span>
+                                </div>
+                                <Button
+                                    variant="tonal"
+                                    onclick={addLockEntity}
+                                    icon={IconAdd}
+                                >
+                                    Add
+                                </Button>
+                            </div>
+
+                            {#each tempConfig.options.lock?.entityIds ?? [] as lockEntityId, idx}
+                                <div class="flex items-start gap-2">
+                                    <EntityPicker
+                                        label="Lock"
+                                        placeholder="lock.front_door"
+                                        value={lockEntityId}
+                                        domainFilter="lock"
+                                        onchange={(value) =>
+                                            setLockEntity(idx, value)}
+                                        class="flex-1"
+                                    />
+                                    <IconButton
+                                        onclick={() => removeLockEntity(idx)}
+                                        title="Remove"
+                                        icon={IconDelete}
+                                        class="text-m3-error mt-2"
+                                    />
+                                </div>
+                            {/each}
+
+                            <TextField
+                                variant="outlined"
+                                label="Visible rows"
+                                type="number"
+                                value={(tempConfig.options.lock?.maxItems ?? 6).toString()}
+                                oninput={(e: Event) =>
+                                    updateLockOptions({
+                                        maxItems: Math.max(
+                                            1,
+                                            parseInt(
+                                                (e.target as HTMLInputElement)
+                                                    .value,
+                                            ) || 6,
+                                        ),
+                                    })}
+                                class="w-full"
+                            />
+
+                            <button
+                                class="flex items-center justify-between rounded-m3-md bg-m3-surface-container-high px-4 py-3 text-left transition-colors hover:bg-m3-surface-container-highest"
+                                onclick={() =>
+                                    updateLockOptions({
+                                        showLockAll:
+                                            tempConfig.options.lock?.showLockAll === false,
+                                    })}
+                            >
+                                <span class="text-m3-label-large text-m3-on-surface">
+                                    Show lock-all control
+                                </span>
+                                <span class="rounded-m3-full bg-m3-secondary-container px-3 py-1 text-m3-label-medium text-m3-on-secondary-container">
+                                    {tempConfig.options.lock?.showLockAll === false ? "Off" : "On"}
+                                </span>
+                            </button>
+
+                            <button
+                                class="flex items-center justify-between rounded-m3-md bg-m3-surface-container-high px-4 py-3 text-left transition-colors hover:bg-m3-surface-container-highest"
+                                onclick={() =>
+                                    updateLockOptions({
+                                        showUnlockControls:
+                                            !tempConfig.options.lock?.showUnlockControls,
+                                    })}
+                            >
+                                <span class="text-m3-label-large text-m3-on-surface">
+                                    Show unlock controls
+                                </span>
+                                <span class="rounded-m3-full bg-m3-secondary-container px-3 py-1 text-m3-label-medium text-m3-on-secondary-container">
+                                    {tempConfig.options.lock?.showUnlockControls ? "On" : "Off"}
+                                </span>
+                            </button>
+                        </div>
+                    {/if}
+
+                    {#if isCoverCard}
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="min-w-0">
+                                    <span class="block text-m3-label-large text-m3-on-surface">
+                                        Cover entities
+                                    </span>
+                                    <span class="block text-m3-body-small text-m3-on-surface-variant opacity-70">
+                                        Leave empty to auto-discover blinds, curtains, and covers.
+                                    </span>
+                                </div>
+                                <Button
+                                    variant="tonal"
+                                    onclick={addCoverEntity}
+                                    icon={IconAdd}
+                                >
+                                    Add
+                                </Button>
+                            </div>
+
+                            {#each tempConfig.options.cover?.entityIds ?? [] as coverEntityId, idx}
+                                <div class="flex items-start gap-2">
+                                    <EntityPicker
+                                        label="Cover"
+                                        placeholder="cover.kitchen_blinds"
+                                        value={coverEntityId}
+                                        domainFilter="cover"
+                                        onchange={(value) =>
+                                            setCoverEntity(idx, value)}
+                                        class="flex-1"
+                                    />
+                                    <IconButton
+                                        onclick={() => removeCoverEntity(idx)}
+                                        title="Remove"
+                                        icon={IconDelete}
+                                        class="text-m3-error mt-2"
+                                    />
+                                </div>
+                            {/each}
+
+                            <TextField
+                                variant="outlined"
+                                label="Visible rows"
+                                type="number"
+                                value={(tempConfig.options.cover?.maxItems ?? 5).toString()}
+                                oninput={(e: Event) =>
+                                    updateCoverOptions({
+                                        maxItems: Math.max(
+                                            1,
+                                            parseInt(
+                                                (e.target as HTMLInputElement)
+                                                    .value,
+                                            ) || 5,
+                                        ),
+                                    })}
+                                class="w-full"
+                            />
+
+                            <button
+                                class="flex items-center justify-between rounded-m3-md bg-m3-surface-container-high px-4 py-3 text-left transition-colors hover:bg-m3-surface-container-highest"
+                                onclick={() =>
+                                    updateCoverOptions({
+                                        showGroupControls:
+                                            tempConfig.options.cover?.showGroupControls === false,
+                                    })}
+                            >
+                                <span class="text-m3-label-large text-m3-on-surface">
+                                    Show group controls
+                                </span>
+                                <span class="rounded-m3-full bg-m3-secondary-container px-3 py-1 text-m3-label-medium text-m3-on-secondary-container">
+                                    {tempConfig.options.cover?.showGroupControls === false ? "Off" : "On"}
+                                </span>
+                            </button>
+
+                            <button
+                                class="flex items-center justify-between rounded-m3-md bg-m3-surface-container-high px-4 py-3 text-left transition-colors hover:bg-m3-surface-container-highest"
+                                onclick={() =>
+                                    updateCoverOptions({
+                                        showPosition:
+                                            tempConfig.options.cover?.showPosition === false,
+                                    })}
+                            >
+                                <span class="text-m3-label-large text-m3-on-surface">
+                                    Show position
+                                </span>
+                                <span class="rounded-m3-full bg-m3-secondary-container px-3 py-1 text-m3-label-medium text-m3-on-secondary-container">
+                                    {tempConfig.options.cover?.showPosition === false ? "Off" : "On"}
+                                </span>
+                            </button>
+                        </div>
+                    {/if}
+
+                    {#if isAirCard}
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="min-w-0">
+                                    <span class="block text-m3-label-large text-m3-on-surface">
+                                        Air entities
+                                    </span>
+                                    <span class="block text-m3-body-small text-m3-on-surface-variant opacity-70">
+                                        Leave empty to auto-discover fans and humidifiers.
+                                    </span>
+                                </div>
+                                <Button
+                                    variant="tonal"
+                                    onclick={addAirEntity}
+                                    icon={IconAdd}
+                                >
+                                    Add
+                                </Button>
+                            </div>
+
+                            {#each tempConfig.options.air?.entityIds ?? [] as airEntityId, idx}
+                                <div class="flex items-start gap-2">
+                                    <EntityPicker
+                                        label="Fan or humidifier"
+                                        placeholder="fan.ceiling_fan"
+                                        value={airEntityId}
+                                        domainFilter={undefined}
+                                        onchange={(value) =>
+                                            setAirEntity(idx, value)}
+                                        class="flex-1"
+                                    />
+                                    <IconButton
+                                        onclick={() => removeAirEntity(idx)}
+                                        title="Remove"
+                                        icon={IconDelete}
+                                        class="text-m3-error mt-2"
+                                    />
+                                </div>
+                            {/each}
+
+                            <TextField
+                                variant="outlined"
+                                label="Visible rows"
+                                type="number"
+                                value={(tempConfig.options.air?.maxItems ?? 5).toString()}
+                                oninput={(e: Event) =>
+                                    updateAirOptions({
+                                        maxItems: Math.max(
+                                            1,
+                                            parseInt(
+                                                (e.target as HTMLInputElement)
+                                                    .value,
+                                            ) || 5,
+                                        ),
+                                    })}
+                                class="w-full"
+                            />
+
+                            <button
+                                class="flex items-center justify-between rounded-m3-md bg-m3-surface-container-high px-4 py-3 text-left transition-colors hover:bg-m3-surface-container-highest"
+                                onclick={() =>
+                                    updateAirOptions({
+                                        showPowerControls:
+                                            tempConfig.options.air?.showPowerControls === false,
+                                    })}
+                            >
+                                <span class="text-m3-label-large text-m3-on-surface">
+                                    Show power controls
+                                </span>
+                                <span class="rounded-m3-full bg-m3-secondary-container px-3 py-1 text-m3-label-medium text-m3-on-secondary-container">
+                                    {tempConfig.options.air?.showPowerControls === false ? "Off" : "On"}
+                                </span>
+                            </button>
+
+                            <button
+                                class="flex items-center justify-between rounded-m3-md bg-m3-surface-container-high px-4 py-3 text-left transition-colors hover:bg-m3-surface-container-highest"
+                                onclick={() =>
+                                    updateAirOptions({
+                                        showSpeed:
+                                            tempConfig.options.air?.showSpeed === false,
+                                    })}
+                            >
+                                <span class="text-m3-label-large text-m3-on-surface">
+                                    Show fan speed
+                                </span>
+                                <span class="rounded-m3-full bg-m3-secondary-container px-3 py-1 text-m3-label-medium text-m3-on-secondary-container">
+                                    {tempConfig.options.air?.showSpeed === false ? "Off" : "On"}
+                                </span>
+                            </button>
+
+                            <button
+                                class="flex items-center justify-between rounded-m3-md bg-m3-surface-container-high px-4 py-3 text-left transition-colors hover:bg-m3-surface-container-highest"
+                                onclick={() =>
+                                    updateAirOptions({
+                                        showHumidity:
+                                            tempConfig.options.air?.showHumidity === false,
+                                    })}
+                            >
+                                <span class="text-m3-label-large text-m3-on-surface">
+                                    Show humidity
+                                </span>
+                                <span class="rounded-m3-full bg-m3-secondary-container px-3 py-1 text-m3-label-medium text-m3-on-secondary-container">
+                                    {tempConfig.options.air?.showHumidity === false ? "Off" : "On"}
+                                </span>
+                            </button>
+                        </div>
+                    {/if}
+
+                    {#if isUpdateCard}
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="min-w-0">
+                                    <span class="block text-m3-label-large text-m3-on-surface">
+                                        Update entities
+                                    </span>
+                                    <span class="block text-m3-body-small text-m3-on-surface-variant opacity-70">
+                                        Leave empty to auto-discover update entities and update sensors.
+                                    </span>
+                                </div>
+                                <Button
+                                    variant="tonal"
+                                    onclick={addUpdateEntity}
+                                    icon={IconAdd}
+                                >
+                                    Add
+                                </Button>
+                            </div>
+
+                            {#each tempConfig.options.update?.entityIds ?? [] as updateEntityId, idx}
+                                <div class="flex items-start gap-2">
+                                    <EntityPicker
+                                        label="Update"
+                                        placeholder="update.home_assistant_core"
+                                        value={updateEntityId}
+                                        domainFilter={undefined}
+                                        onchange={(value) =>
+                                            setUpdateEntity(idx, value)}
+                                        class="flex-1"
+                                    />
+                                    <IconButton
+                                        onclick={() => removeUpdateEntity(idx)}
+                                        title="Remove"
+                                        icon={IconDelete}
+                                        class="text-m3-error mt-2"
+                                    />
+                                </div>
+                            {/each}
+
+                            <TextField
+                                variant="outlined"
+                                label="Visible rows"
+                                type="number"
+                                value={(tempConfig.options.update?.maxItems ?? 5).toString()}
+                                oninput={(e: Event) =>
+                                    updateUpdateOptions({
+                                        maxItems: Math.max(
+                                            1,
+                                            parseInt(
+                                                (e.target as HTMLInputElement)
+                                                    .value,
+                                            ) || 5,
+                                        ),
+                                    })}
+                                class="w-full"
+                            />
+
+                            <button
+                                class="flex items-center justify-between rounded-m3-md bg-m3-surface-container-high px-4 py-3 text-left transition-colors hover:bg-m3-surface-container-highest"
+                                onclick={() =>
+                                    updateUpdateOptions({
+                                        showCheckControl:
+                                            tempConfig.options.update?.showCheckControl === false,
+                                    })}
+                            >
+                                <span class="text-m3-label-large text-m3-on-surface">
+                                    Show check control
+                                </span>
+                                <span class="rounded-m3-full bg-m3-secondary-container px-3 py-1 text-m3-label-medium text-m3-on-secondary-container">
+                                    {tempConfig.options.update?.showCheckControl === false ? "Off" : "On"}
+                                </span>
+                            </button>
+
+                            <button
+                                class="flex items-center justify-between rounded-m3-md bg-m3-surface-container-high px-4 py-3 text-left transition-colors hover:bg-m3-surface-container-highest"
+                                onclick={() =>
+                                    updateUpdateOptions({
+                                        showInstallControls:
+                                            tempConfig.options.update?.showInstallControls === false,
+                                    })}
+                            >
+                                <span class="text-m3-label-large text-m3-on-surface">
+                                    Show install controls
+                                </span>
+                                <span class="rounded-m3-full bg-m3-secondary-container px-3 py-1 text-m3-label-medium text-m3-on-secondary-container">
+                                    {tempConfig.options.update?.showInstallControls === false ? "Off" : "On"}
+                                </span>
+                            </button>
+
+                            <button
+                                class="flex items-center justify-between rounded-m3-md bg-m3-surface-container-high px-4 py-3 text-left transition-colors hover:bg-m3-surface-container-highest"
+                                onclick={() =>
+                                    updateUpdateOptions({
+                                        showVersions:
+                                            tempConfig.options.update?.showVersions === false,
+                                    })}
+                            >
+                                <span class="text-m3-label-large text-m3-on-surface">
+                                    Show versions
+                                </span>
+                                <span class="rounded-m3-full bg-m3-secondary-container px-3 py-1 text-m3-label-medium text-m3-on-secondary-container">
+                                    {tempConfig.options.update?.showVersions === false ? "Off" : "On"}
+                                </span>
+                            </button>
+
+                            <button
+                                class="flex items-center justify-between rounded-m3-md bg-m3-surface-container-high px-4 py-3 text-left transition-colors hover:bg-m3-surface-container-highest"
+                                onclick={() =>
+                                    updateUpdateOptions({
+                                        showReleaseNotes:
+                                            tempConfig.options.update?.showReleaseNotes === false,
+                                    })}
+                            >
+                                <span class="text-m3-label-large text-m3-on-surface">
+                                    Show release notes
+                                </span>
+                                <span class="rounded-m3-full bg-m3-secondary-container px-3 py-1 text-m3-label-medium text-m3-on-secondary-container">
+                                    {tempConfig.options.update?.showReleaseNotes === false ? "Off" : "On"}
+                                </span>
+                            </button>
+                        </div>
+                    {/if}
+
+                    {#if isTodoCard}
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="min-w-0">
+                                    <span class="block text-m3-label-large text-m3-on-surface">
+                                        To-do lists
+                                    </span>
+                                    <span class="block text-m3-body-small text-m3-on-surface-variant opacity-70">
+                                        Leave empty to auto-discover Home Assistant to-do and shopping lists.
+                                    </span>
+                                </div>
+                                <Button
+                                    variant="tonal"
+                                    onclick={addTodoEntity}
+                                    icon={IconAdd}
+                                >
+                                    Add
+                                </Button>
+                            </div>
+
+                            {#each tempConfig.options.todo?.entityIds ?? [] as todoEntityId, idx}
+                                <div class="flex items-start gap-2">
+                                    <EntityPicker
+                                        label="To-do"
+                                        placeholder="todo.shopping_list"
+                                        value={todoEntityId}
+                                        domainFilter="todo"
+                                        onchange={(value) =>
+                                            setTodoEntity(idx, value)}
+                                        class="flex-1"
+                                    />
+                                    <IconButton
+                                        onclick={() => removeTodoEntity(idx)}
+                                        title="Remove"
+                                        icon={IconDelete}
+                                        class="text-m3-error mt-2"
+                                    />
+                                </div>
+                            {/each}
+
+                            <TextField
+                                variant="outlined"
+                                label="Visible rows"
+                                type="number"
+                                value={(tempConfig.options.todo?.maxItems ?? 6).toString()}
+                                oninput={(e: Event) =>
+                                    updateTodoOptions({
+                                        maxItems: Math.max(
+                                            1,
+                                            parseInt(
+                                                (e.target as HTMLInputElement)
+                                                    .value,
+                                            ) || 6,
+                                        ),
+                                    })}
+                                class="w-full"
+                            />
+
+                            <button
+                                class="flex items-center justify-between rounded-m3-md bg-m3-surface-container-high px-4 py-3 text-left transition-colors hover:bg-m3-surface-container-highest"
+                                onclick={() =>
+                                    updateTodoOptions({
+                                        showAddControl:
+                                            tempConfig.options.todo?.showAddControl === false,
+                                    })}
+                            >
+                                <span class="text-m3-label-large text-m3-on-surface">
+                                    Show add control
+                                </span>
+                                <span class="rounded-m3-full bg-m3-secondary-container px-3 py-1 text-m3-label-medium text-m3-on-secondary-container">
+                                    {tempConfig.options.todo?.showAddControl === false ? "Off" : "On"}
+                                </span>
+                            </button>
+
+                            <button
+                                class="flex items-center justify-between rounded-m3-md bg-m3-surface-container-high px-4 py-3 text-left transition-colors hover:bg-m3-surface-container-highest"
+                                onclick={() =>
+                                    updateTodoOptions({
+                                        showCompleted:
+                                            tempConfig.options.todo?.showCompleted === false,
+                                    })}
+                            >
+                                <span class="text-m3-label-large text-m3-on-surface">
+                                    Show completed items
+                                </span>
+                                <span class="rounded-m3-full bg-m3-secondary-container px-3 py-1 text-m3-label-medium text-m3-on-secondary-container">
+                                    {tempConfig.options.todo?.showCompleted === false ? "Off" : "On"}
+                                </span>
+                            </button>
+
+                            <button
+                                class="flex items-center justify-between rounded-m3-md bg-m3-surface-container-high px-4 py-3 text-left transition-colors hover:bg-m3-surface-container-highest"
+                                onclick={() =>
+                                    updateTodoOptions({
+                                        showDueDates:
+                                            tempConfig.options.todo?.showDueDates === false,
+                                    })}
+                            >
+                                <span class="text-m3-label-large text-m3-on-surface">
+                                    Show due dates
+                                </span>
+                                <span class="rounded-m3-full bg-m3-secondary-container px-3 py-1 text-m3-label-medium text-m3-on-secondary-container">
+                                    {tempConfig.options.todo?.showDueDates === false ? "Off" : "On"}
+                                </span>
+                            </button>
+                        </div>
+                    {/if}
+
+                    {#if isVacuumCard}
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="min-w-0">
+                                    <span class="block text-m3-label-large text-m3-on-surface">
+                                        Vacuum entities
+                                    </span>
+                                    <span class="block text-m3-body-small text-m3-on-surface-variant opacity-70">
+                                        Leave empty to auto-discover robot vacuums.
+                                    </span>
+                                </div>
+                                <Button
+                                    variant="tonal"
+                                    onclick={addVacuumEntity}
+                                    icon={IconAdd}
+                                >
+                                    Add
+                                </Button>
+                            </div>
+
+                            {#each tempConfig.options.vacuum?.entityIds ?? [] as vacuumEntityId, idx}
+                                <div class="flex items-start gap-2">
+                                    <EntityPicker
+                                        label="Vacuum"
+                                        placeholder="vacuum.downstairs"
+                                        value={vacuumEntityId}
+                                        domainFilter="vacuum"
+                                        onchange={(value) =>
+                                            setVacuumEntity(idx, value)}
+                                        class="flex-1"
+                                    />
+                                    <IconButton
+                                        onclick={() => removeVacuumEntity(idx)}
+                                        title="Remove"
+                                        icon={IconDelete}
+                                        class="text-m3-error mt-2"
+                                    />
+                                </div>
+                            {/each}
+
+                            <TextField
+                                variant="outlined"
+                                label="Visible rows"
+                                type="number"
+                                value={(tempConfig.options.vacuum?.maxItems ?? 4).toString()}
+                                oninput={(e: Event) =>
+                                    updateVacuumOptions({
+                                        maxItems: Math.max(
+                                            1,
+                                            parseInt(
+                                                (e.target as HTMLInputElement)
+                                                    .value,
+                                            ) || 4,
+                                        ),
+                                    })}
+                                class="w-full"
+                            />
+
+                            <button
+                                class="flex items-center justify-between rounded-m3-md bg-m3-surface-container-high px-4 py-3 text-left transition-colors hover:bg-m3-surface-container-highest"
+                                onclick={() =>
+                                    updateVacuumOptions({
+                                        showGroupControls:
+                                            tempConfig.options.vacuum?.showGroupControls === false,
+                                    })}
+                            >
+                                <span class="text-m3-label-large text-m3-on-surface">
+                                    Show group controls
+                                </span>
+                                <span class="rounded-m3-full bg-m3-secondary-container px-3 py-1 text-m3-label-medium text-m3-on-secondary-container">
+                                    {tempConfig.options.vacuum?.showGroupControls === false ? "Off" : "On"}
+                                </span>
+                            </button>
+
+                            <button
+                                class="flex items-center justify-between rounded-m3-md bg-m3-surface-container-high px-4 py-3 text-left transition-colors hover:bg-m3-surface-container-highest"
+                                onclick={() =>
+                                    updateVacuumOptions({
+                                        showBattery:
+                                            tempConfig.options.vacuum?.showBattery === false,
+                                    })}
+                            >
+                                <span class="text-m3-label-large text-m3-on-surface">
+                                    Show battery
+                                </span>
+                                <span class="rounded-m3-full bg-m3-secondary-container px-3 py-1 text-m3-label-medium text-m3-on-secondary-container">
+                                    {tempConfig.options.vacuum?.showBattery === false ? "Off" : "On"}
+                                </span>
+                            </button>
+
+                            <button
+                                class="flex items-center justify-between rounded-m3-md bg-m3-surface-container-high px-4 py-3 text-left transition-colors hover:bg-m3-surface-container-highest"
+                                onclick={() =>
+                                    updateVacuumOptions({
+                                        showFanSpeed:
+                                            tempConfig.options.vacuum?.showFanSpeed === false,
+                                    })}
+                            >
+                                <span class="text-m3-label-large text-m3-on-surface">
+                                    Show fan speed
+                                </span>
+                                <span class="rounded-m3-full bg-m3-secondary-container px-3 py-1 text-m3-label-medium text-m3-on-secondary-container">
+                                    {tempConfig.options.vacuum?.showFanSpeed === false ? "Off" : "On"}
+                                </span>
+                            </button>
+                        </div>
+                    {/if}
+
                     {#if isRemoteCard}
                         <div class="flex flex-col gap-2">
                             <span
@@ -3056,6 +4207,242 @@
                             <option value="max">Maximum</option>
                             <option value="last">Last Value</option>
                         </select>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-3 @[28rem]:grid-cols-2">
+                        <div class="flex flex-col gap-1">
+                            <label
+                                class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                                for="graph-data-source"
+                            >
+                                Data Source
+                            </label>
+                            <select
+                                id="graph-data-source"
+                                bind:value={tempConfig.dataSource}
+                                class="w-full h-14 px-4 rounded-m3-sm bg-transparent border border-m3-outline text-m3-on-surface focus:border-m3-primary outline-none transition-colors"
+                            >
+                                {#each graphDataSourceOptions as option}
+                                    <option value={option.value}>{option.label}</option>
+                                {/each}
+                            </select>
+                        </div>
+
+                        <div class="flex flex-col gap-1">
+                            <label
+                                class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                                for="graph-statistics-period"
+                            >
+                                Statistics Period
+                            </label>
+                            <select
+                                id="graph-statistics-period"
+                                value={tempConfig.statisticsPeriod ?? ""}
+                                onchange={(event) => {
+                                    const value = (
+                                        event.target as HTMLSelectElement
+                                    ).value;
+                                    tempConfig.statisticsPeriod =
+                                        value === ""
+                                            ? undefined
+                                            : (value as "5minute" | "hour" | "day" | "month");
+                                }}
+                                class="w-full h-14 px-4 rounded-m3-sm bg-transparent border border-m3-outline text-m3-on-surface focus:border-m3-primary outline-none transition-colors"
+                            >
+                                {#each graphStatisticsPeriodOptions as option}
+                                    <option value={option.value}>{option.label}</option>
+                                {/each}
+                            </select>
+                        </div>
+
+                        <div class="flex flex-col gap-1">
+                            <label
+                                class="text-m3-label-medium text-m3-on-surface-variant ml-3"
+                                for="graph-scale-mode"
+                            >
+                                Scale Mode
+                            </label>
+                            <select
+                                id="graph-scale-mode"
+                                bind:value={tempConfig.scaleMode}
+                                class="w-full h-14 px-4 rounded-m3-sm bg-transparent border border-m3-outline text-m3-on-surface focus:border-m3-primary outline-none transition-colors"
+                            >
+                                {#each graphScaleModeOptions as option}
+                                    <option value={option.value}>{option.label}</option>
+                                {/each}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-3 rounded-m3-sm border border-m3-outline-variant/30 bg-m3-surface-container p-3">
+                        <label class="flex items-center justify-between gap-3">
+                            <span class="text-m3-label-large text-m3-on-surface">Compare previous period</span>
+                            <input
+                                type="checkbox"
+                                class="size-5 accent-m3-primary"
+                                checked={tempConfig.comparisonMode === "previous_period"}
+                                onchange={(event) =>
+                                    (tempConfig.comparisonMode = (
+                                        event.target as HTMLInputElement
+                                    ).checked
+                                        ? "previous_period"
+                                        : "none")}
+                            />
+                        </label>
+                        <label class="flex items-center justify-between gap-3">
+                            <span class="text-m3-label-large text-m3-on-surface">Show analytics callout</span>
+                            <input
+                                type="checkbox"
+                                class="size-5 accent-m3-primary"
+                                bind:checked={tempConfig.showAnalytics}
+                            />
+                        </label>
+                    </div>
+
+                    <div
+                        class="border-t border-m3-outline-variant/30 pt-4 flex flex-col gap-3"
+                    >
+                        <div class="flex items-center justify-between px-2">
+                            <span class="text-m3-title-small text-m3-on-surface"
+                                >Thresholds</span
+                            >
+                            <IconButton
+                                icon={IconAdd}
+                                onclick={() => {
+                                    tempConfig.color_thresholds = [
+                                        ...tempConfig.color_thresholds,
+                                        {
+                                            value: 0,
+                                            color: "var(--color-m3-error)",
+                                            label: "",
+                                        },
+                                    ];
+                                }}
+                            />
+                        </div>
+
+                        {#if tempConfig.color_thresholds.length === 0}
+                            <p class="px-2 text-m3-body-small text-m3-on-surface-variant">
+                                Add thresholds for limits like high temperature, humidity, or power.
+                            </p>
+                        {/if}
+
+                        {#each tempConfig.color_thresholds as threshold, idx}
+                            <div class="grid grid-cols-[1fr_1fr_auto] gap-2 rounded-m3-sm border border-m3-outline-variant/30 bg-m3-surface-container-high p-2">
+                                <TextField
+                                    variant="outlined"
+                                    label="Value"
+                                    type="number"
+                                    value={threshold.value.toString()}
+                                    oninput={(event: Event) => {
+                                        const value = Number((event.target as HTMLInputElement).value);
+                                        tempConfig.color_thresholds = tempConfig.color_thresholds.map((item, itemIdx) =>
+                                            itemIdx === idx
+                                                ? { ...item, value: Number.isFinite(value) ? value : 0 }
+                                                : item,
+                                        );
+                                    }}
+                                />
+                                <TextField
+                                    variant="outlined"
+                                    label="Label"
+                                    value={threshold.label ?? ""}
+                                    oninput={(event: Event) => {
+                                        const value = (event.target as HTMLInputElement).value;
+                                        tempConfig.color_thresholds = tempConfig.color_thresholds.map((item, itemIdx) =>
+                                            itemIdx === idx ? { ...item, label: value } : item,
+                                        );
+                                    }}
+                                />
+                                <button
+                                    class="self-center rounded-m3-full p-2 text-m3-error hover:bg-m3-error-container"
+                                    onclick={() => {
+                                        tempConfig.color_thresholds =
+                                            tempConfig.color_thresholds.filter(
+                                                (_, itemIdx) => itemIdx !== idx,
+                                            );
+                                    }}
+                                    aria-label="Remove threshold"
+                                >
+                                    <IconDelete class="size-5" />
+                                </button>
+                            </div>
+                        {/each}
+                    </div>
+
+                    <div
+                        class="border-t border-m3-outline-variant/30 pt-4 flex flex-col gap-3"
+                    >
+                        <div class="flex items-center justify-between px-2">
+                            <span class="text-m3-title-small text-m3-on-surface"
+                                >Min/max bands</span
+                            >
+                            <IconButton
+                                icon={IconAdd}
+                                onclick={() => {
+                                    tempConfig.rangeBands = [
+                                        ...tempConfig.rangeBands,
+                                        {
+                                            min: 18,
+                                            max: 24,
+                                            color: "var(--color-m3-secondary)",
+                                            label: "",
+                                        },
+                                    ];
+                                }}
+                            />
+                        </div>
+
+                        {#if tempConfig.rangeBands.length === 0}
+                            <p class="px-2 text-m3-body-small text-m3-on-surface-variant">
+                                Add an ideal range band for comfort, usage, or target values.
+                            </p>
+                        {/if}
+
+                        {#each tempConfig.rangeBands as band, idx}
+                            <div class="grid grid-cols-[1fr_1fr_auto] gap-2 rounded-m3-sm border border-m3-outline-variant/30 bg-m3-surface-container-high p-2">
+                                <TextField
+                                    variant="outlined"
+                                    label="Min"
+                                    type="number"
+                                    value={band.min.toString()}
+                                    oninput={(event: Event) => {
+                                        const value = Number((event.target as HTMLInputElement).value);
+                                        tempConfig.rangeBands = tempConfig.rangeBands.map((item, itemIdx) =>
+                                            itemIdx === idx
+                                                ? { ...item, min: Number.isFinite(value) ? value : 0 }
+                                                : item,
+                                        );
+                                    }}
+                                />
+                                <TextField
+                                    variant="outlined"
+                                    label="Max"
+                                    type="number"
+                                    value={band.max.toString()}
+                                    oninput={(event: Event) => {
+                                        const value = Number((event.target as HTMLInputElement).value);
+                                        tempConfig.rangeBands = tempConfig.rangeBands.map((item, itemIdx) =>
+                                            itemIdx === idx
+                                                ? { ...item, max: Number.isFinite(value) ? value : 0 }
+                                                : item,
+                                        );
+                                    }}
+                                />
+                                <button
+                                    class="self-center rounded-m3-full p-2 text-m3-error hover:bg-m3-error-container"
+                                    onclick={() => {
+                                        tempConfig.rangeBands =
+                                            tempConfig.rangeBands.filter(
+                                                (_, itemIdx) => itemIdx !== idx,
+                                            );
+                                    }}
+                                    aria-label="Remove band"
+                                >
+                                    <IconDelete class="size-5" />
+                                </button>
+                            </div>
+                        {/each}
                     </div>
 
                     <div

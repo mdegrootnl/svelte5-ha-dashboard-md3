@@ -519,7 +519,7 @@
     }
 
     async function searchAhProducts(row: AhShoppingExportRow) {
-        const query = ahSearchQueryForIngredient(row.item.displayText || row.key);
+        const query = ahSearchQueryForIngredient(row.sourceTexts[0] || row.key);
         if (!query) return;
         ahProductLoading = { ...ahProductLoading, [row.key]: true };
         try {
@@ -1484,6 +1484,9 @@
                                                                     {themeStore.t("meals.shopping.ahGrouped", {
                                                                         count: row.sourceCount,
                                                                     })}
+                                                                </div>
+                                                                <div class="mt-1 line-clamp-2 text-m3-body-small text-m3-on-surface-variant">
+                                                                    {row.sourceTexts.join(" + ")}
                                                                 </div>
                                                             {/if}
                                                         </div>

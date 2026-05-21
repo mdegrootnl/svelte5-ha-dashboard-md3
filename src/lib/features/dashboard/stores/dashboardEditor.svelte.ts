@@ -57,6 +57,13 @@ interface ItemCreationConfig {
     aggregate_func?: 'avg' | 'min' | 'max' | 'last';
     chartType?: DashboardItem['chartType'];
     graphEntities?: DashboardItem['graphEntities'];
+    comparisonMode?: DashboardItem['comparisonMode'];
+    dataSource?: DashboardItem['dataSource'];
+    statisticsPeriod?: DashboardItem['statisticsPeriod'];
+    scaleMode?: DashboardItem['scaleMode'];
+    showAnalytics?: DashboardItem['showAnalytics'];
+    color_thresholds?: DashboardItem['color_thresholds'];
+    rangeBands?: DashboardItem['rangeBands'];
     path?: string;
     iconType?: 'icon' | 'image';
     imageUrl?: string;
@@ -85,6 +92,14 @@ function normalizeCardType(type: string | undefined): DashboardCardType {
         case "weather":
         case "remote":
         case "device_panel":
+        case "presence":
+        case "security":
+        case "lock":
+        case "cover":
+        case "air":
+        case "update":
+        case "todo":
+        case "vacuum":
         case "camera":
             return type;
         default:
@@ -301,6 +316,13 @@ export class DashboardEditorStore {
             aggregate_func: itemConfig.aggregate_func,
             chartType: itemConfig.chartType,
             graphEntities: itemConfig.graphEntities,
+            comparisonMode: itemConfig.comparisonMode,
+            dataSource: itemConfig.dataSource,
+            statisticsPeriod: itemConfig.statisticsPeriod,
+            scaleMode: itemConfig.scaleMode,
+            showAnalytics: itemConfig.showAnalytics,
+            color_thresholds: itemConfig.color_thresholds,
+            rangeBands: itemConfig.rangeBands,
             // Navigation properties
             path: itemConfig.path || "",
             iconType: itemConfig.iconType || "icon",

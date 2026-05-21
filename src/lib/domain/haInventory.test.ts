@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
+    buildSmartAirOptions,
     buildSmartCalendarOptions,
+    buildSmartCoverOptions,
     buildSmartDevicePanelOptions,
     buildSmartEnergyOptions,
+    buildSmartLockOptions,
     buildSmartRemoteOptions,
+    buildSmartSecurityOptions,
+    buildSmartTodoOptions,
+    buildSmartUpdateOptions,
+    buildSmartVacuumOptions,
     buildSmartWeatherOptions,
     createInventoryIndex,
     createCollectionQuery,
@@ -88,7 +95,13 @@ const context: InventoryContext = {
             friendly_name: 'Water Leak',
             device_class: 'moisture',
         }),
+        'binary_sensor.addon_update': entity('binary_sensor.addon_update', 'on', {
+            friendly_name: 'Add-on Update',
+            device_class: 'update',
+        }),
         'update.router': entity('update.router', 'on', { friendly_name: 'Router Update' }),
+        'todo.shopping_list': entity('todo.shopping_list', '4', { friendly_name: 'Shopping List' }),
+        'todo.house_tasks': entity('todo.house_tasks', '2', { friendly_name: 'House Tasks' }),
     },
     areas: [
         { area_id: 'kitchen', name: 'Kitchen', floor_id: 'ground', icon: undefined },
@@ -211,6 +224,9 @@ const context: InventoryContext = {
         registry('binary_sensor.kitchen_window', 'Kitchen Window', 'kitchen'),
         registry('binary_sensor.kitchen_motion', 'Kitchen Motion', 'kitchen'),
         registry('binary_sensor.water_leak', 'Water Leak'),
+        registry('binary_sensor.addon_update', 'Add-on Update'),
+        registry('todo.shopping_list', 'Shopping List'),
+        registry('todo.house_tasks', 'House Tasks'),
     ],
 };
 
@@ -292,6 +308,10 @@ describe('haInventory', () => {
         expect(resolveCollectionEntities(context, { mode: 'media_playing' }).map((item) => item.entityId)).toEqual([]);
         expect(resolveCollectionEntities(context, { mode: 'security' }).map((item) => item.entityId)).toEqual([
             'binary_sensor.water_leak',
+        ]);
+        expect(resolveCollectionEntities(context, { mode: 'updates' }).map((item) => item.entityId)).toEqual([
+            'binary_sensor.addon_update',
+            'update.router',
         ]);
     });
 
@@ -417,6 +437,162 @@ describe('haInventory', () => {
         expect(options.preset).toBe('cover');
     });
 
+    it('builds smart cover defaults from cover entities', () => {
+        const options = buildSmartCoverOptions(context);
+
+        expect(options.entityIds).toEqual(['cover.blinds']);
+        expect(options.showGroupControls).toBe(true);
+        expect(options.showPosition).toBe(true);
+        expect(options.maxItems).toBe(5);
+    });
+
+    it('builds smart air defaults from fan and humidifier entities', () => {
+        const airContext: InventoryContext = {
+            ...context,
+            states: {
+                ...context.states,
+                'fan.kitchen_fan': entity('fan.kitchen_fan', 'on', {
+                    friendly_name: 'Kitchen Fan',
+                    percentage: 66,
+                }),
+                'humidifier.bedroom': entity('humidifier.bedroom', 'off', {
+                    friendly_name: 'Bedroom Humidifier',
+                    current_humidity: 42,
+                    humidity: 48,
+                }),
+            },
+            entities: [
+                ...context.entities,
+                registry('fan.kitchen_fan', 'Kitchen Fan'),
+                registry('humidifier.bedroom', 'Bedroom Humidifier'),
+            ],
+        };
+
+        const options = buildSmartAirOptions(airContext);
+
+        expect(options.entityIds).toEqual(['humidifier.bedroom', 'fan.kitchen_fan']);
+        expect(options.showPowerControls).toBe(true);
+        expect(options.showSpeed).toBe(true);
+        expect(options.showHumidity).toBe(true);
+        expect(options.maxItems).toBe(5);
+    });
+
+    it('builds smart vacuum defaults from vacuum entities', () => {
+        const vacuumContext: InventoryContext = {
+            ...context,
+            states: {
+                ...context.states,
+                'vacuum.downstairs': entity('vacuum.downstairs', 'cleaning', {
+                    friendly_name: 'Downstairs Vacuum',
+                    battery_level: 78,
+                    fan_speed: 'Turbo',
+                }),
+                'vacuum.upstairs': entity('vacuum.upstairs', 'docked', {
+                    friendly_name: 'Upstairs Vacuum',
+                    battery_level: 100,
+                }),
+            },
+            entities: [
+                ...context.entities,
+                registry('vacuum.downstairs', 'Downstairs Vacuum'),
+                registry('vacuum.upstairs', 'Upstairs Vacuum'),
+            ],
+        };
+
+        const options = buildSmartVacuumOptions(vacuumContext);
+
+        expect(options.entityIds).toEqual(['vacuum.downstairs', 'vacuum.upstairs']);
+        expect(options.showGroupControls).toBe(true);
+        expect(options.showBattery).toBe(true);
+        expect(options.showFanSpeed).toBe(true);
+        expect(options.maxItems).toBe(4);
+    });
+
+    it('builds smart security defaults from alarms, locks, openings, motion, and safety sensors', () => {
+        const securityContext: InventoryContext = {
+            ...context,
+            states: {
+                ...context.states,
+                'alarm_control_panel.home': entity('alarm_control_panel.home', 'disarmed', {
+                    friendly_name: 'Home Alarm',
+                }),
+                'lock.front_door': entity('lock.front_door', 'locked', {
+                    friendly_name: 'Front Door',
+                }),
+                'binary_sensor.smoke': entity('binary_sensor.smoke', 'off', {
+                    friendly_name: 'Smoke Detector',
+                    device_class: 'smoke',
+                }),
+            },
+            entities: [
+                ...context.entities,
+                registry('alarm_control_panel.home', 'Home Alarm'),
+                registry('lock.front_door', 'Front Door'),
+                registry('binary_sensor.smoke', 'Smoke Detector'),
+            ],
+        };
+
+        const options = buildSmartSecurityOptions(securityContext);
+
+        expect(options.alarmEntityId).toBe('alarm_control_panel.home');
+        expect(options.lockEntityIds).toEqual(['lock.front_door']);
+        expect(options.openingEntityIds).toContain('binary_sensor.kitchen_window');
+        expect(options.motionEntityIds).toContain('binary_sensor.kitchen_motion');
+        expect(options.safetyEntityIds).toEqual(expect.arrayContaining([
+            'binary_sensor.smoke',
+            'binary_sensor.water_leak',
+        ]));
+        expect(options.showAlarmControls).toBe(true);
+    });
+
+    it('builds smart lock defaults from lock entities', () => {
+        const lockContext: InventoryContext = {
+            ...context,
+            states: {
+                ...context.states,
+                'lock.front_door': entity('lock.front_door', 'unlocked', {
+                    friendly_name: 'Front Door',
+                }),
+                'lock.back_door': entity('lock.back_door', 'locked', {
+                    friendly_name: 'Back Door',
+                }),
+            },
+            entities: [
+                ...context.entities,
+                registry('lock.front_door', 'Front Door'),
+                registry('lock.back_door', 'Back Door'),
+            ],
+        };
+
+        const options = buildSmartLockOptions(lockContext);
+
+        expect(options.entityIds).toEqual(['lock.back_door', 'lock.front_door']);
+        expect(options.showLockAll).toBe(true);
+        expect(options.showUnlockControls).toBe(false);
+        expect(options.maxItems).toBe(6);
+    });
+
+    it('builds smart update defaults from update entities and update sensors', () => {
+        const options = buildSmartUpdateOptions(context);
+
+        expect(options.entityIds).toEqual(['binary_sensor.addon_update', 'update.router']);
+        expect(options.showCheckControl).toBe(true);
+        expect(options.showInstallControls).toBe(true);
+        expect(options.showVersions).toBe(true);
+        expect(options.showReleaseNotes).toBe(true);
+        expect(options.maxItems).toBe(5);
+    });
+
+    it('builds smart todo defaults and prioritizes shopping lists', () => {
+        const options = buildSmartTodoOptions(context);
+
+        expect(options.entityIds).toEqual(['todo.shopping_list', 'todo.house_tasks']);
+        expect(options.showAddControl).toBe(true);
+        expect(options.showCompleted).toBe(false);
+        expect(options.showDueDates).toBe(true);
+        expect(options.maxItems).toBe(6);
+    });
+
     it('returns equivalent query results through the indexed inventory API', () => {
         const index = createInventoryIndex(context);
         const queries = [
@@ -440,6 +616,12 @@ describe('haInventory', () => {
         expect(buildSmartCalendarOptions(index)).toEqual(buildSmartCalendarOptions(context));
         expect(buildSmartRemoteOptions(index)).toEqual(buildSmartRemoteOptions(context));
         expect(buildSmartWeatherOptions(index)).toEqual(buildSmartWeatherOptions(context));
+        expect(buildSmartSecurityOptions(index)).toEqual(buildSmartSecurityOptions(context));
+        expect(buildSmartLockOptions(index)).toEqual(buildSmartLockOptions(context));
+        expect(buildSmartAirOptions(index)).toEqual(buildSmartAirOptions(context));
+        expect(buildSmartUpdateOptions(index)).toEqual(buildSmartUpdateOptions(context));
+        expect(buildSmartTodoOptions(index)).toEqual(buildSmartTodoOptions(context));
+        expect(buildSmartVacuumOptions(index)).toEqual(buildSmartVacuumOptions(context));
         expect(buildSmartDevicePanelOptions(index, { preset: 'cover' })).toEqual(
             buildSmartDevicePanelOptions(context, { preset: 'cover' }),
         );

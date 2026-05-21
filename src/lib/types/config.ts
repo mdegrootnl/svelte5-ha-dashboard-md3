@@ -33,12 +33,23 @@ export interface LockScreenConfig {
     backgroundPortrait: string;
 }
 
+export interface KioskConfig {
+    enabled: boolean;
+    idleTimeout: number; // in seconds
+    dimOnIdle: boolean;
+    hideNavigationOnIdle: boolean;
+    showScreensaver: boolean;
+    hideEditControls: boolean;
+    editUnlockMinutes: number;
+}
+
 export interface AppConfig {
     theme: ThemeConfig;
     dashboards: Record<string, RoomDashboardConfig>;
     pages: DashboardPage[];
     musicLibrary?: MusicLibraryConfig;
     lockScreen?: LockScreenConfig;
+    kiosk?: KioskConfig;
 }
 
 export const DEFAULT_CONFIG: AppConfig = {
@@ -53,6 +64,8 @@ export const DEFAULT_CONFIG: AppConfig = {
         navigationItems: [
             { id: 'home', label: 'Start', icon: 'home', href: '/' },
             { id: 'dashboard', label: 'Woningdashboard', icon: 'home', href: '/dashboard' },
+            { id: 'attention', label: 'Aandacht', icon: 'notifications_active', href: '/attention' },
+            { id: 'presence', label: 'Aanwezigheid', icon: 'group', href: '/presence' },
             { id: 'music', label: 'Muziek', icon: 'music_note', href: '/music' },
             { id: 'meals', label: 'Maaltijden', icon: 'restaurant', href: '/meals' },
             { id: 'weather', label: 'Weer', icon: 'partly_cloudy_day', href: '/weather' },
@@ -74,5 +87,14 @@ export const DEFAULT_CONFIG: AppConfig = {
         timeout: 300,
         backgroundLandscape: '', // User will configure these
         backgroundPortrait: ''
+    },
+    kiosk: {
+        enabled: false,
+        idleTimeout: 60,
+        dimOnIdle: true,
+        hideNavigationOnIdle: true,
+        showScreensaver: true,
+        hideEditControls: true,
+        editUnlockMinutes: 15
     }
 };

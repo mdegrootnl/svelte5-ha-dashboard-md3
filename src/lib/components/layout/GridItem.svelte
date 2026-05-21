@@ -252,6 +252,7 @@
 
     /* Block card interactions in edit mode */
     .content-wrapper.edit-mode {
+        z-index: 10;
         pointer-events: none;
     }
 
@@ -265,11 +266,24 @@
     }
 
     .edit-overlay:hover {
-        background: color-mix(
-            in srgb,
-            var(--color-m3-primary, #6750a4) 10%,
-            transparent
-        );
+        background: transparent;
+    }
+
+    .edit-overlay.selected {
+        background: transparent;
+    }
+
+    .grid-item.editing::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 15;
+        border-radius: var(--radius-m3-md, 12px);
+        pointer-events: none;
+        transition: box-shadow 0.15s ease;
+    }
+
+    .grid-item.editing:hover::after {
         box-shadow: inset 0 0 0 2px
             color-mix(
                 in srgb,
@@ -278,13 +292,8 @@
             );
     }
 
-    .edit-overlay.selected {
+    .grid-item.selected::after {
         box-shadow: inset 0 0 0 3px var(--color-m3-primary, #6750a4);
-        background: color-mix(
-            in srgb,
-            var(--color-m3-primary, #6750a4) 5%,
-            transparent
-        );
     }
 
     .grid-item.dragging {
@@ -295,11 +304,11 @@
     }
 
     .grid-item.dragging .edit-overlay {
-        background: color-mix(
-            in srgb,
-            var(--color-m3-primary, #6750a4) 20%,
-            transparent
-        );
+        background: transparent;
+    }
+
+    .grid-item.dragging::after {
+        box-shadow: inset 0 0 0 3px var(--color-m3-primary, #6750a4);
     }
 
     /* Focus Mode - Elevate above backdrop */

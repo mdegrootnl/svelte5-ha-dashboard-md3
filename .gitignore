@@ -2,6 +2,7 @@ node_modules
 
 # Output
 coverage
+test-results
 .output
 .vercel
 .netlify

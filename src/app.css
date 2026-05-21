@@ -210,6 +210,20 @@
     box-shadow: 0 2px 6px color-mix(in srgb, var(--color-m3-scrim) 24%, transparent);
 }
 
+.kiosk-shell[data-kiosk-density="compact"] {
+    --touch-target-min: 44px;
+    --touch-target-compact: 40px;
+    --touch-range-track-height: 6px;
+    --touch-range-thumb-size: 22px;
+}
+
+.kiosk-shell[data-kiosk-density="spacious"] {
+    --touch-target-min: 56px;
+    --touch-target-compact: 50px;
+    --touch-range-track-height: 10px;
+    --touch-range-thumb-size: 28px;
+}
+
 @media (hover: none), (pointer: coarse) {
     .touch-visible,
     button[class*="group-hover/card:opacity-100"],
@@ -235,6 +249,48 @@
         min-width: var(--touch-target-compact);
         min-height: var(--touch-target-compact);
         touch-action: manipulation;
+    }
+}
+
+.kiosk-shell .kiosk-main,
+.kiosk-shell .kiosk-navigation,
+.kiosk-shell .kiosk-bottom-navigation {
+    transition:
+        filter 450ms ease,
+        opacity 280ms ease,
+        transform 280ms ease;
+}
+
+.kiosk-shell[data-kiosk-dimmed="true"] .kiosk-main {
+    filter: brightness(0.58) saturate(0.78);
+}
+
+.kiosk-shell[data-kiosk-nav-hidden="true"] .kiosk-navigation {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-12px);
+}
+
+.kiosk-shell[data-kiosk-nav-hidden="true"] .kiosk-bottom-navigation {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(110%);
+}
+
+.kiosk-shell[data-kiosk-edit-locked="true"] .touch-edit-control,
+.kiosk-shell[data-kiosk-edit-locked="true"] button.touch-edit-control,
+.kiosk-shell[data-kiosk-edit-locked="true"] button[class*="touch-edit-control"] {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transform: scale(0.92) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .kiosk-shell .kiosk-main,
+    .kiosk-shell .kiosk-navigation,
+    .kiosk-shell .kiosk-bottom-navigation,
+    .kiosk-shell[data-kiosk-edit-locked="true"] .touch-edit-control {
+        transition: none !important;
     }
 }
 
@@ -271,7 +327,7 @@
     --dashboard-card-surface-shadow: none;
     background-color: var(--color-m3-surface-container-highest);
     border: 1px solid transparent;
-    color: var(--color-m3-on-surface);
+    color: var(--dashboard-card-readable-color, var(--color-m3-on-surface));
     box-shadow: var(--dashboard-card-surface-shadow);
 }
 
@@ -310,4 +366,64 @@
     .dashboard-card-surface-glass {
         background-color: color-mix(in srgb, var(--color-m3-surface-container-highest) 90%, transparent);
     }
+}
+
+/* =========================================
+   Local Text Readability Helpers
+   Protect labels on image-backed surfaces without flattening the whole image.
+   ========================================= */
+.readable-on-image {
+    color: #fff;
+    text-shadow:
+        0 1px 2px rgb(0 0 0 / 62%),
+        0 8px 24px rgb(0 0 0 / 36%);
+}
+
+.readable-edge-gradient-top {
+    pointer-events: none;
+    background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--color-m3-scrim) 42%, transparent) 0%,
+        color-mix(in srgb, var(--color-m3-scrim) 18%, transparent) 52%,
+        transparent 100%
+    );
+}
+
+.readable-edge-gradient-bottom {
+    pointer-events: none;
+    background: linear-gradient(
+        0deg,
+        color-mix(in srgb, var(--color-m3-scrim) 72%, transparent) 0%,
+        color-mix(in srgb, var(--color-m3-scrim) 44%, transparent) 48%,
+        transparent 100%
+    );
+}
+
+.readable-label-stack {
+    position: relative;
+    isolation: isolate;
+}
+
+.readable-label-stack::before {
+    content: "";
+    position: absolute;
+    inset: -0.45rem -0.65rem;
+    z-index: -1;
+    border-radius: var(--radius-m3-lg);
+    background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--color-m3-scrim) 42%, transparent) 0%,
+        color-mix(in srgb, var(--color-m3-scrim) 24%, transparent) 68%,
+        transparent 100%
+    );
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+}
+
+.readable-chip {
+    border: 1px solid rgb(255 255 255 / 12%);
+    background: rgb(0 0 0 / 24%);
+    color: rgb(255 255 255 / 88%);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
 }

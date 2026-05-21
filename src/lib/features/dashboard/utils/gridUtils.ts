@@ -281,6 +281,13 @@ export function createNewItem(
         aggregate_func: itemConfig.aggregate_func,
         chartType: itemConfig.chartType,
         graphEntities: itemConfig.graphEntities,
+        comparisonMode: itemConfig.comparisonMode,
+        dataSource: itemConfig.dataSource,
+        statisticsPeriod: itemConfig.statisticsPeriod,
+        scaleMode: itemConfig.scaleMode,
+        showAnalytics: itemConfig.showAnalytics,
+        color_thresholds: itemConfig.color_thresholds,
+        rangeBands: itemConfig.rangeBands,
         // Navigation properties
         path: itemConfig.path || "",
         iconType: itemConfig.iconType || "icon",

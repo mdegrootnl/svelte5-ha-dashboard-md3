@@ -12,8 +12,13 @@
 	import type { AppConfig } from "$lib/types/config";
 
 	import { browser } from "$app/environment";
+	import type { Component } from "svelte";
 	import LockScreen from "$lib/features/lockscreen/components/LockScreen.svelte";
 	import { lockScreenStore } from "$lib/features/lockscreen/stores/lockscreen.svelte";
+	import KioskIdleOverlay from "$lib/features/kiosk/components/KioskIdleOverlay.svelte";
+	import { kioskStore } from "$lib/features/kiosk/stores/kiosk.svelte";
+	import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
+	import { entityDetailStore } from "$lib/features/dashboard/stores/entityDetail.svelte";
 	import { haStore } from "$lib/stores/ha.svelte"; // Ensure HA initializes
 
 	let { data, children } = $props();
@@ -21,6 +26,10 @@
 	// Track if stores have been initialized (prevents re-init on every render)
 	let initialized = false;
 	let configRefresh: Promise<void> | null = null;
+	let CardLibrarySheetComponent = $state<Component<any> | null>(null);
+	let CardConfigSheetComponent = $state<Component<any> | null>(null);
+	let IconPickerComponent = $state<Component<any> | null>(null);
+	let EntityDetailSheetComponent = $state<Component<any> | null>(null);
 
 	function applyConfigFromServer(config: AppConfig) {
 		themeStore.applyServerConfig(config.theme);
@@ -32,6 +41,10 @@
 
 		if (config.lockScreen) {
 			lockScreenStore.applyServerConfig(config.lockScreen);
+		}
+
+		if (config.kiosk) {
+			kioskStore.applyServerConfig(config.kiosk);
 		}
 	}
 
@@ -68,6 +81,7 @@
 			musicLibraryStore.init(data.config.musicLibrary);
 		}
 		lockScreenStore.init(data.config.lockScreen);
+		kioskStore.init(data.config.kiosk);
 		if (browser) {
 			haStore.init(data.deployment);
 
@@ -92,6 +106,7 @@
 			themeStore.flushSync();
 			dashboardStore.flushSync();
 			musicLibraryStore.flushSync();
+			kioskStore.flushSync();
 		};
 
 		window.addEventListener("beforeunload", handleUnload);
@@ -99,6 +114,34 @@
 		return () => {
 			window.removeEventListener("beforeunload", handleUnload);
 		};
+	});
+
+	// Card editing is global because reusable dashboard cards can appear on
+	// routes outside /dashboard, such as the card library preview page.
+	$effect(() => {
+		if (cardEditorStore.mode === "library" && !CardLibrarySheetComponent) {
+			import("$lib/components/layout/CardLibrarySheet.svelte").then((module) => {
+				CardLibrarySheetComponent = module.default;
+			});
+		}
+
+		if (cardEditorStore.mode === "config" && !CardConfigSheetComponent) {
+			import("$lib/components/layout/CardConfigSheet.svelte").then((module) => {
+				CardConfigSheetComponent = module.default;
+			});
+		}
+
+		if (cardEditorStore.isIconPickerOpen && !IconPickerComponent) {
+			import("$lib/components/common/IconPicker.svelte").then((module) => {
+				IconPickerComponent = module.default;
+			});
+		}
+
+		if (entityDetailStore.open && !EntityDetailSheetComponent) {
+			import("$lib/features/dashboard/components/EntityDetailSheet.svelte").then((module) => {
+				EntityDetailSheetComponent = module.default;
+			});
+		}
 	});
 
 	// Apply theme changes
@@ -130,22 +173,33 @@
 </svelte:head>
 
 <LockScreen />
+<KioskIdleOverlay />
 
-<div class="flex flex-col xl:flex-row h-screen bg-m3-surface overflow-hidden">
+<div
+	class="kiosk-shell flex flex-col xl:flex-row h-screen bg-m3-surface overflow-hidden"
+	data-kiosk-enabled={kioskStore.enabled ? "true" : "false"}
+	data-kiosk-dimmed={kioskStore.isDimmed ? "true" : "false"}
+	data-kiosk-nav-hidden={kioskStore.isNavigationHidden ? "true" : "false"}
+	data-kiosk-edit-locked={kioskStore.isEditLocked ? "true" : "false"}
+	data-kiosk-density={kioskStore.effectiveDensity}
+	data-kiosk-device-nav={kioskStore.deviceNavigationMode}
+>
 	<!-- Standard Navigation Rail (Desktop Only) -->
 	{#if themeStore.navigationStyle === "standard"}
-		<div class="hidden xl:block h-full">
+		<div class="kiosk-navigation hidden xl:block h-full">
 			<NavigationRail />
 		</div>
 	{/if}
 
 	<!-- Modern Navigation (Desktop & Mobile) handled inside the component -->
 	{#if themeStore.navigationStyle === "modern"}
-		<ModernNavBar />
+		<div class="kiosk-navigation">
+			<ModernNavBar />
+		</div>
 	{/if}
 
 	<main
-		class="flex-1 overflow-hidden bg-m3-surface transition-all duration-300
+		class="kiosk-main flex-1 overflow-hidden bg-m3-surface transition-all duration-300
         {themeStore.navigationStyle === 'modern' ? 'xl:pl-28' : ''}"
 	>
 		{@render children()}
@@ -153,8 +207,27 @@
 
 	<!-- Standard Bottom Nav (Mobile Only) -->
 	{#if themeStore.navigationStyle === "standard"}
-		<div class="xl:hidden fixed bottom-0 left-0 right-0 z-50">
+		<div class="kiosk-bottom-navigation xl:hidden fixed bottom-0 left-0 right-0 z-50">
 			<BottomNav />
 		</div>
 	{/if}
 </div>
+
+{#if CardLibrarySheetComponent && cardEditorStore.mode === "library"}
+	<CardLibrarySheetComponent />
+{/if}
+
+{#if CardConfigSheetComponent && cardEditorStore.mode === "config"}
+	<CardConfigSheetComponent />
+{/if}
+
+{#if IconPickerComponent && cardEditorStore.isIconPickerOpen}
+	<IconPickerComponent
+		onselect={(icon: string) => cardEditorStore.handleIconSelect(icon)}
+		onclose={() => (cardEditorStore.isIconPickerOpen = false)}
+	/>
+{/if}
+
+{#if EntityDetailSheetComponent && entityDetailStore.open}
+	<EntityDetailSheetComponent />
+{/if}

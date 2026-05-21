@@ -79,6 +79,8 @@ function getAllEntityIds(config: RoomDashboardConfig) {
         item.entityId,
         ...(item.shortcuts?.map((shortcut) => shortcut.entityId) ?? []),
         ...(item.options?.collection?.entityIds ?? []),
+        ...(item.options?.update?.entityIds ?? []),
+        ...(item.options?.todo?.entityIds ?? []),
     ]);
 }
 
@@ -327,6 +329,9 @@ describe('DashboardGenerationSheet', () => {
         const roomTab = getNestedTab(roomConfig, 'Room') ?? roomConfig.tabs[0];
         const roomMaintenanceTab = getNestedTab(roomConfig, 'Maintenance');
         const rootNames = homeTab.items.map((item) => item.name);
+        const homeModes = homeTab.items
+            .map((item) => item.options?.collection?.mode)
+            .filter(Boolean) ?? [];
         const maintenanceModes = maintenanceTab?.items
             .map((item) => item.options?.collection?.mode)
             .filter(Boolean) ?? [];
@@ -342,16 +347,17 @@ describe('DashboardGenerationSheet', () => {
             .map((item) => item.options?.collection?.mode)
             .filter(Boolean) ?? [];
 
-        expect(rootNames).not.toContain('Attention');
         expect(rootNames).toContain('Rooms');
+        expect(rootNames).not.toContain('Attention');
         expect(securityTab?.items.map((item) => item.name)).toContain('Home Security');
         expect(securityEntityIds).toEqual(
             expect.arrayContaining(['binary_sensor.kitchen_window', 'binary_sensor.kitchen_motion']),
         );
         expect(maintenanceTab?.items.map((item) => item.name)).toContain('Attention');
         expect(statisticsTab?.items.map((item) => item.name)).toContain('Context');
+        expect(homeModes).toEqual([]);
         expect(maintenanceModes).toEqual(
-            expect.arrayContaining(['media_playing', 'lights_on']),
+            expect.arrayContaining(['openings', 'motion', 'media_playing', 'lights_on']),
         );
         expect(roomSections).not.toContain('Attention');
         expect(roomSections).toContain('Primary Controls');

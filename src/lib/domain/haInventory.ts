@@ -1,13 +1,20 @@
 import type {
+    AirCardOptions,
     CalendarCardOptions,
     CollectionCardOptions,
+    CoverCardOptions,
     DevicePanelCardOptions,
     EnergyCardOptions,
     EntityQueryConfig,
     HADeviceRegistryEntry,
     HAEntity,
     HAEntityRegistryEntry,
+    LockCardOptions,
     RemoteCardOptions,
+    SecurityCardOptions,
+    TodoCardOptions,
+    UpdateCardOptions,
+    VacuumCardOptions,
     WeatherCardOptions,
 } from '$lib/types';
 import type { HAArea, HAFloor } from '$lib/types/dashboard';
@@ -48,6 +55,7 @@ const MOTION_DEVICE_CLASSES = new Set(['motion', 'occupancy', 'presence']);
 const SECURITY_DEVICE_CLASSES = new Set(['smoke', 'moisture', 'gas', 'problem', 'safety', 'tamper']);
 const OPENING_TERMS = ['door', 'window', 'opening', 'garage', 'gate', 'deur', 'raam', 'poort'];
 const MOTION_TERMS = ['motion', 'presence', 'occupancy', 'beweging', 'aanwezig'];
+const SHOPPING_TERMS = ['shopping', 'grocery', 'groceries', 'boodschap', 'boodschappen', 'winkel', 'supermarkt', 'ah', 'albert heijn'];
 const GENERIC_AREA_TOKENS = new Set([
     'area',
     'default',
@@ -383,7 +391,7 @@ export function createCollectionQuery(options: CollectionCardOptions = {}): Enti
         return { ...base, states: ['unavailable', 'unknown'], includeDiagnostic: true, sort: base.sort ?? 'domain', limit: base.limit ?? 12 };
     }
     if (mode === 'updates') {
-        return { ...base, domains: ['update'], states: ['on'], sort: base.sort ?? 'name', limit: base.limit ?? 12 };
+        return { ...base, domains: ['update', 'binary_sensor'], states: ['on'], sort: base.sort ?? 'name', limit: base.limit ?? 12 };
     }
     if (mode === 'low_battery') {
         return { ...base, domains: ['sensor', 'binary_sensor'], deviceClasses: ['battery'], includeDiagnostic: true, sort: base.sort ?? 'state', limit: base.limit ?? 12 };
@@ -442,6 +450,53 @@ function isSecurityEntity(entity: ResolvedEntity) {
     if (entity.domain === 'alarm_control_panel') return ['triggered', 'pending', 'arming'].includes(entity.state);
     if (!isActiveBinary(entity)) return false;
     return SECURITY_DEVICE_CLASSES.has(entity.deviceClass ?? '');
+}
+
+function isOpeningCandidate(entity: ResolvedEntity) {
+    if (entity.domain === 'binary_sensor') {
+        return OPENING_DEVICE_CLASSES.has(entity.deviceClass ?? '') || hasTerm(entity, OPENING_TERMS);
+    }
+    if (entity.domain === 'cover') {
+        return ['door', 'window', 'opening', 'garage_door'].includes(entity.deviceClass ?? '') || hasTerm(entity, OPENING_TERMS);
+    }
+    return false;
+}
+
+function isMotionCandidate(entity: ResolvedEntity) {
+    return entity.domain === 'binary_sensor' &&
+        (MOTION_DEVICE_CLASSES.has(entity.deviceClass ?? '') || hasTerm(entity, MOTION_TERMS));
+}
+
+function isSafetyCandidate(entity: ResolvedEntity) {
+    return entity.domain === 'binary_sensor' && SECURITY_DEVICE_CLASSES.has(entity.deviceClass ?? '');
+}
+
+function isUpdateEntity(entity: ResolvedEntity) {
+    return entity.state === 'on' && (
+        entity.domain === 'update' ||
+        (entity.domain === 'binary_sensor' && entity.deviceClass === 'update')
+    );
+}
+
+function isUpdateCandidateEntity(entity: ResolvedEntity) {
+    return entity.domain === 'update' ||
+        (entity.domain === 'binary_sensor' && entity.deviceClass === 'update');
+}
+
+function todoPriority(entity: ResolvedEntity) {
+    const openCount = Number(entity.state);
+    let score = Number.isFinite(openCount) ? Math.min(openCount, 20) : 0;
+    if (hasTerm(entity, SHOPPING_TERMS)) score += 40;
+    if (entity.state === 'unavailable' || entity.state === 'unknown') score -= 30;
+    return score;
+}
+
+function sortTodoEntities(entities: ResolvedEntity[]) {
+    return [...entities].sort((a, b) => {
+        const scoreDelta = todoPriority(b) - todoPriority(a);
+        if (scoreDelta !== 0) return scoreDelta;
+        return a.name.localeCompare(b.name);
+    });
 }
 
 function normalizeCollectionText(value: string | undefined) {
@@ -508,6 +563,7 @@ function applyCollectionModeFilter(
     if (mode === 'motion') return entities.filter(isMotionEntity);
     if (mode === 'media_playing') return dedupeMediaPlayingEntities(entities);
     if (mode === 'security') return entities.filter(isSecurityEntity);
+    if (mode === 'updates') return entities.filter(isUpdateEntity);
     return entities;
 }
 
@@ -718,6 +774,239 @@ export function buildSmartDevicePanelOptions(
             manualId ??
             fallbackId ??
             findFirstEntityId(context, devicePanelTermsForPreset(preset), domains),
+    };
+}
+
+export function buildSmartSecurityOptions(
+    context: InventorySource,
+    current: SecurityCardOptions = {},
+    fallbackEntityId = ''
+): SecurityCardOptions {
+    const index = asInventoryIndex(context);
+    const manual = current.source === 'manual';
+
+    if (manual) {
+        return {
+            ...current,
+            alarmEntityId: current.alarmEntityId ?? fallbackIfDomain(fallbackEntityId, ['alarm_control_panel']),
+        };
+    }
+
+    const alarmEntityId = current.alarmEntityId ??
+        fallbackIfDomain(fallbackEntityId, ['alarm_control_panel']) ??
+        index.query({ domains: ['alarm_control_panel'], limit: 1 })[0]?.entityId;
+    const lockEntityIds = current.lockEntityIds ??
+        index.query({ domains: ['lock'], sort: 'name', limit: 8 }).map((entity) => entity.entityId);
+    const openingEntityIds = current.openingEntityIds ??
+        index.query({ domains: ['binary_sensor', 'cover'], sort: 'name', limit: 80 })
+            .filter(isOpeningCandidate)
+            .slice(0, 12)
+            .map((entity) => entity.entityId);
+    const motionEntityIds = current.motionEntityIds ??
+        index.query({ domains: ['binary_sensor'], sort: 'last_changed', limit: 80 })
+            .filter(isMotionCandidate)
+            .slice(0, 8)
+            .map((entity) => entity.entityId);
+    const safetyEntityIds = current.safetyEntityIds ??
+        index.query({ domains: ['binary_sensor'], sort: 'name', limit: 80 })
+            .filter(isSafetyCandidate)
+            .slice(0, 8)
+            .map((entity) => entity.entityId);
+
+    return {
+        source: current.source ?? 'auto',
+        alarmEntityId,
+        lockEntityIds,
+        openingEntityIds,
+        motionEntityIds,
+        safetyEntityIds,
+        showAlarmControls: current.showAlarmControls ?? true,
+        maxItems: current.maxItems ?? 5,
+    };
+}
+
+export function buildSmartLockOptions(
+    context: InventorySource,
+    current: LockCardOptions = {},
+    fallbackEntityId = ''
+): LockCardOptions {
+    const index = asInventoryIndex(context);
+    const fallbackId = fallbackIfDomain(fallbackEntityId, ['lock']);
+    const manualIds = current.entityIds?.filter(Boolean);
+    const source = current.source ?? 'auto';
+    const entityIds = manualIds && manualIds.length > 0
+        ? manualIds
+        : fallbackId
+            ? [fallbackId]
+            : source === 'manual'
+                ? []
+                : index.query({ domains: ['lock'], sort: 'name', limit: 12 })
+                    .map((entity) => entity.entityId);
+
+    return {
+        ...current,
+        source,
+        entityIds,
+        showLockAll: current.showLockAll ?? true,
+        showUnlockControls: current.showUnlockControls ?? false,
+        maxItems: current.maxItems ?? 6,
+    };
+}
+
+export function buildSmartCoverOptions(
+    context: InventorySource,
+    current: CoverCardOptions = {},
+    fallbackEntityId = ''
+): CoverCardOptions {
+    const index = asInventoryIndex(context);
+    const fallbackId = fallbackIfDomain(fallbackEntityId, ['cover']);
+    const manualIds = current.entityIds?.filter(Boolean);
+    const source = current.source ?? 'auto';
+    const entityIds = manualIds && manualIds.length > 0
+        ? manualIds
+        : fallbackId
+            ? [fallbackId]
+            : source === 'manual'
+                ? []
+                : index.query({ domains: ['cover'], sort: 'name', limit: 12 })
+                    .map((entity) => entity.entityId);
+
+    return {
+        ...current,
+        source,
+        entityIds,
+        showGroupControls: current.showGroupControls ?? true,
+        showPosition: current.showPosition ?? true,
+        maxItems: current.maxItems ?? 5,
+    };
+}
+
+export function buildSmartAirOptions(
+    context: InventorySource,
+    current: AirCardOptions = {},
+    fallbackEntityId = ''
+): AirCardOptions {
+    const index = asInventoryIndex(context);
+    const domains = ['fan', 'humidifier'];
+    const fallbackId = fallbackIfDomain(fallbackEntityId, domains);
+    const manualIds = current.entityIds?.filter(Boolean);
+    const source = current.source ?? 'auto';
+    const entityIds = manualIds && manualIds.length > 0
+        ? manualIds
+        : fallbackId
+            ? [fallbackId]
+            : source === 'manual'
+                ? []
+                : index.query({ domains, sort: 'name', limit: 12 })
+                    .map((entity) => entity.entityId);
+
+    return {
+        ...current,
+        source,
+        entityIds,
+        showPowerControls: current.showPowerControls ?? true,
+        showSpeed: current.showSpeed ?? true,
+        showHumidity: current.showHumidity ?? true,
+        maxItems: current.maxItems ?? 5,
+    };
+}
+
+export function buildSmartVacuumOptions(
+    context: InventorySource,
+    current: VacuumCardOptions = {},
+    fallbackEntityId = ''
+): VacuumCardOptions {
+    const index = asInventoryIndex(context);
+    const fallbackId = fallbackIfDomain(fallbackEntityId, ['vacuum']);
+    const manualIds = current.entityIds?.filter(Boolean);
+    const source = current.source ?? 'auto';
+    const entityIds = manualIds && manualIds.length > 0
+        ? manualIds
+        : fallbackId
+            ? [fallbackId]
+            : source === 'manual'
+                ? []
+                : index.query({ domains: ['vacuum'], sort: 'name', limit: 12 })
+                    .map((entity) => entity.entityId);
+
+    return {
+        ...current,
+        source,
+        entityIds,
+        showGroupControls: current.showGroupControls ?? true,
+        showBattery: current.showBattery ?? true,
+        showFanSpeed: current.showFanSpeed ?? true,
+        maxItems: current.maxItems ?? 4,
+    };
+}
+
+export function buildSmartUpdateOptions(
+    context: InventorySource,
+    current: UpdateCardOptions = {},
+    fallbackEntityId = ''
+): UpdateCardOptions {
+    const index = asInventoryIndex(context);
+    const fallbackEntity = fallbackEntityId ? index.getEntity(fallbackEntityId) : undefined;
+    const fallbackId = fallbackEntity && isUpdateCandidateEntity(fallbackEntity)
+        ? fallbackEntity.entityId
+        : undefined;
+    const manualIds = current.entityIds?.filter(Boolean);
+    const source = current.source ?? 'auto';
+    const entityIds = manualIds && manualIds.length > 0
+        ? manualIds
+        : fallbackId
+            ? [fallbackId]
+            : source === 'manual'
+                ? []
+                : index.query({
+                    domains: ['update', 'binary_sensor'],
+                    includeDiagnostic: true,
+                    sort: 'name',
+                    limit: 100,
+                })
+                    .filter(isUpdateCandidateEntity)
+                    .slice(0, 24)
+                    .map((entity) => entity.entityId);
+
+    return {
+        ...current,
+        source,
+        entityIds,
+        showCheckControl: current.showCheckControl ?? true,
+        showInstallControls: current.showInstallControls ?? true,
+        showVersions: current.showVersions ?? true,
+        showReleaseNotes: current.showReleaseNotes ?? true,
+        maxItems: current.maxItems ?? 5,
+    };
+}
+
+export function buildSmartTodoOptions(
+    context: InventorySource,
+    current: TodoCardOptions = {},
+    fallbackEntityId = ''
+): TodoCardOptions {
+    const index = asInventoryIndex(context);
+    const fallbackId = fallbackIfDomain(fallbackEntityId, ['todo']);
+    const manualIds = current.entityIds?.filter(Boolean);
+    const source = current.source ?? 'auto';
+    const entityIds = manualIds && manualIds.length > 0
+        ? manualIds
+        : fallbackId
+            ? [fallbackId]
+            : source === 'manual'
+                ? []
+                : sortTodoEntities(index.query({ domains: ['todo'], sort: 'name', limit: 24 }))
+                    .slice(0, 12)
+                    .map((entity) => entity.entityId);
+
+    return {
+        ...current,
+        source,
+        entityIds,
+        showAddControl: current.showAddControl ?? true,
+        showCompleted: current.showCompleted ?? false,
+        showDueDates: current.showDueDates ?? true,
+        maxItems: current.maxItems ?? 6,
     };
 }
 

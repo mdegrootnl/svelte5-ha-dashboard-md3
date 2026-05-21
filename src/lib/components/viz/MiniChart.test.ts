@@ -128,4 +128,21 @@ describe('MiniChart', () => {
             expect(container.querySelector('path[stroke]')).toBeInTheDocument();
         });
     });
+
+    it('renders threshold lines and range bands', async () => {
+        const { container } = render(MiniChart, {
+            props: {
+                series,
+                startTime,
+                endTime,
+                thresholds: [{ value: 7, color: 'red', label: 'High' }],
+                rangeBands: [{ min: 3, max: 6, color: 'green', label: 'Target' }],
+            },
+        });
+
+        await waitFor(() => {
+            expect(container.querySelector('[data-testid="chart-threshold-line"]')).toBeInTheDocument();
+            expect(container.querySelector('[data-testid="chart-range-band"]')).toBeInTheDocument();
+        });
+    });
 });

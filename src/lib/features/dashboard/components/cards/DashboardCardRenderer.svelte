@@ -4,20 +4,28 @@
         DashboardItem,
         TabCardConfig,
     } from "$lib/types/dashboard";
+    import AirControlCard from "./AirControlCard.svelte";
     import ButtonCard from "./ButtonCard.svelte";
     import CalendarAgendaCard from "./CalendarAgendaCard.svelte";
     import CameraCard from "./CameraCard.svelte";
+    import CoverControlCard from "./CoverControlCard.svelte";
     import DevicePanelCard from "./DevicePanelCard.svelte";
     import EnergyFlowCard from "./EnergyFlowCard.svelte";
     import EntityCollectionCard from "./EntityCollectionCard.svelte";
     import GraphCard from "./GraphCard.svelte";
+    import LockStatusCard from "./LockStatusCard.svelte";
     import MediaCard from "./MediaCard.svelte";
     import NavigationCard from "./NavigationCard.svelte";
+    import PresenceSummaryCard from "./PresenceSummaryCard.svelte";
     import RemotePanelCard from "./RemotePanelCard.svelte";
     import RoomSummaryCard from "./RoomSummaryCard.svelte";
+    import SecurityStatusCard from "./SecurityStatusCard.svelte";
     import TabCard from "./TabCard.svelte";
     import ThermostatCard from "./ThermostatCard.svelte";
     import TitleCard from "./TitleCard.svelte";
+    import TodoListCard from "./TodoListCard.svelte";
+    import UpdateStatusCard from "./UpdateStatusCard.svelte";
+    import VacuumControlCard from "./VacuumControlCard.svelte";
     import WeatherOverviewCard from "./WeatherOverviewCard.svelte";
 
     interface Props {
@@ -101,6 +109,13 @@
         bind:aggregate_func={item.aggregate_func}
         bind:chartType={item.chartType}
         bind:graphEntities={item.graphEntities}
+        bind:comparisonMode={item.comparisonMode}
+        bind:dataSource={item.dataSource}
+        bind:statisticsPeriod={item.statisticsPeriod}
+        bind:scaleMode={item.scaleMode}
+        bind:showAnalytics={item.showAnalytics}
+        bind:color_thresholds={item.color_thresholds}
+        bind:rangeBands={item.rangeBands}
         bind:color={item.color}
         bind:backgroundColor={item.backgroundColor}
         bind:icon={item.icon}
@@ -220,6 +235,102 @@
         bind:color={item.color}
         bind:backgroundColor={item.backgroundColor}
         bind:options={item.options.device_panel}
+        {surfaceStyle}
+        ondelete={remove}
+    />
+{:else if item.cardType === "presence" && item.options}
+    <PresenceSummaryCard
+        id={item.id}
+        bind:entityId={item.entityId}
+        bind:name={item.name}
+        bind:icon={item.icon}
+        bind:color={item.color}
+        bind:backgroundColor={item.backgroundColor}
+        bind:options={item.options.presence}
+        {surfaceStyle}
+        ondelete={remove}
+    />
+{:else if item.cardType === "security" && item.options}
+    <SecurityStatusCard
+        id={item.id}
+        bind:entityId={item.entityId}
+        bind:name={item.name}
+        bind:icon={item.icon}
+        bind:color={item.color}
+        bind:backgroundColor={item.backgroundColor}
+        bind:options={item.options.security}
+        {surfaceStyle}
+        ondelete={remove}
+    />
+{:else if item.cardType === "lock" && item.options}
+    <LockStatusCard
+        id={item.id}
+        bind:entityId={item.entityId}
+        bind:name={item.name}
+        bind:icon={item.icon}
+        bind:color={item.color}
+        bind:backgroundColor={item.backgroundColor}
+        bind:options={item.options.lock}
+        {surfaceStyle}
+        ondelete={remove}
+    />
+{:else if item.cardType === "cover" && item.options}
+    <CoverControlCard
+        id={item.id}
+        bind:entityId={item.entityId}
+        bind:name={item.name}
+        bind:icon={item.icon}
+        bind:color={item.color}
+        bind:backgroundColor={item.backgroundColor}
+        bind:options={item.options.cover}
+        {surfaceStyle}
+        ondelete={remove}
+    />
+{:else if item.cardType === "air" && item.options}
+    <AirControlCard
+        id={item.id}
+        bind:entityId={item.entityId}
+        bind:name={item.name}
+        bind:icon={item.icon}
+        bind:color={item.color}
+        bind:backgroundColor={item.backgroundColor}
+        bind:options={item.options.air}
+        {surfaceStyle}
+        ondelete={remove}
+    />
+{:else if item.cardType === "update" && item.options}
+    <UpdateStatusCard
+        id={item.id}
+        bind:entityId={item.entityId}
+        bind:name={item.name}
+        bind:icon={item.icon}
+        bind:color={item.color}
+        bind:backgroundColor={item.backgroundColor}
+        bind:options={item.options.update}
+        {surfaceStyle}
+        ondelete={remove}
+    />
+{:else if item.cardType === "todo" && item.options}
+    <TodoListCard
+        id={item.id}
+        bind:entityId={item.entityId}
+        bind:name={item.name}
+        bind:icon={item.icon}
+        bind:color={item.color}
+        bind:backgroundColor={item.backgroundColor}
+        bind:options={item.options.todo}
+        {surfaceStyle}
+        ondelete={remove}
+    />
+{:else if item.cardType === "vacuum" && item.options}
+    <VacuumControlCard
+        id={item.id}
+        bind:entityId={item.entityId}
+        bind:name={item.name}
+        bind:icon={item.icon}
+        bind:color={item.color}
+        bind:backgroundColor={item.backgroundColor}
+        bind:options={item.options.vacuum}
         {surfaceStyle}
         ondelete={remove}
     />

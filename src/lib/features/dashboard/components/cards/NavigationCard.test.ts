@@ -153,6 +153,32 @@ describe('NavigationCard Component', () => {
         expect(buttons.length).toBeGreaterThan(0);
     });
 
+    it('keeps shortcut buttons and edit control in one action row', () => {
+        const entity = {
+            entity_id: 'light.living_room',
+            state: 'on',
+            attributes: { friendly_name: 'Living Room Light' }
+        };
+        vi.spyOn(haStore, 'getEntity').mockReturnValue(entity as any);
+
+        render(NavigationCard, {
+            props: {
+                name: 'Living Room',
+                path: '/dashboard/living',
+                shortcuts: [
+                    { id: 's1', entityId: 'light.living_room', icon: 'lightbulb' }
+                ],
+                entityId: ''
+            }
+        });
+
+        const shortcutBtn = screen.getByTitle('light.living_room');
+        const editBtn = screen.getByTitle('Edit Navigation');
+
+        expect(editBtn.parentElement).toBe(shortcutBtn.parentElement);
+        expect(editBtn).not.toHaveClass('absolute');
+    });
+
     it('toggles shortcut entity when shortcut is clicked', async () => {
         const entity = {
             entity_id: 'light.test',
@@ -200,6 +226,8 @@ describe('NavigationCard Component', () => {
         expect(img).toBeInTheDocument();
         expect(img).toHaveAttribute('src', 'https://example.com/room.jpg');
         expect(haStore.fetchProxiedBlobUrl).toHaveBeenCalledWith('https://example.com/room.jpg');
+        expect(container.querySelector('.readable-edge-gradient-bottom')).toBeInTheDocument();
+        expect(container.querySelector('.readable-label-stack')).toBeInTheDocument();
     });
 
     it('shows attribution affordance for credited navigation images', async () => {

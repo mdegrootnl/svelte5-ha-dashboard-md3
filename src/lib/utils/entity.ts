@@ -44,6 +44,10 @@ const GENERIC_STATE_KEYS: Record<string, string> = {
     inactive: 'entityState.inactive',
     locked: 'entityState.locked',
     unlocked: 'entityState.unlocked',
+    cleaning: 'entityState.cleaning',
+    docked: 'entityState.docked',
+    returning: 'entityState.returning',
+    error: 'entityState.error',
 };
 
 const BINARY_SENSOR_STATE_KEYS: Record<string, { on: string; off: string }> = {
@@ -254,9 +258,13 @@ export function getEntityIcon(domain: string): string {
         binary_sensor: 'radio-button-checked',
         media_player: 'play-circle',
         fan: 'mode-fan',
+        humidifier: 'humidity-high',
         cover: 'blinds',
         lock: 'lock',
+        alarm_control_panel: 'security',
         camera: 'videocam',
+        update: 'system-update-alt',
+        todo: 'checklist',
         vacuum: 'cleaning-services',
         weather: 'partly-cloudy-day',
         automation: 'smart-toy',

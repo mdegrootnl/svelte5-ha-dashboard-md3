@@ -33,9 +33,49 @@ const smartCardCases = [
         options: { weather: { source: 'auto' } },
     },
     {
+        name: 'Presence',
+        type: 'presence',
+        options: { presence: { source: 'auto', maxPeople: 4, showGuestMode: true, showEta: true } },
+    },
+    {
         name: 'Camera',
         type: 'camera',
         options: { camera: { source: 'auto', refreshSeconds: 10 } },
+    },
+    {
+        name: 'Security',
+        type: 'security',
+        options: { security: { source: 'auto', showAlarmControls: true, maxItems: 5 } },
+    },
+    {
+        name: 'Locks',
+        type: 'lock',
+        options: { lock: { source: 'auto', showLockAll: true, showUnlockControls: false, maxItems: 6 } },
+    },
+    {
+        name: 'Covers',
+        type: 'cover',
+        options: { cover: { source: 'auto', showGroupControls: true, showPosition: true, maxItems: 5 } },
+    },
+    {
+        name: 'Air',
+        type: 'air',
+        options: { air: { source: 'auto', showPowerControls: true, showSpeed: true, showHumidity: true, maxItems: 5 } },
+    },
+    {
+        name: 'Updates',
+        type: 'update',
+        options: { update: { source: 'auto', showCheckControl: true, showInstallControls: true, showVersions: true, showReleaseNotes: true, maxItems: 5 } },
+    },
+    {
+        name: 'To-do & Shopping',
+        type: 'todo',
+        options: { todo: { source: 'auto', showAddControl: true, showCompleted: false, showDueDates: true, maxItems: 6 } },
+    },
+    {
+        name: 'Vacuums',
+        type: 'vacuum',
+        options: { vacuum: { source: 'auto', showGroupControls: true, showBattery: true, showFanSpeed: true, maxItems: 4 } },
     },
     {
         name: 'Remote',
@@ -90,4 +130,25 @@ describe('CardLibrarySheet', () => {
             expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ type }));
         },
     );
+
+    it('opens the utility trend graph with normalized defaults', async () => {
+        render(CardLibrarySheet);
+        cardEditorStore.openLibrary();
+        await tick();
+
+        await fireEvent.click(screen.getByRole('button', { name: /Utility Trends Graph/ }));
+
+        expect(cardEditorStore.mode).toBe('config');
+        expect(cardEditorStore.config).toEqual(
+            expect.objectContaining({
+                type: 'graph',
+                name: 'Utility Trends',
+                chartType: 'line',
+                dataSource: 'statistics',
+                statisticsPeriod: 'day',
+                comparisonMode: 'previous_period',
+                scaleMode: 'normalized',
+            }),
+        );
+    });
 });

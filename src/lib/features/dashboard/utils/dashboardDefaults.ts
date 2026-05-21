@@ -33,9 +33,21 @@ function ensureItemDefaults(item: DashboardItem): DashboardItem {
     if (item.cardType === "remote") item.options.remote ??= { preset: "tv" };
     if (item.cardType === "device_panel") item.options.device_panel ??= { preset: "auto" };
     if (item.cardType === "camera") item.options.camera ??= { source: "auto", refreshSeconds: 10 };
+    if (item.cardType === "presence") item.options.presence ??= { source: "auto", maxPeople: 4, showGuestMode: true, showEta: true };
+    if (item.cardType === "security") item.options.security ??= { source: "auto", showAlarmControls: true, maxItems: 5 };
+    if (item.cardType === "lock") item.options.lock ??= { source: "auto", showLockAll: true, showUnlockControls: false, maxItems: 6 };
+    if (item.cardType === "cover") item.options.cover ??= { source: "auto", showGroupControls: true, showPosition: true, maxItems: 5 };
+    if (item.cardType === "air") item.options.air ??= { source: "auto", showPowerControls: true, showSpeed: true, showHumidity: true, maxItems: 5 };
+    if (item.cardType === "update") item.options.update ??= { source: "auto", showCheckControl: true, showInstallControls: true, showVersions: true, showReleaseNotes: true, maxItems: 5 };
+    if (item.cardType === "todo") item.options.todo ??= { source: "auto", showAddControl: true, showCompleted: false, showDueDates: true, maxItems: 6 };
+    if (item.cardType === "vacuum") item.options.vacuum ??= { source: "auto", showGroupControls: true, showBattery: true, showFanSpeed: true, maxItems: 4 };
 
-    if ((item.cardType === "weather" || item.cardType === "camera") && item.generationState === "generated") {
+    if ((item.cardType === "weather" || item.cardType === "camera" || item.cardType === "lock" || item.cardType === "cover" || item.cardType === "air" || item.cardType === "update" || item.cardType === "vacuum" || item.cardType === "security") && item.generationState === "generated") {
         ensureMinimumRowSpan(item, 3);
+    }
+
+    if (item.cardType === "todo" && item.generationState === "generated") {
+        ensureMinimumRowSpan(item, 2);
     }
 
     if (item.cardType === "title") {
@@ -48,6 +60,12 @@ function ensureItemDefaults(item: DashboardItem): DashboardItem {
         item.aggregate_func ??= "avg";
         item.chartType ??= "area";
         item.graphEntities ??= [];
+        item.comparisonMode ??= "none";
+        item.dataSource ??= "auto";
+        item.scaleMode ??= "absolute";
+        item.showAnalytics ??= true;
+        item.color_thresholds ??= [];
+        item.rangeBands ??= [];
     }
 
     if (item.cardType === "navigation") {

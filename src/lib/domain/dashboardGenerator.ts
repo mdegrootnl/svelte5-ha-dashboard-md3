@@ -1,7 +1,7 @@
 import {
     buildSmartCalendarOptions,
-    buildSmartDevicePanelOptions,
     buildSmartEnergyOptions,
+    buildSmartTodoOptions,
     buildSmartWeatherOptions,
     createInventoryIndex,
     createCollectionQuery,
@@ -33,7 +33,7 @@ import {
     VIEWPORT_PROFILES,
 } from '$lib/types/dashboard';
 import type { DashboardItem, DashboardCardOptions } from '$lib/types/dashboard';
-import type { CameraCardOptions, CollectionCardOptions } from '$lib/types/dashboard';
+import type { AirCardOptions, CameraCardOptions, CollectionCardOptions, CoverCardOptions, LockCardOptions, PresenceCardOptions, SecurityCardOptions, TodoCardOptions, UpdateCardOptions, VacuumCardOptions } from '$lib/types/dashboard';
 import { generateUUID } from '$lib/utils/uuid';
 import { getGeneratedRoomPreviewUrl, resolveRoomVisualProfile } from './roomVisualProfile';
 import { translate, type TranslationParams } from '$lib/i18n';
@@ -60,6 +60,13 @@ interface GeneratedCardInput {
     aggregate_func?: DashboardItem['aggregate_func'];
     chartType?: DashboardItem['chartType'];
     graphEntities?: DashboardItem['graphEntities'];
+    comparisonMode?: DashboardItem['comparisonMode'];
+    dataSource?: DashboardItem['dataSource'];
+    statisticsPeriod?: DashboardItem['statisticsPeriod'];
+    scaleMode?: DashboardItem['scaleMode'];
+    showAnalytics?: DashboardItem['showAnalytics'];
+    color_thresholds?: DashboardItem['color_thresholds'];
+    rangeBands?: DashboardItem['rangeBands'];
     tabs?: GridConfig[];
     activeTabIndex?: number;
     desktopSpan?: number;
@@ -611,6 +618,7 @@ function analyzeEntityImportance(entity: ResolvedEntity, areaId?: string): Entit
             break;
         case 'cover':
         case 'fan':
+        case 'humidifier':
             score += 22;
             reasons.push('specialist control domain');
             break;
@@ -718,6 +726,11 @@ function isInformationalSwitchEntity(entity: ResolvedEntity) {
 function isInformationOnlyEntity(entity: ResolvedEntity) {
     return ['sensor', 'binary_sensor', 'person', 'device_tracker', 'update'].includes(entity.domain) ||
         isInformationalSwitchEntity(entity);
+}
+
+function isUpdateCandidateEntity(entity: ResolvedEntity) {
+    return entity.domain === 'update' ||
+        (entity.domain === 'binary_sensor' && entity.deviceClass === 'update');
 }
 
 function isPrimaryRoomControlEntity(entity: ResolvedEntity) {
@@ -834,6 +847,7 @@ function getEntityTypeTitle(domain?: string, deviceClass?: string) {
 
 function getEntityTypeIcon(domain?: string, deviceClass?: string) {
     if (deviceClass === 'battery') return 'battery_alert';
+    if (deviceClass === 'update') return 'system_update_alt';
     if (deviceClass === 'temperature') return 'device_thermostat';
     if (deviceClass === 'humidity') return 'humidity_percentage';
     if (deviceClass === 'power' || deviceClass === 'energy') return 'electric_bolt';
@@ -845,8 +859,12 @@ function getEntityTypeIcon(domain?: string, deviceClass?: string) {
             return 'toggle_on';
         case 'fan':
             return 'mode_fan';
+        case 'humidifier':
+            return 'humidity_high';
         case 'cover':
             return 'blinds';
+        case 'vacuum':
+            return 'cleaning_services';
         case 'climate':
             return 'device_thermostat';
         case 'media_player':
@@ -857,6 +875,8 @@ function getEntityTypeIcon(domain?: string, deviceClass?: string) {
             return 'partly_cloudy_day';
         case 'calendar':
             return 'calendar_month';
+        case 'todo':
+            return 'checklist';
         case 'camera':
             return 'videocam';
         case 'update':
@@ -893,6 +913,108 @@ function getGraphChartType(entity: ResolvedEntity): DashboardItem['chartType'] {
 
 function getGraphSeriesColor(index: number) {
     return GRAPH_COLOR_TOKENS[index % GRAPH_COLOR_TOKENS.length];
+}
+
+function getGraphAnalyticsConfig(entity: ResolvedEntity): Pick<
+    GeneratedCardInput,
+    | 'comparisonMode'
+    | 'dataSource'
+    | 'scaleMode'
+    | 'showAnalytics'
+    | 'color_thresholds'
+    | 'rangeBands'
+> {
+    const deviceClass = entity.deviceClass ?? '';
+    const thresholds: DashboardItem['color_thresholds'] = [];
+    const rangeBands: DashboardItem['rangeBands'] = [];
+
+    if (deviceClass === 'temperature') {
+        rangeBands.push({
+            min: 18,
+            max: 24,
+            color: 'var(--color-m3-secondary)',
+            label: 'Comfort',
+        });
+        thresholds.push({
+            value: 27,
+            color: 'var(--color-m3-error)',
+            label: 'Warm',
+        });
+    }
+
+    if (deviceClass === 'humidity') {
+        rangeBands.push({
+            min: 40,
+            max: 60,
+            color: 'var(--color-m3-secondary)',
+            label: 'Comfort',
+        });
+        thresholds.push({
+            value: 70,
+            color: 'var(--color-m3-error)',
+            label: 'Humid',
+        });
+    }
+
+    if (deviceClass === 'precipitation_intensity') {
+        thresholds.push({
+            value: 2,
+            color: 'var(--color-m3-primary)',
+            label: 'Rain',
+        });
+    }
+
+    return {
+        comparisonMode: 'previous_period',
+        dataSource: 'auto',
+        scaleMode: 'absolute',
+        showAnalytics: true,
+        color_thresholds: thresholds,
+        rangeBands,
+    };
+}
+
+function createUtilityTrendSeries(
+    energyOptions: ReturnType<typeof buildSmartEnergyOptions>,
+    options: DashboardGenerationOptions,
+) {
+    type UtilityTrendSeries = {
+        entityId: string;
+        name: string;
+        color: string;
+    };
+
+    const candidates = [
+        {
+            entityId: energyOptions.todayEnergyEntityId,
+            name: gt(options, 'dashboardGeneration.output.utilityEnergy'),
+            color: getGraphSeriesColor(0),
+        },
+        {
+            entityId: energyOptions.gasEntityId,
+            name: gt(options, 'dashboardGeneration.output.utilityGas'),
+            color: getGraphSeriesColor(1),
+        },
+        {
+            entityId: energyOptions.waterEntityId,
+            name: gt(options, 'dashboardGeneration.output.utilityWater'),
+            color: getGraphSeriesColor(2),
+        },
+    ];
+
+    const seen = new Set<string>();
+    const series: UtilityTrendSeries[] = [];
+    for (const candidate of candidates) {
+        if (!candidate.entityId || seen.has(candidate.entityId)) continue;
+        seen.add(candidate.entityId);
+        series.push({
+            entityId: candidate.entityId,
+            name: candidate.name,
+            color: candidate.color,
+        });
+    }
+
+    return series;
 }
 
 function getLabelTitle(labelId?: string) {
@@ -1490,6 +1612,13 @@ function createCard(input: GeneratedCardInput, options: DashboardGenerationOptio
         aggregate_func: input.aggregate_func,
         chartType: input.chartType,
         graphEntities: input.graphEntities,
+        comparisonMode: input.comparisonMode,
+        dataSource: input.dataSource,
+        statisticsPeriod: input.statisticsPeriod,
+        scaleMode: input.scaleMode,
+        showAnalytics: input.showAnalytics,
+        color_thresholds: input.color_thresholds,
+        rangeBands: input.rangeBands,
         generatedBy: createMetadata(
             options,
             input.reason,
@@ -1612,6 +1741,57 @@ function addAttentionSection(
     }
 
     return resolved.flatMap((entry) => entry.entities);
+}
+
+function getHousePresenceEntities(inventory: PreparedInventory) {
+    const people = inventory.labelFilteredEntities.filter(
+        (entity) => entity.domain === 'person' && !entity.hidden,
+    );
+    if (people.length > 0) return people;
+
+    return inventory.labelFilteredEntities.filter(
+        (entity) => entity.domain === 'device_tracker' && !entity.hidden && !entity.diagnostic,
+    );
+}
+
+function addPresenceCard(
+    grid: GridConfig,
+    placer: ReturnType<typeof createPlacer>,
+    inventory: PreparedInventory,
+    options: DashboardGenerationOptions,
+    included: DashboardGenerationEntityRef[],
+) {
+    const entities = getHousePresenceEntities(inventory);
+    if (entities.length === 0) return null;
+
+    const presenceOptions: PresenceCardOptions = {
+        source: 'auto',
+        maxPeople: 2,
+        showGuestMode: false,
+        showEta: false,
+    };
+
+    return addCard(
+        grid,
+        placer,
+        {
+            cardType: 'presence',
+            name: gt(options, 'dashboardGeneration.output.presence'),
+            icon: 'group',
+            desktopSpan: 3,
+            mobileSpan: 2,
+            rowSpan: 1,
+            mobileRowSpan: 1,
+            color: ACCENT_PRIMARY,
+            options: { presence: presenceOptions },
+            reason: gt(options, 'dashboardGeneration.output.reason.presence'),
+            sourceType: 'house',
+            sourceId: HOUSE_OVERVIEW_ID,
+        },
+        options,
+        included,
+        entities.map((entity) => entity.entityId),
+    );
 }
 
 function hasGeneratedContent(grid: GridConfig) {
@@ -2063,6 +2243,7 @@ function generateHouseDashboard(
         }).filter(isSecurityDashboardEntity),
     );
     const securityRoomGroups = groupSecurityEntitiesByRoom(context, securityEntities, options);
+    const lockEntities = securityEntities.filter((entity) => entity.domain === 'lock');
     const cameraEntities = sortEntitiesByImportance(
         queryEntities(context, inventory, {
             domains: ['camera'],
@@ -2079,6 +2260,65 @@ function generateHouseDashboard(
             options,
             'house',
             HOUSE_OVERVIEW_ID,
+        );
+    }
+
+    if (securityEntities.length > 0) {
+        const securityOptions: SecurityCardOptions = {
+            source: 'auto',
+            showAlarmControls: true,
+            maxItems: 5,
+        };
+        addCard(
+            securityTab,
+            securityPlacer,
+            {
+                cardType: 'security',
+                name: gt(options, 'dashboardGeneration.output.homeSecurity'),
+                icon: 'security',
+                desktopSpan: 5,
+                mobileSpan: 4,
+                rowSpan: 3,
+                mobileRowSpan: 3,
+                color: ACCENT_ERROR,
+                options: { security: securityOptions },
+                reason: gt(options, 'dashboardGeneration.output.reason.houseSecurityTab'),
+                sourceType: 'house',
+                sourceId: HOUSE_OVERVIEW_ID,
+            },
+            options,
+            includedEntities,
+            securityEntities.map((entity) => entity.entityId),
+        );
+    }
+
+    if (lockEntities.length > 0) {
+        const lockOptions: LockCardOptions = {
+            source: 'manual',
+            entityIds: lockEntities.map((entity) => entity.entityId),
+            showLockAll: true,
+            showUnlockControls: false,
+            maxItems: 5,
+        };
+        addCard(
+            securityTab,
+            securityPlacer,
+            {
+                cardType: 'lock',
+                name: gt(options, 'dashboardGeneration.output.locks'),
+                icon: 'lock',
+                desktopSpan: 4,
+                mobileSpan: 4,
+                rowSpan: 3,
+                mobileRowSpan: 3,
+                options: { lock: lockOptions },
+                reason: gt(options, 'dashboardGeneration.output.reason.locks'),
+                sourceType: 'house',
+                sourceId: HOUSE_OVERVIEW_ID,
+            },
+            options,
+            includedEntities,
+            lockOptions.entityIds ?? [],
         );
     }
 
@@ -2161,6 +2401,45 @@ function generateHouseDashboard(
         options,
         includedEntities,
         [
+            {
+                mode: 'security',
+                name: gt(options, 'dashboardGeneration.output.securityAlerts'),
+                icon: 'shield_alert',
+                query: { limit: 6 },
+                reason: gt(options, 'dashboardGeneration.output.reason.securityAlerts'),
+                presentation: 'summary',
+                desktopSpan: 3,
+                mobileSpan: 2,
+                rowSpan: 1,
+                sourceType: 'house',
+                sourceId: HOUSE_OVERVIEW_ID,
+            },
+            {
+                mode: 'openings',
+                name: gt(options, 'dashboardGeneration.output.openings'),
+                icon: 'sensor_door',
+                query: { limit: 6 },
+                reason: gt(options, 'dashboardGeneration.output.reason.openings'),
+                presentation: 'summary',
+                desktopSpan: 3,
+                mobileSpan: 2,
+                rowSpan: 1,
+                sourceType: 'house',
+                sourceId: HOUSE_OVERVIEW_ID,
+            },
+            {
+                mode: 'motion',
+                name: gt(options, 'dashboardGeneration.output.motionPresence'),
+                icon: 'motion_sensor_active',
+                query: { limit: 6 },
+                reason: gt(options, 'dashboardGeneration.output.reason.motionPresence'),
+                presentation: 'summary',
+                desktopSpan: 3,
+                mobileSpan: 2,
+                rowSpan: 1,
+                sourceType: 'house',
+                sourceId: HOUSE_OVERVIEW_ID,
+            },
             {
                 mode: 'media_playing',
                 name: gt(options, 'dashboardGeneration.output.mediaPlaying'),
@@ -2286,6 +2565,38 @@ function generateHouseDashboard(
         warnings.push(gt(options, 'dashboardGeneration.output.warning.noPopulatedAreas'));
     }
 
+    addPresenceCard(homeTab, homePlacer, inventory, options, includedEntities);
+
+    const todoOptions = buildSmartTodoOptions(inventory.index);
+    if (todoOptions.entityIds && todoOptions.entityIds.length > 0) {
+        const compactTodoOptions: TodoCardOptions = {
+            ...todoOptions,
+            showAddControl: false,
+            showCompleted: false,
+            maxItems: 2,
+        };
+        addCard(
+            homeTab,
+            homePlacer,
+            {
+                cardType: 'todo',
+                name: gt(options, 'dashboardGeneration.output.todo'),
+                icon: 'checklist',
+                desktopSpan: 3,
+                mobileSpan: 2,
+                rowSpan: 2,
+                mobileRowSpan: 2,
+                options: { todo: compactTodoOptions },
+                reason: gt(options, 'dashboardGeneration.output.reason.todo'),
+                sourceType: 'house',
+                sourceId: HOUSE_OVERVIEW_ID,
+            },
+            options,
+            includedEntities,
+            compactTodoOptions.entityIds ?? [],
+        );
+    }
+
     const houseActionEntities = sortEntitiesByImportance(queryEntities(context, inventory, {
         domains: ['button', 'scene', 'script'],
         limit: 24,
@@ -2380,6 +2691,44 @@ function generateHouseDashboard(
             options,
             includedEntities,
             Object.values(energyOptions).filter((value): value is string => typeof value === 'string' && value.includes('.')),
+        );
+    }
+
+    const utilityTrendSeries = createUtilityTrendSeries(energyOptions, options);
+    if (utilityTrendSeries.length >= 2) {
+        const [primarySeries, ...secondarySeries] = utilityTrendSeries;
+        ensureContextTitle();
+        addCard(
+            statisticsTab,
+            statisticsPlacer,
+            {
+                cardType: 'graph',
+                name: gt(options, 'dashboardGeneration.output.utilityTrends'),
+                entityId: primarySeries.entityId,
+                icon: 'query_stats',
+                chartType: 'line',
+                hours_to_show: 24 * 30,
+                aggregate_func: 'last',
+                graphEntities: secondarySeries.map((series) => ({
+                    entity_id: series.entityId,
+                    name: series.name,
+                    color: series.color,
+                    chartType: 'line',
+                })),
+                comparisonMode: 'previous_period',
+                dataSource: 'statistics',
+                statisticsPeriod: 'day',
+                scaleMode: 'normalized',
+                showAnalytics: true,
+                color: primarySeries.color,
+                desktopSpan: 6,
+                mobileSpan: 4,
+                rowSpan: 3,
+                reason: gt(options, 'dashboardGeneration.output.reason.utilityTrends'),
+            },
+            options,
+            includedEntities,
+            utilityTrendSeries.map((series) => series.entityId),
         );
     }
 
@@ -2785,6 +3134,7 @@ function generateFloorDashboard(
                     hours_to_show: 12,
                     aggregate_func: 'avg',
                     chartType: getGraphChartType(sensor),
+                    ...getGraphAnalyticsConfig(sensor),
                     reason: gt(resolvedOptions, 'dashboardGeneration.output.reason.sensorHistory', {
                         name: floorName,
                         sensor: sensor.deviceClass ?? 'sensor',
@@ -2923,19 +3273,106 @@ function createEntityTypeCardInput(
         };
     }
 
-    if (entity.domain === 'cover' || entity.domain === 'fan' || entity.domain === 'vacuum') {
-        const preset = entity.domain === 'cover' ? 'cover' : entity.domain === 'fan' ? 'fan' : 'vacuum';
+    if (entity.domain === 'cover') {
         return {
             ...base,
-            cardType: 'device_panel',
-            icon: getEntityTypeIcon(entity.domain, entity.deviceClass),
+            cardType: 'cover',
+            icon: 'blinds',
             desktopSpan: 4,
             mobileSpan: 4,
+            rowSpan: 3,
             options: {
-                device_panel: {
+                cover: {
                     source: 'manual',
-                    preset,
-                    entityId: entity.entityId,
+                    entityIds: [entity.entityId],
+                    showGroupControls: true,
+                    showPosition: true,
+                    maxItems: 4,
+                },
+            },
+        };
+    }
+
+    if (entity.domain === 'fan' || entity.domain === 'humidifier') {
+        return {
+            ...base,
+            cardType: 'air',
+            icon: entity.domain === 'humidifier' ? 'humidity_high' : 'mode_fan',
+            desktopSpan: 4,
+            mobileSpan: 4,
+            rowSpan: 3,
+            options: {
+                air: {
+                    source: 'manual',
+                    entityIds: [entity.entityId],
+                    showPowerControls: true,
+                    showSpeed: true,
+                    showHumidity: true,
+                    maxItems: 4,
+                },
+            },
+        };
+    }
+
+    if (entity.domain === 'vacuum') {
+        return {
+            ...base,
+            cardType: 'vacuum',
+            icon: 'cleaning_services',
+            desktopSpan: 4,
+            mobileSpan: 4,
+            rowSpan: 3,
+            options: {
+                vacuum: {
+                    source: 'manual',
+                    entityIds: [entity.entityId],
+                    showGroupControls: true,
+                    showBattery: true,
+                    showFanSpeed: true,
+                    maxItems: 4,
+                },
+            },
+        };
+    }
+
+    if (entity.domain === 'update') {
+        return {
+            ...base,
+            cardType: 'update',
+            icon: 'system_update_alt',
+            desktopSpan: 4,
+            mobileSpan: 4,
+            rowSpan: 3,
+            options: {
+                update: {
+                    source: 'manual',
+                    entityIds: [entity.entityId],
+                    showCheckControl: true,
+                    showInstallControls: true,
+                    showVersions: true,
+                    showReleaseNotes: true,
+                    maxItems: 5,
+                },
+            },
+        };
+    }
+
+    if (entity.domain === 'todo') {
+        return {
+            ...base,
+            cardType: 'todo',
+            icon: 'checklist',
+            desktopSpan: 4,
+            mobileSpan: 4,
+            rowSpan: 3,
+            options: {
+                todo: {
+                    source: 'manual',
+                    entityIds: [entity.entityId],
+                    showAddControl: true,
+                    showCompleted: false,
+                    showDueDates: true,
+                    maxItems: 6,
                 },
             },
         };
@@ -2954,6 +3391,7 @@ function createEntityTypeCardInput(
             hours_to_show: 12,
             aggregate_func: 'avg',
             chartType: getGraphChartType(entity),
+            ...getGraphAnalyticsConfig(entity),
         };
     }
 
@@ -3077,7 +3515,64 @@ function generateEntityTypeDashboard(
                 includedEntities,
             );
         }
-    } else if (domain === 'update' || deviceClass === 'battery' || matchingEntities.length > 18) {
+    } else if ((domain === 'update' || deviceClass === 'update') && matchingEntities.length > 0) {
+        const updateOptions: UpdateCardOptions = {
+            source: 'manual',
+            entityIds: matchingEntities.map((entity) => entity.entityId),
+            showCheckControl: true,
+            showInstallControls: true,
+            showVersions: true,
+            showReleaseNotes: true,
+            maxItems: 5,
+        };
+        addCard(
+            typeTab,
+            placer,
+            {
+                cardType: 'update',
+                name: title,
+                icon: 'system_update_alt',
+                desktopSpan: 4,
+                mobileSpan: 4,
+                rowSpan: 3,
+                options: { update: updateOptions },
+                reason: gt(resolvedOptions, 'dashboardGeneration.output.reason.entityCollection', { name: title }),
+                sourceType: 'entity_type',
+                sourceId,
+            },
+            resolvedOptions,
+            includedEntities,
+            updateOptions.entityIds ?? [],
+        );
+    } else if (domain === 'todo' && matchingEntities.length > 0) {
+        const todoOptions: TodoCardOptions = {
+            source: 'manual',
+            entityIds: matchingEntities.map((entity) => entity.entityId),
+            showAddControl: true,
+            showCompleted: false,
+            showDueDates: true,
+            maxItems: 6,
+        };
+        addCard(
+            typeTab,
+            placer,
+            {
+                cardType: 'todo',
+                name: title,
+                icon: 'checklist',
+                desktopSpan: 4,
+                mobileSpan: 4,
+                rowSpan: 3,
+                options: { todo: todoOptions },
+                reason: gt(resolvedOptions, 'dashboardGeneration.output.reason.entityCollection', { name: title }),
+                sourceType: 'entity_type',
+                sourceId,
+            },
+            resolvedOptions,
+            includedEntities,
+            todoOptions.entityIds ?? [],
+        );
+    } else if (deviceClass === 'battery' || matchingEntities.length > 18) {
         addCard(
             typeTab,
             placer,
@@ -3324,6 +3819,46 @@ function addMaintenanceCollection(
     );
 }
 
+function addMaintenanceUpdateCard(
+    grid: GridConfig,
+    placer: ReturnType<typeof createPlacer>,
+    options: DashboardGenerationOptions,
+    included: DashboardGenerationEntityRef[],
+    entities: ResolvedEntity[],
+) {
+    if (entities.length === 0) return;
+
+    const updateOptions: UpdateCardOptions = {
+        source: 'manual',
+        entityIds: entities.map((entity) => entity.entityId),
+        showCheckControl: true,
+        showInstallControls: true,
+        showVersions: true,
+        showReleaseNotes: true,
+        maxItems: 5,
+    };
+
+    addCard(
+        grid,
+        placer,
+        {
+            cardType: 'update',
+            name: gt(options, 'dashboardGeneration.output.updates'),
+            icon: 'system_update_alt',
+            desktopSpan: 4,
+            mobileSpan: 4,
+            rowSpan: 3,
+            options: { update: updateOptions },
+            reason: gt(options, 'dashboardGeneration.output.reason.haUpdates'),
+            sourceType: 'maintenance',
+            sourceId: 'maintenance',
+        },
+        options,
+        included,
+        updateOptions.entityIds ?? [],
+    );
+}
+
 function generateMaintenanceDashboard(
     context: InventoryContext,
     options: DashboardGenerationOptions,
@@ -3376,11 +3911,12 @@ function generateMaintenanceDashboard(
         25,
     );
     const updateEntities = queryEntities(context, inventory, {
-        domains: ['update'],
+        domains: ['update', 'binary_sensor'],
         states: ['on'],
+        includeDiagnostic: true,
         sort: 'name',
-        limit: 18,
-    });
+        limit: 100,
+    }).filter(isUpdateCandidateEntity).slice(0, 18);
     const alertEntities = queryEntities(context, inventory, {
         domains: ['binary_sensor'],
         deviceClasses: ['problem', 'safety', 'smoke', 'moisture', 'gas', 'tamper'],
@@ -3435,18 +3971,7 @@ function generateMaintenanceDashboard(
         },
         reason: gt(options, 'dashboardGeneration.output.reason.lowBatteries'),
     });
-    addMaintenanceCollection(maintenanceTab, placer, options, includedEntities, {
-        name: gt(options, 'dashboardGeneration.output.updates'),
-        icon: 'system_update_alt',
-        entities: updateEntities,
-        query: {
-            domains: ['update'],
-            states: ['on'],
-            limit: 18,
-            sort: 'name',
-        },
-        reason: gt(options, 'dashboardGeneration.output.reason.haUpdates'),
-    });
+    addMaintenanceUpdateCard(maintenanceTab, placer, options, includedEntities, updateEntities);
     addMaintenanceCollection(maintenanceTab, placer, options, includedEntities, {
         name: gt(options, 'dashboardGeneration.output.activeAlerts'),
         icon: 'warning',
@@ -3626,7 +4151,7 @@ function generateRoomDashboard(
 
     const rawComfortEntities = queryEntities(context, inventory, {
         ...areaQuery,
-        domains: ['light', 'switch', 'fan', 'cover', 'climate'],
+        domains: ['light', 'switch', 'fan', 'humidifier', 'cover', 'climate'],
     }).filter(isUsableGeneratedEntity);
     const groupedComfort = suppressHaLightGroupMembers(rawComfortEntities, inventory, areaId);
     const comfortEntities = sortEntitiesByImportance(groupedComfort.entities, areaId);
@@ -3682,8 +4207,14 @@ function generateRoomDashboard(
     }).filter((entity) => isUsableGeneratedEntity(entity) && isValidNumericSensor(entity)), areaId).slice(0, 4);
     const comfortStateSensorIds = new Set(comfortStateSensors.map((entity) => entity.entityId));
     const climate = comfortEntities.find((entity) => entity.domain === 'climate');
-    const specialistEntities = comfortEntities.filter((entity) => ['cover', 'fan'].includes(entity.domain)).slice(0, 2);
-    if (climate || specialistEntities.length > 0) {
+    const coverEntities = comfortEntities.filter((entity) => entity.domain === 'cover').slice(0, 2);
+    const airEntities = comfortEntities.filter((entity) => ['fan', 'humidifier'].includes(entity.domain)).slice(0, 5);
+    const vacuumEntities = sortEntitiesByImportance(queryEntities(context, inventory, {
+        ...areaQuery,
+        domains: ['vacuum'],
+        limit: 4,
+    }).filter(isUsableGeneratedEntity), areaId).slice(0, 4);
+    if (climate || coverEntities.length > 0 || airEntities.length > 0) {
         addTitle(roomTab, roomPlacer, gt(options, 'dashboardGeneration.output.comfort'), gt(options, 'dashboardGeneration.output.subtitle.comfort'), options, 'area', areaId);
     }
 
@@ -3710,33 +4241,100 @@ function generateRoomDashboard(
         );
     }
 
-    for (const specialist of specialistEntities) {
-        const preset = specialist.domain === 'cover' ? 'cover' : 'fan';
+    for (const cover of coverEntities) {
+        const coverOptions: CoverCardOptions = {
+            source: 'manual',
+            entityIds: [cover.entityId],
+            showGroupControls: true,
+            showPosition: true,
+            maxItems: 4,
+        };
         addCard(
             roomTab,
             roomPlacer,
             {
-                cardType: 'device_panel',
-                name: specialist.name,
-                entityId: specialist.entityId,
-                icon: specialist.domain === 'cover' ? 'blinds' : 'mode_fan',
+                cardType: 'cover',
+                name: cover.name,
+                entityId: cover.entityId,
+                icon: 'blinds',
                 desktopSpan: 4,
                 mobileSpan: 4,
-                rowSpan: 2,
-                color: getEntityAccent(specialist),
-                options: {
-                    device_panel: buildSmartDevicePanelOptions(inventory.index, {
-                        source: 'manual',
-                        preset,
-                        entityId: specialist.entityId,
-                    }),
-                },
-                reason: gt(options, 'dashboardGeneration.output.reason.roomDevicePanel', { name: areaName, domain: specialist.domain }),
+                rowSpan: 3,
+                options: { cover: coverOptions },
+                reason: gt(options, 'dashboardGeneration.output.reason.roomCover', { name: areaName }),
                 sourceType: 'area',
                 sourceId: areaId,
             },
             options,
             includedEntities,
+            coverOptions.entityIds ?? [],
+        );
+    }
+
+    if (airEntities.length > 0) {
+        const airOptions: AirCardOptions = {
+            source: 'manual',
+            entityIds: airEntities.map((entity) => entity.entityId),
+            showPowerControls: true,
+            showSpeed: true,
+            showHumidity: true,
+            maxItems: 5,
+        };
+        addCard(
+            roomTab,
+            roomPlacer,
+            {
+                cardType: 'air',
+                name: airEntities.length === 1
+                    ? airEntities[0].name
+                    : gt(options, 'dashboardGeneration.output.airControl'),
+                entityId: airEntities[0].entityId,
+                icon: 'mode_fan',
+                desktopSpan: 4,
+                mobileSpan: 4,
+                rowSpan: 3,
+                options: { air: airOptions },
+                reason: gt(options, 'dashboardGeneration.output.reason.roomAir', { name: areaName }),
+                sourceType: 'area',
+                sourceId: areaId,
+            },
+            options,
+            includedEntities,
+            airOptions.entityIds ?? [],
+        );
+    }
+
+    if (vacuumEntities.length > 0) {
+        const vacuumOptions: VacuumCardOptions = {
+            source: 'manual',
+            entityIds: vacuumEntities.map((entity) => entity.entityId),
+            showGroupControls: true,
+            showBattery: true,
+            showFanSpeed: true,
+            maxItems: 4,
+        };
+        addTitle(roomTab, roomPlacer, gt(options, 'dashboardGeneration.output.vacuumControl'), gt(options, 'dashboardGeneration.output.subtitle.controls', { name: areaName }), options, 'area', areaId);
+        addCard(
+            roomTab,
+            roomPlacer,
+            {
+                cardType: 'vacuum',
+                name: vacuumEntities.length === 1
+                    ? vacuumEntities[0].name
+                    : gt(options, 'dashboardGeneration.output.vacuumControl'),
+                entityId: vacuumEntities[0].entityId,
+                icon: 'cleaning_services',
+                desktopSpan: 4,
+                mobileSpan: 4,
+                rowSpan: 3,
+                options: { vacuum: vacuumOptions },
+                reason: gt(options, 'dashboardGeneration.output.reason.roomVacuum', { name: areaName }),
+                sourceType: 'area',
+                sourceId: areaId,
+            },
+            options,
+            includedEntities,
+            vacuumOptions.entityIds ?? [],
         );
     }
 
@@ -3932,6 +4530,7 @@ function generateRoomDashboard(
                     hours_to_show: 12,
                     aggregate_func: 'avg',
                     chartType: getGraphChartType(sensor),
+                    ...getGraphAnalyticsConfig(sensor),
                     reason: gt(options, 'dashboardGeneration.output.reason.sensorHistory', {
                         name: areaName,
                         sensor: sensor.deviceClass ?? 'sensor',

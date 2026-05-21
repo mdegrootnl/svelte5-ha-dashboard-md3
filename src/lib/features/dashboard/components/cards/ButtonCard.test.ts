@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ButtonCard from './ButtonCard.svelte';
-import { haStore, cardEditorStore, themeStore } from '$lib';
+import { haStore, cardEditorStore, entityDetailStore, themeStore } from '$lib';
 
 describe('ButtonCard Component', () => {
     beforeEach(() => {
@@ -10,6 +10,7 @@ describe('ButtonCard Component', () => {
         vi.spyOn(haStore, 'getEntity').mockReturnValue(undefined as any);
         vi.spyOn(haStore, 'callService').mockResolvedValue({ ok: true, value: undefined });
         vi.spyOn(cardEditorStore, 'open').mockImplementation(() => { });
+        entityDetailStore.reset();
         themeStore.language = 'en';
     });
 
@@ -151,6 +152,23 @@ describe('ButtonCard Component', () => {
         expect(cardEditorStore.open).toHaveBeenCalledWith(expect.objectContaining({
             entityId: 'switch.test'
         }));
+    });
+
+    it('opens entity details without toggling the main entity', async () => {
+        const entity = {
+            entity_id: 'switch.test',
+            state: 'off',
+            attributes: { friendly_name: 'Test Switch' }
+        };
+        vi.spyOn(haStore, 'getEntity').mockReturnValue(entity as any);
+
+        render(ButtonCard, { props: { entityId: 'switch.test', title: '', name: '', domainFilter: '' } });
+
+        await fireEvent.click(screen.getByTitle('Open details'));
+
+        expect(entityDetailStore.open).toBe(true);
+        expect(entityDetailStore.selectedEntityId).toBe('switch.test');
+        expect(haStore.callService).not.toHaveBeenCalled();
     });
 
     it('derives default icon from entityId domain', async () => {

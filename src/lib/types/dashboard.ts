@@ -31,9 +31,34 @@ export type DashboardCardType =
     | "weather"
     | "remote"
     | "device_panel"
+    | "presence"
+    | "security"
+    | "lock"
+    | "cover"
+    | "air"
+    | "update"
+    | "todo"
+    | "vacuum"
     | "camera";
 
 export type GraphChartType = "area" | "line" | "bar" | "step";
+export type GraphComparisonMode = "none" | "previous_period";
+export type GraphDataSourceMode = "auto" | "history" | "statistics";
+export type GraphStatisticsPeriod = "5minute" | "hour" | "day" | "month";
+export type GraphScaleMode = "absolute" | "normalized";
+
+export interface GraphThreshold {
+    value: number;
+    color?: string;
+    label?: string;
+}
+
+export interface GraphRangeBand {
+    min: number;
+    max: number;
+    color?: string;
+    label?: string;
+}
 
 export type DashboardCardSurfaceStyle = "md3" | "glass" | "soft";
 export type DashboardGridCardSurfaceStyle = "theme" | DashboardCardSurfaceStyle;
@@ -313,6 +338,77 @@ export interface DevicePanelCardOptions {
     actions?: CardAction[];
 }
 
+export interface PresenceCardOptions {
+    source?: SmartSourceConfig;
+    maxPeople?: number;
+    showGuestMode?: boolean;
+    showEta?: boolean;
+}
+
+export interface SecurityCardOptions {
+    source?: SmartSourceConfig;
+    alarmEntityId?: string;
+    lockEntityIds?: string[];
+    openingEntityIds?: string[];
+    motionEntityIds?: string[];
+    safetyEntityIds?: string[];
+    showAlarmControls?: boolean;
+    maxItems?: number;
+}
+
+export interface LockCardOptions {
+    source?: SmartSourceConfig;
+    entityIds?: string[];
+    showLockAll?: boolean;
+    showUnlockControls?: boolean;
+    maxItems?: number;
+}
+
+export interface CoverCardOptions {
+    source?: SmartSourceConfig;
+    entityIds?: string[];
+    showGroupControls?: boolean;
+    showPosition?: boolean;
+    maxItems?: number;
+}
+
+export interface AirCardOptions {
+    source?: SmartSourceConfig;
+    entityIds?: string[];
+    showPowerControls?: boolean;
+    showSpeed?: boolean;
+    showHumidity?: boolean;
+    maxItems?: number;
+}
+
+export interface UpdateCardOptions {
+    source?: SmartSourceConfig;
+    entityIds?: string[];
+    showCheckControl?: boolean;
+    showInstallControls?: boolean;
+    showVersions?: boolean;
+    showReleaseNotes?: boolean;
+    maxItems?: number;
+}
+
+export interface TodoCardOptions {
+    source?: SmartSourceConfig;
+    entityIds?: string[];
+    showAddControl?: boolean;
+    showCompleted?: boolean;
+    showDueDates?: boolean;
+    maxItems?: number;
+}
+
+export interface VacuumCardOptions {
+    source?: SmartSourceConfig;
+    entityIds?: string[];
+    showGroupControls?: boolean;
+    showBattery?: boolean;
+    showFanSpeed?: boolean;
+    maxItems?: number;
+}
+
 export interface CameraCardOptions {
     source?: SmartSourceConfig;
     entityIds?: string[];
@@ -331,6 +427,14 @@ export interface DashboardCardOptions {
     weather?: WeatherCardOptions;
     remote?: RemoteCardOptions;
     device_panel?: DevicePanelCardOptions;
+    presence?: PresenceCardOptions;
+    security?: SecurityCardOptions;
+    lock?: LockCardOptions;
+    cover?: CoverCardOptions;
+    air?: AirCardOptions;
+    update?: UpdateCardOptions;
+    todo?: TodoCardOptions;
+    vacuum?: VacuumCardOptions;
     camera?: CameraCardOptions;
 }
 
@@ -544,6 +648,13 @@ export interface DashboardItem {
     aggregate_func?: "avg" | "min" | "max" | "last";
     chartType?: GraphChartType;
     graphEntities?: GraphCardEntity[];
+    color_thresholds?: GraphThreshold[];
+    rangeBands?: GraphRangeBand[];
+    comparisonMode?: GraphComparisonMode;
+    dataSource?: GraphDataSourceMode;
+    statisticsPeriod?: GraphStatisticsPeriod;
+    scaleMode?: GraphScaleMode;
+    showAnalytics?: boolean;
     /** Disable live HA history calls for static/demo graph surfaces. */
     fetchHistory?: boolean;
 
@@ -721,6 +832,14 @@ export function createDefaultItemLayout(
         cardType === "title" ||
         cardType === "calendar" ||
         cardType === "device_panel" ||
+        cardType === "presence" ||
+        cardType === "security" ||
+        cardType === "lock" ||
+        cardType === "cover" ||
+        cardType === "air" ||
+        cardType === "update" ||
+        cardType === "todo" ||
+        cardType === "vacuum" ||
         cardType === "camera"
     ) ? 4 : 6;
     const mobileSpan = (
@@ -742,8 +861,16 @@ export function createDefaultItemLayout(
         cardType === "room" ||
         cardType === "calendar" ||
         cardType === "device_panel" ||
+        cardType === "presence" ||
+        cardType === "security" ||
+        cardType === "lock" ||
+        cardType === "cover" ||
+        cardType === "air" ||
+        cardType === "update" ||
+        cardType === "todo" ||
+        cardType === "vacuum" ||
         cardType === "camera"
-    ) ? 2 : (cardSize === 'condensed' ? 1 : cardSize === 'standard' ? 2 : 3);
+    ) ? (cardType === "security" || cardType === "lock" || cardType === "cover" || cardType === "air" || cardType === "update" || cardType === "todo" || cardType === "vacuum" ? 3 : 2) : (cardSize === 'condensed' ? 1 : cardSize === 'standard' ? 2 : 3);
 
     const layout = {
         desktop: {

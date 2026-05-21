@@ -28,6 +28,11 @@
     import ImagePicker from "$lib/components/settings/ImagePicker.svelte";
     import Switch from "$lib/components/md3/Switch.svelte";
     import { lockScreenStore } from "$lib/features/lockscreen/stores/lockscreen.svelte";
+    import {
+        kioskStore,
+        type KioskDeviceDensity,
+        type KioskDeviceNavigationMode,
+    } from "$lib/features/kiosk/stores/kiosk.svelte";
     import DashboardSettings from "$lib/components/settings/DashboardSettings.svelte";
     import DashboardIcon from "~icons/material-symbols/dashboard";
     import { withBase } from "$lib/utils/appBase";
@@ -70,6 +75,16 @@
     let ahSaving = $state(false);
     let ahTesting = $state(false);
     let ahMessage = $state("");
+
+    const KIOSK_DENSITY_OPTIONS = [
+        "compact",
+        "comfortable",
+        "spacious",
+    ] satisfies KioskDeviceDensity[];
+    const KIOSK_NAVIGATION_OPTIONS = [
+        "shared",
+        "hidden",
+    ] satisfies KioskDeviceNavigationMode[];
 
     onMount(async () => {
         const lastUrl = await haStore.getLastUsedUrl();
@@ -660,7 +675,7 @@
 
     <!-- Lockscreen Tab -->
     {#if activeTabId === "lockscreen"}
-        <section class="mb-6">
+        <section class="mb-6 flex flex-col gap-6">
             <Card variant="outlined" class="w-full">
                 <div class="p-6 flex flex-col gap-6">
                     <div class="flex items-center gap-4">
@@ -753,6 +768,291 @@
                                         lockScreenStore.backgroundPortrait,
                                 })}
                         />
+                    </div>
+                </div>
+            </Card>
+
+            <Card variant="outlined" class="w-full">
+                <div class="p-6 flex flex-col gap-6">
+                    <div class="flex flex-col gap-4 md:flex-row md:items-center">
+                        <div
+                            class="w-10 h-10 rounded-lg bg-m3-primary/10 flex items-center justify-center"
+                        >
+                            <DashboardIcon class="w-6 h-6 text-m3-primary" />
+                        </div>
+                        <div class="flex-1">
+                            <h2 class="text-m3-title-large text-m3-on-surface">
+                                {themeStore.t("settings.kiosk.title")}
+                            </h2>
+                            <p
+                                class="text-m3-body-medium text-m3-on-surface-variant"
+                            >
+                                {themeStore.t("settings.kiosk.description")}
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-m3-label-large text-m3-on-surface"
+                                >{themeStore.t("common.enabled")}</span
+                            >
+                            <Switch
+                                checked={kioskStore.enabled}
+                                onchange={(checked) =>
+                                    kioskStore.updateConfig({ enabled: checked })}
+                            />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="flex flex-col gap-2 lg:col-span-2">
+                            <div class="flex justify-between items-center gap-4">
+                                <span
+                                    class="text-m3-label-large text-m3-on-surface"
+                                    >{themeStore.t("settings.kiosk.idleTimeout")}</span
+                                >
+                                <span
+                                    class="text-m3-body-medium text-m3-on-surface-variant"
+                                    >{Math.floor(kioskStore.idleTimeout / 60)}m {kioskStore.idleTimeout %
+                                        60}s</span
+                                >
+                            </div>
+                            <input
+                                type="range"
+                                min="30"
+                                max="1800"
+                                step="30"
+                                class="touch-range w-full"
+                                value={kioskStore.idleTimeout}
+                                oninput={(e) =>
+                                    kioskStore.updateConfig({
+                                        idleTimeout: parseInt(
+                                            e.currentTarget.value,
+                                        ),
+                                    })}
+                            />
+                            <p
+                                class="text-m3-body-small text-m3-on-surface-variant"
+                            >
+                                {themeStore.t("settings.kiosk.timeoutHelp")}
+                            </p>
+                        </div>
+
+                        <div
+                            class="flex items-center justify-between gap-4 rounded-m3-lg bg-m3-surface-container-low p-4"
+                        >
+                            <div>
+                                <p class="text-m3-label-large text-m3-on-surface">
+                                    {themeStore.t("settings.kiosk.dimOnIdle")}
+                                </p>
+                            </div>
+                            <Switch
+                                checked={kioskStore.dimOnIdle}
+                                onchange={(checked) =>
+                                    kioskStore.updateConfig({ dimOnIdle: checked })}
+                            />
+                        </div>
+
+                        <div
+                            class="flex items-center justify-between gap-4 rounded-m3-lg bg-m3-surface-container-low p-4"
+                        >
+                            <div>
+                                <p class="text-m3-label-large text-m3-on-surface">
+                                    {themeStore.t("settings.kiosk.hideNavigationOnIdle")}
+                                </p>
+                            </div>
+                            <Switch
+                                checked={kioskStore.hideNavigationOnIdle}
+                                onchange={(checked) =>
+                                    kioskStore.updateConfig({
+                                        hideNavigationOnIdle: checked,
+                                    })}
+                            />
+                        </div>
+
+                        <div
+                            class="flex items-center justify-between gap-4 rounded-m3-lg bg-m3-surface-container-low p-4"
+                        >
+                            <div>
+                                <p class="text-m3-label-large text-m3-on-surface">
+                                    {themeStore.t("settings.kiosk.showScreensaver")}
+                                </p>
+                            </div>
+                            <Switch
+                                checked={kioskStore.showScreensaver}
+                                onchange={(checked) =>
+                                    kioskStore.updateConfig({
+                                        showScreensaver: checked,
+                                    })}
+                            />
+                        </div>
+
+                        <div
+                            class="flex items-center justify-between gap-4 rounded-m3-lg bg-m3-surface-container-low p-4"
+                        >
+                            <div>
+                                <p class="text-m3-label-large text-m3-on-surface">
+                                    {themeStore.t("settings.kiosk.hideEditControls")}
+                                </p>
+                            </div>
+                            <Switch
+                                checked={kioskStore.hideEditControls}
+                                onchange={(checked) =>
+                                    kioskStore.updateConfig({
+                                        hideEditControls: checked,
+                                    })}
+                            />
+                        </div>
+
+                        <div class="flex flex-col gap-2">
+                            <div class="flex justify-between items-center gap-4">
+                                <span
+                                    class="text-m3-label-large text-m3-on-surface"
+                                    >{themeStore.t("settings.kiosk.editUnlockDuration")}</span
+                                >
+                                <span
+                                    class="text-m3-body-medium text-m3-on-surface-variant"
+                                    >{kioskStore.editUnlockMinutes}m</span
+                                >
+                            </div>
+                            <input
+                                type="range"
+                                min="1"
+                                max="60"
+                                step="1"
+                                class="touch-range w-full"
+                                value={kioskStore.editUnlockMinutes}
+                                oninput={(e) =>
+                                    kioskStore.updateConfig({
+                                        editUnlockMinutes: parseInt(
+                                            e.currentTarget.value,
+                                        ),
+                                    })}
+                            />
+                        </div>
+                    </div>
+
+                    <div
+                        class="flex flex-col gap-5 rounded-m3-xl border border-m3-outline-variant p-4"
+                    >
+                        <div>
+                            <p class="text-m3-title-small text-m3-on-surface">
+                                {themeStore.t("settings.kiosk.deviceProfile")}
+                            </p>
+                            <p
+                                class="text-m3-body-small text-m3-on-surface-variant"
+                            >
+                                {themeStore.t("settings.kiosk.deviceProfileHelp")}
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                            <div class="flex flex-col gap-3">
+                                <span
+                                    class="text-m3-label-large text-m3-on-surface"
+                                    >{themeStore.t("settings.kiosk.density")}</span
+                                >
+                                <div class="flex flex-col gap-2">
+                                    {#each KIOSK_DENSITY_OPTIONS as density}
+                                        <label
+                                            class="flex cursor-pointer items-center gap-3 rounded-m3-lg bg-m3-surface-container-low p-3 transition-colors hover:bg-m3-surface-container"
+                                        >
+                                            <Radio
+                                                value={density}
+                                                group={kioskStore.deviceDensity}
+                                                onchange={(value) =>
+                                                    kioskStore.updateDeviceProfile({
+                                                        density:
+                                                            value as KioskDeviceDensity,
+                                                    })}
+                                            />
+                                            <span
+                                                class="text-m3-body-large text-m3-on-surface"
+                                            >
+                                                {themeStore.t(
+                                                    `settings.kiosk.density.${density}`,
+                                                )}
+                                            </span>
+                                        </label>
+                                    {/each}
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col gap-3">
+                                <span
+                                    class="text-m3-label-large text-m3-on-surface"
+                                    >{themeStore.t("settings.kiosk.navigationMode")}</span
+                                >
+                                <div class="flex flex-col gap-2">
+                                    {#each KIOSK_NAVIGATION_OPTIONS as navigationMode}
+                                        <label
+                                            class="flex cursor-pointer items-start gap-3 rounded-m3-lg bg-m3-surface-container-low p-3 transition-colors hover:bg-m3-surface-container"
+                                        >
+                                            <Radio
+                                                value={navigationMode}
+                                                group={kioskStore.deviceNavigationMode}
+                                                onchange={(value) =>
+                                                    kioskStore.updateDeviceProfile({
+                                                        navigationMode:
+                                                            value as KioskDeviceNavigationMode,
+                                                    })}
+                                            />
+                                            <span class="flex min-w-0 flex-col">
+                                                <span
+                                                    class="text-m3-body-large text-m3-on-surface"
+                                                >
+                                                    {themeStore.t(
+                                                        `settings.kiosk.navigationMode.${navigationMode}`,
+                                                    )}
+                                                </span>
+                                                <span
+                                                    class="text-m3-body-small text-m3-on-surface-variant"
+                                                >
+                                                    {themeStore.t(
+                                                        `settings.kiosk.navigationMode.${navigationMode}.description`,
+                                                    )}
+                                                </span>
+                                            </span>
+                                        </label>
+                                    {/each}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        class="flex flex-col gap-3 rounded-m3-xl border border-m3-outline-variant p-4 md:flex-row md:items-center md:justify-between"
+                    >
+                        <div>
+                            <p class="text-m3-label-large text-m3-on-surface">
+                                {#if kioskStore.isEditLocked}
+                                    {themeStore.t("settings.kiosk.editingLocked")}
+                                {:else}
+                                    {themeStore.t("settings.kiosk.editingUnlocked")}
+                                {/if}
+                            </p>
+                            <p
+                                class="text-m3-body-small text-m3-on-surface-variant"
+                            >
+                                {themeStore.t("settings.kiosk.editingHelp")}
+                            </p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <Button
+                                variant="tonal"
+                                disabled={!kioskStore.enabled ||
+                                    !kioskStore.hideEditControls}
+                                onclick={() => kioskStore.unlockEditing()}
+                            >
+                                {themeStore.t("settings.kiosk.unlockEditing")}
+                            </Button>
+                            {#if kioskStore.isEditingUnlocked}
+                                <Button
+                                    variant="outlined"
+                                    onclick={() => kioskStore.lockEditing()}
+                                >
+                                    {themeStore.t("settings.kiosk.lockEditing")}
+                                </Button>
+                            {/if}
+                        </div>
                     </div>
                 </div>
             </Card>

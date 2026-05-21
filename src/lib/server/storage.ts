@@ -49,7 +49,8 @@ export class JsonStorageService {
                 dashboards: { ...DEFAULT_CONFIG.dashboards, ...data.dashboards },
                 pages: data.pages || DEFAULT_CONFIG.pages,
                 musicLibrary: { ...DEFAULT_CONFIG.musicLibrary, ...data.musicLibrary },
-                lockScreen: { ...DEFAULT_CONFIG.lockScreen, ...data.lockScreen }
+                lockScreen: { ...DEFAULT_CONFIG.lockScreen, ...data.lockScreen },
+                kiosk: { ...DEFAULT_CONFIG.kiosk, ...data.kiosk }
             };
         } catch (error) {
             // ...
@@ -82,9 +83,12 @@ export class JsonStorageService {
                 lockScreen: {
                     ...current.lockScreen!,
                     ...(partial.lockScreen || {})
+                },
+                kiosk: {
+                    ...current.kiosk!,
+                    ...(partial.kiosk || {})
                 }
             };
-            console.log('[JsonStorageService] Saving new config with lockScreen:', newConfig.lockScreen);
             await this.save(newConfig);
         });
     }

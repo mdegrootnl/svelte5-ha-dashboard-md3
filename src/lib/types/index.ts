@@ -1,9 +1,11 @@
 // Entity Types
 export * from './icons';
 import type {
+    AirCardOptions,
     ButtonCardOptions,
     CalendarCardOptions,
     CollectionCardOptions,
+    CoverCardOptions,
     DashboardCardOptions,
     DashboardCardType,
     DashboardGenerationEntityRef,
@@ -23,17 +25,31 @@ import type {
     CameraCardOptions,
     DevicePanelCardOptions,
     EnergyCardOptions,
+    GraphComparisonMode,
+    GraphDataSourceMode,
+    GraphRangeBand,
+    GraphScaleMode,
+    GraphStatisticsPeriod,
+    GraphThreshold,
     GraphChartType,
+    LockCardOptions,
     NavigationCardShortcut,
+    PresenceCardOptions,
     RemoteCardOptions,
     RoomCardOptions,
+    SecurityCardOptions,
+    TodoCardOptions,
+    UpdateCardOptions,
+    VacuumCardOptions,
     WeatherCardOptions
 } from './dashboard';
 export type {
+    AirCardOptions,
     ButtonCardOptions,
     CalendarCardOptions,
     CameraCardOptions,
     CollectionCardOptions,
+    CoverCardOptions,
     DashboardCardOptions,
     DashboardCardSurfaceStyle,
     DashboardGenerationEntityRef,
@@ -53,12 +69,24 @@ export type {
     DashboardGridCardSurfaceStyle,
     DevicePanelCardOptions,
     EnergyCardOptions,
+    GraphComparisonMode,
+    GraphDataSourceMode,
+    GraphRangeBand,
+    GraphScaleMode,
+    GraphStatisticsPeriod,
+    GraphThreshold,
     GraphChartType,
     EntityQueryConfig,
+    LockCardOptions,
     NavigationCardShortcut,
+    PresenceCardOptions,
     RemoteCardOptions,
     RoomCardOptions,
+    SecurityCardOptions,
     SmartSourceConfig,
+    TodoCardOptions,
+    UpdateCardOptions,
+    VacuumCardOptions,
     WeatherCardOptions,
     CardAction
 } from './dashboard';
@@ -164,6 +192,11 @@ export interface GraphCardConfig extends BaseCardConfig {
     points_per_hour?: number;
     aggregate_func?: 'avg' | 'min' | 'max' | 'last';
     chartType?: GraphChartType;
+    comparisonMode?: GraphComparisonMode;
+    dataSource?: GraphDataSourceMode;
+    statisticsPeriod?: GraphStatisticsPeriod;
+    scaleMode?: GraphScaleMode;
+    showAnalytics?: boolean;
     group_by?: 'date' | 'hour';
     line_color?: string | string[];
     show?: {
@@ -173,7 +206,8 @@ export interface GraphCardConfig extends BaseCardConfig {
         state?: boolean;
         fill?: boolean;
     };
-    color_thresholds?: { value: number; color: string }[];
+    color_thresholds?: GraphThreshold[];
+    rangeBands?: GraphRangeBand[];
 }
 
 export interface NavigationCardConfig extends BaseCardConfig {
@@ -270,6 +304,14 @@ export interface LabelValueCardConfig extends BaseCardConfig {
         | 'weather'
         | 'remote'
         | 'device_panel'
+        | 'presence'
+        | 'security'
+        | 'lock'
+        | 'cover'
+        | 'air'
+        | 'update'
+        | 'todo'
+        | 'vacuum'
         | 'camera';
     options?: DashboardCardOptions;
 }

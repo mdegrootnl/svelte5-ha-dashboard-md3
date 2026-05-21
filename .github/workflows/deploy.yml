@@ -36,6 +36,15 @@ jobs:
       - name: Test
         run: npm test -- --run
 
+      - name: Install Playwright Browser
+        run: npx playwright install chromium
+
+      - name: Visual Smoke
+        run: npm run test:visual
+        env:
+          PORT: 4173
+          PLAYWRIGHT_PORT: 4173
+
       - name: Audit High Severity Dependencies
         run: npm audit --audit-level=high
 

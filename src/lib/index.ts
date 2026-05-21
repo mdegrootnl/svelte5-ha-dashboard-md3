@@ -2,6 +2,7 @@
 export * from './types';
 export * from './utils';
 export { HistoryService } from './domain/historyService';
+export * from './domain/graphAnalytics';
 export * from './domain/haInventory';
 export * from './domain/cardActions';
 export * from './domain/dashboardGenerator';
@@ -13,10 +14,12 @@ export { themeStore, ThemeStore } from './stores/theme.svelte';
 export { cardEditorStore, CardEditorStore } from './features/dashboard/stores/cardEditor.svelte';
 export { dashboardStore, DashboardStore } from './features/dashboard/stores/dashboard.svelte';
 export { dashboardEditorStore, DashboardEditorStore } from './features/dashboard/stores/dashboardEditor.svelte';
+export { entityDetailStore, EntityDetailStore } from './features/dashboard/stores/entityDetail.svelte';
 export { maStore, MusicAssistantStore } from './features/music/stores/maStore.svelte';
 export { musicLibraryStore, MusicLibraryStore } from './features/music/stores/musicLibrary.svelte';
 export { calendarStore, CalendarStore } from './features/calendar/stores/calendar.svelte';
 export { lockScreenStore, LockScreenStore } from './features/lockscreen/stores/lockscreen.svelte';
+export { kioskStore, KioskStore } from './features/kiosk/stores/kiosk.svelte';
 
 // MD3 Components
 export { default as Button } from './components/md3/Button.svelte';
@@ -40,6 +43,8 @@ export { default as GraphCard } from './features/dashboard/components/cards/Grap
 export { default as TabCard } from './features/dashboard/components/cards/TabCard.svelte';
 export { default as NavigationCard } from './features/dashboard/components/cards/NavigationCard.svelte';
 export { default as DashboardCardRenderer } from './features/dashboard/components/cards/DashboardCardRenderer.svelte';
+export { default as EntityDetailButton } from './features/dashboard/components/EntityDetailButton.svelte';
+export { default as EntityDetailSheet } from './features/dashboard/components/EntityDetailSheet.svelte';
 export { default as RoomSummaryCard } from './features/dashboard/components/cards/RoomSummaryCard.svelte';
 export { default as EntityCollectionCard } from './features/dashboard/components/cards/EntityCollectionCard.svelte';
 export { default as EnergyFlowCard } from './features/dashboard/components/cards/EnergyFlowCard.svelte';
@@ -47,6 +52,14 @@ export { default as CalendarAgendaCard } from './features/dashboard/components/c
 export { default as WeatherOverviewCard } from './features/dashboard/components/cards/WeatherOverviewCard.svelte';
 export { default as RemotePanelCard } from './features/dashboard/components/cards/RemotePanelCard.svelte';
 export { default as DevicePanelCard } from './features/dashboard/components/cards/DevicePanelCard.svelte';
+export { default as PresenceSummaryCard } from './features/dashboard/components/cards/PresenceSummaryCard.svelte';
+export { default as SecurityStatusCard } from './features/dashboard/components/cards/SecurityStatusCard.svelte';
+export { default as LockStatusCard } from './features/dashboard/components/cards/LockStatusCard.svelte';
+export { default as CoverControlCard } from './features/dashboard/components/cards/CoverControlCard.svelte';
+export { default as AirControlCard } from './features/dashboard/components/cards/AirControlCard.svelte';
+export { default as UpdateStatusCard } from './features/dashboard/components/cards/UpdateStatusCard.svelte';
+export { default as TodoListCard } from './features/dashboard/components/cards/TodoListCard.svelte';
+export { default as VacuumControlCard } from './features/dashboard/components/cards/VacuumControlCard.svelte';
 
 // Layout Components
 export { default as NavigationRail } from './components/layout/NavigationRail.svelte';

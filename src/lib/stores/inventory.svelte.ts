@@ -1,18 +1,32 @@
 import {
+    buildSmartAirOptions,
     buildSmartCalendarOptions,
+    buildSmartCoverOptions,
     buildSmartDevicePanelOptions,
     buildSmartEnergyOptions,
+    buildSmartLockOptions,
     buildSmartRemoteOptions,
+    buildSmartSecurityOptions,
+    buildSmartTodoOptions,
+    buildSmartUpdateOptions,
+    buildSmartVacuumOptions,
     buildSmartWeatherOptions,
     createInventoryIndex,
     type InventoryIndex,
 } from '$lib/domain/haInventory';
 import type {
+    AirCardOptions,
     CalendarCardOptions,
+    CoverCardOptions,
     DevicePanelCardOptions,
     EnergyCardOptions,
     EntityQueryConfig,
+    LockCardOptions,
     RemoteCardOptions,
+    SecurityCardOptions,
+    TodoCardOptions,
+    UpdateCardOptions,
+    VacuumCardOptions,
     WeatherCardOptions,
 } from '$lib/types';
 import { perfCount } from '$lib/utils/perf';
@@ -72,6 +86,41 @@ export class InventoryStore {
     smartDevicePanelOptions(current: DevicePanelCardOptions = {}, fallbackEntityId = '') {
         perfCount('smartCard.devicePanel.recompute');
         return buildSmartDevicePanelOptions(this.index as InventoryIndex, current, fallbackEntityId);
+    }
+
+    smartSecurityOptions(current: SecurityCardOptions = {}, fallbackEntityId = '') {
+        perfCount('smartCard.security.recompute');
+        return buildSmartSecurityOptions(this.index as InventoryIndex, current, fallbackEntityId);
+    }
+
+    smartLockOptions(current: LockCardOptions = {}, fallbackEntityId = '') {
+        perfCount('smartCard.lock.recompute');
+        return buildSmartLockOptions(this.index as InventoryIndex, current, fallbackEntityId);
+    }
+
+    smartCoverOptions(current: CoverCardOptions = {}, fallbackEntityId = '') {
+        perfCount('smartCard.cover.recompute');
+        return buildSmartCoverOptions(this.index as InventoryIndex, current, fallbackEntityId);
+    }
+
+    smartAirOptions(current: AirCardOptions = {}, fallbackEntityId = '') {
+        perfCount('smartCard.air.recompute');
+        return buildSmartAirOptions(this.index as InventoryIndex, current, fallbackEntityId);
+    }
+
+    smartVacuumOptions(current: VacuumCardOptions = {}, fallbackEntityId = '') {
+        perfCount('smartCard.vacuum.recompute');
+        return buildSmartVacuumOptions(this.index as InventoryIndex, current, fallbackEntityId);
+    }
+
+    smartUpdateOptions(current: UpdateCardOptions = {}, fallbackEntityId = '') {
+        perfCount('smartCard.update.recompute');
+        return buildSmartUpdateOptions(this.index as InventoryIndex, current, fallbackEntityId);
+    }
+
+    smartTodoOptions(current: TodoCardOptions = {}, fallbackEntityId = '') {
+        perfCount('smartCard.todo.recompute');
+        return buildSmartTodoOptions(this.index as InventoryIndex, current, fallbackEntityId);
     }
 }
 

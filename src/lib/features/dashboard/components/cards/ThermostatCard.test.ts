@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen } from '@testing-library/svelte';
 import ThermostatCard from './ThermostatCard.svelte';
+import { dashboardEditorStore } from '$lib/features/dashboard/stores/dashboardEditor.svelte';
 import { haStore } from '$lib/stores/ha.svelte';
+import { entityDetailStore } from '$lib/features/dashboard/stores/entityDetail.svelte';
+import { themeStore } from '$lib/stores/theme.svelte';
 import type { HassEntity } from 'home-assistant-js-websocket';
 
 // Mock the haStore
@@ -34,6 +37,9 @@ function createMockEntity(overrides: Partial<HassEntity> & { entity_id: string; 
 describe('ThermostatCard', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        dashboardEditorStore.isEditing = false;
+        entityDetailStore.reset();
+        themeStore.language = 'en';
     });
 
     it('renders with entity data', () => {
@@ -172,5 +178,48 @@ describe('ThermostatCard', () => {
         });
 
         expect(container.querySelector('.custom-class')).toBeInTheDocument();
+    });
+
+    it('opens entity details with primary and secondary entities', async () => {
+        vi.mocked(haStore.getEntity).mockImplementation((id: string) => {
+            if (id === 'climate.living_room') {
+                return createMockEntity({
+                    entity_id: 'climate.living_room',
+                    state: 'heat',
+                    attributes: {
+                        friendly_name: 'Living Room',
+                        current_temperature: 21.5,
+                        temperature: 22,
+                    },
+                });
+            }
+            if (id === 'sensor.outdoor_temp') {
+                return createMockEntity({
+                    entity_id: 'sensor.outdoor_temp',
+                    state: '5.2',
+                    attributes: { friendly_name: 'Outdoor' },
+                });
+            }
+            return undefined as unknown as HassEntity;
+        });
+
+        render(ThermostatCard, {
+            props: {
+                entityId: 'climate.living_room',
+                secondaryEntityId: 'sensor.outdoor_temp',
+                name: '',
+                secondaryName: 'Outdoor',
+                domainFilter: '',
+            },
+        });
+
+        await fireEvent.click(screen.getByTitle('Open details'));
+
+        expect(entityDetailStore.open).toBe(true);
+        expect(entityDetailStore.selectedEntityId).toBe('climate.living_room');
+        expect(entityDetailStore.entityIds).toEqual([
+            'climate.living_room',
+            'sensor.outdoor_temp',
+        ]);
     });
 });

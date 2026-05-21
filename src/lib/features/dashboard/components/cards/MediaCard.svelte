@@ -10,6 +10,7 @@
     import MediaProgress from "./media/MediaProgress.svelte";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import AuthenticatedImage from "$lib/components/common/AuthenticatedImage.svelte";
+    import EntityDetailButton from "$lib/features/dashboard/components/EntityDetailButton.svelte";
     import type { DashboardCardSurfaceStyle } from "$lib/types/dashboard";
     import {
         getCardSurfaceClasses,
@@ -397,4 +398,10 @@
     >
         <IconEdit class="size-[clamp(0.875rem,3.5cqmin,1.25rem)]" />
     </button>
+
+    <EntityDetailButton
+        {entityId}
+        title={entityName}
+        sourceLabel={title}
+    />
 </div>
