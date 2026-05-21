@@ -21,7 +21,7 @@ This project is not a Lovelace theme. It is a standalone dashboard app with edit
 - Editable responsive grid layouts for desktop, tablet, and phone profiles
 - Generated, user-modified, and pinned dashboard states
 - Card library with picker entries and live examples for button, media, thermostat, title, tabs, graph, navigation, room, collection, energy, calendar, weather, remote, device panel, camera, presence, security, lock, cover, air, vacuum, update, and to-do cards
-- Touch-focused editing and navigation controls, including optional kiosk mode with per-device density/navigation, idle dimming, wake-tap protection, and an idle clock/weather/media overlay for wall tablets
+- Touch-focused editing and navigation controls, including optional kiosk mode with per-device density/navigation, idle dimming, wake-tap protection, optional screen wake lock, and an idle clock/weather/media overlay for wall tablets
 - Bubble-style entity detail sheets for richer controls without oversized cards
 - Graph analytics with threshold lines, range bands, previous-period comparison, normalized multi-series trends, and compact metric summaries
 
@@ -47,7 +47,7 @@ This project is not a Lovelace theme. It is a standalone dashboard app with edit
 - API mutations are blocked for cross-origin requests
 - Runtime settings, tokens, uploads, and integration secrets are kept outside git in `data/`
 - API payloads are validated with Zod where practical
-- CSP is present, but currently permissive for Home Assistant ingress, development constraints, media, images, and external integrations. CSP hardening is tracked in the backlog.
+- CSP is present. Home Assistant add-on deployments use a narrower default policy, production script execution no longer allows `unsafe-eval`, and standalone deployments keep compatibility-oriented network allowances unless hardened CSP mode is explicitly enabled.
 
 ## Getting Started
 
@@ -65,7 +65,7 @@ npm run test:visual
 npm run build
 ```
 
-`npm run test:visual` runs the Playwright visual smoke suite against a simulated Home Assistant ingress base path across desktop, tablet landscape, tablet portrait, and phone viewports. It checks local route failures, page overflow, key label contrast, and image-label protection.
+`npm run test:visual` runs the Playwright visual smoke suite against a simulated Home Assistant ingress base path across desktop, tablet landscape, tablet portrait, and phone viewports. It checks local route failures, page overflow, text escaping local containers, key label contrast, and image-label protection.
 
 Docker:
 
@@ -120,6 +120,20 @@ You can also set:
 DASHBOARD_DATA_DIR=/srv/ha-dashboard/data
 ```
 
+Optional CSP controls:
+
+```bash
+# Default: ha-addon uses hardened, standalone uses compatibility mode.
+DASHBOARD_CSP_MODE=hardened
+
+# Add explicit origins when hardened standalone still needs direct HA/media access.
+DASHBOARD_CSP_CONNECT_SRC="https://ha.example.local wss://ha.example.local"
+DASHBOARD_CSP_IMG_SRC="http://camera.example.local"
+
+# Trial a policy without enforcing it.
+DASHBOARD_CSP_REPORT_ONLY=true
+```
+
 ### Home Assistant Add-On
 
 This repository can be added to the Home Assistant add-on store:
@@ -135,6 +149,21 @@ For a local ingress-style preview, run:
 ```bash
 npm run preview:addon
 ```
+
+## Wall Tablet Notes
+
+Kiosk mode lives in Settings. Shared household options control idle dimming, the idle screensaver, edit-lock behavior, and the optional screen wake lock. Per-device options control touch density and whether navigation should stay hidden on that specific tablet/browser.
+
+For a dedicated wall tablet, install/open the app in the browser mode that best supports fullscreen and the Screen Wake Lock API on that device. If wake lock is not supported, the setting reports that in Settings and the dashboard continues normally.
+
+Manual wall-tablet acceptance checklist:
+
+1. In Settings, enable kiosk mode, idle dimming, the idle screensaver if desired, edit locking, and optional screen wake lock.
+2. On the tablet/browser itself, choose the desired touch density and whether navigation should stay hidden for that device.
+3. Leave the dashboard idle past the configured timeout and confirm the screen dims, navigation hides according to the device setting, and the screensaver shows a calm clock/weather/media state when enabled.
+4. Tap once while idle and confirm the first tap only wakes the dashboard, without triggering the card underneath.
+5. Confirm edit buttons remain hidden while kiosk edit lock is active, then use the configured unlock flow before editing.
+6. Check the wake-lock status in Settings during a longer session; unsupported browsers should show an unavailable/unsupported state without breaking kiosk mode.
 
 ## Current Status
 

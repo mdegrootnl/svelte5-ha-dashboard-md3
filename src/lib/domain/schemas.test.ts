@@ -557,6 +557,7 @@ describe('AppConfigPartialSchema theme options', () => {
                 dimOnIdle: true,
                 hideNavigationOnIdle: true,
                 showScreensaver: true,
+                keepAwake: true,
                 hideEditControls: true,
                 editUnlockMinutes: 10,
             },
@@ -565,6 +566,7 @@ describe('AppConfigPartialSchema theme options', () => {
         expect(parsed.kiosk?.enabled).toBe(true);
         expect(parsed.kiosk?.idleTimeout).toBe(120);
         expect(parsed.kiosk?.showScreensaver).toBe(true);
+        expect(parsed.kiosk?.keepAwake).toBe(true);
         expect(parsed.kiosk?.editUnlockMinutes).toBe(10);
 
         expect(() =>

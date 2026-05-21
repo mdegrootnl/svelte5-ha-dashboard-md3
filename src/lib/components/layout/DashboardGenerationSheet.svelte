@@ -11,6 +11,7 @@
         type InventoryContext,
         type ResolvedEntity,
     } from "$lib/domain/haInventory";
+    import { summarizeInventoryAreaSources } from "$lib/domain/inventoryQuality";
     import { haRegistryStore } from "$lib/stores/haRegistry.svelte";
     import { haStore } from "$lib/stores/ha.svelte";
     import { themeStore } from "$lib/stores/theme.svelte";
@@ -973,25 +974,7 @@
     function getInventoryQualitySummary(
         entitiesById: Map<string, ResolvedEntity>,
     ): InventoryQualitySummary {
-        const summary = {
-            total: entitiesById.size,
-            entityRegistry: 0,
-            deviceRegistry: 0,
-            nameInference: 0,
-            unassigned: 0,
-        };
-
-        for (const entity of entitiesById.values()) {
-            if (entity.areaSource === "entity_registry") {
-                summary.entityRegistry += 1;
-            } else if (entity.areaSource === "device_registry") {
-                summary.deviceRegistry += 1;
-            } else if (entity.areaSource === "name_inference") {
-                summary.nameInference += 1;
-            } else {
-                summary.unassigned += 1;
-            }
-        }
+        const summary = summarizeInventoryAreaSources(entitiesById.values());
 
         return {
             ...summary,

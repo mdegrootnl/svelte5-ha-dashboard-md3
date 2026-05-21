@@ -39,6 +39,7 @@ export interface KioskConfig {
     dimOnIdle: boolean;
     hideNavigationOnIdle: boolean;
     showScreensaver: boolean;
+    keepAwake: boolean;
     hideEditControls: boolean;
     editUnlockMinutes: number;
 }
@@ -94,6 +95,7 @@ export const DEFAULT_CONFIG: AppConfig = {
         dimOnIdle: true,
         hideNavigationOnIdle: true,
         showScreensaver: true,
+        keepAwake: false,
         hideEditControls: true,
         editUnlockMinutes: 15
     }

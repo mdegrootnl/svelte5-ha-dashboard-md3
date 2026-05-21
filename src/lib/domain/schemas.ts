@@ -532,6 +532,7 @@ const KioskConfigPartialSchema = z.object({
     dimOnIdle: z.boolean().optional(),
     hideNavigationOnIdle: z.boolean().optional(),
     showScreensaver: z.boolean().optional(),
+    keepAwake: z.boolean().optional(),
     hideEditControls: z.boolean().optional(),
     editUnlockMinutes: z.number().min(1).max(120).optional(),
 }).strict();

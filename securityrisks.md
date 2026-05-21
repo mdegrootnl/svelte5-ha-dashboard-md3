@@ -63,18 +63,22 @@ Action:
 
 ### 5. Content Security Policy
 
-Status: present, hardening pending.
+Status: partially hardened; standalone compatibility mode remains broad by default.
 
-Issue: the app has a production CSP, but it is compatibility-oriented rather than strict. It currently allows inline/eval script behavior and broad `http:`/`https:` connect and image sources for SvelteKit, Home Assistant ingress, media/images, weather, uploads, Mealie, AH, and image-provider flows.
+Issue: the app has a production CSP, but the standalone default is still compatibility-oriented rather than strict. It keeps broad `http:`/`https:` connect and image sources for direct Home Assistant, media/images, weather, uploads, Mealie, AH, and image-provider flows.
 
 Current implementation:
 
 - `hooks.server.ts` sets production security headers.
+- `src/lib/server/securityHeaders.ts` builds deployment-aware CSP directives.
+- Production script policy no longer allows `unsafe-eval`.
+- Home Assistant add-on deployments default to hardened same-origin connect rules.
+- Standalone deployments can opt into `DASHBOARD_CSP_MODE=hardened` and add explicit origins through `DASHBOARD_CSP_CONNECT_SRC` and `DASHBOARD_CSP_IMG_SRC`.
 - Cross-origin API mutations are blocked.
 - Standalone framing is denied.
 - Home Assistant add-on framing is limited to same-origin ingress.
 
-Next step: map required sources per deployment mode and replace broad allowances with explicit directives where possible.
+Next step: validate hardened standalone mode with real direct Home Assistant, media, weather, image-provider, Mealie, and AH flows, then consider making explicit-origin configuration the recommended production posture.
 
 ### 6. Token Revocation On Disconnect
 

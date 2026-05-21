@@ -1,6 +1,11 @@
 import type { Handle } from '@sveltejs/kit';
 import { dev } from '$app/environment';
+import { env } from '$env/dynamic/private';
 import { getDeploymentInfo } from '$lib/server/deployment';
+import {
+    buildContentSecurityPolicy,
+    contentSecurityPolicyHeaderName,
+} from '$lib/server/securityHeaders';
 
 export const handle: Handle = async ({ event, resolve }) => {
     const deployment = getDeploymentInfo(event.request, event.url);
@@ -32,20 +37,16 @@ export const handle: Handle = async ({ event, resolve }) => {
     // Security Headers - only apply CSP in production
     // In development, Vite injects inline scripts for HMR that would be blocked
     if (!dev) {
-        const frameAncestors = deployment.mode === 'ha-addon' ? "'self'" : "'none'";
         response.headers.set(
-            'Content-Security-Policy',
-            [
-                "default-src 'self'",
-                "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-                "font-src 'self' https://fonts.gstatic.com",
-                "connect-src 'self' ws: wss: http: https:",
-                "img-src 'self' data: http: https:",
-                `frame-ancestors ${frameAncestors}`,
-                "base-uri 'self'",
-                "form-action 'self'"
-            ].join('; ')
+            contentSecurityPolicyHeaderName({
+                reportOnly: env.DASHBOARD_CSP_REPORT_ONLY,
+            }),
+            buildContentSecurityPolicy(deployment, event.url, {
+                connectSrc: env.DASHBOARD_CSP_CONNECT_SRC,
+                imageSrc: env.DASHBOARD_CSP_IMG_SRC,
+                mode: env.DASHBOARD_CSP_MODE,
+                reportOnly: env.DASHBOARD_CSP_REPORT_ONLY,
+            })
         );
     }
 

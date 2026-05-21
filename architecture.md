@@ -93,6 +93,7 @@ Core rules:
 - Entity names stay as configured in Home Assistant; naming issues are surfaced as quality hints.
 - Unknown and unavailable entities are excluded from normal generated content and surfaced through quality hints or attention views.
 - Clean regeneration replaces generated content while preserving manual and pinned content.
+- Inventory quality rules live in pure domain helpers where possible. The generation sheet uses the shared area-source summary helper for entity-registry, device-registry, name-inferred, and unassigned counts, keeping future quality/repair tooling aligned with generator review behavior.
 
 ## Card Library
 
@@ -114,6 +115,8 @@ The root layout is the only owner of global shell behavior. It initializes share
 - `data-kiosk-edit-locked`
 
 CSS then dims the main surface, hides navigation while idle, and suppresses `.touch-edit-control` affordances when kiosk editing is locked. Feature cards do not need bespoke kiosk logic unless they introduce a new global affordance.
+
+Kiosk settings are split intentionally: shared household config controls idle behavior, screensaver, edit locking, and optional Screen Wake Lock usage; per-device local config controls touch density and whether navigation stays hidden on that tablet/browser. Wake lock is best-effort and browser-only, with unsupported devices reported in Settings instead of blocking kiosk mode.
 
 Reference projects such as Mushroom, Bubble Card, ApexCharts Card, Auto Entities, and Dwains Dashboard are product-pattern references only. We keep the implementation in the SvelteKit/TypeScript stack.
 
@@ -144,10 +147,11 @@ Implemented:
 - Home Assistant add-on framing is limited to same-origin ingress; standalone framing is denied.
 - Runtime secrets are ignored under `data/`.
 - API payloads use Zod validation where practical.
+- Production CSP is built by `src/lib/server/securityHeaders.ts`: add-on deployments default to hardened same-origin connect rules, standalone defaults to compatibility mode, and production script policy does not allow `unsafe-eval`.
 
 Known gap:
 
-- CSP exists but is not strict yet. It currently allows inline/eval script behavior and broad image/connect sources for compatibility with SvelteKit, Home Assistant ingress, media/images, and integrations. The backlog tracks CSP tightening or more precise documentation.
+- CSP still allows inline script/style behavior for SvelteKit and MD3 runtime styling. Standalone compatibility mode also keeps broad connect/image source allowances unless `DASHBOARD_CSP_MODE=hardened` and explicit integration origins are configured. The backlog tracks further tightening after direct Home Assistant, media, image-provider, and add-on flows are fully validated.
 
 ## Testing
 
@@ -169,7 +173,7 @@ Coverage is broad but not one-to-one for every card. Current expectations:
 - Server integration modules get route or module tests.
 - Shared stores get unit tests for persistence and sync behavior.
 - Risky UI flows get component or Playwright coverage.
-- Visual acceptance smoke runs through Playwright against the simulated Home Assistant ingress path across dashboard, attention, presence, settings, music, and meals on desktop, tablet, and phone viewports.
+- Visual acceptance smoke runs through Playwright against the simulated Home Assistant ingress path across dashboard, attention, presence, settings, music, and meals on desktop, tablet, and phone viewports. It checks page overflow, visible text escaping local containers, contrast, and image-label protection.
 
 ## Adding New Card Types
 

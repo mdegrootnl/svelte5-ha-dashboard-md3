@@ -26,14 +26,29 @@ interface KioskStoreOptions {
     now?: () => number;
 }
 
+type WakeLockSentinelLike = {
+    released?: boolean;
+    release: () => Promise<void>;
+    addEventListener?: (type: 'release', listener: () => void) => void;
+};
+
+type NavigatorWithWakeLock = Navigator & {
+    wakeLock?: {
+        request: (type: 'screen') => Promise<WakeLockSentinelLike>;
+    };
+};
+
 export class KioskStore {
     enabled = $state(DEFAULT_CONFIG.kiosk!.enabled);
     idleTimeout = $state(DEFAULT_CONFIG.kiosk!.idleTimeout);
     dimOnIdle = $state(DEFAULT_CONFIG.kiosk!.dimOnIdle);
     hideNavigationOnIdle = $state(DEFAULT_CONFIG.kiosk!.hideNavigationOnIdle);
     showScreensaver = $state(DEFAULT_CONFIG.kiosk!.showScreensaver);
+    keepAwake = $state(DEFAULT_CONFIG.kiosk!.keepAwake);
     hideEditControls = $state(DEFAULT_CONFIG.kiosk!.hideEditControls);
     editUnlockMinutes = $state(DEFAULT_CONFIG.kiosk!.editUnlockMinutes);
+    wakeLockActive = $state(false);
+    wakeLockError = $state<string | null>(null);
 
     deviceDensity = $state<KioskDeviceDensity>(DEFAULT_DEVICE_PROFILE.density);
     deviceNavigationMode = $state<KioskDeviceNavigationMode>(DEFAULT_DEVICE_PROFILE.navigationMode);
@@ -47,6 +62,7 @@ export class KioskStore {
     private syncTimer: ReturnType<typeof setTimeout> | null = null;
     private activityListeners: Array<() => void> = [];
     private wakeSuppressionUntil = 0;
+    private wakeLock: WakeLockSentinelLike | null = null;
     private readonly now: () => number;
 
     constructor(options: KioskStoreOptions = {}) {
@@ -69,9 +85,11 @@ export class KioskStore {
         this.dimOnIdle = config.dimOnIdle ?? DEFAULT_CONFIG.kiosk!.dimOnIdle;
         this.hideNavigationOnIdle = config.hideNavigationOnIdle ?? DEFAULT_CONFIG.kiosk!.hideNavigationOnIdle;
         this.showScreensaver = config.showScreensaver ?? DEFAULT_CONFIG.kiosk!.showScreensaver;
+        this.keepAwake = config.keepAwake ?? DEFAULT_CONFIG.kiosk!.keepAwake;
         this.hideEditControls = config.hideEditControls ?? DEFAULT_CONFIG.kiosk!.hideEditControls;
         this.editUnlockMinutes = this.normalizeEditUnlockMinutes(config.editUnlockMinutes);
         this.resetIdleTimer();
+        void this.syncWakeLock();
     }
 
     get isDimmed() {
@@ -89,6 +107,11 @@ export class KioskStore {
         return this.enabled ? this.deviceDensity : DEFAULT_DEVICE_PROFILE.density;
     }
 
+    get canUseWakeLock() {
+        if (!browser) return false;
+        return typeof (navigator as NavigatorWithWakeLock).wakeLock?.request === 'function';
+    }
+
     get isEditingUnlocked() {
         return this.editUnlockedUntil > this.now();
     }
@@ -103,6 +126,7 @@ export class KioskStore {
         if (config.dimOnIdle !== undefined) this.dimOnIdle = config.dimOnIdle;
         if (config.hideNavigationOnIdle !== undefined) this.hideNavigationOnIdle = config.hideNavigationOnIdle;
         if (config.showScreensaver !== undefined) this.showScreensaver = config.showScreensaver;
+        if (config.keepAwake !== undefined) this.keepAwake = config.keepAwake;
         if (config.hideEditControls !== undefined) this.hideEditControls = config.hideEditControls;
         if (config.editUnlockMinutes !== undefined) {
             this.editUnlockMinutes = this.normalizeEditUnlockMinutes(config.editUnlockMinutes);
@@ -111,6 +135,7 @@ export class KioskStore {
         this.saveToLocalStorage();
         this.scheduleSyncToServer();
         this.resetIdleTimer();
+        void this.syncWakeLock();
     }
 
     updateDeviceProfile(profile: Partial<KioskDeviceProfile>) {
@@ -206,17 +231,22 @@ export class KioskStore {
             this.markActivity();
         };
         const reset = () => this.markActivity();
+        const handleVisibilityChange = () => {
+            void this.syncWakeLock();
+        };
 
         window.addEventListener('pointerdown', wake, { capture: true });
         window.addEventListener('mousedown', wake, { capture: true });
         window.addEventListener('touchstart', wake, { capture: true, passive: false });
         window.addEventListener('click', suppressClick, { capture: true });
+        document.addEventListener('visibilitychange', handleVisibilityChange);
 
         this.activityListeners.push(
             () => window.removeEventListener('pointerdown', wake, { capture: true }),
             () => window.removeEventListener('mousedown', wake, { capture: true }),
             () => window.removeEventListener('touchstart', wake, { capture: true }),
             () => window.removeEventListener('click', suppressClick, { capture: true }),
+            () => document.removeEventListener('visibilitychange', handleVisibilityChange),
         );
 
         const events = ['mousemove', 'keydown', 'scroll'];
@@ -297,6 +327,7 @@ export class KioskStore {
         if (this.idleTimer) clearTimeout(this.idleTimer);
         if (this.unlockTimer) clearTimeout(this.unlockTimer);
         if (this.syncTimer) clearTimeout(this.syncTimer);
+        void this.releaseWakeLock();
     }
 
     private toConfig(): KioskConfig {
@@ -306,6 +337,7 @@ export class KioskStore {
             dimOnIdle: this.dimOnIdle,
             hideNavigationOnIdle: this.hideNavigationOnIdle,
             showScreensaver: this.showScreensaver,
+            keepAwake: this.keepAwake,
             hideEditControls: this.hideEditControls,
             editUnlockMinutes: this.editUnlockMinutes,
         };
@@ -351,6 +383,62 @@ export class KioskStore {
     private normalizeEditUnlockMinutes(value: number) {
         if (!Number.isFinite(value)) return DEFAULT_CONFIG.kiosk!.editUnlockMinutes;
         return Math.max(1, Math.min(120, Math.round(value)));
+    }
+
+    private shouldHoldWakeLock() {
+        if (!browser) return false;
+        return this.enabled && this.keepAwake && document.visibilityState !== 'hidden';
+    }
+
+    private async syncWakeLock() {
+        if (!browser) return;
+
+        if (!this.shouldHoldWakeLock()) {
+            await this.releaseWakeLock();
+            return;
+        }
+
+        if (this.wakeLock) return;
+
+        const wakeLock = (navigator as NavigatorWithWakeLock).wakeLock;
+        if (!wakeLock?.request) {
+            this.wakeLockActive = false;
+            this.wakeLockError = 'unsupported';
+            return;
+        }
+
+        try {
+            const sentinel = await wakeLock.request('screen');
+            this.wakeLock = sentinel;
+            this.wakeLockActive = true;
+            this.wakeLockError = null;
+            sentinel.addEventListener?.('release', () => {
+                if (this.wakeLock !== sentinel) return;
+                this.wakeLock = null;
+                this.wakeLockActive = false;
+                if (this.shouldHoldWakeLock()) {
+                    void this.syncWakeLock();
+                }
+            });
+        } catch (error) {
+            this.wakeLock = null;
+            this.wakeLockActive = false;
+            this.wakeLockError = error instanceof Error ? error.message : 'unavailable';
+            logger.error('Failed to acquire kiosk wake lock', error);
+        }
+    }
+
+    private async releaseWakeLock() {
+        const sentinel = this.wakeLock;
+        this.wakeLock = null;
+        this.wakeLockActive = false;
+        if (!sentinel || sentinel.released) return;
+
+        try {
+            await sentinel.release();
+        } catch (error) {
+            logger.error('Failed to release kiosk wake lock', error);
+        }
     }
 }
 

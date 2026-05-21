@@ -10,9 +10,9 @@ Last documentation pass: May 21, 2026.
 
 - Completed roadmap slices: Trust And Acceptance, For You / Attention Surface, Bubble-Style Detail Sheets, Specialist Cards, and Graph Analytics.
 - In-progress roadmap slices: Presence And Household Context, Tablet / Kiosk Mode, Adaptive Text Readability, and live generated-dashboard acceptance.
-- Latest local validation after the adaptive text-readability regression pass: `npm run check` and `npm run test:visual` passed. Visual smoke covers dashboard, attention, presence, settings, music, and meals under a simulated Home Assistant ingress path across desktop, tablet, and phone viewports, including page overflow, key label contrast, screenshot-sampled image-label contrast, and image-label protection checks.
+- Latest local validation after the generator quality helper pass: focused presence tests, focused kiosk/schema tests, focused generator quality/generation-sheet tests, `npm run check`, `npm test -- --run`, and `npm run test:visual` passed. Visual smoke covers dashboard, attention, presence, settings, music, and meals under a simulated Home Assistant ingress path across desktop, tablet, and phone viewports, including page overflow, visible text escaping its container, key label contrast, screenshot-sampled image-label contrast, and image-label protection checks.
 - Known local visual-test noise: Supervisor DNS warnings are expected outside the Home Assistant add-on runtime and did not fail the smoke suite.
-- Recent targeted fixes: card editor and entity detail side sheets are now hosted by the root app shell so reusable card actions work outside `/dashboard`; navigation-card edit controls now share the shortcut action row instead of overlapping top-right shortcuts; a library navigation-card visual regression now proves shortcuts and edit controls stay separated; Home Assistant to-do cards no longer visibly churn from broad state polling; the library route now has live specialist-card examples; AH export review preserves grouped Mealie source lines before deduplicated export.
+- Recent targeted fixes: card editor and entity detail side sheets are now hosted by the root app shell so reusable card actions work outside `/dashboard`; navigation-card edit controls now share the shortcut action row instead of overlapping top-right shortcuts; a library navigation-card visual regression now proves shortcuts and edit controls stay separated; visual smoke now catches visible text escaping local containers and the Settings tab bar now handles long translated labels; kiosk mode now has optional browser wake-lock support with Settings status; production CSP no longer allows `unsafe-eval` and add-on mode now gets a narrowed default policy; the presence route now surfaces compact setup hints and discovers more commute/travel-time sensors; Home Assistant to-do cards no longer visibly churn from broad state polling; the library route now has live specialist-card examples; AH export review preserves grouped Mealie source lines before deduplicated export.
 
 ### Open Work Summary
 
@@ -35,12 +35,12 @@ This is the current short list of what is still genuinely open.
 
 4. Tablet / kiosk mode:
    - Test on an actual wall tablet, not only simulated viewports.
-   - Validate idle dimming, wake-tap suppression, edit-lock behavior, always-hidden navigation, and the idle clock/weather/media overlay during long running sessions.
-   - Consider PWA/fullscreen guidance, optional wake-lock behavior, and per-device onboarding copy.
+   - Validate idle dimming, wake-tap suppression, edit-lock behavior, always-hidden navigation, optional wake lock, and the idle clock/weather/media overlay during long running sessions.
+   - README now has a manual wall-tablet acceptance checklist; remaining work is live device feedback and possible deeper per-device onboarding copy after that test.
 
 5. Presence and household context:
-   - Polish the presence route/card with richer household context, clearer guest-mode setup, and better ETA/commute entity discovery.
-   - Confirm privacy-sensitive data stays local and is not over-shown on shared tablets.
+   - Presence now includes household setup hints for person trackers, guest mode, and commute/ETA helpers, plus broader discovery for travel-time sensors.
+   - Remaining work: confirm privacy-sensitive data stays local and is not over-shown on shared tablets, then tune copy or visibility from real household use.
 
 6. Meals, shopping, and Albert Heijn:
    - Mealie-first shopping now supports serving scaling, image repair, shopping-list placement, and review-first AH export from deduplicated Mealie shopping rows.
@@ -53,8 +53,8 @@ This is the current short list of what is still genuinely open.
    - Keep GHCR multi-arch publishing and production deploy workflows separate.
 
 8. Security hardening:
-   - Either tighten CSP toward a stricter production posture or keep documenting it as compatibility-oriented.
-   - Revisit broad connect/image/script allowances after ingress, media, image providers, and integrations stabilize.
+   - CSP is now deployment-aware: Home Assistant add-on defaults to hardened same-origin connect rules, production script policy no longer allows `unsafe-eval`, and standalone can opt into `DASHBOARD_CSP_MODE=hardened` with explicit extra origins.
+   - Remaining work: validate hardened standalone mode with real direct Home Assistant, media, weather, image-provider, Mealie, and AH flows before recommending it as the default production posture.
 
 9. Library and generator discipline:
    - Current audit is clean for the new specialist and graph surfaces: card-library picker entries, editor/config support, schema support, renderer support, generator placement where useful, focused tests, and `/library` examples are present.
@@ -135,12 +135,13 @@ Work:
 - First route implementation exists at `/presence` with person/device-tracker fallback, zone grouping, guest-mode detection, and commute/ETA sensor hooks.
 - `/presence` is part of the default navigation and visual smoke route set.
 - Presence now has a reusable dashboard card, is available from the card library, and is added to generated house dashboards when person/device-tracker entities exist.
+- The route now shows setup hints when expected household signals are missing, including suggested `person.*`, guest-mode helper, and commute sensor examples.
+- ETA/commute discovery now recognizes more Dutch, English, German, French, and Spanish travel-time naming patterns while avoiding diagnostic/noisy sensors.
 
 Open:
 
-- Improve guest-mode setup and copy so a household knows which Home Assistant helper to create.
-- Improve ETA/commute discovery beyond simple entity hooks.
 - Validate shared-tablet privacy expectations with real household data.
+- Tune the setup hint copy, suggested helper names, and ETA discovery with real Home Assistant entity names after live use.
 
 Acceptance:
 
@@ -201,6 +202,8 @@ Completed so far:
 - Navigation-card shortcut/action overlap was fixed by moving the edit affordance into the same top action row as shortcuts.
 - Added screenshot-sampled regional image-label contrast checks so protected labels are tested against rendered local pixels, not just DOM classes.
 - Added a library navigation-card visual regression that exercises image-backed room links on a phone viewport and verifies shortcut/edit controls do not overlap.
+- Added a visible text-bounds Playwright assertion that catches labels escaping their local button/card/sidebar containers while allowing intentional truncation.
+- Fixed the Settings tab bar so longer translated tab labels shrink/truncate inside the tab pill on tablet portrait instead of overflowing.
 
 Open:
 
@@ -295,16 +298,16 @@ Completed so far:
 - Added wake-gesture protection so the first tap on an idle wall tablet wakes the dashboard without activating the card underneath.
 - Added an optional kiosk idle screensaver overlay with a burn-in-safer drifting clock, current weather, and active media context.
 - Added local per-device kiosk profiles for wall tablets, including density and always-hide navigation preferences that do not sync to the shared backend config.
+- Added an optional shared kiosk screen wake-lock setting that requests the browser Screen Wake Lock API when supported and reports unsupported/unavailable states in Settings.
 - Root layout now consumes kiosk state through global shell data attributes instead of per-card hacks.
-- Settings now exposes kiosk controls next to the lock screen settings, including the idle screensaver toggle and this-device tablet preferences.
+- Settings now exposes kiosk controls next to the lock screen settings, including the idle screensaver toggle, wake-lock status, and this-device tablet preferences.
 - Global CSS hides `.touch-edit-control` affordances while kiosk edit lock is active, including coarse pointer devices.
-- Added focused tests for kiosk idle behavior, wake gesture suppression, idle screensaver persistence, edit unlock expiry, local cache, backend sync, local device profile persistence, and config schema validation.
+- Added focused tests for kiosk idle behavior, wake gesture suppression, idle screensaver persistence, wake-lock request/release/unsupported states, edit unlock expiry, local cache, backend sync, local device profile persistence, and config schema validation.
 
 Open:
 
 - Validate behavior on a real wall tablet over a long idle session.
-- Decide whether to add PWA/fullscreen setup guidance and optional wake-lock support.
-- Add manual acceptance notes for per-device tablet preferences.
+- Decide whether to add richer PWA/fullscreen onboarding inside Settings after live wall-tablet testing.
 
 Acceptance:
 
@@ -336,6 +339,7 @@ Completed:
 - Adds clean/regenerate buttons for the whole generated home set and the current room/page.
 - Keeps clean/regenerate preview-first and explicit before applying, with a second confirmation for clean apply.
 - Adds preview quality hints for grouped, skipped, name-review, and deduplicated entities.
+- Extracts entity area-source and inventory quality review counts into a reusable domain helper so future generator, label, or repair tooling can share the same rules.
 - Adds generator tests for light groups, media/remote deduplication, name cleanup, sensor filtering, and compact room output.
 - Uses Home Assistant area pictures as optional room-card preview images on generated house/floor room navigation cards.
 - Loads room-card preview images through the authenticated HA image helper so browser-visible URLs do not expose tokens.
@@ -377,7 +381,7 @@ Resolved design decisions:
 ## Later
 
 - Promote stable generator rules into `architecture.md`.
-- Add label/entity quality tooling once the generator behavior is stable.
+- Expand the reusable inventory quality helper into optional bulk repair guidance if live generated-dashboard reviews show repeated Home Assistant area/label issues.
 - Revisit runtime conditional visibility after generation-time attention cards settle.
 - Evaluate stock-photo providers such as Pexels, Unsplash, Pixabay, and curated/self-hosted packs for room preview images.
 - Add optional stock photo search/selection for room preview images, with server-side API keys where needed, attribution/source metadata, and deterministic cached selections.

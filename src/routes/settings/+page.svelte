@@ -888,6 +888,39 @@
                         <div
                             class="flex items-center justify-between gap-4 rounded-m3-lg bg-m3-surface-container-low p-4"
                         >
+                            <div class="min-w-0">
+                                <p class="text-m3-label-large text-m3-on-surface">
+                                    {themeStore.t("settings.kiosk.keepAwake")}
+                                </p>
+                                <p class="text-m3-body-small text-m3-on-surface-variant">
+                                    {themeStore.t("settings.kiosk.keepAwake.description")}
+                                </p>
+                                {#if kioskStore.keepAwake}
+                                    <p class="mt-1 text-m3-label-small {kioskStore.wakeLockActive ? 'text-m3-primary' : 'text-m3-on-surface-variant'}">
+                                        {#if kioskStore.wakeLockActive}
+                                            {themeStore.t("settings.kiosk.keepAwake.active")}
+                                        {:else if !kioskStore.canUseWakeLock || kioskStore.wakeLockError === "unsupported"}
+                                            {themeStore.t("settings.kiosk.keepAwake.unsupported")}
+                                        {:else if kioskStore.wakeLockError}
+                                            {themeStore.t("settings.kiosk.keepAwake.unavailable")}
+                                        {:else}
+                                            {themeStore.t("settings.kiosk.keepAwake.pending")}
+                                        {/if}
+                                    </p>
+                                {/if}
+                            </div>
+                            <Switch
+                                checked={kioskStore.keepAwake}
+                                onchange={(checked) =>
+                                    kioskStore.updateConfig({
+                                        keepAwake: checked,
+                                    })}
+                            />
+                        </div>
+
+                        <div
+                            class="flex items-center justify-between gap-4 rounded-m3-lg bg-m3-surface-container-low p-4"
+                        >
                             <div>
                                 <p class="text-m3-label-large text-m3-on-surface">
                                     {themeStore.t("settings.kiosk.hideEditControls")}

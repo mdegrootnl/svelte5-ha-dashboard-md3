@@ -110,6 +110,7 @@ describe('KioskStore', () => {
             enabled: true,
             idleTimeout: 90,
             showScreensaver: false,
+            keepAwake: true,
             hideEditControls: false,
         });
 
@@ -117,6 +118,7 @@ describe('KioskStore', () => {
         expect(cached.enabled).toBe(true);
         expect(cached.idleTimeout).toBe(90);
         expect(cached.showScreensaver).toBe(false);
+        expect(cached.keepAwake).toBe(true);
         expect(cached.hideEditControls).toBe(false);
 
         vi.advanceTimersByTime(2_000);
@@ -126,6 +128,55 @@ describe('KioskStore', () => {
             method: 'POST',
             body: expect.stringContaining('"kiosk"'),
         }));
+    });
+
+    it('requests and releases a screen wake lock when keep awake is enabled', async () => {
+        const release = vi.fn(async () => undefined);
+        const addEventListener = vi.fn();
+        const request = vi.fn(async () => ({
+            released: false,
+            release,
+            addEventListener,
+        }));
+        vi.stubGlobal('navigator', {
+            ...navigator,
+            wakeLock: { request },
+        });
+
+        store = new KioskStore({ setupListeners: false, now: () => now });
+        store.updateConfig({
+            enabled: true,
+            keepAwake: true,
+        });
+
+        await vi.waitFor(() => expect(request).toHaveBeenCalledWith('screen'));
+        expect(store.canUseWakeLock).toBe(true);
+        expect(store.wakeLockActive).toBe(true);
+        expect(store.wakeLockError).toBeNull();
+        expect(addEventListener).toHaveBeenCalledWith('release', expect.any(Function));
+
+        store.updateConfig({ enabled: false });
+
+        await vi.waitFor(() => expect(release).toHaveBeenCalled());
+        expect(store.wakeLockActive).toBe(false);
+    });
+
+    it('marks keep awake as unsupported when the browser has no wake lock API', async () => {
+        vi.stubGlobal('navigator', {
+            ...navigator,
+            wakeLock: undefined,
+        });
+
+        const activeStore = new KioskStore({ setupListeners: false, now: () => now });
+        store = activeStore;
+        activeStore.applyServerConfig({
+            ...enabledConfig,
+            keepAwake: true,
+        });
+
+        await vi.waitFor(() => expect(activeStore.wakeLockError).toBe('unsupported'));
+        expect(activeStore.canUseWakeLock).toBe(false);
+        expect(activeStore.wakeLockActive).toBe(false);
     });
 
     it('keeps per-device profile local without syncing shared backend config', () => {

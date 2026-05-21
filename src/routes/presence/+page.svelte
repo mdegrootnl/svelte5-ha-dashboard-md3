@@ -2,7 +2,12 @@
     import PageShell from "$lib/components/layout/PageShell.svelte";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import Button from "$lib/components/md3/Button.svelte";
-    import { buildPresenceSummary, type PresencePerson, type PresenceStatus } from "$lib/features/presence/presence";
+    import {
+        buildPresenceSummary,
+        type PresencePerson,
+        type PresenceSetupHintType,
+        type PresenceStatus,
+    } from "$lib/features/presence/presence";
     import { haStore } from "$lib/stores/ha.svelte";
     import { haRegistryStore } from "$lib/stores/haRegistry.svelte";
     import { themeStore } from "$lib/stores/theme.svelte";
@@ -38,6 +43,17 @@
                 return "bg-m3-surface-container-high text-m3-on-surface-variant";
             default:
                 return "bg-m3-error-container text-m3-on-error-container";
+        }
+    }
+
+    function setupIcon(type: PresenceSetupHintType) {
+        switch (type) {
+            case "people":
+                return "person_add";
+            case "guestMode":
+                return "diversity_3";
+            case "eta":
+                return "route";
         }
     }
 
@@ -204,6 +220,33 @@
                                     <span class="shrink-0 text-m3-label-large font-semibold text-m3-primary">
                                         {item.value}
                                     </span>
+                                </div>
+                            {/each}
+                        </div>
+                    </article>
+                {/if}
+
+                {#if summary.setupHints.length}
+                    <article class="rounded-lg border border-m3-outline-variant bg-m3-surface-container p-5 shadow-sm">
+                        <h3 class="text-m3-title-medium font-semibold text-m3-on-surface">
+                            {themeStore.t("presence.setup.title")}
+                        </h3>
+                        <div class="mt-3 grid gap-2">
+                            {#each summary.setupHints as hint (hint.id)}
+                                <div class="flex min-w-0 gap-3 rounded-lg bg-m3-surface-container-high p-3">
+                                    <div class="flex size-9 shrink-0 items-center justify-center rounded-full bg-m3-tertiary-container text-m3-on-tertiary-container">
+                                        <DynamicIcon name={setupIcon(hint.type)} class="size-5" />
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="text-m3-label-large font-semibold text-m3-on-surface">
+                                            {themeStore.t(`presence.setup.${hint.type}.title`)}
+                                        </p>
+                                        <p class="text-m3-body-small text-m3-on-surface-variant">
+                                            {themeStore.t(`presence.setup.${hint.type}.description`, {
+                                                entity: hint.suggestedEntityId,
+                                            })}
+                                        </p>
+                                    </div>
                                 </div>
                             {/each}
                         </div>

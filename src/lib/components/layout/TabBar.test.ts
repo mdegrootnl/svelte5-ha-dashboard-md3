@@ -45,4 +45,22 @@ describe('TabBar Component', () => {
 
         expect(onselect).toHaveBeenCalledWith('living-room');
     });
+
+    it('keeps long translated labels constrained inside their tab button', () => {
+        render(TabBar, {
+            props: {
+                tabs: [
+                    { id: 'general', name: 'Algemeen', icon: 'translate' },
+                    { id: 'lockscreen', name: 'Vergrendelscherm', icon: 'lock_clock' },
+                ],
+                activeTabId: 'lockscreen',
+            },
+        });
+
+        const label = screen.getByText('Vergrendelscherm');
+        const button = label.closest('button');
+
+        expect(label).toHaveClass('min-w-0', 'max-w-full', 'truncate');
+        expect(button).toHaveClass('overflow-hidden', 'sm:min-w-0');
+    });
 });

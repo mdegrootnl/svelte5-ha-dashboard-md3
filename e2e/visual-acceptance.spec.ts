@@ -220,6 +220,212 @@ async function assertReadableComputedContrast(page: Page) {
     ).toEqual([]);
 }
 
+async function assertNoVisibleTextEscapesContainers(page: Page) {
+    const failures = await page.evaluate(() => {
+        type Rect = {
+            left: number;
+            top: number;
+            right: number;
+            bottom: number;
+            width: number;
+            height: number;
+        };
+
+        type Failure = {
+            text: string;
+            selector: string;
+            container: string;
+            overflow: {
+                left: number;
+                right: number;
+                top: number;
+                bottom: number;
+            };
+        };
+
+        const textSelector = [
+            "main h1",
+            "main h2",
+            "main h3",
+            "main p",
+            "main span",
+            "main button",
+            "main a",
+            "main label",
+            "main dt",
+            "main dd",
+            ".app-nav span",
+            ".nav-label",
+        ].join(", ");
+
+        const containerSelector = [
+            "button",
+            "a",
+            ".dashboard-card-surface",
+            ".md3-card",
+            ".page-shell",
+            ".app-nav",
+            "nav",
+            "aside",
+            "main",
+        ].join(", ");
+
+        function toRect(rect: DOMRect): Rect {
+            return {
+                left: rect.left,
+                top: rect.top,
+                right: rect.right,
+                bottom: rect.bottom,
+                width: rect.width,
+                height: rect.height,
+            };
+        }
+
+        function elementLabel(element: HTMLElement) {
+            const classes = Array.from(element.classList)
+                .filter((className) => !className.startsWith("s-"))
+                .slice(0, 3);
+            if (classes.length > 0) {
+                return `${element.tagName.toLowerCase()}.${classes.join(".")}`;
+            }
+
+            return element.tagName.toLowerCase();
+        }
+
+        function textFor(element: Element) {
+            return (element.textContent ?? "").replace(/\s+/g, " ").trim();
+        }
+
+        function isVisible(element: HTMLElement) {
+            const style = getComputedStyle(element);
+            const rect = element.getBoundingClientRect();
+
+            return (
+                rect.width > 4 &&
+                rect.height > 4 &&
+                rect.bottom > 0 &&
+                rect.right > 0 &&
+                rect.top < window.innerHeight &&
+                rect.left < window.innerWidth &&
+                style.display !== "none" &&
+                style.visibility !== "hidden" &&
+                Number(style.opacity) > 0.45
+            );
+        }
+
+        function isIconOnly(element: HTMLElement) {
+            return (
+                element.classList.contains("material-symbols-outlined") ||
+                element.getAttribute("aria-hidden") === "true" ||
+                Boolean(element.closest(".material-symbols-outlined")) ||
+                Boolean(element.querySelector("svg")) && textFor(element).length <= 2
+            );
+        }
+
+        function clipsText(element: HTMLElement) {
+            const style = getComputedStyle(element);
+            return (
+                style.overflow === "hidden" ||
+                style.overflowX === "hidden" ||
+                style.textOverflow === "ellipsis" ||
+                style.webkitLineClamp !== "none"
+            );
+        }
+
+        function textNodeRects(element: HTMLElement) {
+            const rects: Rect[] = [];
+            const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+
+            while (walker.nextNode()) {
+                const node = walker.currentNode;
+                const text = node.textContent?.replace(/\s+/g, " ").trim();
+                if (!text) continue;
+
+                const parent = node.parentElement;
+                if (!parent || parent.closest("[aria-hidden='true']")) continue;
+                if (parent instanceof HTMLElement && !isVisible(parent)) continue;
+
+                const range = document.createRange();
+                range.selectNodeContents(node);
+                for (const rect of Array.from(range.getClientRects())) {
+                    if (rect.width > 1 && rect.height > 1) {
+                        rects.push(toRect(rect));
+                    }
+                }
+                range.detach();
+            }
+
+            return rects;
+        }
+
+        function nearestTextContainer(element: HTMLElement) {
+            const container = element.closest(containerSelector);
+            return container instanceof HTMLElement ? container : document.body;
+        }
+
+        const failures: Failure[] = [];
+        const checked = new Set<HTMLElement>();
+        const tolerance = 2;
+
+        for (const element of Array.from(document.querySelectorAll(textSelector))) {
+            if (!(element instanceof HTMLElement)) continue;
+            if (checked.has(element)) continue;
+            checked.add(element);
+            if (!isVisible(element)) continue;
+            if (isIconOnly(element)) continue;
+            if (element.closest("[aria-hidden='true']")) continue;
+            if (!textFor(element)) continue;
+            if (clipsText(element)) continue;
+
+            const container = nearestTextContainer(element);
+            const containerRect = toRect(container.getBoundingClientRect());
+            if (containerRect.width <= 4 || containerRect.height <= 4) continue;
+
+            for (const textRect of textNodeRects(element)) {
+                const overflow = {
+                    left: Math.max(0, containerRect.left - textRect.left),
+                    right: Math.max(0, textRect.right - containerRect.right),
+                    top: Math.max(0, containerRect.top - textRect.top),
+                    bottom: Math.max(0, textRect.bottom - containerRect.bottom),
+                };
+                const maxOverflow = Math.max(
+                    overflow.left,
+                    overflow.right,
+                    overflow.top,
+                    overflow.bottom,
+                );
+
+                if (maxOverflow > tolerance) {
+                    failures.push({
+                        text: textFor(element).slice(0, 80),
+                        selector: elementLabel(element),
+                        container: elementLabel(container),
+                        overflow: {
+                            left: Number(overflow.left.toFixed(1)),
+                            right: Number(overflow.right.toFixed(1)),
+                            top: Number(overflow.top.toFixed(1)),
+                            bottom: Number(overflow.bottom.toFixed(1)),
+                        },
+                    });
+                    break;
+                }
+            }
+        }
+
+        return failures.slice(0, 8);
+    });
+
+    expect(
+        failures,
+        failures
+            .map(
+                (failure) =>
+                    `${failure.selector} "${failure.text}" escapes ${failure.container}: left=${failure.overflow.left}, right=${failure.overflow.right}, top=${failure.overflow.top}, bottom=${failure.overflow.bottom}`,
+            )
+            .join("\n"),
+    ).toEqual([]);
+}
+
 async function assertImageTextProtection(page: Page) {
     const screenshot = await page.screenshot({ scale: "css" });
     const failures = await page.evaluate(async (screenshotDataUrl) => {
@@ -595,6 +801,7 @@ test.describe("visual acceptance smoke", () => {
                 await expect(page.locator("body")).toBeVisible();
                 await assertNoPageHorizontalOverflow(page);
                 await assertReadableComputedContrast(page);
+                await assertNoVisibleTextEscapesContainers(page);
                 await assertImageTextProtection(page);
                 await attachScreenshot(page, testInfo, `${viewport.name}-${route.name}`);
             }
@@ -617,6 +824,7 @@ test.describe("visual acceptance smoke", () => {
         await expect(page.getByTitle("light.library_accent")).toBeAttached();
 
         await assertNoPageHorizontalOverflow(page);
+        await assertNoVisibleTextEscapesContainers(page);
         await assertNavigationActionRowsDoNotOverlap(page);
         await assertImageTextProtection(page);
         await attachScreenshot(page, testInfo, "phone-library-navigation");

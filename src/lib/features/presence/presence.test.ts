@@ -96,6 +96,7 @@ describe("buildPresenceSummary", () => {
                 value: "24 min",
             }),
         ]);
+        expect(summary.setupHints).toEqual([]);
     });
 
     it("falls back to device trackers when person entities do not exist", () => {
@@ -141,5 +142,50 @@ describe("buildPresenceSummary", () => {
         expect(summary.people).toHaveLength(1);
         expect(summary.people[0].entityId).toBe("person.visible");
         expect(summary.homeIsEmpty).toBe(true);
+    });
+
+    it("discovers common travel sensors and setup hints for missing household helpers", () => {
+        const states: HassEntities = {
+            "person.mila": entity("person.mila", "home", {
+                friendly_name: "Mila",
+            }),
+            "sensor.waze_thuis": entity("sensor.waze_thuis", "18", {
+                friendly_name: "Waze naar huis",
+                unit_of_measurement: "min",
+            }),
+            "sensor.office_duration": entity("sensor.office_duration", "32", {
+                friendly_name: "Office duration",
+                device_class: "duration",
+                unit_of_measurement: "min",
+            }),
+            "sensor.random_temperature": entity("sensor.random_temperature", "21", {
+                friendly_name: "Office temperature",
+                unit_of_measurement: "C",
+            }),
+        };
+
+        const summary = buildPresenceSummary({ states });
+
+        expect(summary.etaItems.map((item) => item.entityId)).toEqual([
+            "sensor.office_duration",
+            "sensor.waze_thuis",
+        ]);
+        expect(summary.setupHints).toEqual([
+            expect.objectContaining({
+                id: "presence-guest-mode",
+                type: "guestMode",
+                suggestedEntityId: "input_boolean.gastenmodus",
+            }),
+        ]);
+    });
+
+    it("suggests setup signals when no presence entities exist", () => {
+        const summary = buildPresenceSummary({ states: {} as HassEntities });
+
+        expect(summary.setupHints.map((hint) => hint.type)).toEqual([
+            "people",
+            "guestMode",
+            "eta",
+        ]);
     });
 });

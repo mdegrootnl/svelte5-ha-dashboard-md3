@@ -37,11 +37,20 @@ export interface GuestModeStatus {
     state: string;
 }
 
+export type PresenceSetupHintType = "people" | "guestMode" | "eta";
+
+export interface PresenceSetupHint {
+    id: string;
+    type: PresenceSetupHintType;
+    suggestedEntityId: string;
+}
+
 export interface PresenceSummary {
     people: PresencePerson[];
     zones: PresenceZone[];
     etaItems: PresenceEtaItem[];
     guestMode?: GuestModeStatus;
+    setupHints: PresenceSetupHint[];
     total: number;
     home: number;
     away: number;
@@ -68,17 +77,59 @@ interface ZoneInfo {
 
 const AWAY_STATES = new Set(["not_home", "not home", "away"]);
 const UNKNOWN_STATES = new Set(["unknown", "unavailable", "none"]);
-const GUEST_TERMS = ["guest", "guests", "gasten", "logee", "logees"];
-const ETA_TERMS = [
+const GUEST_TERMS = ["guest", "guests", "gasten", "logee", "logees", "visitor", "visitors", "bezoek"];
+const ETA_STRONG_TERMS = [
     "arrival",
+    "arrivee",
+    "ankunft",
     "aankomst",
     "commute",
+    "duration",
     "eta",
+    "fahrzeit",
+    "llegada",
     "naar huis",
+    "route",
     "reistijd",
+    "reisezeit",
+    "temps de trajet",
+    "tiempo de viaje",
+    "thuiskomst",
+    "trajet",
     "travel time",
     "traffic",
+    "trafic",
+    "trafico",
+    "verkeer",
+    "viaje",
+    "waze",
 ];
+const ETA_CONTEXT_TERMS = [
+    "home",
+    "huis",
+    "thuis",
+    "work",
+    "werk",
+    "office",
+    "kantoor",
+    "school",
+    "station",
+];
+const ETA_UNITS = new Set([
+    "h",
+    "hr",
+    "hrs",
+    "hour",
+    "hours",
+    "m",
+    "min",
+    "mins",
+    "minute",
+    "minutes",
+    "minuten",
+    "km",
+    "mi",
+]);
 
 function getDomain(entityId: string) {
     return entityId.split(".")[0] ?? "";
@@ -178,6 +229,42 @@ function entityMatchesTerms(entity: HassEntity, registry: HAEntityRegistryEntry 
         registry?.original_name,
     ].filter(Boolean).join(" "));
     return terms.some((term) => haystack.includes(normalizeKey(term)));
+}
+
+function entitySearchText(entity: HassEntity, registry?: HAEntityRegistryEntry) {
+    return normalizeKey([
+        entity.entity_id,
+        getEntityName(entity, registry),
+        registry?.name,
+        registry?.original_name,
+    ].filter(Boolean).join(" "));
+}
+
+function getUnit(entity: HassEntity) {
+    const unit = entity.attributes?.unit_of_measurement;
+    return typeof unit === "string" ? unit.trim() : "";
+}
+
+function etaCandidateScore(entity: HassEntity, registry?: HAEntityRegistryEntry) {
+    const haystack = entitySearchText(entity, registry);
+    const deviceClass = normalizeKey(
+        typeof entity.attributes?.device_class === "string"
+            ? entity.attributes.device_class
+            : undefined,
+    );
+    const unit = normalizeKey(getUnit(entity));
+    const hasStrongTerm = ETA_STRONG_TERMS.some((term) => haystack.includes(normalizeKey(term)));
+    const hasContextTerm = ETA_CONTEXT_TERMS.some((term) => haystack.includes(normalizeKey(term)));
+    const hasRouteUnit = ETA_UNITS.has(unit);
+    const hasDurationDeviceClass = deviceClass === "duration";
+
+    let score = 0;
+    if (hasStrongTerm) score += 8;
+    if (hasDurationDeviceClass) score += 6;
+    if (hasContextTerm) score += 2;
+    if (hasRouteUnit) score += 2;
+
+    return score;
 }
 
 function makePerson(
@@ -293,11 +380,16 @@ function buildEtaItems(input: PresenceInput, limit: number): PresenceEtaItem[] {
         .filter((entity) => {
             const registry = entityById.get(entity.entity_id);
             if (isHiddenOrDisabled(registry)) return false;
-            return entityMatchesTerms(entity, registry, ETA_TERMS);
+            if (isDiagnostic(registry)) return false;
+            return etaCandidateScore(entity, registry) >= 8;
         })
-        .sort((left, right) => getEntityName(left, entityById.get(left.entity_id)).localeCompare(
-            getEntityName(right, entityById.get(right.entity_id)),
-        ))
+        .sort((left, right) => {
+            const leftRegistry = entityById.get(left.entity_id);
+            const rightRegistry = entityById.get(right.entity_id);
+            const scoreDelta = etaCandidateScore(right, rightRegistry) - etaCandidateScore(left, leftRegistry);
+            if (scoreDelta) return scoreDelta;
+            return getEntityName(left, leftRegistry).localeCompare(getEntityName(right, rightRegistry));
+        })
         .slice(0, limit)
         .map((entity) => {
             const unit = entity.attributes?.unit_of_measurement;
@@ -313,12 +405,48 @@ function buildEtaItems(input: PresenceInput, limit: number): PresenceEtaItem[] {
         });
 }
 
+function buildSetupHints(
+    people: PresencePerson[],
+    etaItems: PresenceEtaItem[],
+    guestMode?: GuestModeStatus,
+): PresenceSetupHint[] {
+    const hints: PresenceSetupHint[] = [];
+
+    if (people.length === 0) {
+        hints.push({
+            id: "presence-people",
+            type: "people",
+            suggestedEntityId: "person.*",
+        });
+    }
+
+    if (!guestMode) {
+        hints.push({
+            id: "presence-guest-mode",
+            type: "guestMode",
+            suggestedEntityId: "input_boolean.gastenmodus",
+        });
+    }
+
+    if (etaItems.length === 0) {
+        hints.push({
+            id: "presence-eta",
+            type: "eta",
+            suggestedEntityId: "sensor.reistijd_naar_huis",
+        });
+    }
+
+    return hints;
+}
+
 export function buildPresenceSummary(
     input: PresenceInput,
     options: PresenceOptions = {},
 ): PresenceSummary {
     const zones = buildZoneLookup(input.states);
     const people = buildPeople(input, zones);
+    const etaItems = buildEtaItems(input, options.etaLimit ?? 4);
+    const guestMode = findGuestMode(input);
     const home = people.filter((person) => person.status === "home").length;
     const away = people.filter((person) => person.status === "away").length;
     const inZones = people.filter((person) => person.status === "zone").length;
@@ -327,8 +455,9 @@ export function buildPresenceSummary(
     return {
         people,
         zones: buildPresenceZones(people),
-        etaItems: buildEtaItems(input, options.etaLimit ?? 4),
-        guestMode: findGuestMode(input),
+        etaItems,
+        guestMode,
+        setupHints: buildSetupHints(people, etaItems, guestMode),
         total: people.length,
         home,
         away,

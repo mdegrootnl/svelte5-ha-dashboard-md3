@@ -63,7 +63,7 @@
             {@const isActive = tab.id === activeTabId}
             <button
                 class="
-                    relative flex h-full min-w-[3.75rem] flex-none items-center justify-center gap-2 whitespace-nowrap px-3 transition-all sm:min-w-[8rem] sm:flex-1 sm:px-4
+                    relative flex h-full min-w-[3.75rem] flex-none items-center justify-center gap-2 overflow-hidden whitespace-nowrap px-3 transition-all sm:min-w-0 sm:flex-1 sm:px-4
                     {isActive
                     ? 'bg-m3-secondary-container text-m3-on-secondary-container shadow-sm'
                     : 'text-m3-on-surface-variant hover:text-m3-on-surface hover:bg-m3-on-surface/5'}
@@ -77,7 +77,7 @@
                 <!-- Tab Name -->
                 {#if isEditing && isActive}
                     <span
-                        class="hidden truncate text-m3-label-large font-medium cursor-pointer hover:underline sm:inline"
+                        class="hidden min-w-0 max-w-full truncate text-m3-label-large font-medium cursor-pointer hover:underline sm:inline-block"
                         role="button"
                         tabindex="0"
                         onclick={(e) => {
@@ -100,7 +100,7 @@
                     >
                 {:else}
                     <span
-                        class="hidden truncate text-m3-label-large font-medium sm:inline"
+                        class="hidden min-w-0 max-w-full truncate text-m3-label-large font-medium sm:inline-block"
                         >{tab.name}</span
                     >
                 {/if}
