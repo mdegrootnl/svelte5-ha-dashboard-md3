@@ -14,8 +14,9 @@ export const handle: Handle = async ({ event, resolve }) => {
         const origin = event.request.headers.get('origin');
         const secFetchSite = event.request.headers.get('sec-fetch-site');
         const isCrossSiteFetch = secFetchSite === 'cross-site' || secFetchSite === 'same-site';
+        const isBrowserConfirmedSameOrigin = secFetchSite === 'same-origin';
 
-        if ((origin && origin !== event.url.origin) || isCrossSiteFetch) {
+        if ((origin && origin !== event.url.origin && !isBrowserConfirmedSameOrigin) || isCrossSiteFetch) {
             console.warn('[Server Hook] Cross-origin API mutation blocked', {
                 method: event.request.method,
                 path: event.url.pathname,
