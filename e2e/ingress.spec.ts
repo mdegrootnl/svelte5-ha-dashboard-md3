@@ -2,6 +2,24 @@ import { expect, test } from '@playwright/test';
 
 const ingressBase = '/api/hassio_ingress/test';
 
+test('loads the dashboard from the Home Assistant ingress root', async ({ page }) => {
+    const failedResponses: string[] = [];
+
+    page.on('response', (response) => {
+        const url = new URL(response.url());
+        if (url.origin === 'http://127.0.0.1:3000' && response.status() >= 400) {
+            failedResponses.push(`${response.status()} ${url.pathname}`);
+        }
+    });
+
+    await page.goto(`${ingressBase}/`);
+
+    await expect(page).toHaveTitle(/Home Assistant Dashboard|Dashboard/i);
+    await expect(page.locator('main')).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`${ingressBase}/?$`));
+    expect(failedResponses).toEqual([]);
+});
+
 test('loads the dashboard through a simulated Home Assistant ingress path', async ({ page }) => {
     const failedResponses: string[] = [];
 

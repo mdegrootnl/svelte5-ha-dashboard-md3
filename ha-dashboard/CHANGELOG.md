@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.5
+
+- Serves the dashboard directly for Home Assistant ingress root requests so the add-on does not redirect out of the ingress frame.
+
 ## 0.0.4
 
 - Removes the explicit `/` ingress entry so Home Assistant generates a clean add-on ingress URL without a doubled slash.

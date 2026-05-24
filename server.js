@@ -71,7 +71,12 @@ function prepareIngressRequest(req) {
         const strippedPath = parsed.pathname === pathPrefix
             ? '/'
             : parsed.pathname.slice(pathPrefix.length) || '/';
-        req.url = `${strippedPath}${parsed.search}`;
+        req.url = `${strippedPath === '/' ? '/dashboard' : strippedPath}${parsed.search}`;
+        return;
+    }
+
+    if (ingressPath && parsed.pathname === '/') {
+        req.url = `/dashboard${parsed.search}`;
     }
 }
 
