@@ -23,6 +23,7 @@ export function discoverRoutes(): RouteOption[] {
         { path: '/weather', label: 'Weather', category: 'System' },
         { path: '/calendar', label: 'Calendar', category: 'System' },
         { path: '/music', label: 'Music Assistant', category: 'System' },
+        { path: '/meals', label: 'Meals', category: 'System' },
         { path: '/library', label: 'Component Library', category: 'System' },
         { path: '/settings', label: 'Settings', category: 'System' },
         { path: '/theme', label: 'Theme Config', category: 'System' },

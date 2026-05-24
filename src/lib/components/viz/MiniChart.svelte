@@ -55,6 +55,11 @@
         chartType?: GraphChartType;
         thresholds?: ChartThreshold[];
         rangeBands?: ChartRangeBand[];
+        showGrid?: boolean;
+        showValueAxis?: boolean;
+        showTimeAxis?: boolean;
+        valueFormatter?: (value: number) => string;
+        timeFormatter?: (value: Date) => string;
     }
 
     let {
@@ -69,6 +74,18 @@
         chartType = "area",
         thresholds = [],
         rangeBands = [],
+        showGrid = false,
+        showValueAxis = false,
+        showTimeAxis = false,
+        valueFormatter = (value: number) =>
+            new Intl.NumberFormat(undefined, {
+                maximumFractionDigits: Math.abs(value) >= 10 ? 0 : 1,
+            }).format(value),
+        timeFormatter = (value: Date) =>
+            new Intl.DateTimeFormat(undefined, {
+                hour: "2-digit",
+                minute: "2-digit",
+            }).format(value),
     }: Props = $props();
 
     function extendToEdges(
@@ -366,115 +383,228 @@
                 }];
             });
     });
+
+    const valueAxisTicks = $derived.by(() => {
+        const currentHeight = trackedHeight || height;
+        const rawTicks = y.ticks(3);
+        const ticks =
+            rawTicks.length >= 2
+                ? rawTicks
+                : [chartBounds.minValue, chartBounds.maxValue];
+
+        return ticks
+            .filter((value, index, values) =>
+                Number.isFinite(value) && values.indexOf(value) === index,
+            )
+            .map((value) => ({
+                value,
+                y: Math.max(0, Math.min(currentHeight, y(value))),
+                label: valueFormatter(value),
+            }));
+    });
+
+    const timeAxisTicks = $derived.by(() => {
+        const domain =
+            startTime && endTime
+                ? [startTime, endTime]
+                : chartBounds.hasPoints
+                  ? [new Date(chartBounds.minTime), new Date(chartBounds.maxTime)]
+                  : [];
+
+        if (domain.length !== 2) return [];
+
+        const [start, end] = domain;
+        const span = end.getTime() - start.getTime();
+        if (!Number.isFinite(span) || span <= 0) return [];
+
+        return [
+            { date: start, position: 0, anchor: "start" },
+            {
+                date: new Date(start.getTime() + span / 2),
+                position: 50,
+                anchor: "middle",
+            },
+            { date: end, position: 100, anchor: "end" },
+        ].map((tick) => ({
+            ...tick,
+            label: timeFormatter(tick.date),
+        }));
+    });
 </script>
 
-<div bind:this={container} class="chart-container">
-    {#if width > 0 && activeSeries.length > 0}
-        {@const currentHeight = trackedHeight || height || 100}
-        <svg viewBox="0 0 {width} {currentHeight}" preserveAspectRatio="none">
-            <defs>
-                {#each paths as p}
-                    <linearGradient
-                        id={p.gradientId}
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                    >
-                        <stop
-                            offset="0%"
-                            stop-color={p.color}
-                            stop-opacity="0.4"
-                        />
-                        <stop
-                            offset="100%"
-                            stop-color={p.color}
-                            stop-opacity="0"
-                        />
-                    </linearGradient>
+<div
+    class="chart-shell"
+    class:with-time-axis={showTimeAxis}
+    class:with-value-axis={showValueAxis}
+>
+    <div class="chart-body">
+        {#if showValueAxis && width > 0 && activeSeries.length > 0}
+            <div class="value-axis" aria-hidden="true">
+                {#each valueAxisTicks as tick}
+                    <span style:top={`${tick.y}px`}>{tick.label}</span>
                 {/each}
-            </defs>
+            </div>
+        {/if}
 
-            {#if bandRects.length > 0}
-                {#each bandRects as band}
-                    <rect
-                        data-testid="chart-range-band"
-                        x="0"
-                        y={band.y}
-                        width={width}
-                        height={band.height}
-                        fill={band.color}
-                        opacity="0.1"
-                    />
-                {/each}
-            {/if}
-
-            {#if barRects.length > 0}
-                {#each barRects as bar}
-                    <rect
-                        x={bar.x}
-                        y={bar.y}
-                        width={bar.width}
-                        height={bar.height}
-                        rx="3"
-                        fill={bar.color}
-                        opacity="0.82"
-                    />
-                {/each}
-            {/if}
-
-            {#each paths.filter((p) => p.chartType !== "bar") as p}
-                {#if p.isFilled}
-                    <path d={p.areaPath} fill="url(#{p.gradientId})" />
-                {/if}
-
-                <path
-                    d={p.linePath}
-                    fill="none"
-                    stroke={p.color}
-                    stroke-width={p.strokeWidth}
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-dasharray={p.strokeDasharray}
-                    opacity={p.opacity}
-                />
-            {/each}
-
-            {#if thresholdLines.length > 0}
-                {#each thresholdLines as line}
-                    <g data-testid="chart-threshold-line">
-                        <line
-                            x1="0"
-                            x2={width}
-                            y1={line.y}
-                            y2={line.y}
-                            stroke={line.color}
-                            stroke-width="1.5"
-                            stroke-dasharray="5 5"
-                            opacity="0.78"
-                        />
-                        {#if line.label}
-                            <text
-                                x={Math.max(6, width - 6)}
-                                y={Math.max(10, line.y - 4)}
-                                text-anchor="end"
-                                fill={line.color}
-                                font-size="10"
-                                font-weight="700"
+        <div bind:this={container} class="chart-container">
+            {#if width > 0 && activeSeries.length > 0}
+                {@const currentHeight = trackedHeight || height || 100}
+                <svg viewBox="0 0 {width} {currentHeight}" preserveAspectRatio="none">
+                    <defs>
+                        {#each paths as p}
+                            <linearGradient
+                                id={p.gradientId}
+                                x1="0"
+                                y1="0"
+                                x2="0"
+                                y2="1"
                             >
-                                {line.label}
-                            </text>
+                                <stop
+                                    offset="0%"
+                                    stop-color={p.color}
+                                    stop-opacity="0.4"
+                                />
+                                <stop
+                                    offset="100%"
+                                    stop-color={p.color}
+                                    stop-opacity="0"
+                                />
+                            </linearGradient>
+                        {/each}
+                    </defs>
+
+                    {#if showGrid}
+                        {#each valueAxisTicks as tick}
+                            <line
+                                data-testid="chart-grid-line"
+                                x1="0"
+                                x2={width}
+                                y1={tick.y}
+                                y2={tick.y}
+                                stroke="currentColor"
+                                stroke-width="1"
+                                stroke-dasharray="4 7"
+                                opacity="0.16"
+                            />
+                        {/each}
+                    {/if}
+
+                    {#if bandRects.length > 0}
+                        {#each bandRects as band}
+                            <rect
+                                data-testid="chart-range-band"
+                                x="0"
+                                y={band.y}
+                                width={width}
+                                height={band.height}
+                                fill={band.color}
+                                opacity="0.1"
+                            />
+                        {/each}
+                    {/if}
+
+                    {#if barRects.length > 0}
+                        {#each barRects as bar}
+                            <rect
+                                x={bar.x}
+                                y={bar.y}
+                                width={bar.width}
+                                height={bar.height}
+                                rx="3"
+                                fill={bar.color}
+                                opacity="0.82"
+                            />
+                        {/each}
+                    {/if}
+
+                    {#each paths.filter((p) => p.chartType !== "bar") as p}
+                        {#if p.isFilled}
+                            <path d={p.areaPath} fill="url(#{p.gradientId})" />
                         {/if}
-                    </g>
-                {/each}
+
+                        <path
+                            d={p.linePath}
+                            fill="none"
+                            stroke={p.color}
+                            stroke-width={p.strokeWidth}
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-dasharray={p.strokeDasharray}
+                            opacity={p.opacity}
+                        />
+                    {/each}
+
+                    {#if thresholdLines.length > 0}
+                        {#each thresholdLines as line}
+                            <g data-testid="chart-threshold-line">
+                                <line
+                                    x1="0"
+                                    x2={width}
+                                    y1={line.y}
+                                    y2={line.y}
+                                    stroke={line.color}
+                                    stroke-width="1.5"
+                                    stroke-dasharray="5 5"
+                                    opacity="0.78"
+                                />
+                                {#if line.label}
+                                    <text
+                                        x={Math.max(6, width - 6)}
+                                        y={Math.max(10, line.y - 4)}
+                                        text-anchor="end"
+                                        fill={line.color}
+                                        font-size="10"
+                                        font-weight="700"
+                                    >
+                                        {line.label}
+                                    </text>
+                                {/if}
+                            </g>
+                        {/each}
+                    {/if}
+                </svg>
             {/if}
-        </svg>
+        </div>
+    </div>
+
+    {#if showTimeAxis && width > 0 && activeSeries.length > 0}
+        <div class="time-axis" class:with-value-axis={showValueAxis} aria-hidden="true">
+            {#each timeAxisTicks as tick}
+                <span
+                    style:left={`${tick.position}%`}
+                    class:tick-start={tick.anchor === "start"}
+                    class:tick-middle={tick.anchor === "middle"}
+                    class:tick-end={tick.anchor === "end"}
+                >
+                    {tick.label}
+                </span>
+            {/each}
+        </div>
     {/if}
 </div>
 
 <style>
-    .chart-container {
+    .chart-shell {
         width: 100%;
+        height: 100%;
+        min-height: inherit;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        color: var(--color-m3-on-surface-variant);
+    }
+
+    .chart-body {
+        min-height: 0;
+        flex: 1;
+        display: flex;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    .chart-container {
+        min-width: 0;
+        flex: 1;
         height: 100%;
         min-height: inherit;
         overflow: hidden;
@@ -486,5 +616,56 @@
         display: block;
         width: 100%;
         height: 100%;
+    }
+
+    .value-axis {
+        position: relative;
+        width: 2.9rem;
+        flex: 0 0 2.9rem;
+        font-size: 0.625rem;
+        font-weight: 650;
+        line-height: 1;
+        color: var(--color-m3-on-surface-variant);
+        opacity: 0.78;
+    }
+
+    .value-axis span {
+        position: absolute;
+        right: 0;
+        transform: translateY(-50%);
+        white-space: nowrap;
+    }
+
+    .time-axis {
+        position: relative;
+        flex: 0 0 1.05rem;
+        margin-left: 3.4rem;
+        font-size: 0.625rem;
+        font-weight: 650;
+        line-height: 1;
+        color: var(--color-m3-on-surface-variant);
+        opacity: 0.76;
+    }
+
+    .time-axis:not(.with-value-axis) {
+        margin-left: 0;
+    }
+
+    .time-axis span {
+        position: absolute;
+        top: 0.35rem;
+        white-space: nowrap;
+    }
+
+    .time-axis .tick-start {
+        transform: translateX(0);
+    }
+
+    .time-axis .tick-middle {
+        transform: translateX(-50%);
+    }
+
+    .time-axis .tick-end {
+        transform: translateX(-100%);
     }
 </style>

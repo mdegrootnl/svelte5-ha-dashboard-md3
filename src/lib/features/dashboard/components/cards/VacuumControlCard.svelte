@@ -1,6 +1,14 @@
 <script lang="ts">
+    import AuthenticatedImage from "$lib/components/common/AuthenticatedImage.svelte";
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import EntityDetailButton from "$lib/features/dashboard/components/EntityDetailButton.svelte";
+    import { getCameraSnapshotSource } from "$lib/domain/camera";
+    import {
+        findVacuumRelatedEntities,
+        resolveVacuumCapabilities,
+        resolveVacuumState,
+        type VacuumRelatedEntities,
+    } from "$lib/domain/vacuumCapabilities";
     import { cardEditorStore } from "$lib/features/dashboard/stores/cardEditor.svelte";
     import { dashboardEditorStore } from "$lib/features/dashboard/stores/dashboardEditor.svelte";
     import { entityDetailStore } from "$lib/features/dashboard/stores/entityDetail.svelte";
@@ -14,7 +22,6 @@
     import type { ResolvedEntity } from "$lib/domain/haInventory";
     import type { VacuumCardOptions } from "$lib/types";
     import type { DashboardCardSurfaceStyle } from "$lib/types/dashboard";
-    import { formatEntityStateLabel } from "$lib/utils/entity";
     import IconEdit from "~icons/material-symbols/edit";
 
     type VacuumTone = "empty" | "active" | "paused" | "clear" | "issue" | "offline";
@@ -41,7 +48,7 @@
         color = $bindable(),
         backgroundColor = $bindable(),
         surfaceStyle = "md3",
-        options = $bindable({ source: "auto", showGroupControls: true, showBattery: true, showFanSpeed: true, maxItems: 4 }),
+        options = $bindable({ source: "auto", showGroupControls: true, showBattery: true, showFanSpeed: true, showCleaningStats: true, showMap: true, maxItems: 4 }),
         ondelete,
         class: className = "",
     }: Props = $props();
@@ -51,11 +58,27 @@
     let title = $derived(name || themeStore.t("vacuumCard.defaultTitle"));
     let vacuumEntities = $derived(inventoryStore.getEntities(smartOptions.entityIds ?? []));
     let allEntityIds = $derived(vacuumEntities.map((entity) => entity.entityId));
-    let activeCount = $derived(vacuumEntities.filter(isActive).length);
-    let dockedCount = $derived(vacuumEntities.filter(isDocked).length);
-    let pausedCount = $derived(vacuumEntities.filter(isPaused).length);
-    let issueCount = $derived(vacuumEntities.filter(isIssue).length);
-    let offlineCount = $derived(vacuumEntities.filter(isOffline).length);
+    let vacuumDetails = $derived.by(() => {
+        haStore.statesVersion;
+        const states = haStore.getStatesView();
+        return vacuumEntities.map((entity) => {
+            const live = states[entity.entityId];
+            const related = findVacuumRelatedEntities(entity, inventoryStore.index, states);
+            return {
+                entity,
+                live,
+                related,
+                capabilities: resolveVacuumCapabilities(live),
+                state: resolveVacuumState(live, related, states),
+            };
+        });
+    });
+    let detailsByEntityId = $derived(new Map(vacuumDetails.map((detail) => [detail.entity.entityId, detail])));
+    let activeCount = $derived(vacuumDetails.filter((detail) => detail.state.active).length);
+    let dockedCount = $derived(vacuumDetails.filter((detail) => detail.state.docked).length);
+    let pausedCount = $derived(vacuumDetails.filter((detail) => detail.state.state === "paused").length);
+    let issueCount = $derived(vacuumDetails.filter((detail) => detail.state.issue).length);
+    let offlineCount = $derived(vacuumDetails.filter((detail) => detail.state.offline).length);
     let tone = $derived<VacuumTone>(
         vacuumEntities.length === 0
             ? "empty"
@@ -70,7 +93,11 @@
                     : "clear",
     );
     let accentColor = $derived(color || toneColor(tone));
-    let statusLabel = $derived(themeStore.t(`vacuumCard.status.${tone}`));
+    let statusLabel = $derived(
+        vacuumDetails.length === 1
+            ? themeStore.t(vacuumDetails[0].state.labelKey)
+            : themeStore.t(`vacuumCard.status.${tone}`),
+    );
     let detailSourceLabel = $derived(
         themeStore.t("vacuumCard.summary", {
             active: activeCount,
@@ -86,27 +113,40 @@
     );
     let visibleVacuums = $derived(sortedVacuums.slice(0, maxItems));
     let remainingCount = $derived(Math.max(0, vacuumEntities.length - visibleVacuums.length));
-    let controllableVacuums = $derived(vacuumEntities.filter((entity) => !isOffline(entity)));
+    let controllableVacuums = $derived(vacuumEntities.filter((entity) => !detailFor(entity).state.offline));
+    let primaryDetail = $derived(visibleVacuums.length === 1 ? detailFor(visibleVacuums[0]) : undefined);
+    let primaryMapEntity = $derived(
+        smartOptions.showMap === false || !primaryDetail?.related.mapCamera
+            ? undefined
+            : haStore.getEntity(primaryDetail.related.mapCamera.entityId),
+    );
+    let mapSource = $derived(getCameraSnapshotSource(primaryMapEntity, haStore.statesVersion));
 
-    function isActive(entity: ResolvedEntity) {
-        return ["cleaning", "returning"].includes(entity.state);
+    function detailFor(entity: ResolvedEntity) {
+        return detailsByEntityId.get(entity.entityId) ?? {
+            entity,
+            live: haStore.getEntity(entity.entityId),
+            related: {} as VacuumRelatedEntities,
+            capabilities: resolveVacuumCapabilities(haStore.getEntity(entity.entityId)),
+            state: resolveVacuumState(haStore.getEntity(entity.entityId)),
+        };
     }
 
-    function isDocked(entity: ResolvedEntity) {
-        return ["docked", "idle"].includes(entity.state);
+    function isActive(entity: ResolvedEntity) {
+        return detailFor(entity).state.active;
     }
 
     function isPaused(entity: ResolvedEntity) {
-        return entity.state === "paused";
+        return detailFor(entity).state.state === "paused";
     }
 
     function isIssue(entity: ResolvedEntity) {
         const error = liveAttributes(entity).error;
-        return entity.state === "error" || (typeof error === "string" && error.trim().length > 0);
+        return detailFor(entity).state.issue || (typeof error === "string" && error.trim().length > 0);
     }
 
     function isOffline(entity: ResolvedEntity) {
-        return ["unavailable", "unknown"].includes(entity.state);
+        return detailFor(entity).state.offline;
     }
 
     function vacuumPriority(entity: ResolvedEntity) {
@@ -139,31 +179,27 @@
         return undefined;
     }
 
-    function formatState(entity: ResolvedEntity) {
-        return formatEntityStateLabel(entity.state, {
-            entityId: entity.entityId,
-            domain: entity.domain,
-            deviceClass: entity.deviceClass,
-            unit: entity.unit,
-            language: themeStore.language,
-        });
-    }
-
     function formatDetail(entity: ResolvedEntity) {
         const details: string[] = [];
+        const detail = detailFor(entity);
         const error = textAttribute(entity, ["error"]);
-        const battery = smartOptions.showBattery === false ? undefined : numberAttribute(entity, ["battery_level"]);
-        const fanSpeed = smartOptions.showFanSpeed === false ? undefined : textAttribute(entity, ["fan_speed", "preset_mode"]);
+        const battery = smartOptions.showBattery === false ? undefined : batteryValue(entity, detail.related);
+        const fanSpeed = smartOptions.showFanSpeed === false ? undefined : detail.capabilities.currentFanSpeed ?? textAttribute(entity, ["fan_speed", "preset_mode"]);
+        const cleaned = smartOptions.showCleaningStats === false ? [] : cleaningStats(detail.related);
+        const charging = chargingLabel(detail.related);
         if (error) details.push(error);
         if (typeof battery === "number") details.push(`${battery}%`);
+        if (charging) details.push(charging);
+        details.push(...cleaned);
         if (fanSpeed) details.push(fanSpeed);
-        return details.length > 0 ? `${formatState(entity)} - ${details.join(" - ")}` : formatState(entity);
+        return details.length > 0 ? `${themeStore.t(detail.state.labelKey)} - ${details.join(" - ")}` : themeStore.t(detail.state.labelKey);
     }
 
     function rowIcon(entity: ResolvedEntity) {
         if (isIssue(entity)) return "warning";
         if (isOffline(entity)) return "error";
-        if (entity.state === "returning" || isDocked(entity)) return "home";
+        const state = detailFor(entity).state.state;
+        if (state === "returning" || state === "docked" || state === "charging") return "home";
         if (isPaused(entity)) return "pause";
         return "cleaning_services";
     }
@@ -177,10 +213,13 @@
     }
 
     function actionFor(entity: ResolvedEntity): VacuumAction | undefined {
+        const detail = detailFor(entity);
+        const capabilities = detail.capabilities;
         if (isOffline(entity)) return undefined;
-        if (entity.state === "returning") return "stop";
-        if (isActive(entity)) return "pause";
-        if (isIssue(entity)) return "dock";
+        if (detail.state.state === "returning") return capabilities.canStop ? "stop" : undefined;
+        if (isActive(entity)) return capabilities.canPause ? "pause" : undefined;
+        if (isIssue(entity)) return capabilities.canReturnHome ? "dock" : undefined;
+        if (!capabilities.canStart) return undefined;
         return "start";
     }
 
@@ -201,8 +240,56 @@
     function callAll(action: VacuumAction, e: Event) {
         e.stopPropagation();
         for (const entity of controllableVacuums) {
-            haStore.callService("vacuum", serviceFor(action), { entity_id: entity.entityId });
+            const availableAction = actionFor(entity);
+            if (availableAction === action || (action === "dock" && detailFor(entity).capabilities.canReturnHome)) {
+                haStore.callService("vacuum", serviceFor(action), { entity_id: entity.entityId });
+            }
         }
+    }
+
+    function relatedLive(entity?: ResolvedEntity) {
+        return entity ? haStore.getEntity(entity.entityId) : undefined;
+    }
+
+    function batteryValue(entity: ResolvedEntity, related: VacuumRelatedEntities) {
+        const ownBattery = numberAttribute(entity, ["battery_level"]);
+        if (typeof ownBattery === "number") return ownBattery;
+        const battery = relatedLive(related.battery);
+        const value = Number(battery?.state);
+        return Number.isFinite(value) ? Math.round(value) : undefined;
+    }
+
+    function relatedDisplayValue(entity?: ResolvedEntity) {
+        const live = relatedLive(entity);
+        if (!live || ["unknown", "unavailable"].includes(live.state)) return "";
+        const unit = typeof live.attributes.unit_of_measurement === "string" ? live.attributes.unit_of_measurement : "";
+        return `${live.state}${unit ? ` ${unit}` : ""}`;
+    }
+
+    function cleaningStats(related: VacuumRelatedEntities) {
+        return [
+            relatedDisplayValue(related.cleaningArea),
+            formatCleaningTime(related.cleaningTime),
+        ].filter(Boolean);
+    }
+
+    function formatCleaningTime(entity?: ResolvedEntity) {
+        const live = relatedLive(entity);
+        if (!live || ["unknown", "unavailable"].includes(live.state)) return "";
+        const seconds = Number(live.state);
+        const unit = typeof live.attributes.unit_of_measurement === "string" ? live.attributes.unit_of_measurement : "";
+        if (Number.isFinite(seconds) && ["s", "sec", "seconds"].includes(unit.toLowerCase())) {
+            const minutes = Math.max(1, Math.round(seconds / 60));
+            return themeStore.t("vacuumCard.metric.cleaningMinutes", { count: minutes });
+        }
+        return `${live.state}${unit ? ` ${unit}` : ""}`;
+    }
+
+    function chargingLabel(related: VacuumRelatedEntities) {
+        const state = relatedLive(related.chargingState)?.state;
+        if (state === "charging") return themeStore.t("vacuumCard.detail.charging");
+        if (state === "fully_charged") return themeStore.t("vacuumCard.detail.fullyCharged");
+        return "";
     }
 
     function openConfig(e: Event) {
@@ -270,19 +357,33 @@
             <span>{themeStore.t("vacuumCard.metric.issue", { count: issueCount + offlineCount })}</span>
         </div>
 
-        {#if smartOptions.showGroupControls !== false && controllableVacuums.length > 0}
+        {#if primaryMapEntity && mapSource}
+            <div class="vacuum-card__map">
+                <AuthenticatedImage
+                    src={mapSource}
+                    alt={themeStore.t("vacuumCard.mapAlt", { name: primaryDetail?.entity.name ?? title })}
+                    class="absolute inset-0 h-full w-full object-cover"
+                />
+                <div class="vacuum-card__map-fallback">
+                    <DynamicIcon name="map" class="size-6" />
+                </div>
+                <span>{themeStore.t("vacuumCard.mapLabel")}</span>
+            </div>
+        {/if}
+
+        {#if smartOptions.showGroupControls !== false && controllableVacuums.length > 1}
             <div class="vacuum-card__controls">
                 <button type="button" onclick={(e) => callAll("start", e)}>
                     <DynamicIcon name="play_arrow" class="size-4" />
-                    <span>{themeStore.t("vacuumCard.controls.start")}</span>
+                    <span>{themeStore.t("vacuumCard.controls.allStart")}</span>
                 </button>
                 <button type="button" onclick={(e) => callAll("pause", e)}>
                     <DynamicIcon name="pause" class="size-4" />
-                    <span>{themeStore.t("vacuumCard.controls.pause")}</span>
+                    <span>{themeStore.t("vacuumCard.controls.allPause")}</span>
                 </button>
                 <button type="button" onclick={(e) => callAll("dock", e)}>
                     <DynamicIcon name="home" class="size-4" />
-                    <span>{themeStore.t("vacuumCard.controls.dock")}</span>
+                    <span>{themeStore.t("vacuumCard.controls.allDock")}</span>
                 </button>
             </div>
         {/if}
@@ -296,6 +397,7 @@
                         class:vacuum-card__row--active={isActive(vacuum)}
                         class:vacuum-card__row--paused={isPaused(vacuum)}
                         class:vacuum-card__row--issue={isIssue(vacuum) || isOffline(vacuum)}
+                        class:vacuum-card__row--docked={detailFor(vacuum).state.docked}
                     >
                         <button type="button" class="vacuum-card__row-main" onclick={(e) => openDetails(vacuum, e)}>
                             <DynamicIcon name={rowIcon(vacuum)} class="size-5 shrink-0" />
@@ -424,6 +526,44 @@
         white-space: nowrap;
     }
 
+    .vacuum-card__map {
+        position: relative;
+        min-height: clamp(3.75rem, 24cqb, 7rem);
+        overflow: hidden;
+        border-radius: var(--radius-m3-md);
+        background: var(--color-m3-surface-container-high);
+    }
+
+    .vacuum-card__map::after {
+        position: absolute;
+        inset: 0;
+        content: "";
+        background: linear-gradient(to top, rgb(0 0 0 / 0.36), transparent 55%);
+        pointer-events: none;
+    }
+
+    .vacuum-card__map-fallback {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--color-m3-on-surface-variant);
+    }
+
+    .vacuum-card__map span {
+        position: absolute;
+        right: 0.55rem;
+        bottom: 0.45rem;
+        z-index: 1;
+        border-radius: 999px;
+        background: rgb(0 0 0 / 0.42);
+        padding: 0.18rem 0.45rem;
+        color: white;
+        font-size: clamp(0.6rem, 2.4cqmin, 0.75rem);
+        font-weight: 800;
+    }
+
     .vacuum-card__controls {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -479,6 +619,10 @@
 
     .vacuum-card__row--paused {
         background: color-mix(in srgb, var(--color-m3-secondary) 13%, var(--color-m3-surface-container-high));
+    }
+
+    .vacuum-card__row--docked {
+        background: color-mix(in srgb, var(--color-m3-tertiary) 10%, var(--color-m3-surface-container-high));
     }
 
     .vacuum-card__row--issue {
@@ -550,6 +694,12 @@
 
     @container (max-height: 235px) {
         .vacuum-card__controls {
+            display: none;
+        }
+    }
+
+    @container (max-height: 330px) {
+        .vacuum-card__map {
             display: none;
         }
     }

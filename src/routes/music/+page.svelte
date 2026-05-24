@@ -62,6 +62,10 @@
             delete document.documentElement.dataset.musicMiniPlayer;
         };
     });
+
+    function playMusicItem(item: MAMediaItem) {
+        maStore.play(item.uri, undefined, item.media_content_type);
+    }
 </script>
 
 <PageShell title={themeStore.t("music.title")} description={themeStore.t("music.description")}>
@@ -198,28 +202,28 @@
                 {#if activeTab === "home"}
                     <MusicBrowser
                         section="home"
-                        onPlay={(item: MAMediaItem) => maStore.play(item.uri)}
+                        onPlay={playMusicItem}
                     />
                 {:else if activeTab === "browse"}
                     <MusicBrowser
                         section="browse"
-                        onPlay={(item: MAMediaItem) => maStore.play(item.uri)}
+                        onPlay={playMusicItem}
                     />
                 {:else if activeTab === "radio"}
                     <MusicBrowser
                         section="radio"
-                        onPlay={(item: MAMediaItem) => maStore.play(item.uri)}
+                        onPlay={playMusicItem}
                     />
                 {:else if activeTab === "library"}
                     <MusicBrowser
                         section="library"
-                        onPlay={(item: MAMediaItem) => maStore.play(item.uri)}
+                        onPlay={playMusicItem}
                     />
                 {:else if activeTab === "search"}
                     <MusicBrowser
                         section="search"
                         searchQuery={currentSearchQuery}
-                        onPlay={(item: MAMediaItem) => maStore.play(item.uri)}
+                        onPlay={playMusicItem}
                     />
                 {/if}
             </div>

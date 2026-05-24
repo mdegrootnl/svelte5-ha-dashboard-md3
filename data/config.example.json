@@ -9,15 +9,33 @@
     "navigationItems": [
       {
         "id": "dashboard",
-        "label": "Woningdashboard",
+        "label": "Dashboard",
         "icon": "home",
         "href": "/dashboard"
+      },
+      {
+        "id": "attention",
+        "label": "Aandacht",
+        "icon": "notifications_active",
+        "href": "/attention"
+      },
+      {
+        "id": "presence",
+        "label": "Aanwezig",
+        "icon": "group",
+        "href": "/presence"
       },
       {
         "id": "music",
         "label": "Muziek",
         "icon": "music_note",
         "href": "/music"
+      },
+      {
+        "id": "meals",
+        "label": "Maaltijden",
+        "icon": "restaurant",
+        "href": "/meals"
       },
       {
         "id": "weather",

@@ -11,8 +11,9 @@ describe('NavigationRail Component', () => {
     it('renders all navigation links', () => {
         render(NavigationRail);
 
-        expect(screen.getByText('Start')).toBeInTheDocument();
-        expect(screen.getByText('Woningdashboard')).toBeInTheDocument();
+        expect(screen.queryByText('Start')).not.toBeInTheDocument();
+        expect(screen.getByText('Dashboard')).toBeInTheDocument();
+        expect(screen.getByText('Aanwezig')).toBeInTheDocument();
         expect(screen.getByText('Bibliotheek')).toBeInTheDocument();
         expect(screen.getByText('Thema')).toBeInTheDocument();
         expect(screen.getByText('Instellingen')).toBeInTheDocument();
@@ -21,8 +22,8 @@ describe('NavigationRail Component', () => {
     it('marks current page as active', () => {
         render(NavigationRail);
 
-        const homeLink = screen.getByText('Start').closest('a');
-        expect(homeLink).toHaveAttribute('aria-current', 'page');
+        const dashboardLink = screen.getByText('Dashboard').closest('a');
+        expect(dashboardLink).toHaveAttribute('aria-current', 'page');
     });
 
     it('renders dark mode toggle button', () => {
@@ -51,17 +52,16 @@ describe('NavigationRail Component', () => {
     it('has correct link hrefs', () => {
         render(NavigationRail);
 
-        expect(screen.getByText('Start').closest('a')).toHaveAttribute('href', '/');
-        expect(screen.getByText('Woningdashboard').closest('a')).toHaveAttribute('href', '/dashboard');
+        expect(screen.getByText('Dashboard').closest('a')).toHaveAttribute('href', '/dashboard');
         expect(screen.getByText('Instellingen').closest('a')).toHaveAttribute('href', '/settings');
     });
 
     it('keeps the full translated label available on constrained rail links', () => {
         render(NavigationRail);
 
-        expect(screen.getByText('Woningdashboard').closest('a')).toHaveAttribute(
+        expect(screen.getByText('Dashboard').closest('a')).toHaveAttribute(
             'title',
-            'Woningdashboard',
+            'Dashboard',
         );
     });
 });

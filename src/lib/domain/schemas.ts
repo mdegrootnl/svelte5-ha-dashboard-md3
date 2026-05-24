@@ -320,6 +320,8 @@ const DashboardCardOptionsSchema = z.object({
         showGroupControls: z.boolean().optional(),
         showBattery: z.boolean().optional(),
         showFanSpeed: z.boolean().optional(),
+        showCleaningStats: z.boolean().optional(),
+        showMap: z.boolean().optional(),
         maxItems: z.number().min(1).optional(),
     }).passthrough().optional(),
     camera: z.object({

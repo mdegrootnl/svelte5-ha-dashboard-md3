@@ -14,6 +14,7 @@
     {#each themeStore.navigationItems as link (link.id)}
         {@const isActive =
             currentPath === link.href ||
+            (currentPath === "/" && link.href === "/dashboard") ||
             (link.href !== "/" && currentPath.startsWith(link.href))}
         {@const label = themeStore.navigationLabel(link)}
 

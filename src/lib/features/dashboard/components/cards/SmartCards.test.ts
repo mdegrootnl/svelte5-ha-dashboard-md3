@@ -20,7 +20,9 @@ import UpdateStatusCard from './UpdateStatusCard.svelte';
 import VacuumControlCard from './VacuumControlCard.svelte';
 import WeatherOverviewCard from './WeatherOverviewCard.svelte';
 import { dashboardEditorStore, entityDetailStore, haRegistryStore, haStore, themeStore } from '$lib';
+import { VACUUM_FEATURE } from '$lib/domain/vacuumCapabilities';
 import { inventoryStore } from '$lib/stores/inventory.svelte';
+import type { HAEntityRegistryEntry } from '$lib/types';
 
 function state(entity_id: string, value: string, attributes = {}) {
     return {
@@ -30,6 +32,32 @@ function state(entity_id: string, value: string, attributes = {}) {
         last_changed: '2026-05-14T10:00:00Z',
         last_updated: '2026-05-14T10:00:00Z',
         context: { id: entity_id, parent_id: null, user_id: null },
+    };
+}
+
+function registry(
+    entity_id: string,
+    area_id: string | null = null,
+    labels: string[] = [],
+    device_id: string | null = null,
+): HAEntityRegistryEntry {
+    return {
+        entity_id,
+        name: entity_id,
+        icon: null,
+        platform: 'test',
+        config_entry_id: null,
+        device_id,
+        area_id,
+        disabled_by: null,
+        hidden_by: null,
+        entity_category: null,
+        has_entity_name: true,
+        original_name: entity_id,
+        unique_id: entity_id,
+        options: null,
+        translation_key: null,
+        labels,
     };
 }
 
@@ -436,7 +464,7 @@ describe('smart dashboard cards', () => {
         expect(screen.getByText('Cleaning - 78% - Turbo')).toBeInTheDocument();
         expect(screen.getByText('Docked - 100%')).toBeInTheDocument();
 
-        await fireEvent.click(screen.getByRole('button', { name: 'Dock' }));
+        await fireEvent.click(screen.getByRole('button', { name: 'All dock' }));
         expect(callService).toHaveBeenCalledWith('vacuum', 'return_to_base', {
             entity_id: 'vacuum.downstairs',
         });
@@ -445,6 +473,164 @@ describe('smart dashboard cards', () => {
         expect(entityDetailStore.open).toBe(true);
         expect(entityDetailStore.selectedEntityId).toBe('vacuum.downstairs');
         expect(entityDetailStore.entityIds).toEqual(['vacuum.downstairs', 'vacuum.upstairs']);
+    });
+
+    it('enhances a single vacuum card with related sensors and map preview', async () => {
+        vi.spyOn(haStore, 'fetchProxiedBlobUrl').mockResolvedValue('/vacuum-map.jpg');
+        haRegistryStore.deviceRegistry = [{
+            id: 'narwal-first-floor',
+            area_id: 'first_floor',
+            config_entries: [],
+            configuration_url: null,
+            connections: [],
+            disabled_by: null,
+            entry_type: null,
+            hw_version: null,
+            identifiers: [['narwal', 'narwal-first-floor']],
+            labels: [],
+            manufacturer: 'Narwal',
+            model: 'Flow',
+            name_by_user: null,
+            name: 'First Floor Vacuum',
+            serial_number: null,
+            sw_version: null,
+            via_device_id: null,
+        }];
+        haRegistryStore.entityRegistry = [
+            registry('vacuum.first_floor', null, [], 'narwal-first-floor'),
+            registry('sensor.first_floor_battery', null, [], 'narwal-first-floor'),
+            registry('sensor.first_floor_cleaning_area', null, [], 'narwal-first-floor'),
+            registry('sensor.first_floor_cleaning_time', null, [], 'narwal-first-floor'),
+            registry('sensor.first_floor_charging_state', null, [], 'narwal-first-floor'),
+            registry('binary_sensor.first_floor_docked', null, [], 'narwal-first-floor'),
+            registry('camera.first_floor_map', null, [], 'narwal-first-floor'),
+        ];
+        haRegistryStore.version += 1;
+        haStore.states = {
+            ...haStore.states,
+            'vacuum.first_floor': state('vacuum.first_floor', 'idle', {
+                friendly_name: 'First Floor Vacuum',
+                supported_features:
+                    VACUUM_FEATURE.START |
+                    VACUUM_FEATURE.PAUSE |
+                    VACUUM_FEATURE.RETURN_HOME |
+                    VACUUM_FEATURE.FAN_SPEED |
+                    VACUUM_FEATURE.LOCATE |
+                    VACUUM_FEATURE.CLEAN_AREA,
+                fan_speed_list: ['quiet', 'normal', 'max'],
+                fan_speed: 'normal',
+            }),
+            'sensor.first_floor_battery': state('sensor.first_floor_battery', '82', {
+                friendly_name: 'Battery',
+                device_class: 'battery',
+                unit_of_measurement: '%',
+            }),
+            'sensor.first_floor_cleaning_area': state('sensor.first_floor_cleaning_area', '12.4', {
+                friendly_name: 'Cleaning Area',
+                unit_of_measurement: 'm2',
+            }),
+            'sensor.first_floor_cleaning_time': state('sensor.first_floor_cleaning_time', '960', {
+                friendly_name: 'Cleaning Time',
+                device_class: 'duration',
+                unit_of_measurement: 's',
+            }),
+            'sensor.first_floor_charging_state': state('sensor.first_floor_charging_state', 'charging', {
+                friendly_name: 'Charging State',
+            }),
+            'binary_sensor.first_floor_docked': state('binary_sensor.first_floor_docked', 'on', {
+                friendly_name: 'Docked',
+            }),
+            'camera.first_floor_map': state('camera.first_floor_map', 'streaming', {
+                friendly_name: 'Map',
+                entity_picture: '/api/camera_proxy/camera.first_floor_map',
+            }),
+        } as any;
+        haStore.entityCount = Object.keys(haStore.states).length;
+        haStore.statesVersion += 1;
+
+        render(VacuumControlCard, {
+            props: {
+                name: 'First Floor Vacuum',
+                entityId: 'vacuum.first_floor',
+                options: { source: 'manual', entityIds: ['vacuum.first_floor'], showBattery: true, showFanSpeed: true, showCleaningStats: true, showMap: true },
+            },
+        });
+
+        expect(screen.getAllByText('First Floor Vacuum')).toHaveLength(2);
+        expect(screen.getByText(/Charging - 82% - charging - 12.4 m2 - 16 min - normal/)).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /All dock/i })).not.toBeInTheDocument();
+        await waitFor(() => expect(screen.getByAltText('Map of First Floor Vacuum')).toBeInTheDocument());
+    });
+
+    it('adds capability-aware vacuum controls to the detail sheet', async () => {
+        haRegistryStore.areas = [
+            { area_id: 'hall', name: 'Hall', floor_id: 'first', icon: null, picture: null },
+            { area_id: 'bedroom', name: 'Bedroom', floor_id: 'first', icon: null, picture: null },
+        ];
+        haRegistryStore.deviceRegistry = [{
+            id: 'narwal-first-floor',
+            area_id: 'hall',
+            config_entries: [],
+            configuration_url: null,
+            connections: [],
+            disabled_by: null,
+            entry_type: null,
+            hw_version: null,
+            identifiers: [['narwal', 'narwal-first-floor']],
+            labels: [],
+            manufacturer: 'Narwal',
+            model: 'Flow',
+            name_by_user: null,
+            name: 'First Floor Vacuum',
+            serial_number: null,
+            sw_version: null,
+            via_device_id: null,
+        }];
+        haRegistryStore.entityRegistry = [registry('vacuum.first_floor', null, [], 'narwal-first-floor')];
+        haRegistryStore.version += 1;
+        haStore.states = {
+            ...haStore.states,
+            'vacuum.first_floor': state('vacuum.first_floor', 'idle', {
+                friendly_name: 'First Floor Vacuum',
+                supported_features:
+                    VACUUM_FEATURE.START |
+                    VACUUM_FEATURE.PAUSE |
+                    VACUUM_FEATURE.RETURN_HOME |
+                    VACUUM_FEATURE.FAN_SPEED |
+                    VACUUM_FEATURE.LOCATE |
+                    VACUUM_FEATURE.CLEAN_SPOT |
+                    VACUUM_FEATURE.CLEAN_AREA,
+                fan_speed_list: ['quiet', 'normal', 'max'],
+                fan_speed: 'normal',
+            }),
+        } as any;
+        haStore.entityCount = Object.keys(haStore.states).length;
+        haStore.statesVersion += 1;
+        const callService = vi.spyOn(haStore, 'callService').mockResolvedValue({ ok: true, value: undefined });
+
+        render(EntityDetailSheet);
+        entityDetailStore.openEntities({ entityIds: ['vacuum.first_floor'], selectedEntityId: 'vacuum.first_floor' });
+        await tick();
+
+        const dialog = screen.getByRole('dialog');
+        await fireEvent.click(within(dialog).getByText('Locate'));
+        expect(callService).toHaveBeenCalledWith('vacuum', 'locate', {
+            entity_id: 'vacuum.first_floor',
+        });
+
+        await fireEvent.change(within(dialog).getByLabelText('Fan speed'), { target: { value: 'max' } });
+        expect(callService).toHaveBeenCalledWith('vacuum', 'set_fan_speed', {
+            entity_id: 'vacuum.first_floor',
+            fan_speed: 'max',
+        });
+
+        await fireEvent.click(within(dialog).getByRole('button', { name: 'Hall' }));
+        expect(callService).toHaveBeenCalledWith(
+            'vacuum',
+            'clean_area',
+            { cleaning_area_id: ['hall'] },
+            { entity_id: 'vacuum.first_floor' },
+        );
     });
 
     it('renders a dedicated update card with check and install controls', async () => {
@@ -841,6 +1027,10 @@ describe('smart dashboard cards', () => {
                 'day',
             ),
         );
+        await waitFor(() =>
+            expect(screen.getByText(/Peak 1[,.]2 kW/)).toBeInTheDocument(),
+        );
+        expect(screen.getAllByText(/1[,.]2 kW/).length).toBeGreaterThan(1);
     });
 
     it('auto-discovers calendar, remote, and device entities from HA state', () => {

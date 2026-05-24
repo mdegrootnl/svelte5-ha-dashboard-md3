@@ -19,6 +19,7 @@ import type {
     MAAlbum,
     MATrack,
     MAPlaylist,
+    MAPodcast,
     MARadio,
     MASearchResults,
     MAQueueItem,
@@ -32,6 +33,99 @@ const logger = createLogger('MAStore');
 
 // Cache TTL for library items (5 minutes)
 const LIBRARY_CACHE_TTL = 5 * 60 * 1000;
+
+interface RadioStationAliasGroup {
+    key: string;
+    aliases: string[];
+}
+
+interface RadioStationSearchOptions {
+    stationAliases?: RadioStationAliasGroup[];
+    rejectedNamePhrases?: string[];
+}
+
+interface HABrowseMediaItem {
+    title?: string;
+    media_content_id?: string;
+    media_content_type?: string;
+    media_class?: string;
+    can_play?: boolean;
+    can_expand?: boolean;
+    thumbnail?: string;
+    domain?: string;
+    identifier?: string;
+    children?: HABrowseMediaItem[];
+}
+
+function normalizeRadioStationName(name: string) {
+    return name
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/\b(?:fm|the netherlands|netherlands|nederland|live|online|stream|radio station)\b/g, '')
+        .replace(/[^\p{L}\p{N}%]+/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function containsNormalizedPhrase(name: string, phrase: string) {
+    const normalizedName = ` ${normalizeRadioStationName(name)} `;
+    const normalizedPhrase = ` ${normalizeRadioStationName(phrase)} `;
+    return normalizedPhrase.trim().length > 0 && normalizedName.includes(normalizedPhrase);
+}
+
+function getCanonicalRadioStationKey(station: MARadio, options?: RadioStationSearchOptions) {
+    if (!options?.stationAliases?.length) return normalizeRadioStationName(station.name);
+
+    for (const group of options.stationAliases) {
+        if (group.aliases.some((alias) => containsNormalizedPhrase(station.name, alias))) {
+            return normalizeRadioStationName(group.key);
+        }
+    }
+
+    return null;
+}
+
+function isRejectedRadioStation(station: MARadio, options?: RadioStationSearchOptions) {
+    return Boolean(
+        options?.rejectedNamePhrases?.some((phrase) => containsNormalizedPhrase(station.name, phrase))
+    );
+}
+
+function hasUsefulRadioImage(station: MARadio) {
+    const url = station.image_url?.trim();
+    return Boolean(url && !url.startsWith('data:'));
+}
+
+function isUsefulRadioStation(station: MARadio) {
+    const name = station.name?.trim();
+    if (!name) return false;
+    if (name.includes('%') && !/\b100\s*%\s*nl\b/i.test(name)) return false;
+    return true;
+}
+
+function scoreRadioStationCandidate(station: MARadio) {
+    let score = 0;
+    if (hasUsefulRadioImage(station)) score += 10;
+    if (station.provider) score += 2;
+    if (station.name && !station.name.includes('%')) score += 2;
+    if (station.uri?.includes('tunein')) score += 1;
+    return score;
+}
+
+function pickRadioStationCandidate(current: MARadio, incoming: MARadio) {
+    if (scoreRadioStationCandidate(incoming) > scoreRadioStationCandidate(current)) {
+        return incoming;
+    }
+
+    return current;
+}
+
+function getMediaSourceUri(item: HABrowseMediaItem) {
+    if (item.media_content_id) return item.media_content_id;
+    if (!item.domain || !item.identifier) return null;
+    return `media-source://${item.domain}/${item.identifier}`;
+}
 
 export class MusicAssistantStore {
     // ========================================================================
@@ -318,7 +412,7 @@ export class MusicAssistantStore {
     // Playback Controls
     // ====================================================
 
-    async play(mediaUri?: string, playerId?: string): Promise<Result<void>> {
+    async play(mediaUri?: string, playerId?: string, mediaContentType = 'music'): Promise<Result<void>> {
         let targetPlayer = playerId || this.activePlayerId;
 
         // Auto-select first player if none active
@@ -341,6 +435,20 @@ export class MusicAssistantStore {
 
         try {
             if (mediaUri) {
+                if (mediaUri.startsWith('media-source://')) {
+                    logger.info('Calling media_player.play_media for HA media source:', {
+                        media_content_id: mediaUri,
+                        media_content_type: mediaContentType,
+                        entity_id: targetPlayer
+                    });
+                    const res = await haStore.callService('media_player', 'play_media',
+                        { media_content_id: mediaUri, media_content_type: mediaContentType || 'music' },
+                        { entity_id: targetPlayer }
+                    );
+                    if (!res.ok) throw res.error;
+                    return ok(undefined);
+                }
+
                 // Use the Music Assistant service to queue and play media
                 logger.info('Calling play_media:', { media_id: mediaUri, entity_id: targetPlayer });
                 await this.callMA('play_media', { media_id: mediaUri }, { entity_id: targetPlayer });
@@ -431,7 +539,7 @@ export class MusicAssistantStore {
     // ====================================================
 
     async search(query: string, limit = 20): Promise<Result<MASearchResults>> {
-        if (!query.trim()) return ok({ artists: [], albums: [], tracks: [], playlists: [], radio: [] });
+        if (!query.trim()) return ok({ artists: [], albums: [], tracks: [], playlists: [], podcasts: [], radio: [] });
 
         try {
             logger.info('Search request:', { query, limit, domain: this.activeDomain });
@@ -440,11 +548,21 @@ export class MusicAssistantStore {
 
             // Legacy music_assistant uses 'name' and requires explicit 'media_type'
             if (this.activeDomain === 'music_assistant') {
-                result = await this.callMA('search', {
+                const searchPayload = {
                     name: query,
-                    media_type: ['artist', 'album', 'track', 'playlist', 'radio'],
+                    media_type: ['playlist', 'artist', 'album', 'podcast', 'track', 'radio'],
                     limit
-                }, undefined, true) as { response?: MASearchResults };
+                };
+
+                try {
+                    result = await this.callMA('search', searchPayload, undefined, true) as { response?: MASearchResults };
+                } catch (error) {
+                    logger.warn('Search with podcast media type failed, retrying legacy media types:', error);
+                    result = await this.callMA('search', {
+                        ...searchPayload,
+                        media_type: ['playlist', 'artist', 'album', 'track', 'radio']
+                    }, undefined, true) as { response?: MASearchResults };
+                }
             } else {
                 // Modern 'mass' domain uses 'query'
                 result = await this.callMA('search', { query, limit }, undefined, true) as { response?: MASearchResults };
@@ -459,9 +577,10 @@ export class MusicAssistantStore {
             const albums = (resp?.albums || []).map(i => this.mapMAItem(i)) as MAAlbum[];
             const tracks = (resp?.tracks || []).map(i => this.mapMAItem(i)) as MATrack[];
             const playlists = (resp?.playlists || []).map(i => this.mapMAItem(i)) as MAPlaylist[];
+            const podcasts = ((resp as any)?.podcasts || []).map((i: any) => this.mapMAItem(i)) as MAPodcast[];
             const radio = (resp?.radio || []).map(i => this.mapMAItem(i)) as MARadio[];
 
-            return ok({ artists, albums, tracks, playlists, radio });
+            return ok({ artists, albums, tracks, playlists, podcasts, radio });
         } catch (error: any) {
             const errorMsg = typeof error === 'object' ? JSON.stringify(error, Object.getOwnPropertyNames(error)) : String(error);
             logger.error(`Search failed: ${errorMsg}`);
@@ -509,6 +628,131 @@ export class MusicAssistantStore {
     }
 
     async getRadioStations(limit = 50): Promise<Result<MARadio[]>> { return this.getLibrary('radio', { limit }) as Promise<Result<MARadio[]>>; }
+
+    async getRadioBrowserCountryStations(countryCode: string, limit = 120): Promise<Result<MARadio[]>> {
+        if (!haStore.connection) return err(new Error('No connection'));
+
+        const normalizedCountryCode = countryCode.trim().toUpperCase();
+        if (!/^[A-Z]{2}$/.test(normalizedCountryCode)) {
+            return err(new Error(`Invalid radio country code: ${countryCode}`));
+        }
+
+        try {
+            const response = await haStore.connection.sendMessagePromise({
+                type: 'media_source/browse_media',
+                media_content_id: `media-source://radio_browser/country/${normalizedCountryCode}`,
+            }) as HABrowseMediaItem;
+
+            const stationsByUri = new Map<string, MARadio>();
+            const stationNameToUri = new Map<string, string>();
+            const children = Array.isArray(response?.children) ? response.children : [];
+
+            for (const child of children) {
+                if (!child.can_play) continue;
+
+                const name = child.title?.trim();
+                const uri = getMediaSourceUri(child);
+                if (!name || !uri) continue;
+
+                const station: MARadio = {
+                    item_id: child.identifier || uri,
+                    provider: 'radio_browser',
+                    name,
+                    media_type: 'radio',
+                    image_url: child.thumbnail,
+                    uri,
+                    media_content_type: child.media_content_type || 'music',
+                    countryCode: normalizedCountryCode,
+                };
+
+                if (!isUsefulRadioStation(station)) continue;
+
+                const nameKey = normalizeRadioStationName(station.name);
+                const existingUriKey = stationNameToUri.get(nameKey) ?? (stationsByUri.has(uri) ? uri : undefined);
+
+                if (existingUriKey) {
+                    const current = stationsByUri.get(existingUriKey);
+                    if (!current) continue;
+
+                    const preferred = pickRadioStationCandidate(current, station);
+                    if (preferred !== current) {
+                        stationsByUri.set(existingUriKey, preferred);
+                    }
+                    stationNameToUri.set(nameKey, existingUriKey);
+                } else {
+                    stationsByUri.set(uri, station);
+                    stationNameToUri.set(nameKey, uri);
+                }
+            }
+
+            return ok([...stationsByUri.values()].slice(0, limit));
+        } catch (error) {
+            logger.warn('Radio Browser country lookup failed:', error);
+            return err(error instanceof Error ? error : new Error(String(error)));
+        }
+    }
+
+    async searchRadioStations(
+        queries: string | string[],
+        limit = 72,
+        options: RadioStationSearchOptions = {}
+    ): Promise<Result<MARadio[]>> {
+        const terms = (Array.isArray(queries) ? queries : [queries])
+            .map((query) => query.trim())
+            .filter(Boolean);
+
+        if (terms.length === 0) return ok([]);
+
+        const stationsByUri = new Map<string, MARadio>();
+        const stationNameToUri = new Map<string, string>();
+        let lastError: Error | null = null;
+        const perQueryLimit = Math.max(24, Math.min(limit, 50));
+
+        const results = await Promise.allSettled(
+            terms.map((term) => this.search(term, perQueryLimit))
+        );
+
+        for (const result of results) {
+            if (result.status === 'rejected') {
+                lastError = result.reason instanceof Error ? result.reason : new Error(String(result.reason));
+                continue;
+            }
+
+            if (!result.value.ok) {
+                lastError = result.value.error;
+                continue;
+            }
+
+            for (const station of result.value.value.radio) {
+                if (!isUsefulRadioStation(station)) continue;
+                if (isRejectedRadioStation(station, options)) continue;
+
+                const uriKey = station.uri || `${station.provider}:${station.item_id}`;
+                const nameKey = getCanonicalRadioStationKey(station, options);
+                if (!nameKey) continue;
+
+                const existingUriKey = stationNameToUri.get(nameKey) ?? (stationsByUri.has(uriKey) ? uriKey : undefined);
+
+                if (existingUriKey) {
+                    const current = stationsByUri.get(existingUriKey);
+                    if (!current) continue;
+
+                    const preferred = pickRadioStationCandidate(current, station);
+                    if (preferred !== current) {
+                        stationsByUri.set(existingUriKey, preferred);
+                        stationNameToUri.set(nameKey, existingUriKey);
+                    }
+                } else {
+                    stationsByUri.set(uriKey, station);
+                    stationNameToUri.set(nameKey, uriKey);
+                }
+            }
+        }
+
+        if (stationsByUri.size > 0 || !lastError) return ok([...stationsByUri.values()].slice(0, limit));
+        return err(lastError);
+    }
+
     async getPlaylists(limit = 50): Promise<Result<MAPlaylist[]>> { return this.getLibrary('playlist', { limit }) as Promise<Result<MAPlaylist[]>>; }
     async getArtists(limit = 50, favorite = false): Promise<Result<MAArtist[]>> { return this.getLibrary('artist', { limit, favorite }) as Promise<Result<MAArtist[]>>; }
     async getAlbums(limit = 50, favorite = false): Promise<Result<MAAlbum[]>> { return this.getLibrary('album', { limit, favorite }) as Promise<Result<MAAlbum[]>>; }

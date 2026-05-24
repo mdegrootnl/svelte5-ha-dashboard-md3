@@ -273,7 +273,7 @@
             tempConfig.options.todo ??= { source: "auto", showAddControl: true, showCompleted: false, showDueDates: true, maxItems: 6 };
         }
         if (isVacuumCard) {
-            tempConfig.options.vacuum ??= { source: "auto", showGroupControls: true, showBattery: true, showFanSpeed: true, maxItems: 4 };
+            tempConfig.options.vacuum ??= { source: "auto", showGroupControls: true, showBattery: true, showFanSpeed: true, showCleaningStats: true, showMap: true, maxItems: 4 };
         }
     });
 
@@ -715,7 +715,7 @@
             options.todo = { source: "auto", showAddControl: true, showCompleted: false, showDueDates: true, maxItems: 6 };
         }
         if (isVacuumCard && !options.vacuum) {
-            options.vacuum = { source: "auto", showGroupControls: true, showBattery: true, showFanSpeed: true, maxItems: 4 };
+            options.vacuum = { source: "auto", showGroupControls: true, showBattery: true, showFanSpeed: true, showCleaningStats: true, showMap: true, maxItems: 4 };
         }
         if (isNavigationCard) {
             options.navigation ??= {};
@@ -1222,7 +1222,7 @@
 
     function ensureVacuumOptions(): VacuumCardOptions {
         tempConfig.options ??= {};
-        tempConfig.options.vacuum ??= { source: "auto", showGroupControls: true, showBattery: true, showFanSpeed: true, maxItems: 4 };
+        tempConfig.options.vacuum ??= { source: "auto", showGroupControls: true, showBattery: true, showFanSpeed: true, showCleaningStats: true, showMap: true, maxItems: 4 };
         return tempConfig.options.vacuum as VacuumCardOptions;
     }
 
@@ -1628,7 +1628,7 @@
                             icon={tempConfig.icon}
                             color={tempConfig.color}
                             backgroundColor={tempConfig.backgroundColor}
-                            options={tempConfig.options.vacuum || { source: "auto", showGroupControls: true, showBattery: true, showFanSpeed: true, maxItems: 4 }}
+                            options={tempConfig.options.vacuum || { source: "auto", showGroupControls: true, showBattery: true, showFanSpeed: true, showCleaningStats: true, showMap: true, maxItems: 4 }}
                         />
                     {:else if isMediaCard}
                         <MediaCard
@@ -3749,6 +3749,38 @@
                                 </span>
                                 <span class="rounded-m3-full bg-m3-secondary-container px-3 py-1 text-m3-label-medium text-m3-on-secondary-container">
                                     {tempConfig.options.vacuum?.showFanSpeed === false ? "Off" : "On"}
+                                </span>
+                            </button>
+
+                            <button
+                                class="flex items-center justify-between rounded-m3-md bg-m3-surface-container-high px-4 py-3 text-left transition-colors hover:bg-m3-surface-container-highest"
+                                onclick={() =>
+                                    updateVacuumOptions({
+                                        showCleaningStats:
+                                            tempConfig.options.vacuum?.showCleaningStats === false,
+                                    })}
+                            >
+                                <span class="text-m3-label-large text-m3-on-surface">
+                                    Show cleaning stats
+                                </span>
+                                <span class="rounded-m3-full bg-m3-secondary-container px-3 py-1 text-m3-label-medium text-m3-on-secondary-container">
+                                    {tempConfig.options.vacuum?.showCleaningStats === false ? "Off" : "On"}
+                                </span>
+                            </button>
+
+                            <button
+                                class="flex items-center justify-between rounded-m3-md bg-m3-surface-container-high px-4 py-3 text-left transition-colors hover:bg-m3-surface-container-highest"
+                                onclick={() =>
+                                    updateVacuumOptions({
+                                        showMap:
+                                            tempConfig.options.vacuum?.showMap === false,
+                                    })}
+                            >
+                                <span class="text-m3-label-large text-m3-on-surface">
+                                    Show map preview
+                                </span>
+                                <span class="rounded-m3-full bg-m3-secondary-container px-3 py-1 text-m3-label-medium text-m3-on-secondary-container">
+                                    {tempConfig.options.vacuum?.showMap === false ? "Off" : "On"}
                                 </span>
                             </button>
                         </div>

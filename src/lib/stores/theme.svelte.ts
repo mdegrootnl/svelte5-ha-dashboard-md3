@@ -35,6 +35,38 @@ const LEGACY_DEFAULT_NAVIGATION_IDS = [
     'settings',
 ];
 
+const PRE_ATTENTION_DEFAULT_NAVIGATION_IDS = [
+    'dashboard',
+    'music',
+    'meals',
+    'weather',
+    'library',
+    'theme',
+    'calendar',
+    'settings',
+];
+
+const EARLY_DEFAULT_NAVIGATION_IDS = [
+    'dashboard',
+    'music',
+    'weather',
+    'library',
+    'theme',
+    'calendar',
+    'settings',
+];
+
+const EARLY_DEFAULT_WITH_MEALS_NAVIGATION_HREFS = [
+    '/dashboard',
+    '/music',
+    '/weather',
+    '/library',
+    '/theme',
+    '/calendar',
+    '/settings',
+    '/meals',
+];
+
 const ATTENTION_DEFAULT_NAVIGATION_IDS = [
     'home',
     'dashboard',
@@ -48,20 +80,100 @@ const ATTENTION_DEFAULT_NAVIGATION_IDS = [
     'settings',
 ];
 
+const ATTENTION_DEFAULT_WITHOUT_HOME_NAVIGATION_IDS = [
+    'dashboard',
+    'attention',
+    'music',
+    'meals',
+    'weather',
+    'library',
+    'theme',
+    'calendar',
+    'settings',
+];
+
+const RECENT_DEFAULT_WITH_HOME_NAVIGATION_IDS = [
+    'home',
+    'dashboard',
+    'attention',
+    'presence',
+    'music',
+    'meals',
+    'weather',
+    'library',
+    'theme',
+    'calendar',
+    'settings',
+];
+
+const GENERIC_NAVIGATION_ICONS = new Set(['', 'circle', 'radio_button_unchecked']);
+const DEFAULT_NAVIGATION_BY_ID = new Map(
+    DEFAULT_CONFIG.theme.navigationItems.map((item) => [item.id, item]),
+);
+const DEFAULT_NAVIGATION_BY_HREF = new Map(
+    DEFAULT_CONFIG.theme.navigationItems.map((item) => [normalizeHref(item.href), item]),
+);
+
+function normalizeHref(href: string | undefined) {
+    if (!href) return '';
+    const trimmed = href.trim();
+    if (!trimmed || trimmed === '/') return '/';
+    return trimmed.replace(/\/+$/, '');
+}
+
 function matchesNavigationOrder(items: NavigationItem[], ids: string[]) {
     if (items.length !== ids.length) return false;
     return items.every((item, index) => item.id === ids[index]);
 }
 
+function matchesNavigationHrefs(items: NavigationItem[], hrefs: string[]) {
+    if (items.length !== hrefs.length) return false;
+    return items.every((item, index) => normalizeHref(item.href) === hrefs[index]);
+}
+
+function onlyUsesKnownDefaultRoutes(items: NavigationItem[]) {
+    return items.every((item) => DEFAULT_NAVIGATION_BY_HREF.has(normalizeHref(item.href)));
+}
+
 function isKnownDefaultNavigation(items: NavigationItem[]) {
     return matchesNavigationOrder(items, LEGACY_DEFAULT_NAVIGATION_IDS) ||
+        matchesNavigationOrder(items, PRE_ATTENTION_DEFAULT_NAVIGATION_IDS) ||
+        matchesNavigationOrder(items, EARLY_DEFAULT_NAVIGATION_IDS) ||
         matchesNavigationOrder(items, ATTENTION_DEFAULT_NAVIGATION_IDS) ||
-        matchesNavigationOrder(items, DEFAULT_CONFIG.theme.navigationItems.map((item) => item.id));
+        matchesNavigationOrder(items, ATTENTION_DEFAULT_WITHOUT_HOME_NAVIGATION_IDS) ||
+        matchesNavigationOrder(items, RECENT_DEFAULT_WITH_HOME_NAVIGATION_IDS) ||
+        matchesNavigationOrder(items, DEFAULT_CONFIG.theme.navigationItems.map((item) => item.id)) ||
+        (
+            onlyUsesKnownDefaultRoutes(items) &&
+            matchesNavigationHrefs(items, EARLY_DEFAULT_WITH_MEALS_NAVIGATION_HREFS)
+        );
+}
+
+function normalizeKnownRouteItem(item: NavigationItem): NavigationItem {
+    const href = normalizeHref(item.href);
+    const defaultItem =
+        DEFAULT_NAVIGATION_BY_HREF.get(href) ??
+        (href ? undefined : DEFAULT_NAVIGATION_BY_ID.get(item.id));
+
+    if (!defaultItem) return item;
+
+    const icon = GENERIC_NAVIGATION_ICONS.has((item.icon ?? '').trim())
+        ? defaultItem.icon
+        : item.icon;
+
+    return {
+        ...item,
+        id: defaultItem.id,
+        label: item.label?.trim() ? item.label : defaultItem.label,
+        icon,
+        href: item.href?.trim() ? item.href : defaultItem.href,
+    };
 }
 
 function normalizeNavigationItems(items: NavigationItem[] | undefined) {
     if (!items?.length) return DEFAULT_CONFIG.theme.navigationItems;
-    if (!isKnownDefaultNavigation(items)) return items;
+    const normalizedItems = items.map(normalizeKnownRouteItem);
+    if (!isKnownDefaultNavigation(normalizedItems)) return normalizedItems;
     return DEFAULT_CONFIG.theme.navigationItems;
 }
 
@@ -313,7 +425,7 @@ export class ThemeStore {
     }
 
     setNavigationItems(items: NavigationItem[]) {
-        this.navigationItems = items;
+        this.navigationItems = items.map(normalizeKnownRouteItem);
         this.saveToLocalStorage();
         this.scheduleSyncToServer();
     }

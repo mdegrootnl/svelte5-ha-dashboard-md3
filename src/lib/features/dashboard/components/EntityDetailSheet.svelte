@@ -3,7 +3,9 @@
     import DynamicIcon from "$lib/components/common/DynamicIcon.svelte";
     import MediaControls from "$lib/features/dashboard/components/cards/media/MediaControls.svelte";
     import MediaVolume from "$lib/features/dashboard/components/cards/media/MediaVolume.svelte";
+    import { resolveVacuumCapabilities } from "$lib/domain/vacuumCapabilities";
     import { entityDetailStore } from "$lib/features/dashboard/stores/entityDetail.svelte";
+    import { haRegistryStore } from "$lib/stores/haRegistry.svelte";
     import { haStore } from "$lib/stores/ha.svelte";
     import { themeStore } from "$lib/stores/theme.svelte";
     import { LANGUAGE_LOCALES } from "$lib/i18n";
@@ -78,6 +80,24 @@
     let selectedLastChanged = $derived(
         formatTimestamp(selectedEntity?.last_changed ?? selectedEntity?.last_updated),
     );
+    let selectedVacuumCapabilities = $derived(resolveVacuumCapabilities(selectedEntity));
+    let cleanAreaOptions = $derived.by(() => {
+        if (domain !== "vacuum" || !selectedVacuumCapabilities.canCleanArea) return [];
+
+        const registry = haRegistryStore.entityRegistry.find((entry) => entry.entity_id === selectedEntityId);
+        const device = registry?.device_id
+            ? haRegistryStore.deviceRegistry.find((entry) => entry.id === registry.device_id)
+            : undefined;
+        const areaId = registry?.area_id ?? device?.area_id ?? null;
+        const floorId = areaId
+            ? haRegistryStore.areas.find((area) => area.area_id === areaId)?.floor_id
+            : null;
+        const candidates = floorId
+            ? haRegistryStore.areas.filter((area) => area.floor_id === floorId)
+            : haRegistryStore.areas;
+
+        return candidates.slice(0, 12);
+    });
     let brightnessValue = $state(0);
     let fanPercentageValue = $state(0);
     let humidifierHumidityValue = $state(0);
@@ -125,6 +145,10 @@
 
     function inputNumber(event: Event) {
         return Number((event.currentTarget as HTMLInputElement).value);
+    }
+
+    function inputValue(event: Event) {
+        return (event.currentTarget as HTMLSelectElement | HTMLInputElement).value;
     }
 
     function callSelected(service: string, data: Record<string, unknown> = {}) {
@@ -198,6 +222,29 @@
 
     function setVacuum(service: "start" | "pause" | "return_to_base" | "stop") {
         callSelected(service);
+    }
+
+    function locateVacuum() {
+        callSelected("locate");
+    }
+
+    function cleanVacuumSpot() {
+        callSelected("clean_spot");
+    }
+
+    function setVacuumFanSpeed(fanSpeed: string) {
+        if (!fanSpeed) return;
+        callSelected("set_fan_speed", { fan_speed: fanSpeed });
+    }
+
+    function cleanVacuumArea(areaId: string) {
+        if (!selectedEntityId || !areaId) return;
+        haStore.callService(
+            "vacuum",
+            "clean_area",
+            { cleaning_area_id: [areaId] },
+            { entity_id: selectedEntityId },
+        );
     }
 
     function setUpdate(service: "install" | "skip" | "clear_skipped") {
@@ -433,19 +480,67 @@
 
                     {#if domain === "vacuum"}
                         <div class="entity-detail__button-row">
-                            <button type="button" class="entity-detail__secondary-action" onclick={() => setVacuum("start")}>
-                                {themeStore.t("entityDetail.start")}
-                            </button>
-                            <button type="button" class="entity-detail__secondary-action" onclick={() => setVacuum("pause")}>
-                                {themeStore.t("entityDetail.pause")}
-                            </button>
-                            <button type="button" class="entity-detail__secondary-action" onclick={() => setVacuum("return_to_base")}>
-                                {themeStore.t("entityDetail.returnToBase")}
-                            </button>
-                            <button type="button" class="entity-detail__secondary-action" onclick={() => setVacuum("stop")}>
-                                {themeStore.t("entityDetail.stop")}
-                            </button>
+                            {#if selectedVacuumCapabilities.canStart}
+                                <button type="button" class="entity-detail__secondary-action" onclick={() => setVacuum("start")}>
+                                    {themeStore.t("entityDetail.start")}
+                                </button>
+                            {/if}
+                            {#if selectedVacuumCapabilities.canPause}
+                                <button type="button" class="entity-detail__secondary-action" onclick={() => setVacuum("pause")}>
+                                    {themeStore.t("entityDetail.pause")}
+                                </button>
+                            {/if}
+                            {#if selectedVacuumCapabilities.canReturnHome}
+                                <button type="button" class="entity-detail__secondary-action" onclick={() => setVacuum("return_to_base")}>
+                                    {themeStore.t("entityDetail.returnToBase")}
+                                </button>
+                            {/if}
+                            {#if selectedVacuumCapabilities.canStop}
+                                <button type="button" class="entity-detail__secondary-action" onclick={() => setVacuum("stop")}>
+                                    {themeStore.t("entityDetail.stop")}
+                                </button>
+                            {/if}
+                            {#if selectedVacuumCapabilities.canLocate}
+                                <button type="button" class="entity-detail__secondary-action" onclick={locateVacuum}>
+                                    {themeStore.t("entityDetail.locate")}
+                                </button>
+                            {/if}
+                            {#if selectedVacuumCapabilities.canCleanSpot}
+                                <button type="button" class="entity-detail__secondary-action" onclick={cleanVacuumSpot}>
+                                    {themeStore.t("entityDetail.cleanSpot")}
+                                </button>
+                            {/if}
                         </div>
+
+                        {#if selectedVacuumCapabilities.canSetFanSpeed && selectedVacuumCapabilities.fanSpeeds.length > 0}
+                            <label class="entity-detail__select">
+                                <span>{themeStore.t("entityDetail.fanSpeed")}</span>
+                                <select
+                                    value={selectedVacuumCapabilities.currentFanSpeed ?? ""}
+                                    onchange={(event) => setVacuumFanSpeed(inputValue(event))}
+                                >
+                                    {#each selectedVacuumCapabilities.fanSpeeds as fanSpeed}
+                                        <option value={fanSpeed}>{fanSpeed}</option>
+                                    {/each}
+                                </select>
+                            </label>
+                        {/if}
+
+                        {#if selectedVacuumCapabilities.canCleanArea && cleanAreaOptions.length > 0}
+                            <div class="entity-detail__area-clean">
+                                <div>
+                                    <h5>{themeStore.t("entityDetail.cleanArea")}</h5>
+                                    <p>{themeStore.t("entityDetail.cleanAreaDescription")}</p>
+                                </div>
+                                <div class="entity-detail__area-grid">
+                                    {#each cleanAreaOptions as area (area.area_id)}
+                                        <button type="button" class="entity-detail__secondary-action" onclick={() => cleanVacuumArea(area.area_id)}>
+                                            {area.name}
+                                        </button>
+                                    {/each}
+                                </div>
+                            </div>
+                        {/if}
                     {/if}
 
                     {#if domain === "update"}
@@ -706,6 +801,44 @@
 
     .entity-detail__slider strong {
         text-align: right;
+    }
+
+    .entity-detail__select,
+    .entity-detail__area-clean {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        border-radius: var(--radius-m3-md);
+        background: var(--color-m3-surface-container);
+        padding: 0.75rem;
+        color: var(--color-m3-on-surface);
+        font-weight: 700;
+    }
+
+    .entity-detail__select select {
+        min-height: var(--touch-target-compact);
+        border-radius: var(--radius-m3-md);
+        background: var(--color-m3-surface-container-high);
+        padding: 0 0.75rem;
+        color: var(--color-m3-on-surface);
+        outline: none;
+    }
+
+    .entity-detail__area-clean h5 {
+        font-size: 0.9375rem;
+        font-weight: 800;
+    }
+
+    .entity-detail__area-clean p {
+        color: var(--color-m3-on-surface-variant);
+        font-size: 0.8125rem;
+        font-weight: 600;
+    }
+
+    .entity-detail__area-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
     }
 
     .entity-detail__climate {

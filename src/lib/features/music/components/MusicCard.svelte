@@ -47,6 +47,8 @@
                 return MusicNote;
             case "playlist":
                 return QueueMusic;
+            case "podcast":
+                return MusicNote;
             case "radio":
                 return Radio;
             default:
@@ -69,6 +71,9 @@
         }
         if (item.media_type === "playlist") {
             return themeStore.t("music.playlist");
+        }
+        if (item.media_type === "podcast") {
+            return themeStore.t("music.podcast");
         }
         if (item.media_type === "radio") {
             return item.provider || "Radio";

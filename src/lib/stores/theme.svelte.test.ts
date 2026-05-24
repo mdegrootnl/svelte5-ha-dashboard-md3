@@ -105,7 +105,6 @@ describe('ThemeStore', () => {
         });
 
         expect(store.navigationItems.map((item) => item.id)).toEqual([
-            'home',
             'dashboard',
             'attention',
             'presence',
@@ -129,6 +128,88 @@ describe('ThemeStore', () => {
         });
 
         expect(store.navigationItems.map((item) => item.id)).toEqual(DEFAULT_CONFIG.theme.navigationItems.map((item) => item.id));
+    });
+
+    it('upgrades early default navigation with a manually added generic Meals route', () => {
+        const store = new ThemeStore();
+
+        store.init({
+            ...DEFAULT_CONFIG.theme,
+            navigationItems: [
+                { id: 'dashboard', label: 'Home Dashboard', icon: 'home', href: '/dashboard' },
+                { id: 'music', label: 'Music', icon: 'music_note', href: '/music' },
+                { id: 'weather', label: 'Weather', icon: 'partly_cloudy_day', href: '/weather' },
+                { id: 'library', label: 'Library', icon: 'widgets', href: '/library' },
+                { id: 'theme', label: 'Theme', icon: 'palette', href: '/theme' },
+                { id: 'calendar', label: 'Calendar', icon: 'calendar_month', href: '/calendar' },
+                { id: 'settings', label: 'Settings', icon: 'settings', href: '/settings' },
+                { id: 'custom-meals', label: 'Maaltijden', icon: 'circle', href: '/meals' },
+            ],
+        });
+
+        expect(store.navigationItems.map((item) => item.id)).toEqual(DEFAULT_CONFIG.theme.navigationItems.map((item) => item.id));
+        expect(store.navigationItems.find((item) => item.id === 'meals')?.icon).toBe('restaurant');
+        expect(store.navigationItems.find((item) => item.id === 'attention')?.icon).toBe('notifications_active');
+        expect(store.navigationItems.find((item) => item.id === 'presence')?.icon).toBe('group');
+        expect(store.navigationItems.map((item) => item.id)).not.toContain('home');
+    });
+
+    it('removes the recent duplicate Start route from default navigation', () => {
+        const store = new ThemeStore();
+
+        store.init({
+            ...DEFAULT_CONFIG.theme,
+            navigationItems: [
+                { id: 'home', label: 'Start', icon: 'home', href: '/' },
+                ...DEFAULT_CONFIG.theme.navigationItems,
+            ],
+        });
+
+        expect(store.navigationItems.map((item) => item.id)).toEqual(DEFAULT_CONFIG.theme.navigationItems.map((item) => item.id));
+        expect(store.navigationItems.map((item) => item.id)).not.toContain('home');
+    });
+
+    it('repairs generic icons for known routes inside customized navigation layouts', () => {
+        const store = new ThemeStore();
+
+        store.init({
+            ...DEFAULT_CONFIG.theme,
+            navigationItems: [
+                { id: 'dinner-shortcut', label: 'Diner', icon: 'circle', href: '/meals' },
+                { id: 'music', label: 'Audio', icon: 'music_note', href: '/music' },
+            ],
+        });
+
+        expect(store.navigationItems).toMatchObject([
+            { id: 'meals', label: 'Diner', icon: 'restaurant', href: '/meals' },
+            { id: 'music', label: 'Audio', icon: 'music_note', href: '/music' },
+        ]);
+    });
+
+    it('repairs generic icons for known routes when navigation is edited', () => {
+        const store = new ThemeStore();
+
+        store.init(DEFAULT_CONFIG.theme);
+        store.setNavigationItems([
+            { id: 'custom-presence', label: 'Thuis', icon: 'circle', href: '/presence' },
+            { id: 'custom-meals', label: 'Eten', icon: 'radio_button_unchecked', href: '/meals' },
+        ]);
+
+        expect(store.navigationItems).toMatchObject([
+            { id: 'presence', label: 'Thuis', icon: 'group', href: '/presence' },
+            { id: 'meals', label: 'Eten', icon: 'restaurant', href: '/meals' },
+        ]);
+    });
+
+    it('does not re-add removed default routes during navigation edits', () => {
+        const store = new ThemeStore();
+
+        store.init(DEFAULT_CONFIG.theme);
+        store.setNavigationItems(
+            DEFAULT_CONFIG.theme.navigationItems.filter((item) => item.id !== 'presence'),
+        );
+
+        expect(store.navigationItems.map((item) => item.id)).not.toContain('presence');
     });
 
     it('does not add roadmap items to customized navigation layouts', () => {

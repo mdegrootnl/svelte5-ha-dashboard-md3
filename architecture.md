@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Last updated: May 21, 2026
+Last updated: May 24, 2026
 
 This app is a standalone SvelteKit dashboard builder for Home Assistant. The architecture favors backend-backed household state, feature-owned routes, Svelte 5 rune stores, preview-first dashboard generation, and a root-owned app shell for wall-tablet behavior.
 
@@ -43,6 +43,7 @@ src/
   routes/
     api/             App, integration, proxy, and config endpoints
     attention/       For You / Attention route
+    calendar/        Calendar agenda route
     dashboard/       Main dashboard route
     library/         Card library route
     meals/           Meals and shopping route
@@ -129,6 +130,8 @@ Standalone mode uses OAuth or long-lived tokens. Add-on mode uses Home Assistant
 ### Music Assistant
 
 Music Assistant is reached through Home Assistant. Music favorites and default player are app-level household settings stored server-side so they sync across devices.
+
+The radio tab uses Home Assistant Radio Browser media sources first (`media-source://radio_browser/country/<CODE>`) for country-aware station browsing. Country lists are cached for a week, can return large catalogs, support local name filtering, and deduplicate by stable station identity before falling back to Music Assistant search where Radio Browser is unavailable.
 
 ### Meals
 

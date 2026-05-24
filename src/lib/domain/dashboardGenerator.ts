@@ -3329,6 +3329,8 @@ function createEntityTypeCardInput(
                     showGroupControls: true,
                     showBattery: true,
                     showFanSpeed: true,
+                    showCleaningStats: true,
+                    showMap: true,
                     maxItems: 4,
                 },
             },
@@ -4311,6 +4313,8 @@ function generateRoomDashboard(
             showGroupControls: true,
             showBattery: true,
             showFanSpeed: true,
+            showCleaningStats: true,
+            showMap: true,
             maxItems: 4,
         };
         addTitle(roomTab, roomPlacer, gt(options, 'dashboardGeneration.output.vacuumControl'), gt(options, 'dashboardGeneration.output.subtitle.controls', { name: areaName }), options, 'area', areaId);

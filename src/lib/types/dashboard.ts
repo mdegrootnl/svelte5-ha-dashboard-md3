@@ -406,6 +406,8 @@ export interface VacuumCardOptions {
     showGroupControls?: boolean;
     showBattery?: boolean;
     showFanSpeed?: boolean;
+    showCleaningStats?: boolean;
+    showMap?: boolean;
     maxItems?: number;
 }
 

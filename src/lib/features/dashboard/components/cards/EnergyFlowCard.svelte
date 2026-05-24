@@ -144,6 +144,32 @@
         return `${formatNumber(value)}${separator}${unit}`;
     }
 
+    function formatSourceAxisValue(value: number) {
+        return formatWithUnit(value, "W");
+    }
+
+    function formatSourceTimeTick(value: Date) {
+        const range = smartOptions.historyRange ?? "last24h";
+
+        if (range === "12m") {
+            return new Intl.DateTimeFormat(undefined, {
+                month: "short",
+            }).format(value);
+        }
+
+        if (range === "7d" || range === "30d") {
+            return new Intl.DateTimeFormat(undefined, {
+                day: "numeric",
+                month: "short",
+            }).format(value);
+        }
+
+        return new Intl.DateTimeFormat(undefined, {
+            hour: "2-digit",
+            minute: "2-digit",
+        }).format(value);
+    }
+
     function clampPercent(value: number) {
         return Math.max(0, Math.min(100, value));
     }
@@ -155,6 +181,14 @@
 
     function hasNumericPoints(points: HistoryDataPoint[]) {
         return points.some((point) => point.value !== null);
+    }
+
+    function latestNumericPoint(points: HistoryDataPoint[]) {
+        for (let index = points.length - 1; index >= 0; index -= 1) {
+            const value = points[index]?.value;
+            if (value !== null && value !== undefined) return value;
+        }
+        return null;
     }
 
     function buildDemoSourceHistory(
@@ -482,6 +516,39 @@
     );
     let sourceHistoryConfig = $derived.by(() =>
         buildSourceHistoryConfig(smartOptions),
+    );
+    let sourceHistoryByEntityId = $derived.by(() =>
+        new Map(sourceHistory.map((item) => [item.entityId, item])),
+    );
+    let sourcePeakDisplay = $derived.by(() => {
+        const values = sourceHistory
+            .flatMap((item) => item.points)
+            .map((point) => point.value)
+            .filter((value): value is number => value !== null);
+
+        if (values.length === 0) return null;
+        return formatSourceAxisValue(
+            values.reduce(
+                (highest, value) =>
+                    Math.max(highest, Math.abs(value)),
+                0,
+            ),
+        );
+    });
+    let sourceLegendItems = $derived.by(() =>
+        sourceSeriesConfigs.map((source) => {
+            const history = sourceHistoryByEntityId.get(source.entityId);
+            const latest = history ? latestNumericPoint(history.points) : null;
+            const fallback = readEnergyValue(source.entityId);
+
+            return {
+                ...source,
+                display:
+                    latest === null
+                        ? fallback.display
+                        : formatSourceAxisValue(latest),
+            };
+        }),
     );
 
     let balanceGauges = $derived.by(() => {
@@ -964,13 +1031,22 @@
                             {sourceHistoryConfig.subtitle}
                         </p>
                     </div>
-                    {#if sourceHistoryLoading}
-                        <span
-                            class="rounded-m3-full bg-m3-surface-container-highest px-3 py-1 text-[clamp(0.5625rem,2.2cqmin,0.6875rem)] text-m3-on-surface-variant"
-                        >
-                            Loading
-                        </span>
-                    {/if}
+                    <div class="flex shrink-0 items-center gap-2">
+                        {#if sourcePeakDisplay}
+                            <span
+                                class="rounded-m3-full bg-m3-surface-container-highest px-3 py-1 text-[clamp(0.5625rem,2.2cqmin,0.6875rem)] font-semibold text-m3-on-surface-variant"
+                            >
+                                Peak {sourcePeakDisplay}
+                            </span>
+                        {/if}
+                        {#if sourceHistoryLoading}
+                            <span
+                                class="rounded-m3-full bg-m3-surface-container-highest px-3 py-1 text-[clamp(0.5625rem,2.2cqmin,0.6875rem)] text-m3-on-surface-variant"
+                            >
+                                Loading
+                            </span>
+                        {/if}
+                    </div>
                 </div>
 
                 <div class="mt-3 min-h-0 flex-1">
@@ -982,8 +1058,17 @@
                                 chartType: source.chartType,
                                 isFilled: source.chartType === "area",
                                 strokeWidth: source.chartType === "line" ? 2.4 : 2,
+                                strokeDasharray:
+                                    source.chartType === "line"
+                                        ? "6 5"
+                                        : undefined,
                             }))}
                             chartType="area"
+                            showGrid={true}
+                            showValueAxis={true}
+                            showTimeAxis={true}
+                            valueFormatter={formatSourceAxisValue}
+                            timeFormatter={formatSourceTimeTick}
                         />
                     {:else}
                         <div
@@ -996,7 +1081,7 @@
 
                 {#if sourceSeriesConfigs.length > 0}
                     <div class="mt-3 flex flex-wrap gap-2">
-                        {#each sourceSeriesConfigs as source (source.entityId)}
+                        {#each sourceLegendItems as source (source.entityId)}
                             <span
                                 class="inline-flex items-center gap-1.5 rounded-m3-full bg-m3-surface-container-high px-2.5 py-1 text-[clamp(0.5625rem,2.2cqmin,0.75rem)]"
                             >
@@ -1004,7 +1089,10 @@
                                     class="size-2 rounded-m3-full"
                                     style:background-color={source.color}
                                 ></span>
-                                {source.label}
+                                <span>{source.label}</span>
+                                <span class="font-semibold text-m3-on-surface">
+                                    {source.display}
+                                </span>
                             </span>
                         {/each}
                     </div>

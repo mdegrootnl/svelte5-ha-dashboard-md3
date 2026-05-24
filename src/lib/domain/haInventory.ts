@@ -936,6 +936,8 @@ export function buildSmartVacuumOptions(
         showGroupControls: current.showGroupControls ?? true,
         showBattery: current.showBattery ?? true,
         showFanSpeed: current.showFanSpeed ?? true,
+        showCleaningStats: current.showCleaningStats ?? true,
+        showMap: current.showMap ?? true,
         maxItems: current.maxItems ?? 4,
     };
 }

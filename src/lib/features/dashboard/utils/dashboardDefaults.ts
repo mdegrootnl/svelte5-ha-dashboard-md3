@@ -40,7 +40,7 @@ function ensureItemDefaults(item: DashboardItem): DashboardItem {
     if (item.cardType === "air") item.options.air ??= { source: "auto", showPowerControls: true, showSpeed: true, showHumidity: true, maxItems: 5 };
     if (item.cardType === "update") item.options.update ??= { source: "auto", showCheckControl: true, showInstallControls: true, showVersions: true, showReleaseNotes: true, maxItems: 5 };
     if (item.cardType === "todo") item.options.todo ??= { source: "auto", showAddControl: true, showCompleted: false, showDueDates: true, maxItems: 6 };
-    if (item.cardType === "vacuum") item.options.vacuum ??= { source: "auto", showGroupControls: true, showBattery: true, showFanSpeed: true, maxItems: 4 };
+    if (item.cardType === "vacuum") item.options.vacuum ??= { source: "auto", showGroupControls: true, showBattery: true, showFanSpeed: true, showCleaningStats: true, showMap: true, maxItems: 4 };
 
     if ((item.cardType === "weather" || item.cardType === "camera" || item.cardType === "lock" || item.cardType === "cover" || item.cardType === "air" || item.cardType === "update" || item.cardType === "vacuum" || item.cardType === "security") && item.generationState === "generated") {
         ensureMinimumRowSpan(item, 3);

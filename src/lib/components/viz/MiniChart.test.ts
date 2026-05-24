@@ -145,4 +145,26 @@ describe('MiniChart', () => {
             expect(container.querySelector('[data-testid="chart-range-band"]')).toBeInTheDocument();
         });
     });
+
+    it('renders optional grid, value axis, and time axis labels', async () => {
+        const { container } = render(MiniChart, {
+            props: {
+                series,
+                startTime,
+                endTime,
+                showGrid: true,
+                showValueAxis: true,
+                showTimeAxis: true,
+                valueFormatter: (value: number) => `${value} W`,
+                timeFormatter: (value: Date) => value.getUTCHours().toString().padStart(2, '0'),
+            },
+        });
+
+        await waitFor(() => {
+            expect(container.querySelector('[data-testid="chart-grid-line"]')).toBeInTheDocument();
+            expect(container.querySelector('.value-axis')).toHaveTextContent(/W/);
+            expect(container.querySelector('.time-axis')).toHaveTextContent('10');
+            expect(container.querySelector('.time-axis')).toHaveTextContent('13');
+        });
+    });
 });

@@ -7,45 +7,6 @@
     import { getRoutePath, withBase } from "$lib/utils/appBase";
 
     let currentPath = $derived(getRoutePath($page.url.pathname));
-
-    function detectTextOverflow(node: HTMLElement, _label = "") {
-        let frame = 0;
-        const scheduleFrame =
-            typeof requestAnimationFrame === "function"
-                ? requestAnimationFrame
-                : (callback: FrameRequestCallback) => window.setTimeout(() => callback(performance.now()), 0);
-        const cancelFrame =
-            typeof cancelAnimationFrame === "function" ? cancelAnimationFrame : window.clearTimeout;
-
-        function measure() {
-            cancelFrame(frame);
-            frame = scheduleFrame(() => {
-                const wasOverflowing = node.dataset.overflowing;
-                delete node.dataset.overflowing;
-                const isOverflowing = node.scrollWidth > node.clientWidth + 1;
-
-                if (isOverflowing) {
-                    node.dataset.overflowing = "true";
-                } else if (wasOverflowing) {
-                    delete node.dataset.overflowing;
-                }
-            });
-        }
-
-        const observer = typeof ResizeObserver === "function" ? new ResizeObserver(measure) : null;
-        observer?.observe(node);
-        measure();
-
-        return {
-            update(_nextLabel: string) {
-                measure();
-            },
-            destroy() {
-                cancelFrame(frame);
-                observer?.disconnect();
-            },
-        };
-    }
 </script>
 
 <nav
@@ -55,6 +16,7 @@
     {#each themeStore.navigationItems as link (link.id)}
         {@const isActive =
             currentPath === link.href ||
+            (currentPath === "/" && link.href === "/dashboard") ||
             (link.href !== "/" && currentPath.startsWith(link.href))}
         {@const label = themeStore.navigationLabel(link)}
 
@@ -81,7 +43,6 @@
             </div>
 
             <span
-                use:detectTextOverflow={label}
                 class="nav-label text-center text-m3-label-medium font-medium transition-colors {isActive
                     ? 'text-m3-on-surface'
                     : 'text-m3-on-surface-variant'}"
@@ -110,21 +71,10 @@
 <style>
     .nav-label {
         display: block;
-        max-width: min(4.5rem, 100%);
+        max-width: 4.75rem;
         min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-    }
-
-    :global(.nav-label[data-overflowing="true"]) {
-        display: -webkit-box;
-        line-clamp: 2;
-        line-height: 1.08;
-        overflow-wrap: anywhere;
-        text-overflow: clip;
-        white-space: normal;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
     }
 </style>

@@ -319,7 +319,7 @@
             icon: IconVacuum,
             domain: "vacuum",
             section: "specialist",
-            options: { vacuum: { source: "auto", showGroupControls: true, showBattery: true, showFanSpeed: true, maxItems: 4 } },
+            options: { vacuum: { source: "auto", showGroupControls: true, showBattery: true, showFanSpeed: true, showCleaningStats: true, showMap: true, maxItems: 4 } },
         },
         {
             id: "remote",

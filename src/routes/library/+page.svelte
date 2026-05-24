@@ -23,6 +23,8 @@
     import DeferredRender from "$lib/components/common/DeferredRender.svelte";
     import PageShell from "$lib/components/layout/PageShell.svelte";
     import Button from "$lib/components/md3/Button.svelte";
+    import { VACUUM_FEATURE } from "$lib/domain/vacuumCapabilities";
+    import { haRegistryStore } from "$lib/stores/haRegistry.svelte";
     import { haStore } from "$lib/stores/ha.svelte";
     import { onMount } from "svelte";
     import type { HassEntities } from "home-assistant-js-websocket";
@@ -75,6 +77,12 @@
         "todo.library_tasks",
         "vacuum.library_downstairs",
         "vacuum.library_upstairs",
+        "sensor.library_downstairs_vacuum_battery",
+        "sensor.library_downstairs_cleaning_area",
+        "sensor.library_downstairs_cleaning_time",
+        "sensor.library_downstairs_charging_state",
+        "binary_sensor.library_downstairs_docked",
+        "camera.library_downstairs_map",
     ] as const;
 
     type LibrarySection =
@@ -103,6 +111,14 @@
     ];
 
     let activeSection = $state<LibrarySection>("media");
+    let originalAreas = haRegistryStore.areas;
+    let originalEntityRegistry = haRegistryStore.entityRegistry;
+    let originalDeviceRegistry = haRegistryStore.deviceRegistry;
+
+    const MAX_LIBRARY_VACUUM_FEATURES = Object.values(VACUUM_FEATURE).reduce(
+        (mask, feature) => mask | feature,
+        0,
+    );
 
     const surfaceExamples = [
         {
@@ -127,10 +143,35 @@
 
     function restoreOriginalStates() {
         haStore.clearEntityOverrides(mockEntityIds);
+        haRegistryStore.areas = originalAreas;
+        haRegistryStore.entityRegistry = originalEntityRegistry;
+        haRegistryStore.deviceRegistry = originalDeviceRegistry;
+        haRegistryStore.version += 1;
     }
 
     function patchDemoStates(states: HassEntities) {
         haStore.patchEntityOverrides(states);
+    }
+
+    function libraryRegistry(entityId: string, deviceId: string) {
+        return {
+            entity_id: entityId,
+            name: entityId,
+            icon: null,
+            platform: "library",
+            config_entry_id: null,
+            device_id: deviceId,
+            area_id: null,
+            disabled_by: null,
+            hidden_by: null,
+            entity_category: null,
+            has_entity_name: true,
+            original_name: entityId,
+            unique_id: entityId,
+            options: null,
+            translation_key: null,
+            labels: [],
+        };
     }
 
     // Define card data structure
@@ -348,6 +389,46 @@
     }
 
     function loadMockDashboardExamples() {
+        haRegistryStore.areas = [
+            ...originalAreas,
+            { area_id: "first_floor", name: "First Floor", floor_id: "upstairs", icon: null, picture: null },
+            { area_id: "hallway", name: "Hallway", floor_id: "upstairs", icon: null, picture: null },
+            { area_id: "bedroom", name: "Bedroom", floor_id: "upstairs", icon: null, picture: null },
+        ];
+        haRegistryStore.deviceRegistry = [
+            ...originalDeviceRegistry,
+            {
+                id: "library-vacuum-device",
+                area_id: "first_floor",
+                config_entries: [],
+                configuration_url: null,
+                connections: [],
+                disabled_by: null,
+                entry_type: null,
+                hw_version: null,
+                identifiers: [["library", "vacuum"]],
+                labels: [],
+                manufacturer: "Narwal",
+                model: "Flow",
+                name_by_user: null,
+                name: "Library Vacuum",
+                serial_number: null,
+                sw_version: null,
+                via_device_id: null,
+            },
+        ];
+        haRegistryStore.entityRegistry = [
+            ...originalEntityRegistry,
+            libraryRegistry("vacuum.library_downstairs", "library-vacuum-device"),
+            libraryRegistry("sensor.library_downstairs_vacuum_battery", "library-vacuum-device"),
+            libraryRegistry("sensor.library_downstairs_cleaning_area", "library-vacuum-device"),
+            libraryRegistry("sensor.library_downstairs_cleaning_time", "library-vacuum-device"),
+            libraryRegistry("sensor.library_downstairs_charging_state", "library-vacuum-device"),
+            libraryRegistry("binary_sensor.library_downstairs_docked", "library-vacuum-device"),
+            libraryRegistry("camera.library_downstairs_map", "library-vacuum-device"),
+        ];
+        haRegistryStore.version += 1;
+
         patchDemoStates({
             "light.library_table": mockState("light.library_table", "on", {
                 friendly_name: "Table Lamp",
@@ -542,13 +623,38 @@
             }),
             "vacuum.library_downstairs": mockState("vacuum.library_downstairs", "cleaning", {
                 friendly_name: "Downstairs Vacuum",
-                battery_level: 72,
-                fan_speed: "balanced",
+                supported_features: MAX_LIBRARY_VACUUM_FEATURES,
+                fan_speed_list: ["quiet", "normal", "deep clean", "max"],
+                fan_speed: "normal",
             }),
             "vacuum.library_upstairs": mockState("vacuum.library_upstairs", "docked", {
                 friendly_name: "Upstairs Vacuum",
                 battery_level: 100,
                 fan_speed: "quiet",
+            }),
+            "sensor.library_downstairs_vacuum_battery": mockState("sensor.library_downstairs_vacuum_battery", "72", {
+                friendly_name: "Downstairs Vacuum Battery",
+                device_class: "battery",
+                unit_of_measurement: "%",
+            }),
+            "sensor.library_downstairs_cleaning_area": mockState("sensor.library_downstairs_cleaning_area", "24.8", {
+                friendly_name: "Downstairs Cleaning Area",
+                unit_of_measurement: "m2",
+            }),
+            "sensor.library_downstairs_cleaning_time": mockState("sensor.library_downstairs_cleaning_time", "1860", {
+                friendly_name: "Downstairs Cleaning Time",
+                device_class: "duration",
+                unit_of_measurement: "s",
+            }),
+            "sensor.library_downstairs_charging_state": mockState("sensor.library_downstairs_charging_state", "not_charging", {
+                friendly_name: "Downstairs Charging State",
+            }),
+            "binary_sensor.library_downstairs_docked": mockState("binary_sensor.library_downstairs_docked", "off", {
+                friendly_name: "Downstairs Docked",
+            }),
+            "camera.library_downstairs_map": mockState("camera.library_downstairs_map", "streaming", {
+                friendly_name: "Downstairs Map",
+                entity_picture: "/api/camera_proxy/camera.library_downstairs_map",
             }),
         });
     }
@@ -560,6 +666,9 @@
     }
 
     onMount(() => {
+        originalAreas = haRegistryStore.areas;
+        originalEntityRegistry = haRegistryStore.entityRegistry;
+        originalDeviceRegistry = haRegistryStore.deviceRegistry;
         loadAllExamples();
         return restoreOriginalStates;
     });
@@ -1547,21 +1656,23 @@
 
                 <div class="flex flex-col gap-2">
                     <span class="text-m3-label-medium text-m3-on-surface-variant">
-                        Vacuums
+                        Robot vacuum (max)
                     </span>
                     <div class="h-56">
                         <DeferredRender class="h-full">
                             <VacuumControlCard
-                                name="Vacuums"
+                                name="Robot vacuum"
                                 icon="cleaning_services"
                                 color="#0891b2"
                                 options={{
                                     source: "manual",
-                                    entityIds: ["vacuum.library_downstairs", "vacuum.library_upstairs"],
+                                    entityIds: ["vacuum.library_downstairs"],
                                     showGroupControls: true,
                                     showBattery: true,
                                     showFanSpeed: true,
-                                    maxItems: 4,
+                                    showCleaningStats: true,
+                                    showMap: true,
+                                    maxItems: 1,
                                 }}
                             />
                         </DeferredRender>

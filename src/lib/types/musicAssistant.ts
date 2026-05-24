@@ -18,7 +18,7 @@ export type MAIntegrationStatus =
 // Media Item Types
 // ============================================================================
 
-export type MAMediaType = 'artist' | 'album' | 'track' | 'playlist' | 'radio';
+export type MAMediaType = 'artist' | 'album' | 'track' | 'playlist' | 'podcast' | 'radio';
 
 export interface MAMediaItem {
     item_id: string;
@@ -29,6 +29,7 @@ export interface MAMediaItem {
     uri: string;
     sort_name?: string;
     version?: string;
+    media_content_type?: string;
 }
 
 export interface MAArtist extends MAMediaItem {
@@ -57,8 +58,14 @@ export interface MAPlaylist extends MAMediaItem {
     is_editable?: boolean;
 }
 
+export interface MAPodcast extends MAMediaItem {
+    media_type: 'podcast';
+    publisher?: string;
+}
+
 export interface MARadio extends MAMediaItem {
     media_type: 'radio';
+    countryCode?: string;
 }
 
 // ============================================================================
@@ -70,6 +77,7 @@ export interface MASearchResults {
     albums: MAAlbum[];
     tracks: MATrack[];
     playlists: MAPlaylist[];
+    podcasts: MAPodcast[];
     radio: MARadio[];
 }
 
@@ -173,4 +181,3 @@ export interface LocalMusicLibrary {
     favorites: MAMediaItem[];
     lastSyncedAt: number;
 }
-

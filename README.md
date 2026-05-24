@@ -1,138 +1,315 @@
-# Home Assistant Dashboard
+# Home Assistant MD3 Dashboard
 
-A Material Design 3 dashboard builder for Home Assistant, built with Svelte 5 and SvelteKit.
+A standalone Material Design 3 dashboard builder for Home Assistant, built with Svelte 5 and SvelteKit.
 
-This project is not a Lovelace theme. It is a standalone dashboard app with editable layouts, generated room dashboards, Home Assistant add-on support, Music Assistant controls, weather, meals, shopping, attention/presence surfaces, and server-side configuration persistence.
+This project is not a Lovelace theme. It is a full dashboard application with its own app shell, generated and editable layouts, Home Assistant add-on support, shared backend configuration, touch/tablet ergonomics, Music Assistant controls, Radio Browser country radio, weather, meals, shopping, presence, attention/maintenance surfaces, and a growing smart-card library.
 
-## Features
+## What It Does
 
-### Home Assistant Integration
+The app is designed for a household dashboard that works on wall tablets, phones, and desktops:
 
-- Real-time entity sync through the Home Assistant WebSocket API
-- Entity, area, device, floor, and label-aware dashboard generation
-- Floor and room-based navigation
-- History and recorder statistics support for graphs
-- Standalone OAuth/long-lived-token deployment and Home Assistant add-on ingress deployment
-- Home Assistant add-on zero-config access through server-side Supervisor REST/WebSocket proxying
+- Connects to Home Assistant in real time through the WebSocket API.
+- Generates dashboard pages from Home Assistant floors, areas, devices, entities, labels, history, and registry data.
+- Lets users edit generated layouts while preserving manual and pinned content across regeneration.
+- Provides daily-use feature routes for dashboard navigation, attention items, presence, weather, music, meals, card library, theme, calendar, and settings.
+- Stores shared household configuration on the backend so dashboard layout, music favorites, theme, lock screen, kiosk settings, and navigation sync across devices.
+- Supports standalone Docker/self-hosted deployment and Home Assistant add-on ingress deployment.
 
-### Dashboard Engine
+## Main Routes
 
-- Preview-first dashboard generation
-- Editable responsive grid layouts for desktop, tablet, and phone profiles
-- Generated, user-modified, and pinned dashboard states
-- Card library with picker entries and live examples for button, media, thermostat, title, tabs, graph, navigation, room, collection, energy, calendar, weather, remote, device panel, camera, presence, security, lock, cover, air, vacuum, update, and to-do cards
-- Touch-focused editing and navigation controls, including optional kiosk mode with per-device density/navigation, idle dimming, wake-tap protection, optional screen wake lock, and an idle clock/weather/media overlay for wall tablets
-- Bubble-style entity detail sheets for richer controls without oversized cards
-- Graph analytics with threshold lines, range bands, previous-period comparison, normalized multi-series trends, and compact metric summaries
+| Route | Purpose |
+| --- | --- |
+| `/` | Initial landing route; redirects into the dashboard experience. |
+| `/dashboard` | Main home/floor/room dashboard, generator, editor, and live card grid. |
+| `/dashboard/[floor]` | Floor dashboard generated from Home Assistant floor/area data. |
+| `/dashboard/[floor]/[room]` | Room dashboard with room-specific controls, sensors, media, security, and history. |
+| `/attention` | "For You" surface for open doors/windows, motion, low batteries, unavailable entities, active media, lights on, updates, and other maintenance items. |
+| `/presence` | Household presence, people, zones, guest mode hints, and commute/ETA sensor context. |
+| `/music` | Music Assistant browsing, search, playback, favorites, radio, and default player controls. |
+| `/meals` | Mealie recipes, imports, meal planning, serving scaling, shopping lists, and optional Albert Heijn export. |
+| `/weather` | Weather dashboard with forecasts, rain radar, rain graph, and environmental widgets. |
+| `/calendar` | Calendar agenda view through Home Assistant calendar services. |
+| `/library` | Live card/component library with examples for dashboard cards and editor flows. |
+| `/theme` | Material Design 3 theme playground and visual token preview. |
+| `/settings` | Home Assistant connection, integrations, navigation, dashboard, lock screen, kiosk, image providers, Mealie, AH, and app settings. |
 
-### Integrations
+Navigation is editable in Settings. Known routes are normalized so common routes get stable icons and labels even after older or customized navigation config is loaded.
 
-- Music Assistant browsing, player control, favorites, and default player selection
-- Backend-backed music favorites shared across devices
-- Weather dashboard with forecast, rain radar, precipitation graph, and environmental widgets
-- Mealie recipes, meal planning, shopping lists, and import helpers
-- Optional Albert Heijn shopping export for Dutch households, using a review-first deduplicated Mealie shopping list
+## Dashboard Builder
 
-### Theming And UI
+### Generation
 
-- Dynamic Material Design 3 color generation
-- Dark mode, navigation style, card radius, and card surface settings
-- Multilingual UI with Dutch as the primary dashboard language
-- MD3 primitives for buttons, cards, text fields, switches, checkboxes, radios, chips, and FABs
-- Lock screen and kiosk controls for shared idle behavior plus per-device wall-tablet preferences
+The generator reads Home Assistant data and builds editable dashboard configs. It is preview-first: a generated dashboard is shown as a preview and is only saved when the user explicitly applies it.
 
-### Security Posture
+Generation understands:
 
-- Production security headers are set in `src/hooks.server.ts`
-- API mutations are blocked for cross-origin requests
-- Runtime settings, tokens, uploads, and integration secrets are kept outside git in `data/`
-- API payloads are validated with Zod where practical
-- CSP is present. Home Assistant add-on deployments use a narrower default policy, production script execution no longer allows `unsafe-eval`, and standalone deployments keep compatibility-oriented network allowances unless hardened CSP mode is explicitly enabled.
+- Home Assistant floors and areas.
+- Entity registry, device registry, labels, and areas.
+- Room and floor navigation.
+- Area pictures and local generated room preview images.
+- Entity availability and unknown/unavailable filtering.
+- Real Home Assistant light groups.
+- Room, security, presence, weather, calendar, energy, utility, sensor, media, and maintenance patterns.
+- Quality hints for skipped, deduplicated, unassigned, missing-area-picture, and name-review items.
 
-## Getting Started
+Clean regeneration replaces generated cards while preserving manual and pinned cards.
+
+### Editing
+
+The dashboard editor supports:
+
+- Desktop, tablet, and phone layout profiles.
+- Grid editing and responsive placement.
+- Card add/edit side sheets.
+- Per-card configuration.
+- Generated/manual/pinned state tracking.
+- Touch-friendly edit controls.
+- Detail sheets for compact cards.
+- Reusable card library entries and examples.
+
+The root app shell owns global editor/detail sheets so reusable card actions work on dashboard pages, the library route, attention, presence, and future feature routes.
+
+## Card Library
+
+The current card families include:
+
+- Button and state/action cards.
+- Media card and compact media controls.
+- Thermostat and climate controls.
+- Title and section cards.
+- Tabs.
+- Graph and utility trend graph cards.
+- Navigation and room cards.
+- Entity collections.
+- Energy flow and utility analytics.
+- Calendar and weather cards.
+- Remote and device panel cards.
+- Camera cards.
+- Presence cards.
+- Security/alarm cards.
+- Lock cards.
+- Cover/blinds cards.
+- Fan/humidifier/air cards.
+- Vacuum cards.
+- Update cards.
+- To-do and shopping cards.
+
+New cards should be added to the renderer, schemas, editor/config flow, generator where useful, focused tests, and `/library` examples. This keeps the app discoverable and prevents hidden one-off functionality.
+
+## Home Assistant Integration
+
+The app uses Home Assistant as the source of live home state.
+
+Supported behavior:
+
+- OAuth or long-lived-token standalone connection.
+- Home Assistant add-on zero-config connection through Supervisor API proxying.
+- Real-time entity sync.
+- Area, floor, entity, and device registry loading.
+- Service calls for cards and detail sheets.
+- Calendar service calls.
+- History REST proxy.
+- Recorder statistics WebSocket calls with history fallback.
+- HA media source playback for Radio Browser stations.
+
+The browser never receives the Home Assistant Supervisor token in add-on mode.
+
+## Music And Radio
+
+The music route is built around Music Assistant and Home Assistant media players.
+
+Features:
+
+- Player discovery and default player selection.
+- Now-playing bar and full player.
+- Play, pause, next, previous, volume, mute, shuffle, repeat, and seek controls.
+- Music search ordered for browsing: playlists, artists, albums, podcasts, tracks, then radio.
+- Library and favorites views.
+- Backend-backed household music favorites and default player sync across devices.
+- Local storage used only as a fast startup cache and one-time migration source.
+- Radio tab with favorite stations and country browsing.
+
+Country radio browsing prefers Home Assistant Radio Browser metadata through `media-source://radio_browser/country/<CODE>`. This gives reliable country-based station lists and avoids fuzzy Music Assistant search results. If Radio Browser is unavailable, the app falls back to Music Assistant search with curated filters.
+
+The country station list is cached for a week, can fetch up to 1000 stations per country, and includes a name filter for quick navigation.
+
+## Meals, Mealie, Shopping, And Albert Heijn
+
+Mealie is the canonical recipe, meal-planning, and shopping backend.
+
+The meals route supports:
+
+- Connecting to Mealie from Settings.
+- Recipe search and detail views.
+- Browser URL recipe import helpers.
+- Recipe image repair/import helpers.
+- Serving count detection and scaling.
+- Meal scheduling by day/time.
+- Adding recipes or scaled ingredients to shopping flows.
+- Mealie shopping-list workflows.
+- Optional Albert Heijn export for Dutch households.
+
+Albert Heijn support is optional and Dutch-context only. AH tokens are stored server-side under the app data directory and are never exposed to the browser. The AH flow starts from reviewed/deduplicated shopping rows, shows product/free-text choices, and exports to the main AH shopping list.
+
+## Attention And Presence
+
+### Attention
+
+The attention surface answers "what needs attention now?"
+
+It groups and surfaces:
+
+- Open doors/windows.
+- Active motion.
+- Low batteries.
+- Unavailable entities.
+- Pending updates.
+- Active media.
+- Lights still on.
+- Security/safety status.
+- Shopping and maintenance signals where configured.
+
+The route and generated dashboard cards avoid summary-only cards that hide which entities need action.
+
+### Presence
+
+The presence route provides household context:
+
+- Person and device-tracker summaries.
+- Home/away and zone grouping.
+- Guest mode helper detection.
+- "Home is empty" state.
+- Commute/ETA sensor discovery.
+- Setup hints for missing Home Assistant person, guest, or travel-time helpers.
+
+Presence data stays local to Home Assistant and this app runtime.
+
+## Weather And Calendar
+
+Weather features include:
+
+- Forecast overview.
+- Forecast strips and lists.
+- Rain radar.
+- Rain graph.
+- Weather icons for light/dark themes.
+- Environmental widgets.
+
+Calendar features include:
+
+- Home Assistant calendar event fetching.
+- Agenda-style event list.
+- Dashboard calendar cards.
+
+## Theme, Lock Screen, And Kiosk Mode
+
+The app uses Material Design 3 color generation and component primitives.
+
+Configurable UI behavior:
+
+- Dark mode.
+- Source color and generated MD3 tokens.
+- Navigation style.
+- Card radius and surface treatment.
+- Language.
+- Lock screen and idle behavior.
+- Kiosk mode.
+
+Kiosk mode is intended for wall tablets:
+
+- Shared household kiosk settings are stored backend-side.
+- Per-device tablet preferences stay local to that browser.
+- Idle dimming.
+- Optional idle clock/weather/media screensaver.
+- Optional Screen Wake Lock support when the browser allows it.
+- Wake-tap protection so the first tap wakes the dashboard instead of activating a card.
+- Edit controls can be hidden while kiosk edit lock is active.
+- Navigation can be hidden while idle or always hidden on a specific tablet.
+
+## Languages
+
+The UI supports:
+
+- Dutch (`nl`) as the primary dashboard language.
+- English (`en`).
+- German (`de`).
+- French (`fr`).
+- Spanish (`es`).
+
+Translations cover the app shell, dashboard/editor surfaces, settings, lock/kiosk areas, music, meals, weather, attention, presence, specialist cards, and common controls. New features should add translations for all supported languages in the same change.
+
+## Persistence Model
+
+`data/config.json` is the canonical shared household configuration.
+
+Shared backend-backed state includes:
+
+- Theme, dark mode, language, navigation, card surface settings.
+- Dashboards and pages.
+- Music library favorites, default player, and sync timestamp.
+- Lock screen.
+- Kiosk shared settings.
+
+Additional server-side runtime files under `data/` store integration settings and tokens such as Mealie, image-provider settings, Albert Heijn tokens, uploads, and generated assets. These files are intentionally ignored by git.
+
+Browser `localStorage` is used only for:
+
+- Fast startup cache.
+- Optimistic UI cache.
+- One-time migration of old local music favorites when server favorites are empty.
+- Explicitly local per-device kiosk/tablet preferences.
+
+Remote config updates are streamed through `/api/events`, and clients refresh `/api/settings` without write-back loops.
+
+## Deployment
+
+### Local Development
+
+Requirements:
+
+- Node.js 24 or newer.
+- A Home Assistant instance for real integration testing.
+
+Install and run:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Useful checks:
+Useful commands:
 
 ```bash
 npm run check
 npm test -- --run
-npm run test:visual
 npm run build
+npm run test:visual
+npm run test:e2e
 ```
 
-`npm run test:visual` runs the Playwright visual smoke suite against a simulated Home Assistant ingress base path across desktop, tablet landscape, tablet portrait, and phone viewports. It checks local route failures, page overflow, text escaping local containers, key label contrast, and image-label protection.
+`npm run test:visual` runs Playwright visual smoke checks against a simulated Home Assistant ingress base path across desktop, tablet landscape, tablet portrait, and phone viewports. It checks local route failures, page overflow, visible text escaping local containers, key label contrast, screenshot-sampled image-label contrast, and image-label protection.
 
-Docker:
+### Docker / Standalone
+
+Build and run with Docker Compose:
 
 ```bash
 docker compose up --build
 ```
 
-## Project Structure
-
-```text
-src/
-  lib/
-    components/        Shared UI primitives and layout components
-    features/          Dashboard, attention, presence, music, kiosk, lock screen, meals, calendar features
-    domain/            Pure domain logic and schemas
-    server/            Server-side config, proxy, and integration helpers
-    stores/            Global Svelte 5 rune stores
-    types/             Shared TypeScript types
-    utils/             Browser and app utilities
-  routes/
-    dashboard/         Main floor and room dashboard routes
-    attention/         For You / Attention surface
-    presence/          Household presence surface
-    music/             Music Assistant experience
-    meals/             Mealie and shopping experience
-    settings/          Connections and app settings
-    theme/             Theme builder
-    weather/           Weather dashboard
-```
-
-## Configuration
-
-1. Open Settings.
-2. Connect Home Assistant using OAuth, a long-lived token, or the Home Assistant add-on zero-config path.
-3. Configure optional integrations such as Mealie, image providers, and Albert Heijn.
-4. Tune navigation, lock screen, optional kiosk settings, and per-device tablet preferences.
-5. Generate or edit dashboards from the dashboard route.
-
-## Deployment And Persistence
-
-Configuration is stored server-side in `data/config.json`. Browser `localStorage` is used only as a fast cache for startup, optimistic UI, and explicitly local per-device tablet preferences.
-
-In Docker, mount a persistent data volume:
+Mount persistent data:
 
 ```bash
 -v $(pwd)/data:/app/data
 ```
 
-You can also set:
+Or set an explicit data directory:
 
 ```bash
 DASHBOARD_DATA_DIR=/srv/ha-dashboard/data
 ```
 
-Optional CSP controls:
-
-```bash
-# Default: ha-addon uses hardened, standalone uses compatibility mode.
-DASHBOARD_CSP_MODE=hardened
-
-# Add explicit origins when hardened standalone still needs direct HA/media access.
-DASHBOARD_CSP_CONNECT_SRC="https://ha.example.local wss://ha.example.local"
-DASHBOARD_CSP_IMG_SRC="http://camera.example.local"
-
-# Trial a policy without enforcing it.
-DASHBOARD_CSP_REPORT_ONLY=true
-```
+Standalone mode uses the browser Home Assistant auth flow or long-lived-token style connection where configured.
 
 ### Home Assistant Add-On
 
@@ -142,38 +319,149 @@ This repository can be added to the Home Assistant add-on store:
 https://github.com/mdegrootnl/svelte5-ha-dashboard-md3
 ```
 
-The add-on lives in `ha-dashboard/`, opens through Home Assistant ingress, persists data in `/data`, and uses server-side Supervisor API access for zero-config Home Assistant connectivity. Standalone Docker deployment remains supported.
+The add-on lives in `ha-dashboard/` and provides:
 
-For a local ingress-style preview, run:
+- Home Assistant sidebar ingress.
+- Persistent `/data`.
+- Zero-config Home Assistant access through server-side Supervisor REST/WebSocket proxying.
+- Same app feature set as standalone mode.
+- No browser exposure of `SUPERVISOR_TOKEN`.
+
+Local ingress-style preview:
 
 ```bash
 npm run preview:addon
 ```
 
-## Wall Tablet Notes
+See [ha-dashboard/DOCS.md](./ha-dashboard/DOCS.md) for add-on-specific installation and troubleshooting notes.
 
-Kiosk mode lives in Settings. Shared household options control idle dimming, the idle screensaver, edit-lock behavior, and the optional screen wake lock. Per-device options control touch density and whether navigation should stay hidden on that specific tablet/browser.
+## Configuration
 
-For a dedicated wall tablet, install/open the app in the browser mode that best supports fullscreen and the Screen Wake Lock API on that device. If wake lock is not supported, the setting reports that in Settings and the dashboard continues normally.
+First-run setup:
 
-Manual wall-tablet acceptance checklist:
+1. Open Settings.
+2. Connect Home Assistant, unless running as an add-on with zero-config available.
+3. Configure optional integrations:
+   - Music Assistant through Home Assistant.
+   - Mealie.
+   - Albert Heijn.
+   - Image providers.
+   - Weather entities and Home Assistant calendar entities.
+4. Choose language, dark mode, navigation style, and theme source color.
+5. Tune navigation items.
+6. Configure lock screen and optional kiosk behavior.
+7. Generate dashboards or add cards manually from the dashboard/card library.
 
-1. In Settings, enable kiosk mode, idle dimming, the idle screensaver if desired, edit locking, and optional screen wake lock.
-2. On the tablet/browser itself, choose the desired touch density and whether navigation should stay hidden for that device.
-3. Leave the dashboard idle past the configured timeout and confirm the screen dims, navigation hides according to the device setting, and the screensaver shows a calm clock/weather/media state when enabled.
-4. Tap once while idle and confirm the first tap only wakes the dashboard, without triggering the card underneath.
-5. Confirm edit buttons remain hidden while kiosk edit lock is active, then use the configured unlock flow before editing.
-6. Check the wake-lock status in Settings during a longer session; unsupported browsers should show an unavailable/unsupported state without breaking kiosk mode.
+## Security Posture
+
+Implemented:
+
+- Production security headers in `src/hooks.server.ts`.
+- Deployment-aware CSP generation in `src/lib/server/securityHeaders.ts`.
+- Cross-origin API mutations are blocked.
+- Runtime secrets and integration tokens are stored outside git under `data/`.
+- Add-on Supervisor token is kept server-side.
+- Standalone framing is denied.
+- Add-on framing is limited to Home Assistant ingress.
+- API payloads use Zod validation where practical.
+
+CSP is intentionally deployment-aware:
+
+- Home Assistant add-on mode defaults to a narrower same-origin policy.
+- Production script policy does not allow `unsafe-eval`.
+- Standalone mode keeps compatibility-oriented network/image allowances unless hardened mode is enabled.
+
+Optional CSP controls:
+
+```bash
+DASHBOARD_CSP_MODE=hardened
+DASHBOARD_CSP_CONNECT_SRC="https://ha.example.local wss://ha.example.local"
+DASHBOARD_CSP_IMG_SRC="http://camera.example.local"
+DASHBOARD_CSP_REPORT_ONLY=true
+```
+
+See [securityrisks.md](./securityrisks.md) for current risks, mitigations, and hardening work.
+
+## Project Structure
+
+```text
+src/
+  app.css
+  hooks.server.ts
+  lib/
+    components/        Shared UI, MD3 primitives, layout, settings, weather, viz
+    domain/            Pure generation, schema, contrast, analytics, and action logic
+    features/          Dashboard, attention, presence, music, meals, kiosk, lock screen, calendar
+    server/            Storage, deployment, proxy, image, Mealie, AH, and integration helpers
+    stores/            Global Home Assistant, registry, theme, weather, and shared stores
+    types/             Shared TypeScript types
+    utils/             Browser, app-base, icon, gesture, and helper utilities
+  routes/
+    api/               App settings, events, proxies, integration endpoints
+    attention/         For You / Attention
+    calendar/          Calendar agenda
+    dashboard/         Main dashboard route
+    library/           Card library and examples
+    meals/             Mealie, meal planning, shopping
+    music/             Music Assistant and radio
+    presence/          Household presence
+    settings/          Connections and app settings
+    theme/             Theme builder
+    weather/           Weather dashboard
+ha-dashboard/          Home Assistant add-on metadata, docs, and image config
+```
+
+## Contributor Notes
+
+Architectural expectations:
+
+- Keep `+layout.svelte` as the only global shell owner.
+- Put new feature UI in feature routes/components and wrap route content with `PageShell`.
+- Keep shared household state backend-backed by default.
+- Use local storage only for cache, migration, or explicitly per-device preferences.
+- Add new smart cards to the card library, route examples, schemas, renderer, editor/config flow, and tests.
+- Prefer Home Assistant registry/metadata over name guessing when reliable metadata exists.
+- Keep touch controls large enough for wall tablets.
+- Avoid adding full-card overlays when local text readability protection is enough.
+
+Testing expectations:
+
+- Pure domain logic gets unit tests.
+- Server integration modules get route/module tests.
+- Shared stores get persistence and sync tests.
+- New card families get focused rendering/service-call tests.
+- Risky visual/layout changes get Playwright coverage or a documented manual acceptance note.
 
 ## Current Status
 
-The maturity roadmap in `BACKLOG.md` is the source of truth. As of the latest docs pass, Trust/Acceptance, Attention, Bubble-style Detail Sheets, Specialist Cards, and Graph Analytics are complete; Presence, Tablet/Kiosk Mode, Adaptive Text Readability, and live generated-dashboard acceptance are in progress.
+The maturity roadmap in [BACKLOG.md](./BACKLOG.md) is the source of truth.
+
+Completed major slices include:
+
+- Trust and acceptance baseline.
+- For You / Attention surface.
+- Bubble-style detail sheets.
+- Specialist card family.
+- Graph analytics.
+- Backend-first music favorites.
+- Home Assistant add-on foundation and ingress support.
+- Mealie and optional Albert Heijn shopping export baseline.
+
+Still active:
+
+- Real wall-tablet kiosk acceptance.
+- Live visual acceptance on freshly generated dashboards.
+- Further adaptive text readability audits.
+- Live add-on release validation.
+- Hardened standalone CSP validation.
+- Real-account AH acceptance and polish.
 
 ## Documentation
 
 - [Architecture Overview](./architecture.md)
 - [Security Risks](./securityrisks.md)
 - [Backlog](./BACKLOG.md)
+- [Home Assistant Add-On Docs](./ha-dashboard/DOCS.md)
 
 ## License
 
