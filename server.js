@@ -38,8 +38,23 @@ function detectIngressPath(pathname) {
     return normalizeIngressPath(pathname.match(INGRESS_PATH_PATTERN)?.[0] || '');
 }
 
+function normalizeRequestUrl(value) {
+    const raw = value || '/';
+    if (/^\/{2,}/.test(raw)) {
+        const normalizedPath = raw.replace(/^\/+/, '');
+        return `/${normalizedPath}`;
+    }
+    return raw;
+}
+
+function parseRequestUrl(req) {
+    const normalizedUrl = normalizeRequestUrl(req.url);
+    req.url = normalizedUrl;
+    return new URL(normalizedUrl, 'http://dashboard.local');
+}
+
 function prepareIngressRequest(req) {
-    const parsed = new URL(req.url || '/', 'http://dashboard.local');
+    const parsed = parseRequestUrl(req);
     const pathPrefix = detectIngressPath(parsed.pathname);
     const headerPrefix = normalizeIngressPath(
         firstHeader(req.headers['x-dashboard-ingress-path']) ||
@@ -65,7 +80,7 @@ function isAddonDeployment() {
 }
 
 function isAddonWebSocketPath(req) {
-    const parsed = new URL(req.url || '/', 'http://dashboard.local');
+    const parsed = parseRequestUrl(req);
     return parsed.pathname === '/api/addon/core/websocket';
 }
 

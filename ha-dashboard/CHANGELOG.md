@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.3
+
+- Fixes Home Assistant add-on startup crashes when Ingress sends a root request as `//`.
+
 ## 0.0.2
 
 - Refreshes the dashboard library examples, including the max-capability robot vacuum card.

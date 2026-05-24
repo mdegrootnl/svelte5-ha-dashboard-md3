@@ -1,5 +1,5 @@
 name: "MD3 Dashboard"
-version: "0.0.2"
+version: "0.0.3"
 slug: "ha_dashboard_md3"
 description: "A Material Design 3 dashboard for Home Assistant."
 url: "https://github.com/mdegrootnl/svelte5-ha-dashboard-md3"
