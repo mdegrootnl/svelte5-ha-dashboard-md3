@@ -1,5 +1,5 @@
 name: "MD3 Dashboard"
-version: "0.0.3"
+version: "0.0.4"
 slug: "ha_dashboard_md3"
 description: "A Material Design 3 dashboard for Home Assistant."
 url: "https://github.com/mdegrootnl/svelte5-ha-dashboard-md3"
@@ -14,7 +14,6 @@ homeassistant_api: true
 hassio_role: default
 ingress: true
 ingress_port: 3000
-ingress_entry: /
 ingress_stream: true
 panel_icon: mdi:view-dashboard
 panel_title: MD3 Dashboard

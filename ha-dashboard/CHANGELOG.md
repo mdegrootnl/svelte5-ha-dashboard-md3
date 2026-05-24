@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.4
+
+- Removes the explicit `/` ingress entry so Home Assistant generates a clean add-on ingress URL without a doubled slash.
+
 ## 0.0.3
 
 - Fixes Home Assistant add-on startup crashes when Ingress sends a root request as `//`.
