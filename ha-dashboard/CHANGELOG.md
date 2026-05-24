@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.2
+
+- Refreshes the dashboard library examples, including the max-capability robot vacuum card.
+- Improves Music Assistant browsing, radio discovery, and navigation behavior.
+- Updates graph, navigation, and documentation polish for the current dashboard state.
+
 ## 0.0.1
 
 - Initial Home Assistant add-on packaging.
