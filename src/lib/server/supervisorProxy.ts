@@ -7,6 +7,11 @@ export function shouldUseSupervisorProxy(authHeader: string | null) {
     return isHaAddonDeployment() && isAddonBrowserAuthorization(authHeader) && Boolean(getSupervisorToken());
 }
 
+export function canUseSupervisorProxyForAppRequest(authHeader: string | null) {
+    return shouldUseSupervisorProxy(authHeader)
+        || (isHaAddonDeployment() && !authHeader && Boolean(getSupervisorToken()));
+}
+
 export function getSupervisorCoreUrl(resourcePath: string) {
     const cleanPath = resourcePath.replace(/^\/+/, "");
     return new URL(cleanPath, SUPERVISOR_CORE_BASE);

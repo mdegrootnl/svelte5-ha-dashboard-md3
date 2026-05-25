@@ -9,6 +9,7 @@ describe('Mealie settings', () => {
 
     it('rejects unsupported or malformed base URLs', () => {
         expect(sanitizeMealieBaseUrl('ftp://mealie.example.com')).toBeUndefined();
+        expect(sanitizeMealieBaseUrl('https://user:pass@mealie.example.com')).toBeUndefined();
         expect(sanitizeMealieBaseUrl('not a url')).toBeUndefined();
         expect(sanitizeMealieBaseUrl('')).toBeUndefined();
     });

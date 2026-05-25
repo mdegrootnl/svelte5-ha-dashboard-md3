@@ -38,7 +38,7 @@ export function resolveCspMode(deployment: DeploymentInfo, value?: string): CspM
     if (normalized === "hardened" || normalized === "strict") return "hardened";
     if (normalized === "compat" || normalized === "compatibility") return "compat";
 
-    return deployment.mode === "ha-addon" ? "hardened" : "compat";
+    return "hardened";
 }
 
 export function buildContentSecurityPolicy(

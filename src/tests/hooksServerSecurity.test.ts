@@ -14,25 +14,28 @@ vi.mock("$env/dynamic/private", () => ({
 }));
 
 const { handle } = await import("../hooks.server");
+const { resetRateLimitState } = await import("../lib/server/rateLimit");
 
 function requestEvent(url: string, init: RequestInit = {}) {
     const request = new Request(url, init);
     return {
         request,
         url: new URL(url),
+        getClientAddress: () => "192.0.2.10",
     } as any;
 }
 
 describe("server security hook", () => {
     beforeEach(() => {
         for (const key of Object.keys(mockEnv)) delete mockEnv[key];
+        resetRateLimitState();
     });
 
     afterEach(() => {
         vi.restoreAllMocks();
     });
 
-    it("applies production standalone CSP and security headers", async () => {
+    it("applies hardened production standalone CSP and security headers", async () => {
         const response = await handle({
             event: requestEvent("https://dashboard.local/dashboard"),
             resolve: async () => new Response("ok"),
@@ -42,6 +45,8 @@ describe("server security hook", () => {
         expect(policy).toContain("default-src 'self'");
         expect(policy).toContain("script-src 'self' 'unsafe-inline'");
         expect(policy).not.toContain("'unsafe-eval'");
+        expect(policy).toContain("connect-src 'self' wss://dashboard.local");
+        expect(policy).not.toContain("connect-src 'self' ws: wss: http: https:");
         expect(policy).toContain("frame-ancestors 'none'");
         expect(response.headers.get("x-frame-options")).toBe("DENY");
         expect(response.headers.get("x-content-type-options")).toBe("nosniff");
@@ -86,5 +91,55 @@ describe("server security hook", () => {
         await expect(response.json()).resolves.toEqual({
             error: "Cross-origin API mutations are not allowed",
         });
+    });
+
+    it("rate limits sensitive API routes before route handlers run", async () => {
+        const resolve = vi.fn(async () => new Response("ok"));
+
+        for (let i = 0; i < 30; i += 1) {
+            const response = await handle({
+                event: requestEvent("https://dashboard.local/api/upload", {
+                    method: "POST",
+                    headers: { "content-type": "image/png" },
+                }),
+                resolve,
+            });
+            expect(response.status).toBe(200);
+        }
+
+        const blocked = await handle({
+            event: requestEvent("https://dashboard.local/api/upload", {
+                method: "POST",
+                headers: { "content-type": "image/png" },
+            }),
+            resolve,
+        });
+
+        expect(blocked.status).toBe(429);
+        expect(blocked.headers.get("retry-after")).toBeTruthy();
+        expect(blocked.headers.get("x-ratelimit-limit")).toBe("30");
+        await expect(blocked.json()).resolves.toEqual({
+            error: "Too many requests",
+            retryAfter: expect.any(Number),
+        });
+        expect(resolve).toHaveBeenCalledTimes(30);
+    });
+
+    it("can disable rate limiting for trusted local development runs", async () => {
+        mockEnv.DASHBOARD_RATE_LIMIT = "false";
+        const resolve = vi.fn(async () => new Response("ok"));
+
+        for (let i = 0; i < 35; i += 1) {
+            const response = await handle({
+                event: requestEvent("https://dashboard.local/api/upload", {
+                    method: "POST",
+                    headers: { "content-type": "image/png" },
+                }),
+                resolve,
+            });
+            expect(response.status).toBe(200);
+        }
+
+        expect(resolve).toHaveBeenCalledTimes(35);
     });
 });

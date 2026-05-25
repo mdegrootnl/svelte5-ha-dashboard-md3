@@ -35,6 +35,7 @@ export function sanitizeMealieBaseUrl(value: unknown) {
     try {
         const url = new URL(trimmed);
         if (url.protocol !== 'http:' && url.protocol !== 'https:') return undefined;
+        if (url.username || url.password) return undefined;
         return url.toString().replace(/\/+$/, '');
     } catch {
         return undefined;

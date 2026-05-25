@@ -37,7 +37,9 @@ export const GET: RequestHandler = async ({ params }) => {
         return new Response(file, {
             headers: {
                 'Content-Type': contentType,
-                'Cache-Control': 'public, max-age=31536000'
+                'Cache-Control': 'private, max-age=31536000, immutable',
+                'X-Content-Type-Options': 'nosniff',
+                'Content-Disposition': 'inline'
             }
         });
     } catch (e) {

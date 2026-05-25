@@ -1,32 +1,41 @@
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
+function parseCoordinate(value: string | null, min: number, max: number) {
+    if (value === null || !/^-?\d+(?:\.\d+)?$/.test(value.trim())) return null;
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < min || parsed > max) return null;
+    return parsed;
+}
+
 export const GET: RequestHandler = async ({ url, fetch }) => {
-    const lat = url.searchParams.get('lat');
-    const lon = url.searchParams.get('lon');
+    const lat = parseCoordinate(url.searchParams.get('lat'), -90, 90);
+    const lon = parseCoordinate(url.searchParams.get('lon'), -180, 180);
 
-    if (!lat || !lon) {
-        throw error(400, 'Missing lat/lon parameters');
+    if (lat === null || lon === null) {
+        throw error(400, 'Invalid lat/lon parameters');
     }
 
+    const targetUrl = new URL('https://gadgets.buienradar.nl/data/raintext/');
+    targetUrl.searchParams.set('lat', String(lat));
+    targetUrl.searchParams.set('lon', String(lon));
+
+    let res: Response;
     try {
-        const targetUrl = `https://gadgets.buienradar.nl/data/raintext/?lat=${lat}&lon=${lon}`;
-        // console.log('[API Proxy] Fetching:', targetUrl);
-        const res = await fetch(targetUrl);
-
-        if (!res.ok) {
-            throw error(res.status, 'Buienradar unavailable');
-        }
-
-        const text = await res.text();
-        return new Response(text, {
-            headers: {
-                'Content-Type': 'text/plain',
-                'Cache-Control': 'public, max-age=300' // Cache for 5 mins
-            }
-        });
-    } catch (err) {
-        // console.error('[API Proxy] Error:', err);
-        throw error(500, 'Internal Server Error');
+        res = await fetch(targetUrl);
+    } catch {
+        throw error(502, 'Buienradar unavailable');
     }
+
+    if (!res.ok) {
+        throw error(res.status, 'Buienradar unavailable');
+    }
+
+    const text = await res.text();
+    return new Response(text, {
+        headers: {
+            'Content-Type': 'text/plain',
+            'Cache-Control': 'public, max-age=300'
+        }
+    });
 };

@@ -2,11 +2,13 @@ import type { RequestHandler } from './$types';
 import { dev } from '$app/environment';
 import dns from 'node:dns';
 import { promisify } from 'util';
-import { fetchSupervisorCore, shouldUseSupervisorProxy } from '$lib/server/supervisorProxy';
+import { canUseSupervisorProxyForAppRequest, fetchSupervisorCore } from '$lib/server/supervisorProxy';
+import { loadHaSessionTokensFromCookie } from '$lib/server/haSession';
 
 const lookup = promisify(dns.lookup);
 const DNS_CACHE_TTL = 5 * 60 * 1000;
 const dnsCache = new Map<string, { address: string; timestamp: number }>();
+const HISTORY_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:?\d{2})$/;
 
 async function resolveHost(host: string) {
     if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)) return host;
@@ -22,15 +24,20 @@ async function resolveHost(host: string) {
     return address;
 }
 
-export const GET: RequestHandler = async ({ url, request, fetch }) => {
+function isValidHistoryTimestamp(timestamp: string) {
+    return timestamp.length <= 40
+        && HISTORY_TIMESTAMP_PATTERN.test(timestamp)
+        && !Number.isNaN(Date.parse(timestamp));
+}
+
+export const GET: RequestHandler = async ({ url, request, fetch, cookies }) => {
     try {
         // Get headers
-        const haUrl = request.headers.get('x-ha-url');
-        const auth = request.headers.get('Authorization');
-
-        if (!auth) {
-            return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401 });
-        }
+        const haUrlFromHeader = request.headers.get('x-ha-url');
+        const authFromHeader = request.headers.get('Authorization');
+        const sessionTokens = authFromHeader ? null : await loadHaSessionTokensFromCookie(cookies);
+        const auth = authFromHeader ?? (sessionTokens ? `Bearer ${sessionTokens.access_token}` : null);
+        const haUrl = haUrlFromHeader ?? sessionTokens?.hassUrl ?? null;
 
         const timestamp = url.searchParams.get('timestamp');
         const endTime = url.searchParams.get('end_time');
@@ -40,7 +47,11 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
             return new Response(JSON.stringify({ error: 'Missing timestamp' }), { status: 400 });
         }
 
-        if (shouldUseSupervisorProxy(auth)) {
+        if (!isValidHistoryTimestamp(timestamp)) {
+            return new Response(JSON.stringify({ error: 'Invalid timestamp' }), { status: 400 });
+        }
+
+        if (canUseSupervisorProxyForAppRequest(auth)) {
             const targetPath = new URLSearchParams();
             if (endTime) targetPath.set('end_time', endTime);
             if (filter) targetPath.set('filter_entity_id', filter);
@@ -48,7 +59,7 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
 
             const res = await fetchSupervisorCore(
                 fetch,
-                `/api/history/period/${timestamp}${query ? `?${query}` : ''}`,
+                `/api/history/period/${encodeURIComponent(timestamp)}${query ? `?${query}` : ''}`,
                 {
                     headers: { 'Content-Type': 'application/json' }
                 }
@@ -63,6 +74,10 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
             });
         }
 
+        if (!auth) {
+            return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401 });
+        }
+
         if (!haUrl) {
             return new Response(JSON.stringify({ error: 'Missing x-ha-url header' }), { status: 400 });
         }
@@ -71,8 +86,19 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
         const normalizedHaUrl = haUrl.endsWith('/') ? haUrl.slice(0, -1) : haUrl;
 
         // Parse the provided HA URL to extract hostname
-        const parsedHaUrl = new URL(normalizedHaUrl);
+        let parsedHaUrl: URL;
+        try {
+            parsedHaUrl = new URL(normalizedHaUrl);
+        } catch {
+            return new Response(JSON.stringify({ error: 'Invalid Home Assistant URL' }), { status: 400 });
+        }
+
+        if (!['http:', 'https:'].includes(parsedHaUrl.protocol)) {
+            return new Response(JSON.stringify({ error: 'Invalid Home Assistant URL' }), { status: 400 });
+        }
+
         const originalHost = parsedHaUrl.hostname;
+        const originalHostHeader = parsedHaUrl.host;
 
         // Manually resolve hostname to IPv4 to bypass Docker .local issues
         let resolvedHost = originalHost;
@@ -84,7 +110,8 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
 
         // Construct target URL using the RESOLVED IP but keeping the port/protocol
         // We must preserve the original Host header so the server accepts it (if vhost)
-        const targetUrl = new URL(`${parsedHaUrl.protocol}//${resolvedHost}:${parsedHaUrl.port || (parsedHaUrl.protocol === 'https:' ? '443' : '80')}/api/history/period/${timestamp}`);
+        const resolvedOrigin = `${parsedHaUrl.protocol}//${resolvedHost}${parsedHaUrl.port ? `:${parsedHaUrl.port}` : ''}`;
+        const targetUrl = new URL(`/api/history/period/${encodeURIComponent(timestamp)}`, resolvedOrigin);
 
         if (endTime) targetUrl.searchParams.set('end_time', endTime);
         if (filter) targetUrl.searchParams.set('filter_entity_id', filter);
@@ -94,7 +121,7 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
                 'Authorization': auth,
                 'Content-Type': 'application/json',
                 // Important: Pass the original Host header in case the server checks it
-                'Host': originalHost
+                'Host': originalHostHeader
             }
         });
 
@@ -108,11 +135,18 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
 
             console.error(`[History Proxy] Upstream Error: ${res.status} ${details}`);
 
-            return new Response(JSON.stringify({
-                error: 'Upstream Error',
-                status: res.status,
-                details
-            }), {
+            const payload = dev
+                ? {
+                    error: 'Upstream Error',
+                    status: res.status,
+                    details
+                }
+                : {
+                    error: 'Upstream Error',
+                    status: res.status
+                };
+
+            return new Response(JSON.stringify(payload), {
                 status: res.status,
                 headers: { 'Content-Type': 'application/json' }
             });
@@ -137,12 +171,19 @@ export const GET: RequestHandler = async ({ url, request, fetch }) => {
             }
         }
 
-        return new Response(JSON.stringify({
-            error: 'Internal Proxy Error',
-            message: err.message,
-            cause: causeInfo,
-            stack: err.stack
-        }), {
+        const payload = dev
+            ? {
+                error: 'Internal Proxy Error',
+                message: err.message,
+                cause: causeInfo,
+                stack: err.stack
+            }
+            : {
+                error: 'Internal Proxy Error',
+                message: 'History proxy request failed'
+            };
+
+        return new Response(JSON.stringify(payload), {
             status: 500,
             headers: { 'Content-Type': 'application/json' }
         });

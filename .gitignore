@@ -28,11 +28,13 @@ vite.config.ts.timestamp-*
 data/config.json
 data/ah-settings.json
 data/ah-product-mappings.json
+data/ha-sessions.json
 data/image-provider-secrets.json
 data/mealie-settings.json
 data/uploads/
 
 # Scratch/imported asset dumps
 .agent/
+.codex-logs/
 .vscode/
 temp_icons_fix/

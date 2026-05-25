@@ -1,5 +1,4 @@
 import {
-    getAuth,
     createConnection,
     subscribeEntities,
     subscribeConfig,
@@ -376,8 +375,6 @@ export class HAStore {
             roundedStart,
             roundedEnd,
             cacheKey,
-            this.auth.accessToken,
-            this.url,
         );
         this.historyInflight.set(cacheKey, request);
         return request.finally(() => this.historyInflight.delete(cacheKey));
@@ -393,8 +390,6 @@ export class HAStore {
         startTime: Date,
         endTime: Date,
         cacheKey: string,
-        authToken: string,
-        haUrl: string,
     ): Promise<Result<HistoryData[], Error>> {
         try {
             perfCount('ha.historyFetches');
@@ -417,10 +412,9 @@ export class HAStore {
             const response = await fetch(
                 proxyUrl,
                 {
+                    credentials: 'same-origin',
                     headers: {
-                        Authorization: `Bearer ${authToken}`,
                         'Content-Type': 'application/json',
-                        'x-ha-url': haUrl
                     }
                 }
             );

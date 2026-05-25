@@ -2,9 +2,13 @@ import http from 'node:http';
 import process from 'node:process';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { WebSocket, WebSocketServer } from 'ws';
+import { WebSocketServer } from 'ws';
+import {
+    isPermittedAddonWebSocketOrigin,
+    proxyAddonWebSocket,
+} from './server/addonWebSocketProxy.js';
+import { proxyStandaloneWebSocket } from './server/standaloneWebSocketProxy.js';
 
-const ADDON_BROWSER_TOKEN = '__dashboard_addon_browser__';
 const INGRESS_PATH_PATTERN = /^\/api\/hassio_ingress\/[^/?#]+/;
 
 if (!process.env.BODY_SIZE_LIMIT) {
@@ -89,6 +93,11 @@ function isAddonWebSocketPath(req) {
     return parsed.pathname === '/api/addon/core/websocket';
 }
 
+function isStandaloneWebSocketPath(req) {
+    const parsed = parseRequestUrl(req);
+    return parsed.pathname === '/api/ha-websocket';
+}
+
 function closeUpgrade(socket, status, message) {
     socket.write(
         `HTTP/1.1 ${status} ${message}\r\n` +
@@ -98,73 +107,6 @@ function closeUpgrade(socket, status, message) {
         message,
     );
     socket.destroy();
-}
-
-function proxyAddonWebSocket(client) {
-    const supervisorToken = process.env.SUPERVISOR_TOKEN;
-    if (!supervisorToken) {
-        client.close(1011, 'Supervisor token unavailable');
-        return;
-    }
-
-    const upstream = new WebSocket('ws://supervisor/core/websocket');
-    const queued = [];
-    let closed = false;
-
-    function closeBoth(code = 1000, reason = '') {
-        if (closed) return;
-        closed = true;
-        if (client.readyState === WebSocket.OPEN) client.close(code, reason);
-        if (upstream.readyState === WebSocket.OPEN) upstream.close(code, reason);
-    }
-
-    function sendUpstream(data, isBinary) {
-        if (upstream.readyState === WebSocket.OPEN) {
-            upstream.send(data, { binary: isBinary });
-            return;
-        }
-        queued.push([data, isBinary]);
-    }
-
-    upstream.on('open', () => {
-        for (const [data, isBinary] of queued.splice(0)) {
-            upstream.send(data, { binary: isBinary });
-        }
-    });
-
-    upstream.on('message', (data, isBinary) => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(data, { binary: isBinary });
-        }
-    });
-
-    client.on('message', (data, isBinary) => {
-        if (!isBinary) {
-            try {
-                const parsed = JSON.parse(data.toString());
-                if (parsed?.type === 'auth' && parsed.access_token === ADDON_BROWSER_TOKEN) {
-                    sendUpstream(
-                        JSON.stringify({ ...parsed, access_token: supervisorToken }),
-                        false,
-                    );
-                    return;
-                }
-            } catch {
-                // Non-JSON frames are forwarded unchanged.
-            }
-        }
-
-        sendUpstream(data, isBinary);
-    });
-
-    upstream.on('error', (error) => {
-        console.error('[Server] Supervisor websocket error:', error);
-        closeBoth(1011, 'Supervisor websocket error');
-    });
-
-    client.on('error', () => closeBoth(1011, 'Client websocket error'));
-    upstream.on('close', (code, reason) => closeBoth(code, reason.toString()));
-    client.on('close', (code, reason) => closeBoth(code, reason.toString()));
 }
 
 const { handler } = await import(pathToFileURL(resolve('./build/handler.js')).href);
@@ -177,14 +119,34 @@ const wss = new WebSocketServer({ noServer: true });
 httpServer.on('upgrade', (req, socket, head) => {
     prepareIngressRequest(req);
 
-    if (!isAddonDeployment() || !isAddonWebSocketPath(req)) {
-        closeUpgrade(socket, 404, 'Not Found');
+    if (isAddonDeployment() && isAddonWebSocketPath(req)) {
+        if (!isPermittedAddonWebSocketOrigin(req)) {
+            closeUpgrade(socket, 403, 'Forbidden');
+            return;
+        }
+
+        wss.handleUpgrade(req, socket, head, (client) => {
+            proxyAddonWebSocket(client);
+        });
         return;
     }
 
-    wss.handleUpgrade(req, socket, head, (client) => {
-        proxyAddonWebSocket(client);
-    });
+    if (!isAddonDeployment() && isStandaloneWebSocketPath(req)) {
+        if (!isPermittedAddonWebSocketOrigin(req)) {
+            closeUpgrade(socket, 403, 'Forbidden');
+            return;
+        }
+
+        wss.handleUpgrade(req, socket, head, (client) => {
+            void proxyStandaloneWebSocket(client, req);
+        });
+        return;
+    }
+
+    {
+        closeUpgrade(socket, 404, 'Not Found');
+        return;
+    }
 });
 
 const path = process.env.SOCKET_PATH || undefined;

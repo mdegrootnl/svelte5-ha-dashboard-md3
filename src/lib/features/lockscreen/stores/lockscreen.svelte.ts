@@ -14,7 +14,7 @@ export class LockScreenStore {
     backgroundPortrait = $state('');
 
     // State
-    isLocked = $state(true); // Locked by default on load
+    isLocked = $state(false);
     lastActivity = $state(Date.now());
 
     private idleTimer: ReturnType<typeof setTimeout> | null = null;
@@ -41,14 +41,11 @@ export class LockScreenStore {
             this.applyServerConfig(config);
         }
 
-        // Always start locked if enabled? 
-        // Logic: if we refresh, we probably want to see the lock screen if it's meant to be a "kiosk" mode thing.
-        // But if we are developing, it might be annoying.
-        // For now, let's respect the initial state.
-
         if (!this.enabled) {
             this.isLocked = false;
         }
+
+        this.resetTimer();
     }
 
     applyServerConfig(config: LockScreenConfig) {
@@ -56,6 +53,10 @@ export class LockScreenStore {
         this.timeout = config.timeout;
         this.backgroundLandscape = config.backgroundLandscape;
         this.backgroundPortrait = config.backgroundPortrait;
+
+        if (!this.enabled) {
+            this.isLocked = false;
+        }
     }
 
     private setupActivityListeners() {
@@ -112,6 +113,10 @@ export class LockScreenStore {
         if (config.timeout !== undefined) this.timeout = config.timeout;
         if (config.backgroundLandscape !== undefined) this.backgroundLandscape = config.backgroundLandscape;
         if (config.backgroundPortrait !== undefined) this.backgroundPortrait = config.backgroundPortrait;
+
+        if (!this.enabled) {
+            this.isLocked = false;
+        }
 
         this.saveToLocalStorage();
         this.scheduleSyncToServer();

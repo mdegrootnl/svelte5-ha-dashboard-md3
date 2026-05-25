@@ -102,7 +102,7 @@ The app uses Home Assistant as the source of live home state.
 
 Supported behavior:
 
-- OAuth or long-lived-token standalone connection.
+- Server-owned OAuth or long-lived-token standalone connection.
 - Home Assistant add-on zero-config connection through Supervisor API proxying.
 - Real-time entity sync.
 - Area, floor, entity, and device registry loading.
@@ -112,7 +112,7 @@ Supported behavior:
 - Recorder statistics WebSocket calls with history fallback.
 - HA media source playback for Radio Browser stations.
 
-The browser never receives the Home Assistant Supervisor token in add-on mode.
+The browser never receives the Home Assistant Supervisor token in add-on mode. In standalone OAuth mode, the app also keeps Home Assistant access and refresh tokens server-side behind an HttpOnly session cookie.
 
 ## Music And Radio
 
@@ -309,7 +309,7 @@ Or set an explicit data directory:
 DASHBOARD_DATA_DIR=/srv/ha-dashboard/data
 ```
 
-Standalone mode uses the browser Home Assistant auth flow or long-lived-token style connection where configured.
+Standalone mode starts Home Assistant OAuth from the browser, but the callback code is exchanged by the app server. Home Assistant tokens are stored in the server-side app data directory behind an HttpOnly session cookie.
 
 ### Home Assistant Add-On
 
@@ -361,24 +361,36 @@ Implemented:
 - Cross-origin API mutations are blocked.
 - Runtime secrets and integration tokens are stored outside git under `data/`.
 - Add-on Supervisor token is kept server-side.
+- Standalone Home Assistant tokens are durably stored server-side behind an HttpOnly session cookie, with legacy browser token storage migrated and removed.
+- Standalone OAuth callback exchange is server-owned, so normal login no longer exposes Home Assistant access or refresh tokens to app JavaScript.
+- Standalone image/media/history proxy requests use the server session instead of browser-supplied HA bearer headers.
+- Standalone Home Assistant WebSocket traffic uses a server-side `/api/ha-websocket` proxy with a harmless browser token; the real HA token is loaded/refreshed server-side.
+- Standalone disconnect performs best-effort Home Assistant refresh-token revocation before clearing the local session.
+- Sensitive API paths have in-memory per-client rate limits, with `Retry-After` responses when exceeded.
+- Browser-assisted recipe import verifies public recipe/image hosts and blocks Chromium requests to localhost, private, or reserved networks.
+- Fixed external proxies such as Buienradar use structured input validation and fixed upstream origins.
+- Uploaded images are stored under opaque filenames and served with private cache and `nosniff` headers.
+- Dependency audit currently reports zero vulnerabilities; the SvelteKit transitive `cookie` dependency is pinned to patched `0.7.2` through an npm override.
 - Standalone framing is denied.
 - Add-on framing is limited to Home Assistant ingress.
 - API payloads use Zod validation where practical.
 
 CSP is intentionally deployment-aware:
 
-- Home Assistant add-on mode defaults to a narrower same-origin policy.
+- Home Assistant add-on and standalone production mode default to a narrower same-origin policy.
 - Production script policy does not allow `unsafe-eval`.
-- Standalone mode keeps compatibility-oriented network/image allowances unless hardened mode is enabled.
+- Most Home Assistant, Mealie, AH, weather, upload, and image-provider traffic is routed through same-origin app endpoints.
+- Standalone compatibility mode remains available for unusual local HTTP image/network setups.
 
 Optional CSP controls:
 
 ```bash
-DASHBOARD_CSP_MODE=hardened
 DASHBOARD_CSP_CONNECT_SRC="https://ha.example.local wss://ha.example.local"
 DASHBOARD_CSP_IMG_SRC="http://camera.example.local"
 DASHBOARD_CSP_REPORT_ONLY=true
 ```
+
+Use `DASHBOARD_CSP_MODE=compat` only when a trusted local deployment still depends on broad direct browser access to local HTTP/WS origins.
 
 See [securityrisks.md](./securityrisks.md) for current risks, mitigations, and hardening work.
 

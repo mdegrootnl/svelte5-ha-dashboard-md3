@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HAStore } from './ha.svelte';
 import * as haWS from 'home-assistant-js-websocket';
+import { HAAuthService } from '$lib/domain/haAuthService';
 
 // Mock the WS library specifically for this test to control return values
 vi.mock('home-assistant-js-websocket', () => ({
@@ -17,6 +18,10 @@ describe('HAStore', () => {
         vi.unstubAllGlobals();
         vi.clearAllMocks();
         localStorage.clear();
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+            ok: true,
+            json: vi.fn().mockResolvedValue({ connected: false, hassUrl: null }),
+        }));
         // Prevent constructor init from doing anything by default
         vi.mocked(haWS.getAuth).mockResolvedValue(null as any);
     });
@@ -31,28 +36,34 @@ describe('HAStore', () => {
         expect(store.connectionError).toBeNull();
     });
 
-    it('should login and connect', async () => {
+    it('should start standalone login through the server-owned OAuth flow', async () => {
         const store = new HAStore();
-        const mockAuth = { data: { hassUrl: 'https://localhost:8123' }, expired: false };
-        const mockConnection = { close: vi.fn(), addEventListener: vi.fn(), sendMessagePromise: vi.fn() };
+        vi.spyOn(HAAuthService, 'redirectToAuthorizeUrl').mockImplementation(() => undefined);
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+            ok: true,
+            json: vi.fn().mockResolvedValue({
+                authorizeUrl: 'https://localhost:8123/auth/authorize?state=state',
+            }),
+        }));
 
-        vi.mocked(haWS.getAuth).mockResolvedValue(mockAuth as any);
-        vi.mocked(haWS.createConnection).mockResolvedValue(mockConnection as any);
+        void store.login('localhost');
+        await vi.waitFor(() => expect(HAAuthService.redirectToAuthorizeUrl).toHaveBeenCalledWith(
+            'https://localhost:8123/auth/authorize?state=state',
+        ));
 
-        await store.login('localhost');
-
-        expect(haWS.getAuth).toHaveBeenCalledWith(expect.objectContaining({ hassUrl: 'https://localhost:8123' }));
-        expect(store.auth).toEqual(mockAuth);
-        expect(store.connection).toEqual(mockConnection);
-        expect(store.url).toBe('https://localhost:8123');
-        expect(store.connectionState).toBe('connected');
-        expect(haWS.subscribeEntities).toHaveBeenCalled();
+        expect(store.connectionState).toBe('connecting');
+        expect(haWS.createConnection).not.toHaveBeenCalled();
     });
 
 
     it('should set connection state to error on failed login', async () => {
         const store = new HAStore();
-        vi.mocked(haWS.getAuth).mockRejectedValue(new Error('Invalid credentials'));
+        vi.spyOn(HAAuthService, 'redirectToAuthorizeUrl').mockImplementation(() => undefined);
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+            ok: false,
+            status: 400,
+            json: vi.fn().mockResolvedValue({ error: 'Invalid credentials' }),
+        }));
 
         await expect(store.login('localhost')).rejects.toThrow('Invalid credentials');
 
@@ -219,8 +230,13 @@ describe('HAStore', () => {
         expect(second.ok).toBe(true);
         expect(fetchMock).toHaveBeenCalledTimes(1);
         const url = String(fetchMock.mock.calls[0][0]);
+        const init = fetchMock.mock.calls[0][1] as RequestInit;
+        const headers = new Headers(init.headers);
         expect(url).toContain('timestamp=2026-05-15T10%3A00%3A00.000Z');
         expect(url).toContain('end_time=2026-05-15T10%3A05%3A00.000Z');
+        expect(init.credentials).toBe('same-origin');
+        expect(headers.has('Authorization')).toBe(false);
+        expect(headers.has('x-ha-url')).toBe(false);
 
         vi.useRealTimers();
     });

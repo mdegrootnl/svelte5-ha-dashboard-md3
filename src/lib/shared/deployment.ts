@@ -1,4 +1,5 @@
 export const ADDON_BROWSER_TOKEN = "__dashboard_addon_browser__";
+export const STANDALONE_BROWSER_TOKEN = "__dashboard_ha_session__";
 
 export type DeploymentMode = "standalone" | "ha-addon";
 

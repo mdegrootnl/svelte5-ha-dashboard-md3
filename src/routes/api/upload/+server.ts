@@ -42,10 +42,8 @@ function hasImageSignature(buffer: Buffer, mimeType: string): boolean {
 export const POST: RequestHandler = async ({ request }) => {
     try {
         const contentType = request.headers.get('content-type');
-        const filenameHeader = request.headers.get('x-filename');
 
         let buffer: Buffer;
-        let originalName: string;
         let mimeType = contentType?.split(';')[0].trim().toLowerCase() || 'application/octet-stream';
 
         if (contentType?.includes('multipart/form-data')) {
@@ -56,11 +54,9 @@ export const POST: RequestHandler = async ({ request }) => {
                 return json({ error: 'No file uploaded' }, { status: 400 });
             }
             buffer = Buffer.from(await file.arrayBuffer());
-            originalName = file.name;
             mimeType = file.type.toLowerCase();
         } else {
             buffer = Buffer.from(await request.arrayBuffer());
-            originalName = filenameHeader ? decodeURIComponent(filenameHeader) : 'upload.bin';
         }
 
         const ext = EXT_BY_MIME[mimeType];
@@ -80,13 +76,7 @@ export const POST: RequestHandler = async ({ request }) => {
             return json({ error: 'Uploaded file is not a valid image' }, { status: 400 });
         }
 
-        const safeName = originalName
-            .split('.')[0]
-            .replace(/[^a-zA-Z0-9]/g, '_')
-            .replace(/^_+|_+$/g, '')
-            .substring(0, 40) || 'image';
-
-        const filename = `${randomUUID()}_${safeName}.${ext}`;
+        const filename = `${randomUUID()}.${ext}`;
 
         const uploadDir = getDataPath('uploads');
         await mkdir(uploadDir, { recursive: true });

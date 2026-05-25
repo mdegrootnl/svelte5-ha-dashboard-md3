@@ -8,6 +8,7 @@ vi.mock("$env/dynamic/private", () => ({
 }));
 
 const {
+    canUseSupervisorProxyForAppRequest,
     fetchSupervisorCore,
     getSupervisorCoreUrl,
     shouldUseSupervisorProxy,
@@ -30,6 +31,17 @@ describe("supervisor proxy", () => {
         expect(shouldUseSupervisorProxy(browserAuth)).toBe(true);
         expect(shouldUseSupervisorProxy("Bearer user-token")).toBe(false);
         expect(shouldUseSupervisorProxy(null)).toBe(false);
+    });
+
+    it("allows server-owned add-on app requests without a browser token", () => {
+        expect(canUseSupervisorProxyForAppRequest(null)).toBe(false);
+
+        mockEnv.DASHBOARD_DEPLOYMENT = "ha-addon";
+        mockEnv.SUPERVISOR_TOKEN = "supervisor-secret";
+
+        expect(canUseSupervisorProxyForAppRequest(null)).toBe(true);
+        expect(canUseSupervisorProxyForAppRequest(`Bearer ${ADDON_BROWSER_TOKEN}`)).toBe(true);
+        expect(canUseSupervisorProxyForAppRequest("Bearer user-token")).toBe(false);
     });
 
     it("builds Supervisor core URLs from clean or slash-prefixed paths", () => {

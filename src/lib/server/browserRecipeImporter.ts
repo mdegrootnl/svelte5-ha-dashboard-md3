@@ -13,6 +13,8 @@ export class BrowserRecipeImportError extends Error {
 const BLOCKED_HOSTS = new Set(["localhost", "ip6-localhost"]);
 const MAX_RECIPE_IMAGE_BYTES = 8 * 1024 * 1024;
 
+type DnsLookup = typeof lookup;
+
 export interface BrowserRecipeImage {
     bytes: Uint8Array;
     contentType: string;
@@ -92,7 +94,8 @@ export function normalizeRecipeJsonLd(recipe: Record<string, unknown>, sourceUrl
 }
 
 export async function extractRecipeWithBrowser(sourceUrl: string): Promise<BrowserRecipeExtraction> {
-    const url = await verifiedPublicRecipeUrl(sourceUrl);
+    const requestVerifier = createPublicRecipeRequestVerifier();
+    const url = await verifiedPublicRecipeUrl(sourceUrl, requestVerifier);
 
     let chromium: typeof import("playwright-core").chromium;
     try {
@@ -112,11 +115,23 @@ export async function extractRecipeWithBrowser(sourceUrl: string): Promise<Brows
             userAgent:
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125 Safari/537.36",
         });
+        await page.route("**/*", async (route) => {
+            if (await requestVerifier(route.request().url())) {
+                await route.continue();
+                return;
+            }
+
+            await route.abort("blockedbyclient");
+        });
 
         const response = await page.goto(url, {
             waitUntil: "domcontentloaded",
             timeout: 45000,
         });
+
+        if (response?.url()) {
+            await verifiedPublicRecipeUrl(response.url(), requestVerifier);
+        }
 
         if (!response || response.status() >= 400) {
             throw new BrowserRecipeImportError(`Recipe page returned HTTP ${response?.status() ?? "unknown"}.`, 502);
@@ -159,7 +174,7 @@ export async function extractRecipeWithBrowser(sourceUrl: string): Promise<Brows
 
         return {
             recipe: normalizeRecipeJsonLd(recipe, url),
-            image: await downloadRecipeImage(page, recipe, url),
+            image: await downloadRecipeImage(page, recipe, url, requestVerifier),
         };
     } finally {
         await browser.close();
@@ -170,8 +185,9 @@ async function downloadRecipeImage(
     page: import("playwright-core").Page,
     recipe: Record<string, unknown>,
     sourceUrl: string,
+    requestVerifier: ReturnType<typeof createPublicRecipeRequestVerifier>,
 ): Promise<BrowserRecipeImage | undefined> {
-    const imageUrl = await firstPublicImageUrl(recipe.image, sourceUrl);
+    const imageUrl = await firstPublicImageUrl(recipe.image, sourceUrl, requestVerifier);
     if (!imageUrl) return undefined;
 
     const response = await page.context().request.get(imageUrl, {
@@ -199,12 +215,16 @@ async function downloadRecipeImage(
     };
 }
 
-async function firstPublicImageUrl(value: unknown, sourceUrl: string) {
+async function firstPublicImageUrl(
+    value: unknown,
+    sourceUrl: string,
+    requestVerifier: ReturnType<typeof createPublicRecipeRequestVerifier>,
+) {
     const candidates = toTextArray(value);
     for (const candidate of candidates) {
         try {
             const absolute = new URL(candidate, sourceUrl).toString();
-            return await verifiedPublicRecipeUrl(absolute);
+            return await verifiedPublicRecipeUrl(absolute, requestVerifier);
         } catch {
             // Try the next image candidate.
         }
@@ -224,24 +244,41 @@ function imageExtension(contentType: string, imageUrl: string) {
     return undefined;
 }
 
-async function verifiedPublicRecipeUrl(value: unknown) {
+export function createPublicRecipeRequestVerifier(dnsLookup: DnsLookup = lookup) {
+    const hostCache = new Map<string, Promise<boolean>>();
+
+    return async function verifyPublicRecipeRequest(value: unknown) {
+        const url = sanitizePublicRecipeUrl(value);
+        if (!url) return false;
+
+        const hostname = new URL(url).hostname;
+        const address = hostname.replace(/^\[|\]$/g, "");
+        if (isIP(address)) return true;
+
+        let result = hostCache.get(hostname);
+        if (!result) {
+            result = dnsLookup(hostname, { all: true }).then((addresses) => {
+                return addresses.length > 0 && addresses.every(({ address }) => !isPrivateOrReservedAddress(address));
+            }).catch(() => false);
+            hostCache.set(hostname, result);
+        }
+
+        return result;
+    };
+}
+
+async function verifiedPublicRecipeUrl(
+    value: unknown,
+    requestVerifier: ReturnType<typeof createPublicRecipeRequestVerifier>,
+) {
     const url = sanitizePublicRecipeUrl(value);
     if (!url) {
         throw new BrowserRecipeImportError("Enter a valid public http:// or https:// recipe URL.", 400);
     }
 
-    const hostname = new URL(url).hostname;
-    if (isIP(hostname.replace(/^\[|\]$/g, ""))) return url;
-
-    let addresses: Array<{ address: string }>;
-    try {
-        addresses = await lookup(hostname, { all: true });
-    } catch {
+    const allowed = await requestVerifier(url);
+    if (!allowed) {
         throw new BrowserRecipeImportError("Could not verify the recipe host.", 400);
-    }
-
-    if (!addresses.length || addresses.some(({ address }) => isPrivateOrReservedAddress(address))) {
-        throw new BrowserRecipeImportError("Recipe URL must resolve to a public internet address.", 400);
     }
 
     return url;

@@ -1,12 +1,8 @@
-import {
-    getAuth,
-    type Auth,
-    ERR_HASS_HOST_REQUIRED
-} from 'home-assistant-js-websocket';
+import { type Auth, ERR_HASS_HOST_REQUIRED } from 'home-assistant-js-websocket';
 import { browser } from '$app/environment';
 import { StorageProvider } from '../utils/storageProvider';
 import { createLogger } from '../utils/logger';
-import { ADDON_BROWSER_TOKEN, type DeploymentInfo } from '$lib/shared/deployment';
+import { ADDON_BROWSER_TOKEN, STANDALONE_BROWSER_TOKEN, type DeploymentInfo } from '$lib/shared/deployment';
 import { makeAppWebSocketUrl, withBase } from '$lib/utils/appBase';
 
 const logger = createLogger('HAAuthService');
@@ -24,11 +20,17 @@ export class HAAuthService {
         }
 
         try {
-            const auth = await getAuth({
-                saveTokens: (tokens) => StorageProvider.saveTokens(tokens),
-                loadTokens: async () => StorageProvider.loadTokens()
-            });
-            return auth;
+            const session = await StorageProvider.loadSessionInfo();
+            if (session.connected && session.hassUrl) {
+                return this.createStandaloneProxyAuth(session.hassUrl);
+            }
+
+            const migrated = await StorageProvider.migrateLegacyTokensToServer();
+            if (migrated?.connected && migrated.hassUrl) {
+                return this.createStandaloneProxyAuth(migrated.hassUrl);
+            }
+
+            return null;
         } catch (err) {
             if (err !== ERR_HASS_HOST_REQUIRED) {
                 logger.error("Auth Initialization Error:", err);
@@ -43,16 +45,18 @@ export class HAAuthService {
     static async login(hassUrl: string): Promise<Auth> {
         logger.info("Starting login flow for:", hassUrl);
         try {
-            const auth = await getAuth({
-                hassUrl,
-                saveTokens: (tokens) => StorageProvider.saveTokens(tokens),
-                loadTokens: async () => StorageProvider.loadTokens()
-            });
-            return auth;
+            const { authorizeUrl } = await StorageProvider.startServerAuth(hassUrl);
+            this.redirectToAuthorizeUrl(authorizeUrl);
+            return new Promise<Auth>(() => undefined);
         } catch (err) {
             logger.error("Login failed:", err);
             throw err;
         }
+    }
+
+    static redirectToAuthorizeUrl(authorizeUrl: string): void {
+        if (!browser) return;
+        window.location.assign(authorizeUrl);
     }
 
     static createAddonAuth(): Auth {
@@ -72,6 +76,30 @@ export class HAAuthService {
             },
             get accessToken() {
                 return ADDON_BROWSER_TOKEN;
+            },
+            get expired() {
+                return false;
+            },
+            refreshAccessToken: async () => undefined,
+            revoke: async () => undefined
+        } as Auth;
+    }
+
+    static createStandaloneProxyAuth(hassUrl: string): Auth {
+        return {
+            data: {
+                hassUrl,
+                clientId: 'ha-dashboard-md3-standalone-session',
+                expires: Number.MAX_SAFE_INTEGER,
+                refresh_token: '',
+                access_token: STANDALONE_BROWSER_TOKEN,
+                expires_in: Number.MAX_SAFE_INTEGER
+            },
+            get wsUrl() {
+                return makeAppWebSocketUrl('/api/ha-websocket');
+            },
+            get accessToken() {
+                return STANDALONE_BROWSER_TOKEN;
             },
             get expired() {
                 return false;
@@ -137,10 +165,7 @@ export class HAAuthService {
 
         if (path.startsWith('/api/ha-proxy')) {
             const response = await fetch(withBase(path), {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'x-ha-url': baseUrl
-                }
+                credentials: 'same-origin'
             });
 
             if (!response.ok) {
@@ -155,10 +180,7 @@ export class HAAuthService {
         if (!normalized.shouldProxy) return normalized.path;
 
         const response = await fetch(withBase(`/api/ha-proxy?path=${encodeURIComponent(normalized.path)}`), {
-            headers: {
-                Authorization: `Bearer ${token}`,
-                'x-ha-url': baseUrl
-            }
+            credentials: 'same-origin'
         });
 
         if (!response.ok) {

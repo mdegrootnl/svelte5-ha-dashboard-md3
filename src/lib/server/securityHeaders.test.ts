@@ -21,18 +21,32 @@ const addon: DeploymentInfo = {
 };
 
 describe("security headers", () => {
-    it("keeps standalone CSP in compatibility mode by default without unsafe eval", () => {
+    it("uses hardened standalone CSP by default without unsafe eval", () => {
         const policy = buildContentSecurityPolicy(
             standalone,
             new URL("https://dashboard.local/dashboard"),
         );
 
-        expect(resolveCspMode(standalone)).toBe("compat");
+        expect(resolveCspMode(standalone)).toBe("hardened");
         expect(policy).toContain("script-src 'self' 'unsafe-inline'");
         expect(policy).not.toContain("'unsafe-eval'");
+        expect(policy).toContain("connect-src 'self' wss://dashboard.local");
+        expect(policy).toContain("img-src 'self' data: blob: https:");
+        expect(policy).not.toContain("connect-src 'self' ws: wss: http: https:");
+        expect(policy).not.toContain("img-src 'self' data: blob: https: http:");
+        expect(policy).toContain("frame-ancestors 'none'");
+    });
+
+    it("keeps an explicit standalone compatibility mode for local-network migration", () => {
+        const policy = buildContentSecurityPolicy(
+            standalone,
+            new URL("https://dashboard.local/dashboard"),
+            { mode: "compat" },
+        );
+
+        expect(resolveCspMode(standalone, "compat")).toBe("compat");
         expect(policy).toContain("connect-src 'self' ws: wss: http: https:");
         expect(policy).toContain("img-src 'self' data: blob: https: http:");
-        expect(policy).toContain("frame-ancestors 'none'");
     });
 
     it("uses a narrowed CSP for Home Assistant add-on deployments by default", () => {
