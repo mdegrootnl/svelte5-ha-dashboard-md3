@@ -18,7 +18,7 @@
     }: Props = $props();
 
     const baseStyles =
-        "relative flex flex-col rounded-m3-card transition-all duration-200 overflow-hidden";
+        "md3-card relative flex flex-col rounded-m3-card transition-all duration-200 overflow-hidden";
 
     // Interactive styles if onclick is provided
     let interactiveStyles = $derived(

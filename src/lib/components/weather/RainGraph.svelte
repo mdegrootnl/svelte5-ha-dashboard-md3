@@ -76,11 +76,11 @@
 
 <div class="flex flex-col h-full w-full">
     <div class="flex justify-between items-center mb-2">
-        <h3 class="text-label-lg font-medium text-on-surface-variant">
+        <h3 class="text-m3-label-large font-medium text-m3-on-surface-variant">
             {themeStore.t("weather.precipitation")}
         </h3>
         {#if data.length > 0}
-            <span class="text-label-sm text-on-surface-variant"
+            <span class="text-m3-label-small text-m3-on-surface-variant"
                 >{themeStore.t("weather.nextMinutes", {
                     minutes: Math.round(
                         (data[data.length - 1].time.getTime() -
@@ -136,7 +136,7 @@
             </svg>
         {:else}
             <div
-                class="flex items-center justify-center h-full text-on-surface-variant/50 text-sm"
+                class="flex h-full items-center justify-center text-m3-body-small text-m3-on-surface-variant/60"
             >
                 {loading ? themeStore.t("common.loading") : themeStore.t("common.noData")}
             </div>
@@ -144,7 +144,7 @@
     </div>
 
     <!-- Legend / Max Value -->
-    <div class="mt-2 flex justify-between text-xs text-on-surface-variant px-1">
+    <div class="mt-2 flex justify-between px-1 text-m3-label-small text-m3-on-surface-variant">
         <span>{themeStore.t("weather.now")}</span>
         <span
             >{data.length > 0

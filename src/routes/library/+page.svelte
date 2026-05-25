@@ -23,6 +23,7 @@
     import DeferredRender from "$lib/components/common/DeferredRender.svelte";
     import PageShell from "$lib/components/layout/PageShell.svelte";
     import Button from "$lib/components/md3/Button.svelte";
+    import Switch from "$lib/components/md3/Switch.svelte";
     import { VACUUM_FEATURE } from "$lib/domain/vacuumCapabilities";
     import { haRegistryStore } from "$lib/stores/haRegistry.svelte";
     import { haStore } from "$lib/stores/ha.svelte";
@@ -86,6 +87,7 @@
     ] as const;
 
     type LibrarySection =
+        | "workshop"
         | "media"
         | "surface"
         | "button"
@@ -98,6 +100,7 @@
         | "tabs";
 
     const librarySections: Array<{ id: LibrarySection; label: string }> = [
+        { id: "workshop", label: "Workshop" },
         { id: "media", label: "Media" },
         { id: "surface", label: "Surfaces" },
         { id: "button", label: "Buttons" },
@@ -110,10 +113,12 @@
         { id: "tabs", label: "Tabs" },
     ];
 
-    let activeSection = $state<LibrarySection>("media");
+    let activeSection = $state<LibrarySection>("workshop");
     let originalAreas = haRegistryStore.areas;
     let originalEntityRegistry = haRegistryStore.entityRegistry;
     let originalDeviceRegistry = haRegistryStore.deviceRegistry;
+    let workshopSwitch = $state(true);
+    let workshopSlider = $state(68);
 
     const MAX_LIBRARY_VACUUM_FEATURES = Object.values(VACUUM_FEATURE).reduce(
         (mask, feature) => mask | feature,
@@ -711,6 +716,128 @@
             </button>
         {/each}
     </div>
+
+    {#if activeSection === "workshop"}
+        <section>
+            <h2 class="mb-2 text-m3-title-large text-m3-on-surface">
+                Design-System Workshop
+            </h2>
+            <p class="mb-4 max-w-3xl text-m3-body-medium text-m3-on-surface-variant">
+                The library is the review bench for new cards and shared UI patterns. New dashboard work should be inspectable here before it is treated as done.
+            </p>
+
+            <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                <div class="md3-card rounded-m3-card border border-m3-outline-variant/45 bg-m3-surface-container-high p-4">
+                    <h3 class="text-m3-title-medium text-m3-on-surface">
+                        Card readiness gate
+                    </h3>
+                    <p class="mt-1 text-m3-body-small text-m3-on-surface-variant">
+                        Every card family needs the full builder path, not a hidden one-off implementation.
+                    </p>
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        {#each ["Renderer", "Schema", "Editor", "Generator", "Tests", "Library", "Translations"] as item}
+                            <span class="rounded-m3-full bg-m3-primary-container px-3 py-1 text-m3-label-medium text-m3-on-primary-container">
+                                {item}
+                            </span>
+                        {/each}
+                    </div>
+                </div>
+
+                <div class="md3-card rounded-m3-card border border-m3-outline-variant/45 bg-m3-surface-container-high p-4">
+                    <h3 class="text-m3-title-medium text-m3-on-surface">
+                        Touch controls
+                    </h3>
+                    <p class="mt-1 text-m3-body-small text-m3-on-surface-variant">
+                        Switches, sliders, and action buttons keep stable touch targets across tablet and phone layouts.
+                    </p>
+                    <div class="mt-4 flex items-center justify-between gap-4 rounded-m3-lg bg-m3-surface-container-highest px-4 py-3">
+                        <span class="min-w-0 truncate text-m3-label-large text-m3-on-surface">
+                            Wall tablet mode
+                        </span>
+                        <Switch bind:checked={workshopSwitch} />
+                    </div>
+                    <label class="mt-4 block text-m3-label-medium text-m3-on-surface-variant" for="library-workshop-slider">
+                        Volume comfort
+                    </label>
+                    <input
+                        id="library-workshop-slider"
+                        class="touch-range mt-1 w-full"
+                        type="range"
+                        min="0"
+                        max="100"
+                        bind:value={workshopSlider}
+                        aria-label="Volume comfort"
+                    />
+                    <p class="text-m3-body-small text-m3-on-surface-variant">
+                        {workshopSlider}%
+                    </p>
+                </div>
+
+                <div class="md3-card rounded-m3-card border border-m3-outline-variant/45 bg-m3-surface-container-high p-4">
+                    <h3 class="text-m3-title-medium text-m3-on-surface">
+                        Action rows
+                    </h3>
+                    <p class="mt-1 text-m3-body-small text-m3-on-surface-variant">
+                        Card shortcuts and edit actions share one row so touch overlays do not hide direct controls.
+                    </p>
+                    <div class="mt-4 flex items-center justify-end gap-3 rounded-m3-lg bg-m3-surface-container-highest p-3">
+                        <button type="button" class="touch-edit-control rounded-m3-full bg-m3-secondary-container text-m3-on-secondary-container">
+                            <span class="material-symbols-outlined text-[1.25rem]">lightbulb</span>
+                        </button>
+                        <button type="button" class="touch-edit-control rounded-m3-full bg-m3-secondary-container text-m3-on-secondary-container">
+                            <span class="material-symbols-outlined text-[1.25rem]">music_note</span>
+                        </button>
+                        <button type="button" class="touch-edit-control rounded-m3-full bg-m3-primary text-m3-on-primary">
+                            <span class="material-symbols-outlined text-[1.25rem]">edit</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="dashboard-card-surface dashboard-card-surface-glass readable-image-surface relative min-h-64 overflow-hidden rounded-m3-card border border-m3-outline-variant/45 bg-cover bg-center p-4 lg:col-span-2" style:background-image={"url('/api/room-previews/kitchen')"}>
+                    <div class="readable-edge-gradient-top absolute inset-x-0 top-0 h-28"></div>
+                    <div class="readable-edge-gradient-bottom absolute inset-x-0 bottom-0 h-40"></div>
+                    <div class="relative z-10 flex h-full min-h-56 flex-col justify-between">
+                        <div class="flex justify-end gap-2">
+                            <span class="readable-chip rounded-m3-full px-3 py-1 text-m3-label-medium">
+                                image-backed
+                            </span>
+                            <span class="readable-chip rounded-m3-full px-3 py-1 text-m3-label-medium">
+                                local protection
+                            </span>
+                        </div>
+                        <div class="readable-label-stack readable-on-image max-w-md">
+                            <h3 class="text-m3-headline-small font-semibold">
+                                Kitchen preview
+                            </h3>
+                            <p class="mt-1 text-m3-body-medium">
+                                Text stays readable with a local label stack and anchored edge gradients, not a bland full-card overlay.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="md3-card rounded-m3-card border border-m3-outline-variant/45 bg-m3-surface-container-high p-4">
+                    <h3 class="text-m3-title-medium text-m3-on-surface">
+                        Ownership rules
+                    </h3>
+                    <div class="mt-4 grid gap-3 text-m3-body-small">
+                        <div class="rounded-m3-lg bg-m3-surface-container-highest p-3">
+                            <strong class="block text-m3-on-surface">Root shell</strong>
+                            <span class="text-m3-on-surface-variant">Navigation, lock screen, kiosk, global sheets, config events.</span>
+                        </div>
+                        <div class="rounded-m3-lg bg-m3-surface-container-highest p-3">
+                            <strong class="block text-m3-on-surface">Feature routes</strong>
+                            <span class="text-m3-on-surface-variant">Music, meals, presence, weather, calendar, and future feature UI.</span>
+                        </div>
+                        <div class="rounded-m3-lg bg-m3-surface-container-highest p-3">
+                            <strong class="block text-m3-on-surface">Backend state</strong>
+                            <span class="text-m3-on-surface-variant">Shared household settings sync through the server; local storage is cache or per-device only.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    {/if}
 
     <!-- Media Cards Section -->
     {#if activeSection === "media"}

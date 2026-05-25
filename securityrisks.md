@@ -77,6 +77,7 @@ Current implementation:
 - Cross-origin API mutations are blocked.
 - Standalone framing is denied.
 - Home Assistant add-on framing is limited to same-origin ingress.
+- Hook-level tests verify production CSP/security headers, report-only hardened standalone env flags, and cross-origin API mutation blocking.
 
 Next step: validate hardened standalone mode with real direct Home Assistant, media, weather, image-provider, Mealie, and AH flows, then consider making explicit-origin configuration the recommended production posture.
 

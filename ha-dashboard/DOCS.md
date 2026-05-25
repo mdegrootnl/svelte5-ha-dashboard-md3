@@ -31,6 +31,19 @@ Ingress is enabled by default. The optional direct web port `3000` is disabled u
 
 Use `npm run preview:addon` from the repository root to test an ingress-like base path locally.
 
+## Release Validation
+
+Before publishing a new add-on version, run:
+
+```bash
+npm test -- --run src/tests/addonManifest.test.ts
+npm test -- --run src/lib/server/supervisorProxy.test.ts
+npm test -- --run "src/routes/api/addon/core/[...path]/server.test.ts"
+npm run test:e2e -- e2e/ingress.spec.ts
+```
+
+The manifest test checks that `package.json`, `ha-dashboard/config.yaml`, `ha-dashboard/CHANGELOG.md`, and `repository.yaml` agree on the version, public repository URL, GHCR image, ingress settings, and persistent `/data` setup. The Supervisor proxy tests verify that zero-config Home Assistant calls are gated to add-on browser auth, forwarded to the Supervisor core URL, strip browser-only headers, preserve query/body data, and use only the server-side `SUPERVISOR_TOKEN` upstream. The ingress smoke test verifies the local add-on preview path still loads the dashboard and keeps app links/API calls under the Home Assistant ingress prefix.
+
 ## Feature Notes
 
 - The dashboard generator and editor behave the same as standalone mode.

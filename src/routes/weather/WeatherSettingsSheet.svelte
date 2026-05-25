@@ -41,8 +41,8 @@
 >
     <div class="flex flex-col gap-6">
         <div class="flex flex-col gap-2">
-            <span class="text-label-large text-primary">Providers</span>
-            <p class="text-body-medium text-on-surface-variant">
+            <span class="text-m3-label-large text-m3-primary">Providers</span>
+            <p class="text-m3-body-medium text-m3-on-surface-variant">
                 Select specific entities to use for weather data. Leave empty to
                 use automatic discovery.
             </p>
@@ -57,7 +57,7 @@
                 domainFilter="weather"
                 class="w-full"
             />
-            <p class="text-body-small text-on-surface-variant px-1">
+            <p class="px-1 text-m3-body-small text-m3-on-surface-variant">
                 Used for current conditions and forecasts.
             </p>
         </div>
@@ -71,7 +71,7 @@
                 domainFilter="sensor"
                 class="w-full"
             />
-            <p class="text-body-small text-on-surface-variant px-1">
+            <p class="px-1 text-m3-body-small text-m3-on-surface-variant">
                 Used for the air quality index widget.
             </p>
         </div>

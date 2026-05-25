@@ -58,10 +58,10 @@
             <div
                 class="absolute inset-0 flex flex-col items-center justify-center"
             >
-                <span class="text-headline-medium font-bold text-m3-on-surface"
+                <span class="text-m3-headline-medium font-bold text-m3-on-surface"
                     >{Math.round(pressure)}</span
                 >
-                <span class="text-label-small text-m3-on-surface-variant"
+                <span class="text-m3-label-small text-m3-on-surface-variant"
                     >hPa</span
                 >
             </div>

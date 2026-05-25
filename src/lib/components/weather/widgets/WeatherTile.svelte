@@ -24,14 +24,14 @@
             >
         {/if}
         <span
-            class="text-label-large font-medium text-m3-on-surface-variant truncate"
+            class="truncate text-m3-label-large font-medium text-m3-on-surface-variant"
             >{title}</span
         >
     </div>
 
     <!-- Content Area (Graphics + Value) -->
     <div
-        class="flex-1 w-full flex flex-col items-center justify-center relative"
+        class="relative flex min-h-0 w-full flex-1 flex-col items-center justify-center"
     >
         {@render children()}
     </div>

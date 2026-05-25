@@ -117,7 +117,7 @@
                     { key: "NH Radio", aliases: ["NH Radio"] },
                     { key: "Radio Gelderland", aliases: ["Radio Gelderland"] },
                     { key: "RTV Utrecht", aliases: ["RTV Utrecht"] },
-                    { key: "Omrop Fryslan", aliases: ["Omrop Fryslan", "Omrop Fryslân"] },
+                    { key: "Omrop Fryslan", aliases: ["Omrop Fryslan"] },
                     { key: "Radio Drenthe", aliases: ["Radio Drenthe"] },
                     { key: "Radio Oost", aliases: ["Radio Oost"] },
                     { key: "Radio West", aliases: ["Radio West"] },

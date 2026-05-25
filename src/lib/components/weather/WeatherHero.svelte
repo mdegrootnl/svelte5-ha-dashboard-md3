@@ -103,11 +103,11 @@
 <div class="w-full">
     <Card
         variant="filled"
-        class="relative overflow-hidden transition-all duration-300 hover:shadow-lg !p-0 aspect-video group/card"
+        class="readable-image-surface relative overflow-hidden transition-all duration-300 hover:shadow-lg !p-0 aspect-video group/card"
     >
         <!-- Video Background -->
         {#key videoUrl}
-            <div class="absolute inset-0 z-0 bg-surface-variant">
+            <div class="absolute inset-0 z-0 bg-m3-surface-variant">
                 <video
                     src={videoUrl}
                     autoplay
@@ -117,24 +117,24 @@
                     class="w-full h-full object-cover transition-opacity duration-1000"
                     in:fade={{ duration: 1000 }}
                 ></video>
-                <!-- Overlay for legibility -->
-                <div class="absolute inset-0 bg-black/60"></div>
             </div>
         {/key}
+        <div class="readable-edge-gradient-top absolute inset-x-0 top-0 z-[1] h-[42%]"></div>
+        <div class="readable-edge-gradient-bottom absolute inset-x-0 bottom-0 z-[1] h-[56%]"></div>
 
         <!-- Main Container -->
         <div
-            class="relative z-10 w-full h-full flex flex-col justify-between p-6 md:p-8 text-white"
+            class="relative z-10 flex h-full w-full flex-col justify-between p-6 text-white md:p-8"
         >
             <!-- Top Row -->
             <div class="flex justify-between items-start w-full">
-                <div class="flex flex-col">
+                <div class="readable-label-stack readable-on-image flex flex-col">
                     <span
-                        class="text-title-md font-medium opacity-90 tracking-wide"
+                        class="text-m3-title-medium font-medium tracking-wide opacity-90"
                         >{themeStore.t("weather.now")}</span
                     >
                     <h1
-                        class="text-title-small opacity-80 flex items-center gap-1 mt-1"
+                        class="mt-1 flex items-center gap-1 text-m3-title-small opacity-80"
                     >
                         <span class="material-symbols-outlined text-[18px]"
                             >location_on</span
@@ -143,9 +143,9 @@
                     </h1>
                 </div>
 
-                <div class="flex flex-col items-end text-right">
+                <div class="readable-label-stack readable-on-image flex flex-col items-end text-right">
                     <span
-                        class="text-headline-small font-bold capitalize drop-shadow-md"
+                        class="text-m3-headline-small font-bold capitalize drop-shadow-md"
                     >
                         {current
                             ? weatherStore.getConditionText(
@@ -154,7 +154,7 @@
                             : themeStore.t("common.loading")}
                     </span>
                     {#if current}
-                        <span class="text-label-lg opacity-90 drop-shadow-sm">
+                        <span class="text-m3-label-large opacity-90 drop-shadow-sm">
                             {themeStore.t("weather.feelsLike", { temperature: Math.round(current.temperature_2m) })}
                         </span>
                     {/if}
@@ -163,7 +163,7 @@
 
             <!-- Middle / Main Content -->
             <div class="flex-1 flex items-center justify-between">
-                <div class="flex items-baseline gap-2">
+                <div class="readable-label-stack readable-on-image flex items-baseline gap-2">
                     <span
                         class="text-[5rem] md:text-[7rem] leading-none font-bold tracking-tighter drop-shadow-xl"
                     >
@@ -192,7 +192,7 @@
                 {#if current && weatherStore.data?.daily?.[0]}
                     {@const today = weatherStore.data.daily[0]}
                     <div
-                        class="flex items-center gap-4 text-title-large font-medium drop-shadow-md"
+                        class="readable-label-stack readable-on-image flex items-center gap-4 text-m3-title-large font-medium drop-shadow-md"
                     >
                         <span class="flex items-center gap-1">
                             <span class="material-symbols-outlined"
@@ -210,7 +210,7 @@
                 {/if}
 
                 <div
-                    class="text-label-md opacity-70 flex items-center gap-1 relative group/refresh"
+                    class="readable-label-stack readable-on-image group/refresh relative flex items-center gap-1 text-m3-label-medium opacity-85"
                 >
                     <button
                         class="hover:opacity-100 transition-opacity"

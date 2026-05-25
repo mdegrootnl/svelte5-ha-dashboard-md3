@@ -37,11 +37,11 @@
         <!-- Left: Values -->
         <div class="flex flex-col items-start justify-center">
             <span
-                class="text-display-small font-bold text-m3-on-surface leading-none"
+                class="text-m3-display-small font-bold leading-none text-m3-on-surface"
             >
-                {humidity}<span class="text-headline-small">%</span>
+                {humidity}<span class="text-m3-headline-small">%</span>
             </span>
-            <span class="text-label-medium text-m3-on-surface-variant mt-1">
+            <span class="mt-1 text-m3-label-medium text-m3-on-surface-variant">
                 {themeStore.t("weather.dewPoint", { temperature: dewPoint })}
             </span>
         </div>
@@ -50,7 +50,7 @@
         <div class="relative flex flex-col items-center gap-1">
             <!-- 100 label -->
             <span
-                class="text-label-small text-m3-on-surface-variant font-medium"
+                class="text-m3-label-small font-medium text-m3-on-surface-variant"
                 >100</span
             >
 
@@ -72,7 +72,7 @@
 
             <!-- 0 label -->
             <span
-                class="text-label-small text-m3-on-surface-variant font-medium"
+                class="text-m3-label-small font-medium text-m3-on-surface-variant"
                 >0</span
             >
         </div>

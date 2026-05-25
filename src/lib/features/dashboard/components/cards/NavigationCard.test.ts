@@ -226,6 +226,7 @@ describe('NavigationCard Component', () => {
         expect(img).toBeInTheDocument();
         expect(img).toHaveAttribute('src', 'https://example.com/room.jpg');
         expect(haStore.fetchProxiedBlobUrl).toHaveBeenCalledWith('https://example.com/room.jpg');
+        expect(container.querySelector('a')).toHaveClass('readable-image-surface');
         expect(container.querySelector('.readable-edge-gradient-bottom')).toBeInTheDocument();
         expect(container.querySelector('.readable-label-stack')).toBeInTheDocument();
     });

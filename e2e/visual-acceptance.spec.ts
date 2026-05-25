@@ -12,11 +12,14 @@ const viewports = [
 
 const routes = [
     { name: "dashboard", path: "/dashboard" },
+    { name: "library", path: "/library" },
     { name: "attention", path: "/attention" },
     { name: "presence", path: "/presence" },
     { name: "settings", path: "/settings" },
     { name: "music", path: "/music" },
     { name: "meals", path: "/meals" },
+    { name: "weather", path: "/weather" },
+    { name: "calendar", path: "/calendar" },
 ] as const;
 
 async function collectLocalFailures(page: Page) {
@@ -426,6 +429,152 @@ async function assertNoVisibleTextEscapesContainers(page: Page) {
     ).toEqual([]);
 }
 
+async function assertCardsFitVisibleContent(page: Page) {
+    const failures = await page.evaluate(() => {
+        type Rect = {
+            left: number;
+            top: number;
+            right: number;
+            bottom: number;
+            width: number;
+            height: number;
+        };
+
+        type Failure = {
+            card: string;
+            overflow: {
+                top: number;
+                bottom: number;
+            };
+            contentHeight: number;
+            cardHeight: number;
+        };
+
+        const cardSelector = [
+            "main .dashboard-card-surface",
+            "main .md3-card",
+        ].join(", ");
+
+        function toRect(rect: DOMRect): Rect {
+            return {
+                left: rect.left,
+                top: rect.top,
+                right: rect.right,
+                bottom: rect.bottom,
+                width: rect.width,
+                height: rect.height,
+            };
+        }
+
+        function elementLabel(element: HTMLElement) {
+            const classes = Array.from(element.classList)
+                .filter((className) => !className.startsWith("s-"))
+                .slice(0, 3);
+            const text = (element.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 64);
+            const label = classes.length > 0
+                ? `${element.tagName.toLowerCase()}.${classes.join(".")}`
+                : element.tagName.toLowerCase();
+
+            return text ? `${label} "${text}"` : label;
+        }
+
+        function isVisible(element: HTMLElement) {
+            const style = getComputedStyle(element);
+            const rect = element.getBoundingClientRect();
+
+            return (
+                rect.width > 4 &&
+                rect.height > 4 &&
+                rect.bottom > 0 &&
+                rect.right > 0 &&
+                rect.top < window.innerHeight &&
+                rect.left < window.innerWidth &&
+                style.display !== "none" &&
+                style.visibility !== "hidden" &&
+                Number(style.opacity) > 0.35
+            );
+        }
+
+        function isVisualContent(element: HTMLElement) {
+            if (element.getAttribute("aria-hidden") === "true") return false;
+            if (element.closest("[aria-hidden='true']")) return false;
+            if (element.closest(".touch-edit-control")) return false;
+            if (element.closest("[role='tooltip']")) return false;
+
+            const style = getComputedStyle(element);
+            if (style.position === "fixed") return false;
+            if (!isVisible(element)) return false;
+
+            const tagName = element.tagName.toLowerCase();
+            if (["svg", "img", "canvas", "button", "a", "input", "select", "textarea"].includes(tagName)) {
+                return true;
+            }
+
+            if ((element.textContent ?? "").replace(/\s+/g, "").length > 0) {
+                return true;
+            }
+
+            const background = style.backgroundColor;
+            const hasVisibleBackground =
+                background.startsWith("rgb") &&
+                !background.endsWith(", 0)") &&
+                background !== "rgba(0, 0, 0, 0)";
+
+            return hasVisibleBackground || style.borderTopWidth !== "0px";
+        }
+
+        const failures: Failure[] = [];
+        const tolerance = 3;
+
+        for (const card of Array.from(document.querySelectorAll(cardSelector))) {
+            if (!(card instanceof HTMLElement)) continue;
+            if (!isVisible(card)) continue;
+
+            const cardRect = toRect(card.getBoundingClientRect());
+            if (cardRect.width <= 8 || cardRect.height <= 8) continue;
+
+            const contentRects = Array.from(card.querySelectorAll("*"))
+                .filter((element): element is HTMLElement => element instanceof HTMLElement)
+                .filter(isVisualContent)
+                .map((element) => toRect(element.getBoundingClientRect()))
+                .filter((rect) => rect.width > 1 && rect.height > 1);
+
+            if (contentRects.length === 0) continue;
+
+            const contentTop = Math.min(...contentRects.map((rect) => rect.top));
+            const contentBottom = Math.max(...contentRects.map((rect) => rect.bottom));
+            const overflow = {
+                top: Math.max(0, cardRect.top - contentTop),
+                bottom: Math.max(0, contentBottom - cardRect.bottom),
+            };
+
+            if (overflow.top > tolerance || overflow.bottom > tolerance) {
+                failures.push({
+                    card: elementLabel(card),
+                    overflow: {
+                        top: Number(overflow.top.toFixed(1)),
+                        bottom: Number(overflow.bottom.toFixed(1)),
+                    },
+                    contentHeight: Number((contentBottom - contentTop).toFixed(1)),
+                    cardHeight: Number(cardRect.height.toFixed(1)),
+                });
+            }
+        }
+
+        return failures.slice(0, 8);
+    });
+
+    expect(
+        failures,
+        failures
+            .map(
+                (failure) =>
+                    `${failure.card}: content ${failure.contentHeight}px exceeds card ${failure.cardHeight}px vertically (top=${failure.overflow.top}, bottom=${failure.overflow.bottom})`,
+            )
+            .join("\n"),
+    ).toEqual([]);
+}
+
 async function assertImageTextProtection(page: Page) {
     const screenshot = await page.screenshot({ scale: "css" });
     const failures = await page.evaluate(async (screenshotDataUrl) => {
@@ -535,7 +684,9 @@ async function assertImageTextProtection(page: Page) {
         }
 
         function hasRelevantEdgeGradient(element: HTMLElement) {
-            const surface = element.closest(".dashboard-card-surface");
+            const surface = element.closest(
+                ".readable-image-surface, .dashboard-card-surface",
+            );
             if (!surface) return false;
 
             const labelRect = element.getBoundingClientRect();
@@ -868,6 +1019,7 @@ test.describe("visual acceptance smoke", () => {
                 await assertNoPageHorizontalOverflow(page);
                 await assertReadableComputedContrast(page);
                 await assertNoVisibleTextEscapesContainers(page);
+                await assertCardsFitVisibleContent(page);
                 await assertImageTextProtection(page);
                 if (route.name === "music") {
                     await assertMusicMiniPlayerDockClearsNavigation(page);
@@ -894,6 +1046,7 @@ test.describe("visual acceptance smoke", () => {
 
         await assertNoPageHorizontalOverflow(page);
         await assertNoVisibleTextEscapesContainers(page);
+        await assertCardsFitVisibleContent(page);
         await assertNavigationActionRowsDoNotOverlap(page);
         await assertImageTextProtection(page);
         await attachScreenshot(page, testInfo, "phone-library-navigation");

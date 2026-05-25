@@ -12,7 +12,7 @@
     <div
         class="px-4 py-4 md:px-6 flex justify-between items-center bg-m3-surface-container-highest/50"
     >
-        <h2 class="text-title-medium font-bold text-m3-on-surface">
+        <h2 class="text-m3-title-medium font-bold text-m3-on-surface">
             {themeStore.t("weather.forecast7Day")}
         </h2>
         <span class="material-symbols-outlined text-m3-outline"
@@ -23,7 +23,7 @@
     <!-- Column Headers -->
     <div class="px-4 md:px-6 pb-2 pt-2 border-b border-m3-outline-variant/10">
         <div
-            class="grid grid-cols-[4rem_3rem_4rem_1fr_3.5rem_3.5rem] items-center gap-2 text-label-medium text-m3-on-surface-variant opacity-70"
+            class="grid grid-cols-[4rem_3rem_4rem_1fr_3.5rem_3.5rem] items-center gap-2 text-m3-label-medium text-m3-on-surface-variant opacity-70"
         >
             <span>{themeStore.t("weather.day")}</span>
             <span></span>
@@ -50,7 +50,7 @@
                         ></div>
                     {/if}
 
-                    <span class="text-body-large font-medium text-m3-on-surface"
+                    <span class="text-m3-body-large font-medium text-m3-on-surface"
                         >{day.date.toLocaleDateString(locale, {
                             weekday: "short",
                         })}</span
@@ -70,7 +70,7 @@
                     <div>
                         {#if day.precip > 0}
                             <div
-                                class="inline-flex items-center gap-0.5 text-label-small text-m3-on-primary-container bg-m3-primary-container px-1.5 py-0.5 rounded-md whitespace-nowrap"
+                                class="inline-flex items-center gap-0.5 rounded-md bg-m3-primary-container px-1.5 py-0.5 text-m3-label-small text-m3-on-primary-container whitespace-nowrap"
                             >
                                 <span
                                     class="material-symbols-outlined text-[10px]"
@@ -85,11 +85,11 @@
                     <div></div>
 
                     <span
-                        class="text-body-large text-m3-on-surface-variant text-right"
+                        class="text-right text-m3-body-large text-m3-on-surface-variant"
                         >{Math.round(day.min)}°</span
                     >
                     <span
-                        class="text-body-large font-bold text-m3-on-surface text-right"
+                        class="text-right text-m3-body-large font-bold text-m3-on-surface"
                         >{Math.round(day.max)}°</span
                     >
                 </div>

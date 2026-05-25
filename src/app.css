@@ -391,6 +391,12 @@
    Local Text Readability Helpers
    Protect labels on image-backed surfaces without flattening the whole image.
    ========================================= */
+.readable-image-surface {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+}
+
 .readable-on-image {
     color: #fff;
     text-shadow:

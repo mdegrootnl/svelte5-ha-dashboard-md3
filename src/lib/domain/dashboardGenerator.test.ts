@@ -106,6 +106,34 @@ function getGeneratedEntityIds(config: RoomDashboardConfig) {
     ]);
 }
 
+function getGeneratedConfigSet(result: ReturnType<typeof generateDashboard>) {
+    return [result.config, ...(result.relatedConfigs ?? [])];
+}
+
+function getGeneratedRoomNavigationItems(config: RoomDashboardConfig) {
+    return getAllItems(config).filter(
+        (item) =>
+            item.cardType === 'navigation' &&
+            item.path?.startsWith('/dashboard/') &&
+            item.options?.navigation?.source === 'area',
+    );
+}
+
+function expectGeneratedConfigTree(config: RoomDashboardConfig) {
+    expect(config.generatedBy).toBeTruthy();
+    expect(config.generationState).toBe('generated');
+
+    for (const tab of config.tabs) {
+        expect(tab.generatedBy).toBeTruthy();
+        expect(tab.generationState).toBe('generated');
+    }
+
+    for (const item of getAllItems(config)) {
+        expect(item.generatedBy).toBeTruthy();
+        expect(item.generationState).toBe('generated');
+    }
+}
+
 const areas: HAArea[] = [
     {
         area_id: 'kitchen',
@@ -593,6 +621,106 @@ describe('dashboardGenerator', () => {
             source: 'generated_preview',
             imageUrl: '/api/room-previews/living_room?audience=family',
         });
+    });
+
+    it('meets the generated-dashboard acceptance gate for real-room visual review', () => {
+        const result = generateDashboard(richContext, {
+            recipe: 'house',
+            targetDashboardId: 'dashboard_home',
+            useBackgroundImages: true,
+            applyMode: 'replace_draft',
+        });
+
+        const configs = getGeneratedConfigSet(result);
+        expect(configs.map((config) => config.id)).toEqual(
+            expect.arrayContaining([
+                'dashboard_home',
+                'dashboard_ground_kitchen',
+                'dashboard_ground_living_room',
+                'dashboard_ground_office',
+            ]),
+        );
+
+        for (const config of configs) {
+            expectGeneratedConfigTree(config);
+        }
+
+        expect(result.config.tabs[0].background).toMatchObject({
+            enabled: true,
+            source: 'generated_preview',
+            imageUrl: '/api/room-previews/home?audience=neutral',
+            scrimOpacity: 0.38,
+        });
+
+        const kitchenConfig = configs.find((config) => config.id === 'dashboard_ground_kitchen');
+        const livingRoomConfig = configs.find((config) => config.id === 'dashboard_ground_living_room');
+        const officeConfig = configs.find((config) => config.id === 'dashboard_ground_office');
+
+        expect(kitchenConfig?.tabs[0].background).toMatchObject({
+            source: 'ha_area_picture',
+            imageUrl: '/api/image/serve/kitchen-preview/512x512',
+        });
+        expect(livingRoomConfig?.tabs[0].background).toMatchObject({
+            source: 'generated_preview',
+            imageUrl: '/api/room-previews/living_room?audience=family',
+        });
+        expect(officeConfig?.tabs[0].background).toMatchObject({
+            source: 'generated_preview',
+            imageUrl: '/api/room-previews/office?audience=adult',
+        });
+
+        const roomNavItems = getGeneratedRoomNavigationItems(result.config);
+        expect(roomNavItems.map((item) => item.name)).toEqual(
+            expect.arrayContaining(['Kitchen', 'Living Room', 'Werkkamer']),
+        );
+        expect(roomNavItems.every((item) => item.iconType === 'image')).toBe(true);
+        expect(roomNavItems.every((item) => item.imageUrl)).toBe(true);
+
+        const kitchenNav = roomNavItems.find((item) => item.name === 'Kitchen');
+        const livingRoomNav = roomNavItems.find((item) => item.name === 'Living Room');
+        const officeNav = roomNavItems.find((item) => item.name === 'Werkkamer');
+
+        expect(kitchenNav).toMatchObject({
+            imageUrl: '/api/image/serve/kitchen-preview/512x512',
+            options: {
+                navigation: expect.objectContaining({
+                    imageSource: 'ha_area_picture',
+                    visualKind: 'kitchen',
+                    visualAudience: 'family',
+                }),
+            },
+        });
+        expect(livingRoomNav).toMatchObject({
+            imageUrl: '/api/room-previews/living_room?audience=family',
+            options: {
+                navigation: expect.objectContaining({
+                    imageSource: 'generated_preview',
+                    visualKind: 'living_room',
+                    visualAudience: 'family',
+                }),
+            },
+        });
+        expect(officeNav).toMatchObject({
+            imageUrl: '/api/room-previews/office?audience=adult',
+            options: {
+                navigation: expect.objectContaining({
+                    imageSource: 'generated_preview',
+                    visualKind: 'office',
+                    visualAudience: 'adult',
+                }),
+            },
+        });
+
+        const missingPictureHint = result.qualityHints.find((hint) => hint.code === 'missing_area_picture');
+        expect(missingPictureHint).toMatchObject({
+            severity: 'suggestion',
+            suggestedAction: 'Set area pictures in Home Assistant to replace generated previews with real room images.',
+        });
+        expect(missingPictureHint?.message).toContain('Living Room');
+        expect(missingPictureHint?.message).toContain('Werkkamer');
+        expect(missingPictureHint?.entityIds).toEqual(
+            expect.arrayContaining(['media_player.living_tv', 'light.office_desk']),
+        );
     });
 
     it('does not create global smart cards when backing entities are missing', () => {

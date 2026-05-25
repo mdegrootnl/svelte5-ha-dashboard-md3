@@ -35,12 +35,12 @@
                 />
             </svg>
             <span
-                class="absolute text-title-large font-bold text-white shadow-sm"
+                class="absolute text-m3-title-large font-bold text-white shadow-sm"
                 >{Math.round(uv)}</span
             >
         </div>
 
-        <span class="text-title-medium font-medium text-m3-on-surface"
+        <span class="text-m3-title-medium font-medium text-m3-on-surface"
             >{level}</span
         >
     </div>

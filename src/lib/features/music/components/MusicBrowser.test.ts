@@ -217,4 +217,52 @@ describe('MusicBrowser search', () => {
         expect(getRadioBrowserCountryStationsMock).not.toHaveBeenCalled();
         expect(searchRadioStationsMock).not.toHaveBeenCalled();
     });
+
+    it('shows stale cached country radio results immediately while refreshing in the background', async () => {
+        localStorage.setItem(
+            'music.radio.country.NL.v6',
+            JSON.stringify({
+                version: 6,
+                updatedAt: Date.now() - 8 * 24 * 60 * 60 * 1000,
+                items: [
+                    { uri: 'mass://radio/stale', item_id: 'stale', name: 'Stale Dutch Radio', media_type: 'radio', provider: 'tunein' }
+                ]
+            })
+        );
+
+        getRadioBrowserCountryStationsMock.mockResolvedValueOnce({
+            ok: true,
+            value: [
+                {
+                    uri: 'media-source://radio_browser/fresh',
+                    item_id: 'fresh',
+                    name: 'Fresh Dutch Radio',
+                    media_type: 'radio',
+                    provider: 'radio_browser',
+                    countryCode: 'NL'
+                }
+            ]
+        });
+
+        render(MusicBrowser, {
+            props: {
+                section: 'radio',
+                onPlay: vi.fn()
+            }
+        });
+
+        expect(screen.getByText('Stale Dutch Radio')).toBeInTheDocument();
+        expect(getRadioBrowserCountryStationsMock).toHaveBeenCalledWith('NL', 1000);
+        expect(searchRadioStationsMock).not.toHaveBeenCalled();
+
+        await waitFor(() => {
+            expect(screen.getByText('Fresh Dutch Radio')).toBeInTheDocument();
+        });
+        expect(screen.queryByText('Stale Dutch Radio')).not.toBeInTheDocument();
+
+        const cached = JSON.parse(localStorage.getItem('music.radio.country.NL.v6') ?? '{}');
+        expect(cached.items).toEqual([
+            expect.objectContaining({ name: 'Fresh Dutch Radio' })
+        ]);
+    });
 });

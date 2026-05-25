@@ -6,13 +6,24 @@ This backlog tracks near-term product and engineering work. Temporary implementa
 
 ### Status Snapshot
 
-Last documentation pass: May 21, 2026.
+Last documentation pass: May 25, 2026.
 
 - Completed roadmap slices: Trust And Acceptance, For You / Attention Surface, Bubble-Style Detail Sheets, Specialist Cards, and Graph Analytics.
-- In-progress roadmap slices: Presence And Household Context, Tablet / Kiosk Mode, Adaptive Text Readability, and live generated-dashboard acceptance.
-- Latest local validation after the generator quality helper pass: focused presence tests, focused kiosk/schema tests, focused generator quality/generation-sheet tests, `npm run check`, `npm test -- --run`, and `npm run test:visual` passed. Visual smoke covers dashboard, attention, presence, settings, music, and meals under a simulated Home Assistant ingress path across desktop, tablet, and phone viewports, including page overflow, visible text escaping its container, key label contrast, screenshot-sampled image-label contrast, and image-label protection checks.
+- In-progress roadmap slices: Presence And Household Context, Tablet / Kiosk Mode, Adaptive Text Readability, live generated-dashboard acceptance, and Keep Our Edge quality guardrails.
+- Latest local validation after the Keep Our Edge guardrail pass: `npm run check`, `npm test -- --run`, `npm run build`, `npm run test:visual`, and `npm run test:e2e` passed. Visual smoke covers dashboard, library, attention, presence, settings, music, meals, weather, and calendar under a simulated Home Assistant ingress path across desktop, tablet, and phone viewports, including page overflow, visible text escaping its container, card content fitting vertically inside card surfaces, key label contrast, screenshot-sampled image-label contrast, image-label protection checks, and navigation/action overlap checks.
 - Known local visual-test noise: Supervisor DNS warnings are expected outside the Home Assistant add-on runtime and did not fail the smoke suite.
 - Recent targeted fixes: card editor and entity detail side sheets are now hosted by the root app shell so reusable card actions work outside `/dashboard`; navigation-card edit controls now share the shortcut action row instead of overlapping top-right shortcuts; a library navigation-card visual regression now proves shortcuts and edit controls stay separated; visual smoke now catches visible text escaping local containers and the Settings tab bar now handles long translated labels; kiosk mode now has optional browser wake-lock support with Settings status; production CSP no longer allows `unsafe-eval` and add-on mode now gets a narrowed default policy; the presence route now surfaces compact setup hints and discovers more commute/travel-time sensors; Home Assistant to-do cards no longer visibly churn from broad state polling; the library route now has live specialist-card examples; AH export review preserves grouped Mealie source lines before deduplicated export.
+- New quality guardrails: `/library` is now the required design-system workshop, `docs/ADDING_FEATURE_OR_CARD.md` defines feature/card/readability/backend-state gates, visual smoke expands to library/weather/calendar, and a browser-state policy test flags new localStorage-style state unless it is explicitly allowed.
+- Latest adaptive-readability pass: the weather hero now uses the shared `.readable-image-surface` contract with local label stacks and edge gradients instead of a full black video overlay.
+- Latest generated-dashboard gate: a focused generator acceptance test now validates HA area-picture priority, deterministic fallback room previews, generated metadata/state, background scrims, and missing-area-picture quality hints across a house dashboard and related room dashboards.
+- Latest music/radio guardrail: country radio tests now verify stale weekly catalogs render immediately while Radio Browser refreshes in the background, preserving the fast radio tab without accepting permanently stale station lists.
+- Latest meals/AH polish: the AH review sheet now shows product-search failures per ingredient row, keeps rows exportable as free text, labels empty product matches, and prevents selecting non-orderable products.
+- Latest add-on release guardrail: unit coverage now verifies Home Assistant add-on manifest/version/changelog alignment, required ingress settings, `/data` persistence, GHCR image metadata, and repository metadata.
+- Latest add-on proxy guardrail: server-side Supervisor proxy and catch-all add-on route tests now verify add-on browser-token gating, Supervisor core URL construction, missing-token failures, stripped browser-only headers, query/body forwarding, and that upstream Home Assistant calls receive only `SUPERVISOR_TOKEN`, never the browser placeholder token.
+- Latest security guardrail: hook-level tests now verify production CSP/security headers, report-only hardened standalone CSP env flags, and cross-origin API mutation blocking.
+- Latest readability guardrail: image-backed navigation cards and the library workshop example now expose the shared `.readable-image-surface` contract in addition to their local gradients and label stacks.
+- Latest card-sizing guardrail: visual smoke now checks that visible card content fits vertically inside card surfaces; this caught and fixed the weather sun/twilight tile and compact navigation-card sizing.
+- Latest library guardrail: a static card-library test now fails when a dashboard card type exists in the schema but has no add-card library entry.
 
 ### Open Work Summary
 
@@ -22,9 +33,13 @@ This is the current short list of what is still genuinely open.
    - Regenerate the kitchen and at least one other room with Clean Generated.
    - Review desktop, wall-tablet, phone portrait, and phone landscape.
    - Promote any concrete layout, text overflow, color contrast, or control-overlap issue into a regression test.
+   - Automated proxy is now in place for generator invariants; this item remains open for real visual inspection with actual HA room data and photos.
 
 2. Adaptive text readability:
    - Audit all image-backed cards, detail-sheet hero areas, generated room cards, and shortcut-heavy cards for dark-on-dark or light-on-light text.
+   - Weather hero has moved to local image protection; keep applying the same pattern to future camera/media/detail heroes where full-surface overlays are not needed.
+   - Image-backed navigation cards now expose the shared readable image-surface contract so visual checks can distinguish intentionally protected image labels from unprotected text over images.
+   - Visual smoke now catches visible card content overflowing vertically, which helps keep compact/touch cards sized to their actual controls and labels.
    - Validate a freshly generated real dashboard with room-preview images and promote any remaining contrast issue into a focused regression.
    - Keep extending the screenshot-sampled Playwright checks when new image-backed cards or hero treatments are added.
 
@@ -45,20 +60,33 @@ This is the current short list of what is still genuinely open.
 6. Meals, shopping, and Albert Heijn:
    - Mealie-first shopping now supports serving scaling, image repair, shopping-list placement, and review-first AH export from deduplicated Mealie shopping rows.
    - AH review now preserves grouped source ingredient lines so deduplication does not hide what came from each recipe.
-   - Remaining work: live AH acceptance with a real account, stronger per-row product-search/export failure states, and manual Dutch supermarket flow notes after that test.
+   - AH review now has per-row product-search failure states, empty-match guidance, free-text fallback copy, and non-orderable product blocking.
+   - Remaining work: live AH acceptance with a real account, observe real export failure shapes, and write manual Dutch supermarket flow notes after that test.
 
 7. Home Assistant add-on release validation:
    - Manually install the add-on from a Home Assistant repository and open it from the sidebar.
    - Confirm ingress, zero-config Home Assistant access, persistent `/data`, websocket/proxy behavior, and existing standalone Docker deployment.
    - Keep GHCR multi-arch publishing and production deploy workflows separate.
+   - Automated guardrail now catches add-on manifest drift for version, changelog, ingress, `/data`, image, architecture, and repository metadata.
+   - Automated guardrail now also covers the server-side Supervisor REST proxy token boundary, catch-all route forwarding, stripped browser-only headers, and query/body forwarding behavior.
 
 8. Security hardening:
    - CSP is now deployment-aware: Home Assistant add-on defaults to hardened same-origin connect rules, production script policy no longer allows `unsafe-eval`, and standalone can opt into `DASHBOARD_CSP_MODE=hardened` with explicit extra origins.
+   - Hook-level coverage now verifies the real production response headers, report-only hardened standalone env configuration, and cross-origin API mutation blocking.
    - Remaining work: validate hardened standalone mode with real direct Home Assistant, media, weather, image-provider, Mealie, and AH flows before recommending it as the default production posture.
 
 9. Library and generator discipline:
    - Current audit is clean for the new specialist and graph surfaces: card-library picker entries, editor/config support, schema support, renderer support, generator placement where useful, focused tests, and `/library` examples are present.
+   - Automated guardrail now checks that every schema-supported dashboard card type is offered by the add-card library sheet.
    - Keep this as a release gate for future cards and generated-card patterns.
+
+10. Keep Our Edge quality guardrails:
+   - `/library` must remain the visual workshop for shared patterns and card families.
+   - New cards need default, max-capability, compact/touch, long-text, and empty/unavailable examples.
+   - New shared household preferences default to backend storage; browser storage must stay cache, migration, auth/session compatibility, disposable radio/search cache, or explicit per-device tablet state.
+   - Generator decisions from the temporary kitchen feedback plan have been promoted into architecture and covered by focused tests; the note is archived under `planning/archive/`.
+   - Radio Browser country browsing now has regression coverage for stale-cache-first rendering plus background refresh.
+   - Remaining work: use the guardrails during the next real generated-dashboard and wall-tablet acceptance pass.
 
 ### Dashboard Maturity Roadmap
 
@@ -317,7 +345,7 @@ Acceptance:
 
 ### Generator Room Dashboard Polish
 
-Source plan: [planning/temp-kitchen-generator-feedback-plan.md](planning/temp-kitchen-generator-feedback-plan.md)
+Source plan: [planning/archive/kitchen-generator-feedback-plan.md](planning/archive/kitchen-generator-feedback-plan.md)
 
 Status: implementation complete; awaiting live visual acceptance on a freshly regenerated kitchen dashboard.
 
@@ -380,7 +408,6 @@ Resolved design decisions:
 
 ## Later
 
-- Promote stable generator rules into `architecture.md`.
 - Expand the reusable inventory quality helper into optional bulk repair guidance if live generated-dashboard reviews show repeated Home Assistant area/label issues.
 - Revisit runtime conditional visibility after generation-time attention cards settle.
 - Evaluate stock-photo providers such as Pexels, Unsplash, Pixabay, and curated/self-hosted packs for room preview images.

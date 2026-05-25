@@ -68,15 +68,15 @@
             </svg>
 
             <span
-                class="absolute text-headline-small font-bold text-m3-on-surface z-10 drop-shadow-sm leading-none flex flex-col items-center"
+                class="absolute z-10 flex flex-col items-center text-m3-headline-small font-bold leading-none text-m3-on-surface drop-shadow-sm"
             >
                 {speed}
-                <span class="text-label-small font-normal opacity-70">km/h</span
+                <span class="text-m3-label-small font-normal opacity-70">km/h</span
                 >
             </span>
         </div>
 
-        <span class="text-label-medium font-medium text-m3-on-surface-variant">
+        <span class="text-m3-label-medium font-medium text-m3-on-surface-variant">
             {themeStore.t("weather.windFrom", { direction: getDirectionText(direction) })}
         </span>
     </div>

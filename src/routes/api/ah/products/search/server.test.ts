@@ -42,4 +42,18 @@ describe("/api/ah/products/search", () => {
             products: [{ id: 123, title: "AH Uien" }],
         });
     });
+
+    it("returns AH client errors so the review sheet can show row-specific failures", async () => {
+        searchAhProducts.mockRejectedValueOnce(new MockAhApiError("Albert Heijn search is rate limited.", 429));
+
+        const response = await GET({
+            url: new URL("http://localhost/api/ah/products/search?query=uien&limit=5"),
+            fetch: vi.fn(),
+        } as any);
+
+        expect(response.status).toBe(429);
+        await expect(response.json()).resolves.toEqual({
+            error: "Albert Heijn search is rate limited.",
+        });
+    });
 });

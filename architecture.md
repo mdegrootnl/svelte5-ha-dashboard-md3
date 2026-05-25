@@ -1,8 +1,8 @@
 # Architecture Overview
 
-Last updated: May 24, 2026
+Last updated: May 25, 2026
 
-This app is a standalone SvelteKit dashboard builder for Home Assistant. The architecture favors backend-backed household state, feature-owned routes, Svelte 5 rune stores, preview-first dashboard generation, and a root-owned app shell for wall-tablet behavior.
+This app is a standalone SvelteKit dashboard builder for Home Assistant. The architecture favors backend-backed household state, feature-owned routes, Svelte 5 rune stores, preview-first dashboard generation, a library-driven visual workshop, and a root-owned app shell for wall-tablet behavior.
 
 ## Runtime Model
 
@@ -11,6 +11,7 @@ This app is a standalone SvelteKit dashboard builder for Home Assistant. The arc
 - `data/config.json` is the canonical shared dashboard configuration.
 - Browser `localStorage` is a fast cache and optimistic UI helper, not the source of truth.
 - `/api/events` streams config-change events so other devices can refresh theme, dashboards, lock screen, kiosk, and music library state.
+- `/library` is the visual workshop for cards and reusable UI patterns. New card families and risky shared patterns must be inspectable there before they are considered complete.
 
 ## Project Structure
 
@@ -95,8 +96,12 @@ Core rules:
 - Unknown and unavailable entities are excluded from normal generated content and surfaced through quality hints or attention views.
 - Clean regeneration replaces generated content while preserving manual and pinned content.
 - Inventory quality rules live in pure domain helpers where possible. The generation sheet uses the shared area-source summary helper for entity-registry, device-registry, name-inferred, and unassigned counts, keeping future quality/repair tooling aligned with generator review behavior.
+- Generated dashboard changes require visual acceptance on at least one real regenerated room plus one other generated room. Any observed layout, text, contrast, or control-overlap problem becomes a generator rule, a card fix, or a Playwright regression.
+- Generated room navigation cards use Home Assistant area pictures first and deterministic local generated previews as the fallback. Fallback previews carry `visualKind`, `visualAudience`, and `visualPromptSeed` metadata.
+- Populated rooms without Home Assistant area pictures produce a suggestion-level `missing_area_picture` quality hint so real-room photo work stays visible during Clean Generated review.
+- Generated configs, tabs, and cards must carry generated metadata and `generationState: "generated"` so Clean Generated, pinning, and user-modified preservation can make predictable decisions.
 
-## Card Library
+## Card Library And Visual Workshop
 
 Dashboard cards live in `src/lib/features/dashboard/components/cards/`. Current card families include:
 
@@ -105,7 +110,18 @@ Dashboard cards live in `src/lib/features/dashboard/components/cards/`. Current 
 - Energy, calendar, weather, remote, device panel, camera
 - Presence, security, lock, cover/blinds, air/fan/humidifier, vacuum, update, and to-do/shopping
 
-New card families must be represented in the card-library picker, `/library` live examples, editor/config flow, renderer, schemas, generation rules where applicable, and focused tests. This keeps the dashboard builder discoverable as functionality grows.
+New card families must be represented in the card-library picker, `/library` live examples, editor/config flow, renderer, schemas, generation rules where applicable, translations, and focused tests. This keeps the dashboard builder discoverable as functionality grows.
+
+The library also documents shared product patterns that protect quality:
+
+- local text readability on images instead of full-card overlays
+- `.readable-image-surface` roots with edge gradients and local `.readable-label-stack` shields for image-backed text
+- touch-sized controls and sliders
+- stable action rows where edit controls do not cover shortcuts
+- sheet and root-shell ownership rules
+- backend-first state expectations
+
+The detailed release gate lives in [docs/ADDING_FEATURE_OR_CARD.md](./docs/ADDING_FEATURE_OR_CARD.md).
 
 ## Global Shell And Kiosk Mode
 
@@ -176,7 +192,7 @@ Coverage is broad but not one-to-one for every card. Current expectations:
 - Server integration modules get route or module tests.
 - Shared stores get unit tests for persistence and sync behavior.
 - Risky UI flows get component or Playwright coverage.
-- Visual acceptance smoke runs through Playwright against the simulated Home Assistant ingress path across dashboard, attention, presence, settings, music, and meals on desktop, tablet, and phone viewports. It checks page overflow, visible text escaping local containers, contrast, and image-label protection.
+- Visual acceptance smoke runs through Playwright against the simulated Home Assistant ingress path across dashboard, library, attention, presence, settings, music, meals, weather, and calendar on desktop, tablet, and phone viewports. It checks page overflow, visible text escaping local containers, contrast, image-label protection, navigation/action overlap, and music dock clearance.
 
 ## Adding New Card Types
 
@@ -187,6 +203,9 @@ Adding a card type generally requires:
 3. Add the renderer branch.
 4. Add card configuration UI.
 5. Add focused tests for domain logic, rendering behavior, and any service calls.
+6. Add `/library` examples for default, max capability, compact/touch, long text, and empty or unavailable states.
+7. Add generator placement when the card is useful in generated dashboards.
+8. Add translations for all supported languages.
 
 ## Product Direction
 

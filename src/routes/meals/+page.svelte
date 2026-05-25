@@ -114,6 +114,8 @@
     let ahPreparingExport = $state(false);
     let ahProductResults = $state<Record<string, AhProduct[]>>({});
     let ahProductLoading = $state<Record<string, boolean>>({});
+    let ahProductErrors = $state<Record<string, string>>({});
+    let ahProductSearched = $state<Record<string, boolean>>({});
 
     const tabs = $derived([
         { id: "today", label: themeStore.t("meals.tabs.today"), icon: CalendarMonth },
@@ -489,6 +491,8 @@
         ahExportMessage = "";
         ahProductResults = {};
         ahProductLoading = {};
+        ahProductErrors = {};
+        ahProductSearched = {};
         try {
             const [status, mappings] = await Promise.all([loadAhStatus(), loadAhMappings()]);
             const rows = buildAhShoppingExportRows(openShoppingItems, mappings);
@@ -522,19 +526,31 @@
         const query = ahSearchQueryForIngredient(row.sourceTexts[0] || row.key);
         if (!query) return;
         ahProductLoading = { ...ahProductLoading, [row.key]: true };
+        ahProductErrors = { ...ahProductErrors, [row.key]: "" };
         try {
             const response = await fetch(`/api/ah/products/search?query=${encodeURIComponent(query)}&limit=5`);
             const data = await response.json().catch(() => ({}));
             if (!response.ok) {
-                ahExportMessage = data.error || themeStore.t("meals.shopping.ahSearchFailed");
+                ahProductErrors = {
+                    ...ahProductErrors,
+                    [row.key]: data.error || themeStore.t("meals.shopping.ahSearchFailed"),
+                };
+                ahProductResults = { ...ahProductResults, [row.key]: [] };
+                ahProductSearched = { ...ahProductSearched, [row.key]: true };
                 return;
             }
             ahProductResults = {
                 ...ahProductResults,
                 [row.key]: data.products ?? [],
             };
+            ahProductSearched = { ...ahProductSearched, [row.key]: true };
         } catch {
-            ahExportMessage = themeStore.t("meals.shopping.ahSearchFailed");
+            ahProductErrors = {
+                ...ahProductErrors,
+                [row.key]: themeStore.t("meals.shopping.ahSearchFailed"),
+            };
+            ahProductResults = { ...ahProductResults, [row.key]: [] };
+            ahProductSearched = { ...ahProductSearched, [row.key]: true };
         } finally {
             ahProductLoading = { ...ahProductLoading, [row.key]: false };
         }
@@ -545,6 +561,7 @@
     }
 
     function setAhRowFreeText(row: AhShoppingExportRow) {
+        ahProductErrors = { ...ahProductErrors, [row.key]: "" };
         updateAhExportRow(row.key, (current) => ({
             ...current,
             item: {
@@ -557,6 +574,8 @@
     }
 
     function setAhRowProduct(row: AhShoppingExportRow, product: AhProduct) {
+        if (!product.isOrderable) return;
+        ahProductErrors = { ...ahProductErrors, [row.key]: "" };
         updateAhExportRow(row.key, (current) => ({
             ...current,
             item: {
@@ -1532,12 +1551,22 @@
                                                         </div>
                                                     {/if}
 
+                                                    {#if ahProductErrors[row.key]}
+                                                        <div class="rounded-lg border border-m3-error/40 bg-m3-error-container p-3 text-m3-body-small text-m3-on-error-container">
+                                                            {ahProductErrors[row.key]}
+                                                            <span class="block pt-1">
+                                                                {themeStore.t("meals.shopping.ahFreeTextFallback")}
+                                                            </span>
+                                                        </div>
+                                                    {/if}
+
                                                     {#if ahProductResults[row.key]?.length}
                                                         <div class="grid gap-2 md:grid-cols-2">
                                                             {#each ahProductResults[row.key] as product (product.id)}
                                                                 <button
-                                                                    class="flex min-h-16 items-center gap-3 rounded-lg bg-m3-surface-container p-3 text-left transition-colors hover:bg-m3-surface-container-high"
+                                                                    class="flex min-h-16 items-center gap-3 rounded-lg bg-m3-surface-container p-3 text-left transition-colors hover:bg-m3-surface-container-high disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-m3-surface-container"
                                                                     type="button"
+                                                                    disabled={!product.isOrderable}
                                                                     onclick={() => setAhRowProduct(row, product)}
                                                                 >
                                                                     {#if product.image?.url}
@@ -1554,6 +1583,15 @@
                                                                         <span class="block truncate text-m3-label-medium text-m3-on-surface-variant">
                                                                             {[product.brand, product.unitSize].filter(Boolean).join(" - ")}
                                                                         </span>
+                                                                        {#if !product.isOrderable}
+                                                                            <span class="mt-1 inline-flex rounded-full bg-m3-error-container px-2 py-0.5 text-m3-label-small text-m3-on-error-container">
+                                                                                {themeStore.t("meals.shopping.ahProductUnavailable")}
+                                                                            </span>
+                                                                        {:else if product.isBonus}
+                                                                            <span class="mt-1 inline-flex rounded-full bg-m3-tertiary-container px-2 py-0.5 text-m3-label-small text-m3-on-tertiary-container">
+                                                                                {product.bonusMechanism || themeStore.t("meals.shopping.ahBonus")}
+                                                                            </span>
+                                                                        {/if}
                                                                     </span>
                                                                     <span class="text-m3-label-large text-m3-on-surface">
                                                                         &euro;{product.price.now.toFixed(2)}
@@ -1564,6 +1602,10 @@
                                                     {:else if ahProductLoading[row.key]}
                                                         <div class="text-m3-body-small text-m3-on-surface-variant">
                                                             {themeStore.t("common.loading")}
+                                                        </div>
+                                                    {:else if ahProductSearched[row.key] && !ahProductErrors[row.key]}
+                                                        <div class="rounded-lg bg-m3-surface-container p-3 text-m3-body-small text-m3-on-surface-variant">
+                                                            {themeStore.t("meals.shopping.ahNoProductMatches")}
                                                         </div>
                                                     {/if}
                                                 </div>

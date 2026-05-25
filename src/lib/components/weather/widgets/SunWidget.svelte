@@ -109,34 +109,34 @@
 </script>
 
 <WeatherTile title={themeStore.t("weather.sunriseSunset")} icon="wb_twilight">
-    <div class="relative w-full h-full flex flex-col justify-between">
+    <div class="relative flex h-full min-h-0 w-full flex-col justify-between">
         <!-- Top Times (Sunrise / Sunset) -->
         <div class="w-full flex justify-between items-start px-1">
             <div class="flex flex-col items-start leading-none">
                 <span
-                    class="text-label-medium text-m3-on-surface-variant mb-0.5"
+                    class="mb-0.5 text-m3-label-medium text-m3-on-surface-variant"
                     >{themeStore.t("weather.sunrise")}</span
                 >
-                <span class="text-title-large font-bold text-m3-on-surface"
+                <span class="text-m3-title-large font-bold text-m3-on-surface"
                     >{sunriseStr}</span
                 >
             </div>
             <div class="flex flex-col items-end leading-none">
                 <span
-                    class="text-label-medium text-m3-on-surface-variant mb-0.5"
+                    class="mb-0.5 text-m3-label-medium text-m3-on-surface-variant"
                     >{themeStore.t("weather.sunset")}</span
                 >
-                <span class="text-title-large font-bold text-m3-on-surface"
+                <span class="text-m3-title-large font-bold text-m3-on-surface"
                     >{sunsetStr}</span
                 >
             </div>
         </div>
 
         <!-- 24h Sun Path Graph -->
-        <div class="relative w-full flex-1 mt-1">
+        <div class="relative mt-1 min-h-0 w-full flex-1 overflow-hidden">
             <svg
                 viewBox="0 0 100 70"
-                class="w-full h-full"
+                class="h-full min-h-0 w-full max-h-full"
                 preserveAspectRatio="xMidYMid meet"
             >
                 <!-- Horizon Line -->

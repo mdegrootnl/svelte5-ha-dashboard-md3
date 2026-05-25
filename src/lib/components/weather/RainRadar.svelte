@@ -165,11 +165,11 @@
 
     <!-- Animation Controls -->
     <div
-        class="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-surface-container/90 backdrop-blur-sm px-4 py-2 rounded-full border border-outline-variant shadow-lg z-[1000]"
+        class="absolute bottom-4 left-1/2 z-[1000] flex -translate-x-1/2 items-center gap-2 rounded-full border border-m3-outline-variant bg-m3-surface-container/90 px-4 py-2 shadow-lg backdrop-blur-sm"
     >
         <button
             onclick={togglePlayPause}
-            class="material-symbols-outlined text-on-surface hover:text-primary transition-colors cursor-pointer"
+            class="material-symbols-outlined cursor-pointer text-m3-on-surface transition-colors hover:text-m3-primary"
             aria-label={isPlaying ? themeStore.t("music.pause") : themeStore.t("music.play")}
         >
             {isPlaying ? "pause" : "play_arrow"}
@@ -178,9 +178,9 @@
         <div class="flex items-center gap-1">
             {#each timestamps as _, i}
                 <div
-                    class="w-1.5 h-1.5 rounded-full transition-colors cursor-pointer hover:bg-primary"
-                    class:bg-primary={i === currentFrameIndex}
-                    class:bg-outline-variant={i !== currentFrameIndex}
+                    class="h-1.5 w-1.5 cursor-pointer rounded-full transition-colors hover:bg-m3-primary"
+                    class:bg-m3-primary={i === currentFrameIndex}
+                    class:bg-m3-outline-variant={i !== currentFrameIndex}
                     onclick={() => showFrame(i)}
                     onkeydown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
@@ -195,7 +195,7 @@
             {/each}
         </div>
 
-        <span class="text-label-sm text-on-surface ml-2">
+        <span class="ml-2 text-m3-label-small text-m3-on-surface">
             {timestamps[currentFrameIndex]
                 ? new Date(
                       timestamps[currentFrameIndex].time * 1000,

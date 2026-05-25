@@ -1,10 +1,17 @@
+import { readFileSync } from "node:fs";
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CardLibrarySheet from './CardLibrarySheet.svelte';
 import { cardEditorStore } from '$lib/features/dashboard/stores/cardEditor.svelte';
 import { themeStore } from '$lib/stores/theme.svelte';
+import { DashboardCardTypeSchema } from "$lib/domain/schemas";
 import type { CardConfig } from '$lib/types';
+
+const cardLibrarySource = readFileSync(
+    "src/lib/components/layout/CardLibrarySheet.svelte",
+    "utf8",
+);
 
 const smartCardCases = [
     {
@@ -104,6 +111,14 @@ describe('CardLibrarySheet', () => {
         expect(screen.getByText('Smart Summaries')).toBeInTheDocument();
         expect(screen.getByText('Specialist Controls')).toBeInTheDocument();
         expect(screen.getByText('Inspired by Auto Entities')).toBeInTheDocument();
+    });
+
+    it("offers every dashboard card type in the add-card library", () => {
+        const missingTypes = DashboardCardTypeSchema.options.filter(
+            (type) => !cardLibrarySource.includes(`configType: "${type}"`),
+        );
+
+        expect(missingTypes).toEqual([]);
     });
 
     it.each(smartCardCases.map((card) => [card.name, card] as const))(

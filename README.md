@@ -287,7 +287,7 @@ npm run test:visual
 npm run test:e2e
 ```
 
-`npm run test:visual` runs Playwright visual smoke checks against a simulated Home Assistant ingress base path across desktop, tablet landscape, tablet portrait, and phone viewports. It checks local route failures, page overflow, visible text escaping local containers, key label contrast, screenshot-sampled image-label contrast, and image-label protection.
+`npm run test:visual` runs Playwright visual smoke checks against a simulated Home Assistant ingress base path across desktop, tablet landscape, tablet portrait, and phone viewports. It covers dashboard, library, attention, presence, settings, music, meals, weather, and calendar. It checks local route failures, page overflow, visible text escaping local containers, key label contrast, screenshot-sampled image-label contrast, image-label protection, and key navigation/action overlap.
 
 ### Docker / Standalone
 
@@ -420,6 +420,7 @@ Architectural expectations:
 - Keep shared household state backend-backed by default.
 - Use local storage only for cache, migration, or explicitly per-device preferences.
 - Add new smart cards to the card library, route examples, schemas, renderer, editor/config flow, and tests.
+- Use [Adding A Feature Or Card](./docs/ADDING_FEATURE_OR_CARD.md) as the release gate for new feature and card work.
 - Prefer Home Assistant registry/metadata over name guessing when reliable metadata exists.
 - Keep touch controls large enough for wall tablets.
 - Avoid adding full-card overlays when local text readability protection is enough.
@@ -459,6 +460,7 @@ Still active:
 ## Documentation
 
 - [Architecture Overview](./architecture.md)
+- [Adding A Feature Or Card](./docs/ADDING_FEATURE_OR_CARD.md)
 - [Security Risks](./securityrisks.md)
 - [Backlog](./BACKLOG.md)
 - [Home Assistant Add-On Docs](./ha-dashboard/DOCS.md)

@@ -47,7 +47,7 @@
             class="col-span-1 xl:col-span-12 order-3 min-w-0"
         >
             <h2
-                class="text-title-md font-bold mb-4 px-2 flex items-center gap-2"
+                class="mb-4 flex items-center gap-2 px-2 text-m3-title-medium font-bold text-m3-on-surface"
             >
                 <span class="material-symbols-outlined">schedule</span>
                 Hourly Forecast
@@ -64,11 +64,11 @@
         <div class="col-span-1 xl:col-span-7 order-5 min-w-0">
             <Card variant="filled" class="p-4 flex flex-col gap-4 h-full">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-title-md font-bold flex items-center gap-2">
+                    <h2 class="flex items-center gap-2 text-m3-title-medium font-bold text-m3-on-surface">
                         <span class="material-symbols-outlined">radar</span>
                         Precipitation Radar
                     </h2>
-                    <span class="text-label-md opacity-60">Buienradar (NL)</span
+                    <span class="text-m3-label-medium text-m3-on-surface-variant opacity-70">Buienradar (NL)</span
                     >
                 </div>
 

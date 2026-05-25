@@ -104,7 +104,7 @@
         class="w-full flex flex-col items-center justify-center gap-2 px-2 relative group"
     >
         <!-- Value -->
-        <span class="text-display-medium font-medium text-m3-on-surface">
+        <span class="text-m3-display-medium font-medium text-m3-on-surface">
             {Math.round(val)}
         </span>
 
@@ -125,7 +125,7 @@
         </div>
 
         <span
-            class="text-label-medium text-m3-on-surface-variant text-center leading-tight"
+            class="text-center text-m3-label-medium leading-tight text-m3-on-surface-variant"
         >
             {desc}
         </span>

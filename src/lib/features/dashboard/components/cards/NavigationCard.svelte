@@ -242,7 +242,12 @@
     }
 </script>
 
-<a href={withBase(path || "#")} class="{baseStyles} {getCardSurfaceClasses(surfaceStyle)} {className} @container" style="container-type: size; {cardStyle}">
+<a
+    href={withBase(path || "#")}
+    class="{baseStyles} {getCardSurfaceClasses(surfaceStyle)} {className} @container"
+    class:readable-image-surface={iconType === "image" && Boolean(imageUrl)}
+    style="container-type: size; {cardStyle}"
+>
     {#if iconType === "image" && imageUrl}
         <!-- Full-bleed Image Mode -->
         <AuthenticatedImage
@@ -253,7 +258,7 @@
         <div class="readable-edge-gradient-top absolute inset-x-0 top-0 z-10 h-[40%]"></div>
         <div class="readable-edge-gradient-bottom absolute inset-x-0 bottom-0 z-10 h-[58%]"></div>
         <div
-            class="relative z-20 flex h-full w-full flex-col justify-between gap-[clamp(0.75rem,4cqmin,1.25rem)] p-[clamp(0.85rem,4cqmin,1.35rem)] pointer-events-none"
+            class="pointer-events-none relative z-20 flex h-full min-h-0 w-full flex-col justify-between gap-[clamp(0.45rem,3cqb,1.25rem)] p-[clamp(0.65rem,4cqmin,1.35rem)]"
         >
             <div class="flex min-w-0 items-start justify-between gap-[clamp(0.5rem,2.5cqmin,1rem)]">
                 {#if dashboardEditorStore.isEditing}
@@ -329,15 +334,15 @@
                     : "0"}
             >
                 <span
-                    class="block truncate text-[clamp(1.15rem,max(6.6cqb,2.1cqi),1.55rem)] font-bold leading-tight"
+                    class="block truncate text-[clamp(1rem,max(5.6cqb,1.9cqi),1.55rem)] font-bold leading-tight"
                 >
                     {name || "Navigate"}
                 </span>
                 {#if subtitleParts.length > 0}
-                    <div class="mt-[clamp(0.25rem,1.5cqmin,0.5rem)] flex min-w-0 flex-wrap gap-[clamp(0.25rem,1.5cqmin,0.5rem)] overflow-hidden">
+                    <div class="mt-[clamp(0.15rem,1.5cqmin,0.5rem)] flex min-w-0 flex-wrap gap-[clamp(0.2rem,1.5cqmin,0.5rem)] overflow-hidden">
                         {#each subtitleParts.slice(0, 3) as part}
                             <span
-                                class="readable-chip max-w-full truncate rounded-m3-full px-[clamp(0.5rem,2cqmin,0.75rem)] py-[clamp(0.125rem,0.8cqmin,0.25rem)] text-[clamp(0.75rem,max(4.8cqb,1.1cqi),0.9rem)]"
+                                class="readable-chip max-w-full truncate rounded-m3-full px-[clamp(0.45rem,2cqmin,0.75rem)] py-[clamp(0.1rem,0.8cqmin,0.25rem)] text-[clamp(0.7rem,max(4.2cqb,1.1cqi),0.9rem)]"
                             >
                                 {part}
                             </span>
@@ -348,7 +353,7 @@
         </div>
     {:else}
         <div
-            class="relative z-10 flex h-full w-full flex-col justify-between gap-[clamp(0.75rem,4cqmin,1.25rem)] p-[clamp(0.85rem,4cqmin,1.35rem)]"
+            class="relative z-10 flex h-full min-h-0 w-full flex-col justify-between gap-[clamp(0.45rem,3cqb,1.25rem)] p-[clamp(0.65rem,4cqmin,1.35rem)]"
         >
             <div class="flex min-w-0 items-start justify-between gap-[clamp(0.5rem,2.5cqmin,1rem)]">
                 {#if dashboardEditorStore.isEditing}
@@ -401,15 +406,15 @@
 
             <div class="min-w-0 pointer-events-none">
                 <span
-                    class="block text-[clamp(1.15rem,max(6.6cqb,2.1cqi),1.55rem)] font-bold leading-tight truncate"
+                    class="block truncate text-[clamp(1rem,max(5.6cqb,1.9cqi),1.55rem)] font-bold leading-tight"
                 >
                     {name || "Navigate"}
                 </span>
                 {#if subtitleParts.length > 1}
-                    <div class="mt-[clamp(0.35rem,1.2cqmin,0.55rem)] flex min-w-0 flex-wrap gap-[clamp(0.25rem,1cqmin,0.5rem)] overflow-hidden">
+                    <div class="mt-[clamp(0.15rem,1.2cqmin,0.55rem)] flex min-w-0 flex-wrap gap-[clamp(0.2rem,1cqmin,0.5rem)] overflow-hidden">
                         {#each subtitleParts.slice(0, 3) as part}
                             <span
-                                class="max-w-full truncate rounded-m3-full bg-m3-surface-container-high px-[clamp(0.5rem,2cqmin,0.75rem)] py-[clamp(0.125rem,0.6cqmin,0.25rem)] text-[clamp(0.75rem,max(4.8cqb,1.1cqi),0.9rem)] text-m3-on-surface-variant"
+                                class="max-w-full truncate rounded-m3-full bg-m3-surface-container-high px-[clamp(0.45rem,2cqmin,0.75rem)] py-[clamp(0.1rem,0.6cqmin,0.25rem)] text-[clamp(0.7rem,max(4.2cqb,1.1cqi),0.9rem)] text-m3-on-surface-variant"
                             >
                                 {part}
                             </span>
@@ -417,7 +422,7 @@
                     </div>
                 {:else}
                     <span
-                        class="mt-[clamp(0.25rem,1cqmin,0.45rem)] block text-[clamp(0.875rem,max(5.2cqb,1.35cqi),1rem)] opacity-75 leading-tight truncate"
+                        class="mt-[clamp(0.15rem,1cqmin,0.45rem)] block truncate text-[clamp(0.78rem,max(4.4cqb,1.25cqi),1rem)] leading-tight opacity-75"
                     >
                         {displaySubtitle}
                     </span>
