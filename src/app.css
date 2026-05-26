@@ -447,7 +447,7 @@
 
 .readable-chip {
     border: 1px solid rgb(255 255 255 / 12%);
-    background: rgb(0 0 0 / 24%);
+    background: rgb(0 0 0 / 38%);
     color: rgb(255 255 255 / 88%);
     backdrop-filter: blur(3px);
     -webkit-backdrop-filter: blur(3px);
