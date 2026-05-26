@@ -4,6 +4,21 @@ A standalone Material Design 3 dashboard builder for Home Assistant, built with 
 
 This project is not a Lovelace theme. It is a full dashboard application with its own app shell, generated and editable layouts, Home Assistant add-on support, shared backend configuration, touch/tablet ergonomics, Music Assistant controls, Radio Browser country radio, weather, meals, shopping, presence, attention/maintenance surfaces, and a growing smart-card library.
 
+## Screenshots
+
+These public-safe screenshots are generated from a temporary demo configuration, not from a private Home Assistant instance.
+
+<p>
+  <img src="./docs/screenshots/dashboard-overview.png" alt="Dashboard overview with room navigation cards" width="49%">
+  <img src="./docs/screenshots/card-library.png" alt="Card library specialist card examples" width="49%">
+</p>
+
+<p>
+  <img src="./docs/screenshots/settings-connections.png" alt="Settings connections screen" width="49%">
+</p>
+
+Regenerate them with `npm run screenshots:readme`.
+
 ## What It Does
 
 The app is designed for a household dashboard that works on wall tablets, phones, and desktops:
