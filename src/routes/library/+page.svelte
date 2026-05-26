@@ -805,11 +805,11 @@
                                 local protection
                             </span>
                         </div>
-                        <div class="readable-label-stack readable-on-image max-w-md">
-                            <h3 class="text-m3-headline-small font-semibold">
+                        <div class="readable-label-stack max-w-md p-3">
+                            <h3 class="readable-on-image text-m3-headline-small font-semibold">
                                 Kitchen preview
                             </h3>
-                            <p class="mt-1 text-m3-body-medium">
+                            <p class="readable-on-image mt-1 text-m3-body-medium">
                                 Text stays readable with a local label stack and anchored edge gradients, not a bland full-card overlay.
                             </p>
                         </div>
