@@ -111,22 +111,22 @@
 <WeatherTile title={themeStore.t("weather.sunriseSunset")} icon="wb_twilight">
     <div class="relative flex h-full min-h-0 w-full flex-col justify-between">
         <!-- Top Times (Sunrise / Sunset) -->
-        <div class="w-full flex justify-between items-start px-1">
-            <div class="flex flex-col items-start leading-none">
+        <div class="grid w-full min-w-0 grid-cols-2 items-start gap-2 overflow-hidden px-2">
+            <div class="flex min-w-0 flex-col items-start leading-none">
                 <span
-                    class="mb-0.5 text-m3-label-medium text-m3-on-surface-variant"
+                    class="mb-0.5 max-w-full truncate text-m3-label-medium text-m3-on-surface-variant"
                     >{themeStore.t("weather.sunrise")}</span
                 >
-                <span class="text-m3-title-large font-bold text-m3-on-surface"
+                <span class="max-w-full truncate text-m3-title-large font-bold text-m3-on-surface"
                     >{sunriseStr}</span
                 >
             </div>
-            <div class="flex flex-col items-end leading-none">
+            <div class="flex min-w-0 flex-col items-end leading-none text-right">
                 <span
-                    class="mb-0.5 text-m3-label-medium text-m3-on-surface-variant"
+                    class="mb-0.5 max-w-full truncate text-m3-label-medium text-m3-on-surface-variant"
                     >{themeStore.t("weather.sunset")}</span
                 >
-                <span class="text-m3-title-large font-bold text-m3-on-surface"
+                <span class="max-w-full truncate text-m3-title-large font-bold text-m3-on-surface"
                     >{sunsetStr}</span
                 >
             </div>

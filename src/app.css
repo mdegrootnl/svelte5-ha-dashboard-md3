@@ -427,6 +427,8 @@
 .readable-label-stack {
     position: relative;
     isolation: isolate;
+    width: fit-content;
+    max-width: min(100%, 28rem);
 }
 
 .readable-label-stack::before {
@@ -437,9 +439,9 @@
     border-radius: var(--radius-m3-lg);
     background: linear-gradient(
         90deg,
-        color-mix(in srgb, var(--color-m3-scrim) 42%, transparent) 0%,
-        color-mix(in srgb, var(--color-m3-scrim) 24%, transparent) 68%,
-        transparent 100%
+        color-mix(in srgb, var(--color-m3-scrim) 72%, transparent) 0%,
+        color-mix(in srgb, var(--color-m3-scrim) 56%, transparent) 68%,
+        color-mix(in srgb, var(--color-m3-scrim) 38%, transparent) 100%
     );
     backdrop-filter: blur(2px);
     -webkit-backdrop-filter: blur(2px);
