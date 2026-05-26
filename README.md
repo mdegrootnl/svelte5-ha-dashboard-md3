@@ -309,6 +309,12 @@ Or set an explicit data directory:
 DASHBOARD_DATA_DIR=/srv/ha-dashboard/data
 ```
 
+Standalone Docker now performs Home Assistant OAuth, REST, media, history, and WebSocket access from the app server. If your Home Assistant URL uses an mDNS name such as `homeassistant.local`, make sure that name resolves inside the Docker container. When it does not, add a host mapping in `.env`:
+
+```bash
+DASHBOARD_EXTRA_HOST=homeassistant.local:192.168.0.157
+```
+
 Standalone mode starts Home Assistant OAuth from the browser, but the callback code is exchanged by the app server. Home Assistant tokens are stored in the server-side app data directory behind an HttpOnly session cookie.
 
 ### Home Assistant Add-On
