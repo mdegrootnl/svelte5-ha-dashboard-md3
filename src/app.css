@@ -429,6 +429,13 @@
     isolation: isolate;
     width: fit-content;
     max-width: min(100%, 28rem);
+    border-radius: var(--radius-m3-lg);
+    background: linear-gradient(
+        90deg,
+        rgb(0 0 0 / 54%) 0%,
+        rgb(0 0 0 / 44%) 72%,
+        rgb(0 0 0 / 34%) 100%
+    );
 }
 
 .readable-label-stack::before {

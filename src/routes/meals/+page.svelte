@@ -864,7 +864,7 @@
                     {#each tabs as tab}
                         {@const Icon = tab.icon}
                         <button
-                            class="touch-target inline-flex items-center gap-2 rounded-full px-4 text-m3-label-large font-medium transition-colors whitespace-nowrap
+                            class="touch-target inline-flex shrink-0 items-center gap-2 rounded-full px-4 text-m3-label-large font-medium transition-colors whitespace-nowrap
                                 {activeTab === tab.id
                                 ? 'bg-m3-secondary-container text-m3-on-secondary-container'
                                 : 'text-m3-on-surface-variant hover:bg-m3-surface-container-highest'}"
