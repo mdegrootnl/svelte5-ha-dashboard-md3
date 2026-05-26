@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import DashboardGenerationSheet from './DashboardGenerationSheet.svelte';
 import { haRegistryStore, haStore, themeStore } from '$lib';
 import type { HAEntity, HAEntityRegistryEntry } from '$lib/types';
@@ -151,6 +151,11 @@ function createGeneratedDashboardWithEditedCard(id = 'dashboard_home'): RoomDash
 }
 
 describe('DashboardGenerationSheet', () => {
+    afterEach(async () => {
+        cleanup();
+        await new Promise((resolve) => setTimeout(resolve, 40));
+    });
+
     beforeEach(() => {
         vi.clearAllMocks();
         themeStore.language = 'en';
