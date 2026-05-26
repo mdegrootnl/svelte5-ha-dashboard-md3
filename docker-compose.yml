@@ -11,3 +11,5 @@ services:
     restart: unless-stopped
     environment:
       - ORIGIN=${DASHBOARD_ORIGIN:-http://localhost:3000}
+      - DASHBOARD_DATA_DIR=/app/data
+      - DASHBOARD_HA_INTERNAL_URL=${DASHBOARD_HA_INTERNAL_URL:-}
