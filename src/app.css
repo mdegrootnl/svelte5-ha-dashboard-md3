@@ -454,6 +454,13 @@
     -webkit-backdrop-filter: blur(2px);
 }
 
+.readable-label-stack > .readable-on-image {
+    border-radius: var(--radius-m3-sm);
+    background-color: rgb(0 0 0 / 42%);
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+}
+
 .readable-chip {
     border: 1px solid rgb(255 255 255 / 12%);
     background: rgb(0 0 0 / 38%);
