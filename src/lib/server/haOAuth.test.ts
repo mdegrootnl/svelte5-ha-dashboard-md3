@@ -5,7 +5,10 @@ import {
     decodeHaOAuthState,
     encodeHaOAuthState,
     exchangeHaAuthCode,
+    checkHomeAssistantServerReachability,
+    getConfiguredHomeAssistantInternalOrigin,
     revokeHaRefreshToken,
+    resolveHomeAssistantServerOrigin,
     sanitizeHomeAssistantOrigin,
     sanitizeLocalReturnPath,
     validateOAuthCallback,
@@ -26,6 +29,7 @@ describe("Home Assistant OAuth helpers", () => {
         const state = createHaOAuthState({
             state: "abc",
             hassUrl: "http://ha.local:8123",
+            serverHassUrl: "http://192.168.0.157:8123",
             clientId: "http://dashboard.local/",
             redirectUri: "http://dashboard.local/api/ha-session/auth/callback",
             returnTo: "/settings",
@@ -37,8 +41,18 @@ describe("Home Assistant OAuth helpers", () => {
         expect(decodeHaOAuthState(encoded, 1_500)).toMatchObject({
             state: "abc",
             hassUrl: "http://ha.local:8123",
+            serverHassUrl: "http://192.168.0.157:8123",
         });
         expect(decodeHaOAuthState(encoded, 11 * 60 * 1000)).toBeNull();
+    });
+
+    it("resolves an optional server-facing Home Assistant URL", () => {
+        expect(getConfiguredHomeAssistantInternalOrigin({
+            DASHBOARD_HA_INTERNAL_URL: " http://192.168.0.157:8123/lovelace ",
+        })).toBe("http://192.168.0.157:8123");
+        expect(resolveHomeAssistantServerOrigin("http://ha.local:8123", {
+            DASHBOARD_HA_INTERNAL_URL: "file:///etc/passwd",
+        })).toBe("http://ha.local:8123");
     });
 
     it("builds an authorize URL and validates callback state", () => {
@@ -100,6 +114,19 @@ describe("Home Assistant OAuth helpers", () => {
 
         expect(fetch).toHaveBeenCalledWith(new URL("http://ha.local:8123/auth/revoke"), expect.objectContaining({
             method: "POST",
+        }));
+    });
+
+    it("preflights server-side Home Assistant reachability", async () => {
+        const fetch = vi.fn(async () => new Response("ok", { status: 200 })) as unknown as typeof globalThis.fetch;
+
+        await expect(checkHomeAssistantServerReachability({
+            fetch,
+            hassUrl: "http://ha.local:8123",
+        })).resolves.toEqual({ ok: true });
+
+        expect(fetch).toHaveBeenCalledWith(new URL("http://ha.local:8123/"), expect.objectContaining({
+            method: "GET",
         }));
     });
 });

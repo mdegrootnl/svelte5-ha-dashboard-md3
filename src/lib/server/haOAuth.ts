@@ -9,6 +9,7 @@ const MAX_CODE_LENGTH = 4096;
 export interface HaOAuthState {
     state: string;
     hassUrl: string;
+    serverHassUrl?: string;
     clientId: string;
     redirectUri: string;
     returnTo: string;
@@ -32,6 +33,19 @@ export function sanitizeHomeAssistantOrigin(value: unknown): string | null {
     return parsed.origin;
 }
 
+export function getConfiguredHomeAssistantInternalOrigin(
+    env: Record<string, string | undefined> = process.env,
+): string | null {
+    return sanitizeHomeAssistantOrigin(env.DASHBOARD_HA_INTERNAL_URL);
+}
+
+export function resolveHomeAssistantServerOrigin(
+    browserHassUrl: string,
+    env: Record<string, string | undefined> = process.env,
+): string {
+    return getConfiguredHomeAssistantInternalOrigin(env) ?? browserHassUrl;
+}
+
 export function sanitizeLocalReturnPath(value: unknown, fallback = "/settings"): string {
     if (typeof value !== "string") return fallback;
     const trimmed = value.trim();
@@ -49,14 +63,18 @@ export function sanitizeLocalReturnPath(value: unknown, fallback = "/settings"):
 export function createHaOAuthState(params: {
     state: string;
     hassUrl: string;
+    serverHassUrl?: string;
     clientId: string;
     redirectUri: string;
     returnTo?: string;
     now?: number;
 }): HaOAuthState {
+    const serverHassUrl = sanitizeHomeAssistantOrigin(params.serverHassUrl);
+
     return {
         state: params.state,
         hassUrl: params.hassUrl,
+        ...(serverHassUrl && serverHassUrl !== params.hassUrl ? { serverHassUrl } : {}),
         clientId: params.clientId,
         redirectUri: params.redirectUri,
         returnTo: sanitizeLocalReturnPath(params.returnTo),
@@ -89,10 +107,12 @@ export function decodeHaOAuthState(value: string | undefined | null, now = Date.
 
     const hassUrl = sanitizeHomeAssistantOrigin(input.hassUrl);
     if (!hassUrl) return null;
+    const serverHassUrl = sanitizeHomeAssistantOrigin(input.serverHassUrl);
 
     return {
         state: input.state,
         hassUrl,
+        ...(serverHassUrl && serverHassUrl !== hassUrl ? { serverHassUrl } : {}),
         clientId: input.clientId,
         redirectUri: input.redirectUri,
         returnTo: sanitizeLocalReturnPath(input.returnTo),
@@ -168,6 +188,47 @@ export async function exchangeHaAuthCode(params: {
         expires_in: expiresIn,
         expires: Date.now() + expiresIn * 1000,
     };
+}
+
+export async function checkHomeAssistantServerReachability(params: {
+    fetch: typeof globalThis.fetch;
+    hassUrl: string;
+    timeoutMs?: number;
+}): Promise<{ ok: true } | { ok: false; error: string; status?: number }> {
+    const hassUrl = sanitizeHomeAssistantOrigin(params.hassUrl);
+    if (!hassUrl) {
+        return { ok: false, error: "Invalid server Home Assistant URL." };
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), params.timeoutMs ?? 3500);
+
+    try {
+        const response = await params.fetch(new URL("/", hassUrl), {
+            method: "GET",
+            signal: controller.signal,
+        });
+
+        if (response.status >= 500) {
+            return {
+                ok: false,
+                status: response.status,
+                error: `Home Assistant responded with HTTP ${response.status}.`,
+            };
+        }
+
+        return { ok: true };
+    } catch (error) {
+        const message = error instanceof Error && error.name === "AbortError"
+            ? "Timed out while connecting to Home Assistant."
+            : error instanceof Error && error.message
+                ? error.message
+                : "The dashboard server could not reach Home Assistant.";
+
+        return { ok: false, error: message };
+    } finally {
+        clearTimeout(timeout);
+    }
 }
 
 export async function revokeHaRefreshToken(params: {

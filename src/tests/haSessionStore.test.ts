@@ -15,6 +15,7 @@ function request(cookie: string) {
 describe("Node HA session store", () => {
     let tempDir = "";
     const previousDataDir = process.env.DASHBOARD_DATA_DIR;
+    const previousInternalUrl = process.env.DASHBOARD_HA_INTERNAL_URL;
 
     beforeEach(async () => {
         tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ha-session-store-"));
@@ -23,6 +24,11 @@ describe("Node HA session store", () => {
 
     afterEach(async () => {
         process.env.DASHBOARD_DATA_DIR = previousDataDir;
+        if (previousInternalUrl === undefined) {
+            delete process.env.DASHBOARD_HA_INTERNAL_URL;
+        } else {
+            process.env.DASHBOARD_HA_INTERNAL_URL = previousInternalUrl;
+        }
         await fs.rm(tempDir, { recursive: true, force: true });
         vi.restoreAllMocks();
     });
@@ -51,6 +57,18 @@ describe("Node HA session store", () => {
 
         expect(session?.tokens).toMatchObject({
             hassUrl: "http://ha.local:8123",
+            access_token: "old-secret",
+        });
+    });
+
+    it("uses the optional server-facing Home Assistant URL for standalone websocket sessions", async () => {
+        process.env.DASHBOARD_HA_INTERNAL_URL = "http://192.168.0.157:8123";
+        await writeSessions(Date.now() + 3600_000);
+
+        const session = await loadFreshHaSessionTokensFromRequest(request("ha_dashboard_session=session-id"));
+
+        expect(session?.tokens).toMatchObject({
+            hassUrl: "http://192.168.0.157:8123",
             access_token: "old-secret",
         });
     });

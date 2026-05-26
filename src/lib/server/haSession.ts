@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import path from "path";
 import type { AuthData } from "home-assistant-js-websocket";
 import { getResolvedDataDir } from "$lib/server/dataDir";
+import { getConfiguredHomeAssistantInternalOrigin } from "$lib/server/haOAuth";
 
 export const HA_SESSION_COOKIE = "ha_dashboard_session";
 
@@ -76,7 +77,7 @@ export function sanitizeHaTokens(value: unknown): AuthData | null {
         : null;
 
     return {
-        hassUrl: hassUrl.origin,
+        hassUrl: getConfiguredHomeAssistantInternalOrigin() ?? hassUrl.origin,
         clientId,
         expires,
         refresh_token: refreshToken,

@@ -36,6 +36,7 @@ function redirectLocation(error: unknown) {
 
 describe("/api/ha-session/auth", () => {
     let tempDir = "";
+    const previousInternalUrl = process.env.DASHBOARD_HA_INTERNAL_URL;
 
     async function loadRoutes() {
         vi.resetModules();
@@ -53,6 +54,11 @@ describe("/api/ha-session/auth", () => {
 
     afterEach(async () => {
         vi.doUnmock("$lib/server/dataDir");
+        if (previousInternalUrl === undefined) {
+            delete process.env.DASHBOARD_HA_INTERNAL_URL;
+        } else {
+            process.env.DASHBOARD_HA_INTERNAL_URL = previousInternalUrl;
+        }
         await fs.rm(tempDir, { recursive: true, force: true });
     });
 
@@ -71,6 +77,7 @@ describe("/api/ha-session/auth", () => {
             }),
             cookies: jar.cookies,
             url: new URL("http://dashboard.local/api/ha-session/auth/start"),
+            fetch: vi.fn(async () => new Response()) as unknown as typeof globalThis.fetch,
         } as any);
 
         expect(response.status).toBe(200);
@@ -106,6 +113,7 @@ describe("/api/ha-session/auth", () => {
             }),
             cookies: jar.cookies,
             url: new URL("https://dashboard.local/api/ha-session/auth/start"),
+            fetch: vi.fn(async () => new Response()) as unknown as typeof globalThis.fetch,
         } as any);
         const authorizeBody = await startResponse.json();
         const state = new URL(authorizeBody.authorizeUrl).searchParams.get("state");
@@ -135,6 +143,82 @@ describe("/api/ha-session/auth", () => {
         expect(stored).toContain("refresh-secret");
     });
 
+    it("uses a server-facing Home Assistant URL for reachability and token exchange", async () => {
+        process.env.DASHBOARD_HA_INTERNAL_URL = "http://192.168.0.157:8123";
+        const { start, callback } = await loadRoutes();
+        const jar = cookieJar();
+        const preflightFetch = vi.fn(async () => new Response()) as unknown as typeof globalThis.fetch;
+
+        const startResponse = await start.POST({
+            request: new Request("https://dashboard.local/api/ha-session/auth/start", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    hassUrl: "http://homeassistant.local:8123",
+                    returnTo: "/settings?tab=connections",
+                }),
+            }),
+            cookies: jar.cookies,
+            url: new URL("https://dashboard.local/api/ha-session/auth/start"),
+            fetch: preflightFetch,
+        } as any);
+        const authorizeBody = await startResponse.json();
+        const authorizeUrl = new URL(authorizeBody.authorizeUrl);
+        const state = authorizeUrl.searchParams.get("state");
+
+        expect(preflightFetch).toHaveBeenCalledWith(new URL("http://192.168.0.157:8123/"), expect.objectContaining({
+            method: "GET",
+        }));
+        expect(authorizeUrl.origin).toBe("http://homeassistant.local:8123");
+
+        const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+            access_token: "access-secret",
+            refresh_token: "refresh-secret",
+            expires_in: 1800,
+        }))) as unknown as typeof globalThis.fetch;
+
+        await expect(callback.GET({
+            cookies: jar.cookies,
+            fetch: fetchMock,
+            url: new URL(`https://dashboard.local/api/ha-session/auth/callback?code=abc&state=${state}`),
+        } as any)).rejects.toMatchObject({
+            status: 303,
+            location: "/settings?tab=connections&haLogin=success",
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith(new URL("http://192.168.0.157:8123/auth/token"), expect.objectContaining({
+            method: "POST",
+        }));
+    });
+
+    it("returns an actionable error when the dashboard server cannot reach Home Assistant", async () => {
+        const { start } = await loadRoutes();
+        const jar = cookieJar();
+
+        const response = await start.POST({
+            request: new Request("http://dashboard.local/api/ha-session/auth/start", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    hassUrl: "http://homeassistant.local:8123",
+                    returnTo: "/settings",
+                }),
+            }),
+            cookies: jar.cookies,
+            url: new URL("http://dashboard.local/api/ha-session/auth/start"),
+            fetch: vi.fn(async () => {
+                throw new Error("getaddrinfo ENOTFOUND homeassistant.local");
+            }) as unknown as typeof globalThis.fetch,
+        } as any);
+
+        expect(response.status).toBe(400);
+        await expect(response.json()).resolves.toMatchObject({
+            error: "Home Assistant is not reachable from the dashboard server.",
+            serverHassUrl: "http://homeassistant.local:8123",
+        });
+        expect(jar.setCalls).toHaveLength(0);
+    });
+
     it("rejects callbacks with mismatched state before token exchange", async () => {
         const { start, callback } = await loadRoutes();
         const jar = cookieJar();
@@ -150,6 +234,7 @@ describe("/api/ha-session/auth", () => {
             }),
             cookies: jar.cookies,
             url: new URL("http://dashboard.local/api/ha-session/auth/start"),
+            fetch: vi.fn(async () => new Response()) as unknown as typeof globalThis.fetch,
         } as any);
 
         const fetchMock = vi.fn() as unknown as typeof globalThis.fetch;

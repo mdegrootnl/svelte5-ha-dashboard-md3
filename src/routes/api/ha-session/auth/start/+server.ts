@@ -4,9 +4,11 @@ import type { RequestHandler } from "./$types";
 import {
     buildHaAuthorizeUrl,
     callbackBasePrefix,
+    checkHomeAssistantServerReachability,
     createHaOAuthState,
     encodeHaOAuthState,
     HA_OAUTH_STATE_COOKIE,
+    resolveHomeAssistantServerOrigin,
     sanitizeHomeAssistantOrigin,
     sanitizeLocalReturnPath,
 } from "$lib/server/haOAuth";
@@ -29,7 +31,7 @@ function noStore(response: Response) {
     return response;
 }
 
-export const POST: RequestHandler = async ({ request, cookies, url }) => {
+export const POST: RequestHandler = async ({ request, cookies, url, fetch: eventFetch }) => {
     const body = await request.json().catch(() => null) as {
         hassUrl?: unknown;
         returnTo?: unknown;
@@ -40,12 +42,29 @@ export const POST: RequestHandler = async ({ request, cookies, url }) => {
         return noStore(json({ error: "Invalid Home Assistant URL" }, { status: 400 }));
     }
 
+    const serverHassUrl = resolveHomeAssistantServerOrigin(hassUrl);
+    const reachability = await checkHomeAssistantServerReachability({
+        fetch: eventFetch ?? globalThis.fetch,
+        hassUrl: serverHassUrl,
+    });
+
+    if (!reachability.ok) {
+        return noStore(json({
+            error: "Home Assistant is not reachable from the dashboard server.",
+            detail: reachability.error,
+            browserHassUrl: hassUrl,
+            serverHassUrl,
+            hint: "If the browser URL uses mDNS or a hostname that Docker cannot resolve, set DASHBOARD_HA_INTERNAL_URL to a server-reachable URL such as http://192.168.0.157:8123.",
+        }, { status: 400 }));
+    }
+
     const basePrefix = callbackBasePrefix(url.pathname, START_ROUTE_MARKER);
     const redirectUri = `${url.origin}${basePrefix}/api/ha-session/auth/callback`;
     const clientId = `${url.origin}/`;
     const state = createHaOAuthState({
         state: crypto.randomBytes(32).toString("hex"),
         hassUrl,
+        serverHassUrl,
         clientId,
         redirectUri,
         returnTo: sanitizeLocalReturnPath(body?.returnTo),

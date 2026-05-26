@@ -45,6 +45,7 @@ function cookieJar() {
 
 describe("/api/ha-session", () => {
     let tempDir = "";
+    const previousInternalUrl = process.env.DASHBOARD_HA_INTERNAL_URL;
 
     async function loadRoute() {
         vi.resetModules();
@@ -60,6 +61,11 @@ describe("/api/ha-session", () => {
 
     afterEach(async () => {
         vi.doUnmock("$lib/server/dataDir");
+        if (previousInternalUrl === undefined) {
+            delete process.env.DASHBOARD_HA_INTERNAL_URL;
+        } else {
+            process.env.DASHBOARD_HA_INTERNAL_URL = previousInternalUrl;
+        }
         await fs.rm(tempDir, { recursive: true, force: true });
     });
 
@@ -96,6 +102,24 @@ describe("/api/ha-session", () => {
         });
         expect(JSON.stringify(publicBody)).not.toContain("access-secret");
         expect(JSON.stringify(publicBody)).not.toContain("refresh-secret");
+    });
+
+    it("uses the optional server-facing Home Assistant URL for stored standalone sessions", async () => {
+        process.env.DASHBOARD_HA_INTERNAL_URL = "http://192.168.0.157:8123";
+        const route = await loadRoute();
+        const jar = cookieJar();
+
+        await route.POST({
+            request: requestWithJson("POST", { tokens: validTokens }),
+            cookies: jar.cookies,
+            url: new URL("http://localhost/api/ha-session"),
+        } as any);
+
+        const get = await route.GET({ cookies: jar.cookies } as any);
+        await expect(get.json()).resolves.toEqual({
+            connected: true,
+            hassUrl: "http://192.168.0.157:8123",
+        });
     });
 
     it("rejects invalid token payloads", async () => {

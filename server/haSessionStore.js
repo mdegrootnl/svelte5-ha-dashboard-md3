@@ -88,6 +88,20 @@ function isExpired(session, now = Date.now()) {
     return !Number.isFinite(lastAccessed) || now - lastAccessed > SESSION_TTL_MS;
 }
 
+function getConfiguredHomeAssistantInternalOrigin() {
+    const value = process.env.DASHBOARD_HA_INTERNAL_URL?.trim();
+    if (!value) return null;
+
+    try {
+        const parsed = new URL(value);
+        if (!['http:', 'https:'].includes(parsed.protocol)) return null;
+        if (parsed.username || parsed.password) return null;
+        return parsed.origin;
+    } catch {
+        return null;
+    }
+}
+
 /**
  * @param {unknown} value
  * @returns {HaSessionTokens | null}
@@ -112,7 +126,7 @@ function sanitizeSessionTokens(value) {
     const expiresIn = Number(input.expires_in);
 
     return {
-        hassUrl: hassUrl.origin,
+        hassUrl: getConfiguredHomeAssistantInternalOrigin() || hassUrl.origin,
         clientId: typeof input.clientId === 'string' ? input.clientId : null,
         expires: Number.isFinite(expires) ? expires : 0,
         refresh_token: input.refresh_token.trim(),

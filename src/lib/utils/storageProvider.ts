@@ -141,9 +141,17 @@ export class StorageProvider {
             body: JSON.stringify({ hassUrl, returnTo }),
         });
 
-        const body = await response.json().catch(() => ({})) as Partial<HAAuthStartResponse> & { error?: string };
+        const body = await response.json().catch(() => ({})) as Partial<HAAuthStartResponse> & {
+            detail?: string;
+            error?: string;
+            hint?: string;
+            serverHassUrl?: string;
+        };
         if (!response.ok || typeof body.authorizeUrl !== 'string') {
-            throw new Error(body.error || `Home Assistant auth start failed: ${response.status}`);
+            const detail = [body.error, body.detail, body.hint]
+                .filter((part): part is string => typeof part === 'string' && part.trim().length > 0)
+                .join(' ');
+            throw new Error(detail || `Home Assistant auth start failed: ${response.status}`);
         }
 
         return { authorizeUrl: body.authorizeUrl };

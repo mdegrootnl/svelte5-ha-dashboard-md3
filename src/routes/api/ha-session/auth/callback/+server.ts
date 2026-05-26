@@ -52,7 +52,7 @@ export const GET: RequestHandler = async ({ cookies, fetch, url }) => {
     try {
         const tokens = await exchangeHaAuthCode({
             fetch,
-            hassUrl: callback.state.hassUrl,
+            hassUrl: callback.state.serverHassUrl ?? callback.state.hassUrl,
             clientId: callback.state.clientId,
             code: callback.code,
         });
