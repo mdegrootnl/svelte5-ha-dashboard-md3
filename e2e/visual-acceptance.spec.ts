@@ -727,13 +727,23 @@ async function assertImageTextProtection(page: Page) {
         const context = canvas.getContext("2d", { willReadFrequently: true });
         if (!context) return [{ text: "canvas", selector: "canvas", color: "n/a", hasProtection: false, hasLocalShield: false, hasEdgeGradient: false, ratio: null, sampledBackground: null }];
         context.drawImage(screenshot, 0, 0);
+        const documentWidth = Math.max(document.documentElement.scrollWidth, window.innerWidth);
+        const documentHeight = Math.max(document.documentElement.scrollHeight, window.innerHeight);
+        const scaleX = canvas.width / documentWidth;
+        const scaleY = canvas.height / documentHeight;
 
         function sampleProtectedRegion(element: HTMLElement, foreground: Rgb) {
             const rect = element.getBoundingClientRect();
-            const left = Math.max(0, Math.floor(rect.left - 10));
-            const top = Math.max(0, Math.floor(rect.top - 8));
-            const right = Math.min(canvas.width - 1, Math.ceil(rect.right + 10));
-            const bottom = Math.min(canvas.height - 1, Math.ceil(rect.bottom + 8));
+            const left = Math.max(0, Math.floor((rect.left + window.scrollX - 10) * scaleX));
+            const top = Math.max(0, Math.floor((rect.top + window.scrollY - 8) * scaleY));
+            const right = Math.min(
+                canvas.width - 1,
+                Math.ceil((rect.right + window.scrollX + 10) * scaleX),
+            );
+            const bottom = Math.min(
+                canvas.height - 1,
+                Math.ceil((rect.bottom + window.scrollY + 8) * scaleY),
+            );
             const width = right - left;
             const height = bottom - top;
             if (width < 4 || height < 4) return null;
