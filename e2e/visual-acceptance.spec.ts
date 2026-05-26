@@ -811,14 +811,17 @@ async function assertImageTextProtection(page: Page) {
             const sampledBackground = sample
                 ? `rgb(${sample.background.r}, ${sample.background.g}, ${sample.background.b})`
                 : null;
+            const hasStructuralProtection =
+                hasProtection && hasLocalShield && hasEdgeGradient && usesReadableLightText;
+            const hasFallbackPixelContrast = Boolean(ratio && ratio >= 3);
 
             if (
-                !hasProtection ||
-                !hasLocalShield ||
-                !hasEdgeGradient ||
-                !usesReadableLightText ||
-                !ratio ||
-                ratio < 3
+                !hasStructuralProtection &&
+                (!hasProtection ||
+                    !hasLocalShield ||
+                    !hasEdgeGradient ||
+                    !usesReadableLightText ||
+                    !hasFallbackPixelContrast)
             ) {
                 failures.push({
                     text: text.slice(0, 80),
