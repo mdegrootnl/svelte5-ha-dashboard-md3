@@ -18,8 +18,6 @@ async function proxyAhLogin({ request, params, url, fetch }: Parameters<RequestH
         const value = request.headers.get(key);
         if (value) headers.set(key, key === "referer" ? rewriteAhRequestHeader(value, url) : value);
     }
-    headers.set("host", "login.ah.nl");
-
     const method = request.method.toUpperCase();
     if (method !== "GET" && method !== "HEAD") {
         headers.set("origin", LOGIN_ORIGIN);
