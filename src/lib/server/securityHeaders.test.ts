@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+    buildAhAuthProxyContentSecurityPolicy,
     buildContentSecurityPolicy,
     contentSecurityPolicyHeaderName,
     resolveCspMode,
@@ -87,5 +88,16 @@ describe("security headers", () => {
         expect(contentSecurityPolicyHeaderName({ reportOnly: "true" })).toBe(
             "Content-Security-Policy-Report-Only",
         );
+    });
+
+    it("allows hCaptcha only on the Albert Heijn auth proxy CSP", () => {
+        const policy = buildAhAuthProxyContentSecurityPolicy();
+
+        expect(policy).toContain("script-src 'self' 'unsafe-inline' https://hcaptcha.com https://*.hcaptcha.com");
+        expect(policy).toContain("connect-src 'self' https://*.ah.nl");
+        expect(policy).toContain("https://*.hcaptcha.com");
+        expect(policy).toContain("frame-src https://hcaptcha.com https://*.hcaptcha.com");
+        expect(policy).toContain("worker-src 'self' blob: https://hcaptcha.com https://*.hcaptcha.com");
+        expect(policy).toContain("frame-ancestors 'none'");
     });
 });

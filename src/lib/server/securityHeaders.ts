@@ -70,6 +70,23 @@ export function buildContentSecurityPolicy(
     ].join("; ");
 }
 
+export function buildAhAuthProxyContentSecurityPolicy() {
+    return [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' https://hcaptcha.com https://*.hcaptcha.com",
+        "style-src 'self' 'unsafe-inline' https://hcaptcha.com https://*.hcaptcha.com",
+        "font-src 'self' data: https://*.hcaptcha.com",
+        "connect-src 'self' https://*.ah.nl https://*.ah.be https://*.gall.nl https://*.etos.nl https://hcaptcha.com https://*.hcaptcha.com",
+        "img-src 'self' data: blob: https:",
+        "frame-src https://hcaptcha.com https://*.hcaptcha.com",
+        "worker-src 'self' blob: https://hcaptcha.com https://*.hcaptcha.com",
+        "frame-ancestors 'none'",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+    ].join("; ");
+}
+
 export function contentSecurityPolicyHeaderName(options: SecurityHeaderOptions = {}) {
     return isTruthy(options.reportOnly)
         ? "Content-Security-Policy-Report-Only"

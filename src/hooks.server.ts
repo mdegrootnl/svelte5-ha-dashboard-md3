@@ -3,6 +3,7 @@ import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
 import { getDeploymentInfo } from '$lib/server/deployment';
 import {
+    buildAhAuthProxyContentSecurityPolicy,
     buildContentSecurityPolicy,
     contentSecurityPolicyHeaderName,
 } from '$lib/server/securityHeaders';
@@ -21,6 +22,10 @@ function getRateLimitIdentifier(event: Parameters<Handle>[0]['event']) {
             || event.request.headers.get('x-real-ip')?.trim()
             || 'unknown';
     }
+}
+
+function isAhAuthProxyPath(pathname: string) {
+    return pathname.includes('/api/ah/auth/proxy');
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -80,16 +85,19 @@ export const handle: Handle = async ({ event, resolve }) => {
     // Security Headers - only apply CSP in production
     // In development, Vite injects inline scripts for HMR that would be blocked
     if (!dev) {
+        const cspHeaderName = contentSecurityPolicyHeaderName({
+            reportOnly: env.DASHBOARD_CSP_REPORT_ONLY,
+        });
         response.headers.set(
-            contentSecurityPolicyHeaderName({
-                reportOnly: env.DASHBOARD_CSP_REPORT_ONLY,
-            }),
-            buildContentSecurityPolicy(deployment, event.url, {
-                connectSrc: env.DASHBOARD_CSP_CONNECT_SRC,
-                imageSrc: env.DASHBOARD_CSP_IMG_SRC,
-                mode: env.DASHBOARD_CSP_MODE,
-                reportOnly: env.DASHBOARD_CSP_REPORT_ONLY,
-            })
+            cspHeaderName,
+            isAhAuthProxyPath(event.url.pathname)
+                ? buildAhAuthProxyContentSecurityPolicy()
+                : buildContentSecurityPolicy(deployment, event.url, {
+                    connectSrc: env.DASHBOARD_CSP_CONNECT_SRC,
+                    imageSrc: env.DASHBOARD_CSP_IMG_SRC,
+                    mode: env.DASHBOARD_CSP_MODE,
+                    reportOnly: env.DASHBOARD_CSP_REPORT_ONLY,
+                })
         );
     }
 
