@@ -48,7 +48,6 @@ export function rewriteAhLocation(location: string, url: URL) {
 export function rewriteAhLoginBody(body: string, url: URL) {
     const proxyBase = ahProxyBase(url);
     return body
-        .replaceAll("appie://login-exit", ahCallbackUrl(url))
         .replaceAll(LOGIN_ORIGIN, proxyBase)
         .replaceAll(`http://${LOGIN_HOST}`, proxyBase)
         .replace(/(["'])\/(login|akam)(?=[/?#"'])/g, `$1${proxyBase}/$2`)

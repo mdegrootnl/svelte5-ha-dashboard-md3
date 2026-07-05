@@ -36,7 +36,13 @@ describe("Albert Heijn auth proxy helpers", () => {
             "http://localhost:5173/api/ah/auth/proxy/login/consent",
         );
         expect(rewriteAhLoginBody("https://login.ah.nl/authorize appie://login-exit", proxyUrl)).toBe(
-            "http://localhost:5173/api/ah/auth/proxy/authorize http://localhost:5173/api/ah/auth/callback",
+            "http://localhost:5173/api/ah/auth/proxy/authorize appie://login-exit",
+        );
+    });
+
+    it("preserves the mobile app redirect URI inside AH page data", () => {
+        expect(rewriteAhLoginBody('"redirect_uri":"appie://login-exit"', proxyUrl)).toBe(
+            '"redirect_uri":"appie://login-exit"',
         );
     });
 
