@@ -1,5 +1,10 @@
-import { describe, expect, it } from "vitest";
-import { ahShoppingPayload, mapAhMember, mapAhProduct } from "./ahClient";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { AhSettingsService } from "./ahSettings";
+import { ahShoppingPayload, mapAhMember, mapAhProduct, testAhConnection } from "./ahClient";
+
+afterEach(() => {
+    vi.restoreAllMocks();
+});
 
 describe("Albert Heijn client helpers", () => {
     it("maps AH product search responses into browser-safe products", () => {
@@ -98,5 +103,59 @@ describe("Albert Heijn client helpers", () => {
             lastName: "de Groot",
             email: "mijn@voorbeeld.nl",
         });
+    });
+
+    it("refreshes the saved AH token once after an authenticated 403", async () => {
+        vi.spyOn(AhSettingsService, "loadRuntime")
+            .mockResolvedValueOnce({
+                accessToken: "stale-token",
+                refreshToken: "refresh-token",
+                expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+            })
+            .mockResolvedValueOnce({
+                refreshToken: "refresh-token",
+            });
+        const saveSpy = vi.spyOn(AhSettingsService, "saveTokenResponse").mockResolvedValue();
+        const fetchMock = vi.fn()
+            .mockResolvedValueOnce(new Response(JSON.stringify({ error: "forbidden" }), {
+                status: 403,
+                headers: { "content-type": "application/json" },
+            }))
+            .mockResolvedValueOnce(new Response(JSON.stringify({
+                access_token: "fresh-token",
+                refresh_token: "refresh-token",
+                expires_in: 7200,
+            }), {
+                status: 200,
+                headers: { "content-type": "application/json" },
+            }))
+            .mockResolvedValueOnce(new Response(JSON.stringify({
+                data: {
+                    member: {
+                        id: 123456,
+                        emailAddress: "mijn@voorbeeld.nl",
+                        name: { first: "Miel", last: "de Groot" },
+                    },
+                },
+            }), {
+                status: 200,
+                headers: { "content-type": "application/json" },
+            }));
+
+        await expect(testAhConnection(fetchMock as unknown as typeof globalThis.fetch)).resolves.toMatchObject({
+            id: "123456",
+            email: "mijn@voorbeeld.nl",
+        });
+
+        expect(fetchMock).toHaveBeenCalledTimes(3);
+        expect(fetchMock.mock.calls[0][1]?.headers).toMatchObject({
+            authorization: "Bearer stale-token",
+        });
+        expect(fetchMock.mock.calls[2][1]?.headers).toMatchObject({
+            authorization: "Bearer fresh-token",
+        });
+        expect(saveSpy).toHaveBeenCalledWith(expect.objectContaining({
+            access_token: "fresh-token",
+        }));
     });
 });

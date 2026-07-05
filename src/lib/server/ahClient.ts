@@ -201,6 +201,36 @@ export async function getAuthenticatedAhToken(fetch: typeof globalThis.fetch) {
     throw new AhApiError("Albert Heijn is not connected.", 401);
 }
 
+async function requestAuthenticatedAh<T>({
+    path,
+    method = "GET",
+    body,
+    fetch,
+}: {
+    path: string;
+    method?: string;
+    body?: unknown;
+    fetch: typeof globalThis.fetch;
+}) {
+    const accessToken = await getAuthenticatedAhToken(fetch);
+    try {
+        return await requestAh<T>({ path, method, body, fetch, accessToken });
+    } catch (error) {
+        if (!(error instanceof AhApiError) || ![401, 403].includes(error.status)) {
+            throw error;
+        }
+
+        let refreshedAccessToken: string;
+        try {
+            refreshedAccessToken = await refreshAhAccessToken(fetch);
+        } catch {
+            throw error;
+        }
+
+        return requestAh<T>({ path, method, body, fetch, accessToken: refreshedAccessToken });
+    }
+}
+
 function parseAhQuantity(value: unknown) {
     if (typeof value !== "string") return undefined;
     const normalized = value.trim().replace(",", ".");
@@ -214,12 +244,13 @@ export async function getAhReceipts(
     limit = 12,
     accessToken?: string,
 ): Promise<AhReceiptSummary[]> {
-    const resolvedAccessToken = accessToken ?? await getAuthenticatedAhToken(fetch);
-    const receipts = await requestAh<AhReceiptListItem[]>({
+    const request = {
         path: "/mobile-services/v1/receipts",
         fetch,
-        accessToken: resolvedAccessToken,
-    });
+    };
+    const receipts = accessToken
+        ? await requestAh<AhReceiptListItem[]>({ ...request, accessToken })
+        : await requestAuthenticatedAh<AhReceiptListItem[]>(request);
     const cappedLimit = Math.min(Math.max(Math.round(limit) || 12, 1), 50);
     return (receipts ?? [])
         .filter((receipt) => typeof receipt.transactionId === "string" && receipt.transactionId.trim())
@@ -236,15 +267,13 @@ export async function getAhReceiptProductLines(
     fetch: typeof globalThis.fetch,
     limit = 12,
 ): Promise<{ receipts: AhReceiptSummary[]; lines: AhReceiptProductLine[] }> {
-    const accessToken = await getAuthenticatedAhToken(fetch);
-    const receipts = await getAhReceipts(fetch, limit, accessToken);
+    const receipts = await getAhReceipts(fetch, limit);
     const lines: AhReceiptProductLine[] = [];
 
     for (const receipt of receipts) {
-        const detail = await requestAh<AhReceiptDetailResponse>({
+        const detail = await requestAuthenticatedAh<AhReceiptDetailResponse>({
             path: `/mobile-services/v2/receipts/${encodeURIComponent(receipt.transactionId)}`,
             fetch,
-            accessToken,
         });
         for (const item of detail.receiptUiItems ?? []) {
             const description = typeof item.description === "string" ? item.description.trim() : "";
@@ -317,11 +346,25 @@ export async function searchAhProducts(query: string, limit: number, fetch: type
         size: String(cappedLimit),
         sortOn: "RELEVANCE",
     });
-    const data = await requestAh<AhSearchResponse>({
-        path: `/mobile-services/product/search/v2?${params.toString()}`,
-        fetch,
-        accessToken,
-    });
+    let data: AhSearchResponse;
+    try {
+        data = await requestAh<AhSearchResponse>({
+            path: `/mobile-services/product/search/v2?${params.toString()}`,
+            fetch,
+            accessToken,
+        });
+    } catch (error) {
+        if (!(error instanceof AhApiError) || ![401, 403].includes(error.status)) {
+            throw error;
+        }
+
+        const anonymousAccessToken = await getAnonymousAhToken(fetch);
+        data = await requestAh<AhSearchResponse>({
+            path: `/mobile-services/product/search/v2?${params.toString()}`,
+            fetch,
+            accessToken: anonymousAccessToken,
+        });
+    }
     return (data.products ?? []).map(mapAhProduct).filter((product): product is AhProduct => Boolean(product));
 }
 
@@ -341,24 +384,20 @@ export function ahShoppingPayload(items: ShoppingExportItem[]) {
 
 export async function exportAhShoppingList(items: ShoppingExportItem[], fetch: typeof globalThis.fetch) {
     if (!items.length) throw new AhApiError("No shopping items were provided.", 400);
-    const accessToken = await getAuthenticatedAhToken(fetch);
-    await requestAh<void>({
+    await requestAuthenticatedAh<void>({
         path: "/mobile-services/shoppinglist/v2/items",
         method: "PATCH",
         body: ahShoppingPayload(items),
         fetch,
-        accessToken,
     });
 }
 
 export async function testAhConnection(fetch: typeof globalThis.fetch) {
-    const accessToken = await getAuthenticatedAhToken(fetch);
-    const response = await requestAh<AhGraphqlResponse<AhMemberGraphqlData>>({
+    const response = await requestAuthenticatedAh<AhGraphqlResponse<AhMemberGraphqlData>>({
         path: "/graphql",
         method: "POST",
         body: { query: AH_MEMBER_QUERY, variables: {} },
         fetch,
-        accessToken,
     });
     if (response.errors?.length) {
         throw new AhApiError(response.errors[0]?.message || "Albert Heijn member request failed.", 502);
