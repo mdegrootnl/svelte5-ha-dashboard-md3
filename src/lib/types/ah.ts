@@ -1,3 +1,5 @@
+import type { MealieRecipeSummary } from "$lib/types/mealie";
+
 export type ShoppingProvider = "mealie" | "albert-heijn" | "both";
 
 export interface AhSettingsStatus {
@@ -49,4 +51,53 @@ export interface ShoppingExportItem {
     productId?: number;
     product?: AhProduct;
     quantity: number;
+}
+
+export interface AhReceiptSummary {
+    transactionId: string;
+    transactionMoment?: string;
+    totalAmount?: number;
+    totalCurrency?: string;
+}
+
+export interface AhReceiptProductLine {
+    transactionId: string;
+    transactionMoment?: string;
+    description: string;
+    quantity?: number;
+    amount?: string;
+    indicator?: string;
+}
+
+export interface AhRegularItemSuggestion {
+    normalizedKey: string;
+    displayText: string;
+    purchaseCount: number;
+    receiptCount: number;
+    totalQuantity: number;
+    averageQuantity: number;
+    lastPurchasedAt?: string;
+    examples: string[];
+}
+
+export interface AhRecipeSuggestion {
+    recipe: MealieRecipeSummary;
+    score: number;
+    matchedIngredients: string[];
+    matchedPurchaseItems: string[];
+}
+
+export interface SundayMealSuggestions {
+    generatedAt: string;
+    history: {
+        receiptsScanned: number;
+        productLinesScanned: number;
+    };
+    mealie: {
+        configured: boolean;
+        recipesScanned: number;
+        error?: string;
+    };
+    regularItems: AhRegularItemSuggestion[];
+    recipeSuggestions: AhRecipeSuggestion[];
 }

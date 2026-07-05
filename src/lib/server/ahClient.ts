@@ -1,5 +1,5 @@
 import { AhSettingsService } from "$lib/server/ahSettings";
-import type { AhProduct, ShoppingExportItem } from "$lib/types/ah";
+import type { AhProduct, AhReceiptProductLine, AhReceiptSummary, ShoppingExportItem } from "$lib/types/ah";
 
 const AH_BASE_URL = "https://api.ah.nl";
 const AH_CLIENT_ID = "appie-ios";
@@ -31,6 +31,28 @@ interface AhProductResponse {
 
 interface AhSearchResponse {
     products?: AhProductResponse[];
+}
+
+interface AhReceiptListItem {
+    transactionId?: string;
+    transactionMoment?: string;
+    total?: {
+        amount?: {
+            amount?: number;
+            currency?: string;
+        };
+    };
+}
+
+interface AhReceiptDetailResponse {
+    receiptUiItems?: Array<{
+        type?: string;
+        quantity?: string;
+        description?: string;
+        amount?: string;
+        indicator?: string;
+    }>;
+    transactionMoment?: string;
 }
 
 interface AhGraphqlResponse<T> {
@@ -177,6 +199,70 @@ export async function getAuthenticatedAhToken(fetch: typeof globalThis.fetch) {
     if (runtime.accessToken && tokenIsFresh(runtime.expiresAt)) return runtime.accessToken;
     if (runtime.refreshToken) return refreshAhAccessToken(fetch);
     throw new AhApiError("Albert Heijn is not connected.", 401);
+}
+
+function parseAhQuantity(value: unknown) {
+    if (typeof value !== "string") return undefined;
+    const normalized = value.trim().replace(",", ".");
+    if (!normalized || /bonus/i.test(normalized)) return undefined;
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+export async function getAhReceipts(
+    fetch: typeof globalThis.fetch,
+    limit = 12,
+    accessToken?: string,
+): Promise<AhReceiptSummary[]> {
+    const resolvedAccessToken = accessToken ?? await getAuthenticatedAhToken(fetch);
+    const receipts = await requestAh<AhReceiptListItem[]>({
+        path: "/mobile-services/v1/receipts",
+        fetch,
+        accessToken: resolvedAccessToken,
+    });
+    const cappedLimit = Math.min(Math.max(Math.round(limit) || 12, 1), 50);
+    return (receipts ?? [])
+        .filter((receipt) => typeof receipt.transactionId === "string" && receipt.transactionId.trim())
+        .slice(0, cappedLimit)
+        .map((receipt) => ({
+            transactionId: String(receipt.transactionId),
+            transactionMoment: receipt.transactionMoment,
+            totalAmount: receipt.total?.amount?.amount,
+            totalCurrency: receipt.total?.amount?.currency,
+        }));
+}
+
+export async function getAhReceiptProductLines(
+    fetch: typeof globalThis.fetch,
+    limit = 12,
+): Promise<{ receipts: AhReceiptSummary[]; lines: AhReceiptProductLine[] }> {
+    const accessToken = await getAuthenticatedAhToken(fetch);
+    const receipts = await getAhReceipts(fetch, limit, accessToken);
+    const lines: AhReceiptProductLine[] = [];
+
+    for (const receipt of receipts) {
+        const detail = await requestAh<AhReceiptDetailResponse>({
+            path: `/mobile-services/v2/receipts/${encodeURIComponent(receipt.transactionId)}`,
+            fetch,
+            accessToken,
+        });
+        for (const item of detail.receiptUiItems ?? []) {
+            const description = typeof item.description === "string" ? item.description.trim() : "";
+            if (item.type !== "product" || !description) continue;
+            if (/bonus/i.test(String(item.quantity ?? ""))) continue;
+            if (typeof item.amount === "string" && item.amount.trim().startsWith("-")) continue;
+            lines.push({
+                transactionId: receipt.transactionId,
+                transactionMoment: detail.transactionMoment || receipt.transactionMoment,
+                description,
+                quantity: parseAhQuantity(item.quantity),
+                amount: item.amount,
+                indicator: item.indicator,
+            });
+        }
+    }
+
+    return { receipts, lines };
 }
 
 export function mapAhProduct(product: AhProductResponse): AhProduct | null {

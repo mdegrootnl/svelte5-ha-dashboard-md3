@@ -15,6 +15,7 @@
         servingScale,
     } from "$lib/features/meals/servings";
     import {
+        exportItemFromIngredient,
         ahSearchQueryForIngredient,
     } from "$lib/features/meals/ahMatching";
     import {
@@ -33,7 +34,10 @@
     import type {
         AhProduct,
         AhProductMapping,
+        AhRecipeSuggestion,
+        AhRegularItemSuggestion,
         AhSettingsStatus,
+        SundayMealSuggestions,
     } from "$lib/types/ah";
 
     import Restaurant from "~icons/material-symbols/restaurant";
@@ -48,8 +52,10 @@
     import DeleteIcon from "~icons/material-symbols/delete";
     import UploadFile from "~icons/material-symbols/upload-file";
     import Storefront from "~icons/material-symbols/storefront";
+    import AutoAwesome from "~icons/material-symbols/auto-awesome";
+    import History from "~icons/material-symbols/history";
 
-    type Tab = "today" | "planner" | "recipes" | "shopping";
+    type Tab = "today" | "planner" | "recipes" | "suggestions" | "shopping";
 
     interface ImportResult {
         url: string;
@@ -116,11 +122,16 @@
     let ahProductLoading = $state<Record<string, boolean>>({});
     let ahProductErrors = $state<Record<string, string>>({});
     let ahProductSearched = $state<Record<string, boolean>>({});
+    let sundaySuggestions = $state<SundayMealSuggestions | null>(null);
+    let sundaySuggestionsLoading = $state(false);
+    let sundaySuggestionsMessage = $state("");
+    let selectedRegularSuggestionKeys = $state<Record<string, boolean>>({});
 
     const tabs = $derived([
         { id: "today", label: themeStore.t("meals.tabs.today"), icon: CalendarMonth },
         { id: "planner", label: themeStore.t("meals.tabs.planner"), icon: CalendarMonth },
         { id: "recipes", label: themeStore.t("meals.tabs.recipes"), icon: Restaurant },
+        { id: "suggestions", label: "Suggesties", icon: AutoAwesome },
         { id: "shopping", label: themeStore.t("meals.tabs.shopping"), icon: ShoppingCart },
     ]);
 
@@ -153,6 +164,9 @@
     const activeShoppingItems = $derived(activeShoppingList?.listItems ?? []);
     const openShoppingItems = $derived(activeShoppingItems.filter((item) => !item.checked));
     const checkedShoppingItems = $derived(activeShoppingItems.filter((item) => item.checked));
+    const selectedRegularSuggestionCount = $derived(
+        Object.values(selectedRegularSuggestionKeys).filter(Boolean).length,
+    );
 
     function toDateInput(date: Date) {
         const year = date.getFullYear();
@@ -515,6 +529,92 @@
         }
     }
 
+    async function loadSundaySuggestions() {
+        sundaySuggestionsLoading = true;
+        sundaySuggestionsMessage = "";
+        try {
+            const response = await fetch("/api/meals/sunday-suggestions?receiptLimit=16&recipeLimit=48");
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                sundaySuggestionsMessage = data.error || "Suggesties laden mislukt.";
+                return;
+            }
+            sundaySuggestions = data as SundayMealSuggestions;
+            selectedRegularSuggestionKeys = Object.fromEntries(
+                sundaySuggestions.regularItems.slice(0, 12).map((item) => [item.normalizedKey, true]),
+            );
+        } catch {
+            sundaySuggestionsMessage = "Suggesties laden mislukt.";
+        } finally {
+            sundaySuggestionsLoading = false;
+        }
+    }
+
+    function setRegularSuggestionSelected(item: AhRegularItemSuggestion, checked: boolean) {
+        selectedRegularSuggestionKeys = {
+            ...selectedRegularSuggestionKeys,
+            [item.normalizedKey]: checked,
+        };
+    }
+
+    function selectedRegularSuggestions() {
+        return (sundaySuggestions?.regularItems ?? []).filter((item) => selectedRegularSuggestionKeys[item.normalizedKey]);
+    }
+
+    function suggestionExportRow(item: AhRegularItemSuggestion, mapping?: AhProductMapping): AhShoppingExportRow {
+        return {
+            key: item.normalizedKey,
+            sourceCount: item.purchaseCount,
+            sourceTexts: item.examples.length ? item.examples : [item.displayText],
+            itemIds: [],
+            item: {
+                ...exportItemFromIngredient(item.displayText, item.displayText, mapping),
+                quantity: item.averageQuantity || 1,
+            },
+        };
+    }
+
+    async function openSundayAhReview() {
+        const selected = selectedRegularSuggestions();
+        if (!selected.length) {
+            sundaySuggestionsMessage = "Kies eerst een of meer terugkerende boodschappen.";
+            return;
+        }
+
+        ahPreparingExport = true;
+        ahExportMessage = "";
+        ahProductResults = {};
+        ahProductLoading = {};
+        ahProductErrors = {};
+        ahProductSearched = {};
+        try {
+            if (!shoppingLists.length) {
+                await createShoppingList();
+            }
+            const [status, mappings] = await Promise.all([loadAhStatus(), loadAhMappings()]);
+            const rows = selected.map((item) => suggestionExportRow(item, mappings[item.normalizedKey]));
+            ahExportRows = rows;
+            activeTab = "shopping";
+            ahExportOpen = true;
+            if (!status.authenticated || status.needsReconnect) {
+                ahExportMessage = themeStore.t("meals.shopping.ahNotConnected");
+                return;
+            }
+            await searchAhProductsForRows(rows);
+        } catch (err) {
+            ahExportMessage = err instanceof Error ? err.message : themeStore.t("meals.shopping.ahPrepareFailed");
+            activeTab = "shopping";
+            ahExportOpen = true;
+        } finally {
+            ahPreparingExport = false;
+        }
+    }
+
+    async function openSuggestedRecipe(suggestion: AhRecipeSuggestion) {
+        activeTab = "recipes";
+        await selectRecipe(suggestion.recipe);
+    }
+
     async function searchAhProductsForRows(rows: AhShoppingExportRow[]) {
         for (const row of rows.slice(0, 30)) {
             if (row.item.mode === "product" && row.item.productId) continue;
@@ -725,6 +825,14 @@
 
     function itemLabel(item: MealieShoppingListItem) {
         return item.display || item.food?.name || item.note || themeStore.t("meals.shopping.unnamedItem");
+    }
+
+    function formatSuggestionDate(value: string | undefined) {
+        if (!value) return "";
+        return new Intl.DateTimeFormat(undefined, {
+            day: "numeric",
+            month: "short",
+        }).format(new Date(value));
     }
 
     function ingredientBaseText(ingredient: NonNullable<MealieRecipe["recipeIngredient"]>[number]) {
@@ -1401,6 +1509,186 @@
                             </div>
                         </div>
                     {/if}
+                {:else if activeTab === "suggestions"}
+                    <div class="grid grid-cols-1 gap-4 xl:grid-cols-[420px_1fr]">
+                        <Card variant="outlined">
+                            <div class="flex min-h-64 flex-col gap-4 p-5">
+                                <div class="flex items-start gap-4">
+                                    <div class="flex size-12 shrink-0 items-center justify-center rounded-full bg-m3-tertiary-container">
+                                        <History class="size-6 text-m3-on-tertiary-container" />
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <h2 class="text-m3-title-large text-m3-on-surface">
+                                            Zondagavond
+                                        </h2>
+                                        <p class="text-m3-body-medium text-m3-on-surface-variant">
+                                            Terugkerende AH-boodschappen uit recente bonnen, klaar voor controle.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-wrap gap-2">
+                                    <Button
+                                        variant="filled"
+                                        onclick={loadSundaySuggestions}
+                                        disabled={sundaySuggestionsLoading}
+                                        icon={AutoAwesome}
+                                    >
+                                        {sundaySuggestionsLoading ? themeStore.t("common.loading") : "Suggesties laden"}
+                                    </Button>
+                                    <Button
+                                        variant="tonal"
+                                        onclick={openSundayAhReview}
+                                        disabled={ahPreparingExport || selectedRegularSuggestionCount === 0}
+                                        icon={Storefront}
+                                    >
+                                        {ahPreparingExport
+                                            ? themeStore.t("common.loading")
+                                            : `Naar AH (${selectedRegularSuggestionCount})`}
+                                    </Button>
+                                </div>
+
+                                {#if sundaySuggestionsMessage}
+                                    <div class="rounded-lg bg-m3-surface-container p-3 text-m3-body-small text-m3-on-surface-variant">
+                                        {sundaySuggestionsMessage}
+                                    </div>
+                                {/if}
+
+                                {#if sundaySuggestions}
+                                    <div class="grid grid-cols-2 gap-2 text-m3-label-medium text-m3-on-surface-variant">
+                                        <div class="rounded-lg bg-m3-surface-container p-3">
+                                            <div class="text-m3-title-medium text-m3-on-surface">
+                                                {sundaySuggestions.history.receiptsScanned}
+                                            </div>
+                                            <div>bonnen bekeken</div>
+                                        </div>
+                                        <div class="rounded-lg bg-m3-surface-container p-3">
+                                            <div class="text-m3-title-medium text-m3-on-surface">
+                                                {sundaySuggestions.regularItems.length}
+                                            </div>
+                                            <div>vaste items</div>
+                                        </div>
+                                    </div>
+
+                                    {#if sundaySuggestions.regularItems.length}
+                                        <div class="grid gap-2">
+                                            {#each sundaySuggestions.regularItems as item (item.normalizedKey)}
+                                                <label class="flex min-h-16 items-start gap-3 rounded-lg bg-m3-surface-container p-3">
+                                                    <Checkbox
+                                                        checked={Boolean(selectedRegularSuggestionKeys[item.normalizedKey])}
+                                                        onchange={(checked) => setRegularSuggestionSelected(item, checked)}
+                                                    />
+                                                    <span class="min-w-0 flex-1">
+                                                        <span class="block truncate text-m3-body-large text-m3-on-surface">
+                                                            {item.displayText}
+                                                        </span>
+                                                        <span class="block text-m3-body-small text-m3-on-surface-variant">
+                                                            {item.purchaseCount}x gekocht
+                                                            {#if item.lastPurchasedAt}
+                                                                · laatst {formatSuggestionDate(item.lastPurchasedAt)}
+                                                            {/if}
+                                                            · gemiddeld {item.averageQuantity}
+                                                        </span>
+                                                        {#if item.examples.length > 1}
+                                                            <span class="mt-1 block truncate text-m3-label-small text-m3-on-surface-variant">
+                                                                {item.examples.join(" · ")}
+                                                            </span>
+                                                        {/if}
+                                                    </span>
+                                                </label>
+                                            {/each}
+                                        </div>
+                                    {:else}
+                                        <div class="flex min-h-32 items-center justify-center rounded-lg border border-dashed border-m3-outline-variant p-4 text-center text-m3-body-medium text-m3-on-surface-variant">
+                                            Nog geen terugkerende items gevonden in de recente bonnen.
+                                        </div>
+                                    {/if}
+                                {:else}
+                                    <div class="flex min-h-40 items-center justify-center rounded-lg border border-dashed border-m3-outline-variant p-4 text-center text-m3-body-medium text-m3-on-surface-variant">
+                                        Laad suggesties om AH-bonnen en Mealie-recepten samen te leggen.
+                                    </div>
+                                {/if}
+                            </div>
+                        </Card>
+
+                        <Card variant="outlined">
+                            <div class="flex min-h-64 flex-col gap-4 p-5">
+                                <div class="flex items-start gap-4">
+                                    <div class="flex size-12 shrink-0 items-center justify-center rounded-full bg-m3-secondary-container">
+                                        <Restaurant class="size-6 text-m3-on-secondary-container" />
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <h2 class="text-m3-title-large text-m3-on-surface">
+                                            Recepten die passen
+                                        </h2>
+                                        <p class="text-m3-body-medium text-m3-on-surface-variant">
+                                            Mealie-recepten gescoord op overlap met boodschappen die vaak terugkomen.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {#if sundaySuggestions?.mealie.error}
+                                    <div class="rounded-lg bg-m3-error-container p-3 text-m3-body-small text-m3-on-error-container">
+                                        {sundaySuggestions.mealie.error}
+                                    </div>
+                                {/if}
+
+                                {#if sundaySuggestionsLoading}
+                                    <div class="flex min-h-40 items-center justify-center gap-3 text-m3-on-surface-variant">
+                                        <Refresh class="size-5 animate-spin" />
+                                        {themeStore.t("common.loading")}
+                                    </div>
+                                {:else if sundaySuggestions?.recipeSuggestions.length}
+                                    <div class="grid gap-3 lg:grid-cols-2">
+                                        {#each sundaySuggestions.recipeSuggestions as suggestion (suggestion.recipe.slug)}
+                                            <button
+                                                type="button"
+                                                class="grid min-h-32 gap-3 rounded-xl border border-m3-outline-variant p-3 text-left transition-colors hover:bg-m3-surface-container"
+                                                onclick={() => openSuggestedRecipe(suggestion)}
+                                            >
+                                                <div class="flex gap-3">
+                                                    {#if recipeImageUrl(suggestion.recipe)}
+                                                        <img
+                                                            src={recipeImageUrl(suggestion.recipe)}
+                                                            alt=""
+                                                            class="size-16 rounded-lg object-cover"
+                                                            onerror={() => markRecipeImageBroken(suggestion.recipe)}
+                                                        />
+                                                    {:else}
+                                                        <div class="flex size-16 shrink-0 items-center justify-center rounded-lg bg-m3-surface-container">
+                                                            <Restaurant class="size-8 text-m3-on-surface-variant" />
+                                                        </div>
+                                                    {/if}
+                                                    <span class="min-w-0 flex-1">
+                                                        <span class="line-clamp-2 text-m3-title-small text-m3-on-surface">
+                                                            {suggestion.recipe.name ?? themeStore.t("meals.recipes.untitled")}
+                                                        </span>
+                                                        <span class="mt-1 block text-m3-label-medium text-m3-on-surface-variant">
+                                                            Match {suggestion.score.toFixed(1)}
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                                <div class="line-clamp-2 text-m3-body-small text-m3-on-surface-variant">
+                                                    {suggestion.matchedIngredients.join(" · ")}
+                                                </div>
+                                                <div class="line-clamp-2 text-m3-label-small text-m3-on-surface-variant">
+                                                    Uit AH: {suggestion.matchedPurchaseItems.join(" · ")}
+                                                </div>
+                                            </button>
+                                        {/each}
+                                    </div>
+                                {:else if sundaySuggestions}
+                                    <div class="flex min-h-40 items-center justify-center rounded-lg border border-dashed border-m3-outline-variant p-4 text-center text-m3-body-medium text-m3-on-surface-variant">
+                                        Geen Mealie-recepten gevonden die sterk lijken op je recente boodschappen.
+                                    </div>
+                                {:else}
+                                    <div class="flex min-h-40 items-center justify-center rounded-lg border border-dashed border-m3-outline-variant p-4 text-center text-m3-body-medium text-m3-on-surface-variant">
+                                        Receptmatches verschijnen nadat de AH-historie is geladen.
+                                    </div>
+                                {/if}
+                            </div>
+                        </Card>
+                    </div>
                 {:else if activeTab === "shopping"}
                     {#if shoppingLists.length}
                         <div class="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
