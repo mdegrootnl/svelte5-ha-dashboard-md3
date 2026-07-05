@@ -105,7 +105,7 @@ describe("Albert Heijn client helpers", () => {
         });
     });
 
-    it("refreshes the saved AH token once after an authenticated 403", async () => {
+    it("refreshes the saved AH token once after an authenticated receipt 403", async () => {
         vi.spyOn(AhSettingsService, "loadRuntime")
             .mockResolvedValueOnce({
                 accessToken: "stale-token",
@@ -131,10 +131,14 @@ describe("Albert Heijn client helpers", () => {
             }))
             .mockResolvedValueOnce(new Response(JSON.stringify({
                 data: {
-                    member: {
-                        id: 123456,
-                        emailAddress: "mijn@voorbeeld.nl",
-                        name: { first: "Miel", last: "de Groot" },
+                    posReceiptsPage: {
+                        posReceipts: [
+                            {
+                                id: "receipt-1",
+                                dateTime: "2026-07-04T10:00:00Z",
+                                totalAmount: { amount: 42.5 },
+                            },
+                        ],
                     },
                 },
             }), {
@@ -142,10 +146,7 @@ describe("Albert Heijn client helpers", () => {
                 headers: { "content-type": "application/json" },
             }));
 
-        await expect(testAhConnection(fetchMock as unknown as typeof globalThis.fetch)).resolves.toMatchObject({
-            id: "123456",
-            email: "mijn@voorbeeld.nl",
-        });
+        await expect(getAhReceipts(fetchMock as unknown as typeof globalThis.fetch, 1)).resolves.toHaveLength(1);
 
         expect(fetchMock).toHaveBeenCalledTimes(3);
         expect(fetchMock.mock.calls[0][1]?.headers).toMatchObject({
@@ -196,43 +197,24 @@ describe("Albert Heijn client helpers", () => {
         });
     });
 
-    it("accepts receipt history auth when the member profile query is forbidden", async () => {
+    it("tests AH connection with receipt history auth", async () => {
         vi.spyOn(AhSettingsService, "loadRuntime").mockResolvedValue({
             accessToken: "receipt-token",
-            refreshToken: "refresh-token",
             expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
         });
-        vi.spyOn(AhSettingsService, "saveTokenResponse").mockResolvedValue();
-        const fetchMock = vi.fn()
-            .mockResolvedValueOnce(new Response(JSON.stringify({ error: "forbidden" }), {
-                status: 403,
-                headers: { "content-type": "application/json" },
-            }))
-            .mockResolvedValueOnce(new Response(JSON.stringify({
-                access_token: "fresh-token",
-                refresh_token: "refresh-token",
-                expires_in: 7200,
-            }), {
-                status: 200,
-                headers: { "content-type": "application/json" },
-            }))
-            .mockResolvedValueOnce(new Response(JSON.stringify({ error: "forbidden" }), {
-                status: 403,
-                headers: { "content-type": "application/json" },
-            }))
-            .mockResolvedValueOnce(new Response(JSON.stringify({
-                data: {
-                    posReceiptsPage: {
-                        posReceipts: [],
-                    },
+        const fetchMock = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({
+            data: {
+                posReceiptsPage: {
+                    posReceipts: [],
                 },
-            }), {
-                status: 200,
-                headers: { "content-type": "application/json" },
-            }));
+            },
+        }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+        }));
 
         await expect(testAhConnection(fetchMock as unknown as typeof globalThis.fetch)).resolves.toEqual({});
-        expect(JSON.parse(String(fetchMock.mock.calls[3][1]?.body))).toMatchObject({
+        expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toMatchObject({
             variables: { offset: 0, limit: 1 },
         });
     });

@@ -451,16 +451,6 @@ export async function exportAhShoppingList(items: ShoppingExportItem[], fetch: t
 }
 
 export async function testAhConnection(fetch: typeof globalThis.fetch) {
-    try {
-        const response = await requestAuthenticatedAhGraphql<AhMemberGraphqlData>(fetch, AH_MEMBER_QUERY, {});
-        const member = mapAhMember(response.member);
-        if (!member) throw new AhApiError("Albert Heijn member profile was missing.", 502);
-        return member;
-    } catch (error) {
-        if (!(error instanceof AhApiError) || ![401, 403].includes(error.status)) {
-            throw error;
-        }
-        await getAhReceipts(fetch, 1);
-        return {};
-    }
+    await getAhReceipts(fetch, 1);
+    return {};
 }
