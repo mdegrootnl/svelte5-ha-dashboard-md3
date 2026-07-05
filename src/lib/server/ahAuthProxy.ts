@@ -13,7 +13,7 @@ export function ahCallbackUrl(url: URL) {
 
 export function ahLoginUrl(url: URL) {
     const params = new URLSearchParams({
-        client_id: "appie-ios",
+        client_id: "appie",
         response_type: "code",
         redirect_uri: "appie://login-exit",
     });

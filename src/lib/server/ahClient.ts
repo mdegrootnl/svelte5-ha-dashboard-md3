@@ -2,7 +2,7 @@ import { AhSettingsService } from "$lib/server/ahSettings";
 import type { AhProduct, AhReceiptProductLine, AhReceiptSummary, ShoppingExportItem } from "$lib/types/ah";
 
 const AH_BASE_URL = "https://api.ah.nl";
-const AH_CLIENT_ID = "appie-ios";
+const AH_CLIENT_ID = "appie";
 const AH_CLIENT_VERSION = "9.28";
 const AH_USER_AGENT = "Appie/9.28 (iPhone17,3; iPhone; CPU OS 26_1 like Mac OS X)";
 
@@ -33,31 +33,38 @@ interface AhSearchResponse {
     products?: AhProductResponse[];
 }
 
-interface AhReceiptListItem {
-    transactionId?: string;
-    transactionMoment?: string;
-    total?: {
-        amount?: {
-            amount?: number;
-            currency?: string;
-        };
-    };
-}
-
-interface AhReceiptDetailResponse {
-    receiptUiItems?: Array<{
-        type?: string;
-        quantity?: string;
-        description?: string;
-        amount?: string;
-        indicator?: string;
-    }>;
-    transactionMoment?: string;
-}
-
 interface AhGraphqlResponse<T> {
     data?: T;
     errors?: Array<{ message?: string }>;
+}
+
+interface AhReceiptsGraphqlData {
+    posReceiptsPage?: {
+        posReceipts?: Array<{
+            id?: string;
+            dateTime?: string;
+            totalAmount?: {
+                amount?: number;
+            };
+        }>;
+    };
+}
+
+interface AhReceiptDetailGraphqlData {
+    posReceiptDetails?: {
+        id?: string;
+        products?: Array<{
+            id?: number;
+            quantity?: number;
+            name?: string;
+            amount?: {
+                amount?: number;
+            };
+            price?: {
+                amount?: number;
+            } | null;
+        }>;
+    };
 }
 
 interface AhMemberGraphqlData {
@@ -85,6 +92,35 @@ const AH_MEMBER_QUERY = `query FetchMember {
         name {
             first
             last
+        }
+    }
+}`;
+
+const AH_RECEIPTS_QUERY = `query FetchPosReceipts($offset: Int!, $limit: Int!) {
+    posReceiptsPage(pagination: {offset: $offset, limit: $limit}) {
+        posReceipts {
+            id
+            dateTime
+            totalAmount {
+                amount
+            }
+        }
+    }
+}`;
+
+const AH_RECEIPT_DETAIL_QUERY = `query FetchReceipt($id: String!) {
+    posReceiptDetails(id: $id) {
+        id
+        products {
+            id
+            quantity
+            name
+            amount {
+                amount
+            }
+            price {
+                amount
+            }
         }
     }
 }`;
@@ -231,12 +267,26 @@ async function requestAuthenticatedAh<T>({
     }
 }
 
-function parseAhQuantity(value: unknown) {
-    if (typeof value !== "string") return undefined;
-    const normalized = value.trim().replace(",", ".");
-    if (!normalized || /bonus/i.test(normalized)) return undefined;
-    const parsed = Number(normalized);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+async function requestAuthenticatedAhGraphql<T>(
+    fetch: typeof globalThis.fetch,
+    query: string,
+    variables: Record<string, unknown>,
+) {
+    const response = await requestAuthenticatedAh<AhGraphqlResponse<T>>({
+        path: "/graphql",
+        method: "POST",
+        body: { query, variables },
+        fetch,
+    });
+    if (response.errors?.length) {
+        throw new AhApiError(response.errors[0]?.message || "Albert Heijn GraphQL request failed.", 502);
+    }
+    if (!response.data) throw new AhApiError("Albert Heijn GraphQL response was missing data.", 502);
+    return response.data;
+}
+
+function formatAmount(value: unknown) {
+    return typeof value === "number" && Number.isFinite(value) ? value.toFixed(2).replace(".", ",") : undefined;
 }
 
 export async function getAhReceipts(
@@ -244,22 +294,31 @@ export async function getAhReceipts(
     limit = 12,
     accessToken?: string,
 ): Promise<AhReceiptSummary[]> {
+    const cappedLimit = Math.min(Math.max(Math.round(limit) || 12, 1), 50);
     const request = {
-        path: "/mobile-services/v1/receipts",
+        path: "/graphql",
+        method: "POST",
+        body: {
+            query: AH_RECEIPTS_QUERY,
+            variables: { offset: 0, limit: cappedLimit },
+        },
         fetch,
     };
-    const receipts = accessToken
-        ? await requestAh<AhReceiptListItem[]>({ ...request, accessToken })
-        : await requestAuthenticatedAh<AhReceiptListItem[]>(request);
-    const cappedLimit = Math.min(Math.max(Math.round(limit) || 12, 1), 50);
+    const data = accessToken
+        ? await requestAh<AhGraphqlResponse<AhReceiptsGraphqlData>>({ ...request, accessToken })
+        : await requestAuthenticatedAh<AhGraphqlResponse<AhReceiptsGraphqlData>>(request);
+    if (data.errors?.length) {
+        throw new AhApiError(data.errors[0]?.message || "Albert Heijn receipts request failed.", 502);
+    }
+    const receipts = data.data?.posReceiptsPage?.posReceipts ?? [];
     return (receipts ?? [])
-        .filter((receipt) => typeof receipt.transactionId === "string" && receipt.transactionId.trim())
+        .filter((receipt) => typeof receipt.id === "string" && receipt.id.trim())
         .slice(0, cappedLimit)
         .map((receipt) => ({
-            transactionId: String(receipt.transactionId),
-            transactionMoment: receipt.transactionMoment,
-            totalAmount: receipt.total?.amount?.amount,
-            totalCurrency: receipt.total?.amount?.currency,
+            transactionId: String(receipt.id),
+            transactionMoment: receipt.dateTime,
+            totalAmount: receipt.totalAmount?.amount,
+            totalCurrency: "EUR",
         }));
 }
 
@@ -271,22 +330,21 @@ export async function getAhReceiptProductLines(
     const lines: AhReceiptProductLine[] = [];
 
     for (const receipt of receipts) {
-        const detail = await requestAuthenticatedAh<AhReceiptDetailResponse>({
-            path: `/mobile-services/v2/receipts/${encodeURIComponent(receipt.transactionId)}`,
+        const detail = await requestAuthenticatedAhGraphql<AhReceiptDetailGraphqlData>(
             fetch,
-        });
-        for (const item of detail.receiptUiItems ?? []) {
-            const description = typeof item.description === "string" ? item.description.trim() : "";
-            if (item.type !== "product" || !description) continue;
-            if (/bonus/i.test(String(item.quantity ?? ""))) continue;
-            if (typeof item.amount === "string" && item.amount.trim().startsWith("-")) continue;
+            AH_RECEIPT_DETAIL_QUERY,
+            { id: receipt.transactionId },
+        );
+        const receiptDetails = detail.posReceiptDetails;
+        for (const item of receiptDetails?.products ?? []) {
+            const description = typeof item.name === "string" ? item.name.trim() : "";
+            if (!description) continue;
             lines.push({
-                transactionId: receipt.transactionId,
-                transactionMoment: detail.transactionMoment || receipt.transactionMoment,
+                transactionId: receiptDetails?.id || receipt.transactionId,
+                transactionMoment: receipt.transactionMoment,
                 description,
-                quantity: parseAhQuantity(item.quantity),
-                amount: item.amount,
-                indicator: item.indicator,
+                quantity: item.quantity,
+                amount: formatAmount(item.amount?.amount),
             });
         }
     }
@@ -393,16 +451,8 @@ export async function exportAhShoppingList(items: ShoppingExportItem[], fetch: t
 }
 
 export async function testAhConnection(fetch: typeof globalThis.fetch) {
-    const response = await requestAuthenticatedAh<AhGraphqlResponse<AhMemberGraphqlData>>({
-        path: "/graphql",
-        method: "POST",
-        body: { query: AH_MEMBER_QUERY, variables: {} },
-        fetch,
-    });
-    if (response.errors?.length) {
-        throw new AhApiError(response.errors[0]?.message || "Albert Heijn member request failed.", 502);
-    }
-    const member = mapAhMember(response.data?.member);
+    const response = await requestAuthenticatedAhGraphql<AhMemberGraphqlData>(fetch, AH_MEMBER_QUERY, {});
+    const member = mapAhMember(response.member);
     if (!member) throw new AhApiError("Albert Heijn member profile was missing.", 502);
     return member;
 }

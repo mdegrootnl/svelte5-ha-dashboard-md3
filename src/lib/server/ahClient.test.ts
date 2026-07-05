@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AhSettingsService } from "./ahSettings";
-import { ahShoppingPayload, mapAhMember, mapAhProduct, testAhConnection } from "./ahClient";
+import { ahShoppingPayload, getAhReceipts, mapAhMember, mapAhProduct, testAhConnection } from "./ahClient";
 
 afterEach(() => {
     vi.restoreAllMocks();
@@ -157,5 +157,42 @@ describe("Albert Heijn client helpers", () => {
         expect(saveSpy).toHaveBeenCalledWith(expect.objectContaining({
             access_token: "fresh-token",
         }));
+    });
+
+    it("loads receipt summaries through AH GraphQL", async () => {
+        vi.spyOn(AhSettingsService, "loadRuntime").mockResolvedValue({
+            accessToken: "receipt-token",
+            expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        });
+        const fetchMock = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({
+            data: {
+                posReceiptsPage: {
+                    posReceipts: [
+                        {
+                            id: "receipt-1",
+                            dateTime: "2026-07-04T10:00:00Z",
+                            totalAmount: { amount: 42.5 },
+                        },
+                    ],
+                },
+            },
+        }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+        }));
+
+        await expect(getAhReceipts(fetchMock as unknown as typeof globalThis.fetch, 7)).resolves.toEqual([
+            {
+                transactionId: "receipt-1",
+                transactionMoment: "2026-07-04T10:00:00Z",
+                totalAmount: 42.5,
+                totalCurrency: "EUR",
+            },
+        ]);
+
+        expect(String(fetchMock.mock.calls[0][0])).toBe("https://api.ah.nl/graphql");
+        expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toMatchObject({
+            variables: { offset: 0, limit: 7 },
+        });
     });
 });
