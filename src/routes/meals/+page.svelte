@@ -63,6 +63,12 @@
         message: string;
     }
 
+    interface AhDiscoveredRecipe {
+        url: string;
+        title: string;
+        sourceUrl: string;
+    }
+
     interface MealieSettingsStatus {
         configured: boolean;
         baseUrl: string;
@@ -102,6 +108,9 @@
     let importingUrls = $state(false);
     let importMessage = $state("");
     let importResults = $state<ImportResult[]>([]);
+    let discoveringAhRecipes = $state(false);
+    let ahDiscoveryMessage = $state("");
+    let ahDiscoveredRecipes = $state<AhDiscoveredRecipe[]>([]);
     let shoppingLists = $state<MealieShoppingList[]>([]);
     let activeShoppingListId = $state("");
     let activeShoppingList = $state<MealieShoppingList | null>(null);
@@ -362,6 +371,82 @@
             plannerMessage = err instanceof Error ? err.message : themeStore.t("meals.planner.deleteFailed");
         } finally {
             deletingPlanId = null;
+        }
+    }
+
+    function isAhAllerhandeRecipeUrl(url: string) {
+        try {
+            const parsed = new URL(url);
+            const host = parsed.hostname.toLowerCase();
+            return (host === "ah.nl" || host === "www.ah.nl")
+                && /^\/allerhande\/recept\/R-[^/?#]+(?:\/[^/?#]+)?$/.test(parsed.pathname);
+        } catch {
+            return false;
+        }
+    }
+
+    function isAhAllerhandeCollectionUrl(url: string) {
+        try {
+            const parsed = new URL(url);
+            const host = parsed.hostname.toLowerCase();
+            return (host === "ah.nl" || host === "www.ah.nl")
+                && parsed.pathname.startsWith("/allerhande")
+                && !isAhAllerhandeRecipeUrl(url);
+        } catch {
+            return false;
+        }
+    }
+
+    function uniqueUrls(urls: string[]) {
+        const seen = new Set<string>();
+        return urls.filter((url) => {
+            if (seen.has(url)) return false;
+            seen.add(url);
+            return true;
+        });
+    }
+
+    async function discoverAhRecipeUrls() {
+        const urls = parsedImportUrls;
+        if (!urls.length) {
+            ahDiscoveryMessage = themeStore.t("meals.import.ahNoUrls");
+            return;
+        }
+
+        discoveringAhRecipes = true;
+        ahDiscoveryMessage = "";
+        ahDiscoveredRecipes = [];
+        try {
+            const discovery = await mealieFetch<{ recipes?: AhDiscoveredRecipe[] }>(
+                "import/ah-recipes",
+                {
+                    method: "POST",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({ urls, limit: 48 }),
+                },
+            );
+
+            const recipes = discovery.recipes ?? [];
+            ahDiscoveredRecipes = recipes;
+            if (!recipes.length) {
+                ahDiscoveryMessage = themeStore.t("meals.import.ahNone");
+                return;
+            }
+
+            const recipeUrls = recipes.map((recipe) => recipe.url);
+            const existingRecipeUrls = urls.filter((url) => !isAhAllerhandeCollectionUrl(url));
+            const merged = uniqueUrls([...existingRecipeUrls, ...recipeUrls]);
+            const existing = new Set(existingRecipeUrls);
+            const addedCount = recipeUrls.filter((url) => !existing.has(url)).length;
+
+            importUrlsText = merged.join("\n");
+            ahDiscoveryMessage = themeStore.t("meals.import.ahDiscovered", { count: addedCount });
+        } catch (err) {
+            ahDiscoveryMessage = err instanceof Error
+                ? err.message
+                : themeStore.t("meals.import.ahDiscoverFailed");
+        } finally {
+            discoveringAhRecipes = false;
         }
     }
 
@@ -1240,7 +1325,7 @@
                             <textarea
                                 bind:value={importUrlsText}
                                 rows="5"
-                                placeholder="https://miljuschka.nl/pasta-alfredo/"
+                                placeholder="https://www.ah.nl/allerhande/recepten-zoeken"
                                 class="min-h-32 w-full resize-y rounded-md border border-m3-outline bg-m3-surface p-4 text-m3-body-large text-m3-on-surface outline-none focus:border-2 focus:border-m3-primary"
                             ></textarea>
 
@@ -1258,6 +1343,16 @@
                                 </span>
                                 <div class="flex-1"></div>
                                 <Button
+                                    variant="outlined"
+                                    onclick={discoverAhRecipeUrls}
+                                    disabled={discoveringAhRecipes || importingUrls || parsedImportUrls.length === 0}
+                                    icon={Search}
+                                >
+                                    {discoveringAhRecipes
+                                        ? themeStore.t("common.loading")
+                                        : themeStore.t("meals.import.discoverAh")}
+                                </Button>
+                                <Button
                                     variant="filled"
                                     onclick={importRecipeUrls}
                                     disabled={importingUrls || parsedImportUrls.length === 0}
@@ -1271,6 +1366,32 @@
                                 <p class="text-m3-body-small text-m3-on-surface-variant">
                                     {importMessage}
                                 </p>
+                            {/if}
+
+                            {#if ahDiscoveryMessage}
+                                <p class="text-m3-body-small text-m3-on-surface-variant">
+                                    {ahDiscoveryMessage}
+                                </p>
+                            {/if}
+
+                            {#if ahDiscoveredRecipes.length}
+                                <div class="grid gap-2 rounded-lg bg-m3-surface-container p-3">
+                                    <h3 class="text-m3-title-small text-m3-on-surface">
+                                        {themeStore.t("meals.import.ahResults")}
+                                    </h3>
+                                    <div class="grid max-h-48 gap-1 overflow-auto">
+                                        {#each ahDiscoveredRecipes as recipe (recipe.url)}
+                                            <a
+                                                href={recipe.url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                class="truncate text-m3-body-small text-m3-primary hover:underline"
+                                            >
+                                                {recipe.title}
+                                            </a>
+                                        {/each}
+                                    </div>
+                                </div>
                             {/if}
 
                             {#if importResults.length}
