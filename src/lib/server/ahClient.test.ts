@@ -195,4 +195,45 @@ describe("Albert Heijn client helpers", () => {
             variables: { offset: 0, limit: 7 },
         });
     });
+
+    it("accepts receipt history auth when the member profile query is forbidden", async () => {
+        vi.spyOn(AhSettingsService, "loadRuntime").mockResolvedValue({
+            accessToken: "receipt-token",
+            refreshToken: "refresh-token",
+            expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        });
+        vi.spyOn(AhSettingsService, "saveTokenResponse").mockResolvedValue();
+        const fetchMock = vi.fn()
+            .mockResolvedValueOnce(new Response(JSON.stringify({ error: "forbidden" }), {
+                status: 403,
+                headers: { "content-type": "application/json" },
+            }))
+            .mockResolvedValueOnce(new Response(JSON.stringify({
+                access_token: "fresh-token",
+                refresh_token: "refresh-token",
+                expires_in: 7200,
+            }), {
+                status: 200,
+                headers: { "content-type": "application/json" },
+            }))
+            .mockResolvedValueOnce(new Response(JSON.stringify({ error: "forbidden" }), {
+                status: 403,
+                headers: { "content-type": "application/json" },
+            }))
+            .mockResolvedValueOnce(new Response(JSON.stringify({
+                data: {
+                    posReceiptsPage: {
+                        posReceipts: [],
+                    },
+                },
+            }), {
+                status: 200,
+                headers: { "content-type": "application/json" },
+            }));
+
+        await expect(testAhConnection(fetchMock as unknown as typeof globalThis.fetch)).resolves.toEqual({});
+        expect(JSON.parse(String(fetchMock.mock.calls[3][1]?.body))).toMatchObject({
+            variables: { offset: 0, limit: 1 },
+        });
+    });
 });
