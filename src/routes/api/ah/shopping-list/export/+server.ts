@@ -32,13 +32,13 @@ function normalizeExportItems(value: unknown): ShoppingExportItem[] {
     return items;
 }
 
-export const POST: RequestHandler = async ({ request, fetch }) => {
+export const POST: RequestHandler = async ({ request }) => {
     const body = await request.json().catch(() => null);
     const items = normalizeExportItems((body as { items?: unknown } | null)?.items);
     if (!items.length) return json({ error: "No exportable shopping items were provided." }, { status: 400 });
 
     try {
-        await exportAhShoppingList(items, fetch);
+        await exportAhShoppingList(items, globalThis.fetch);
         await AhMappingsService.saveFromExportItems(items);
         return json({ success: true, count: items.length });
     } catch (error) {

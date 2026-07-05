@@ -3,9 +3,9 @@ import type { RequestHandler } from "./$types";
 import { AhApiError, testAhConnection } from "$lib/server/ahClient";
 import { AhSettingsService } from "$lib/server/ahSettings";
 
-export const GET: RequestHandler = async ({ fetch }) => {
+export const GET: RequestHandler = async () => {
     try {
-        const member = await testAhConnection(fetch);
+        const member = await testAhConnection(globalThis.fetch);
         return json({ ok: true, member, settings: await AhSettingsService.getStatus() });
     } catch (error) {
         if (error instanceof AhApiError) {
