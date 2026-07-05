@@ -9,7 +9,7 @@ function shouldRewriteBody(response: Response) {
     return TEXT_CONTENT_TYPES.some((type) => contentType.includes(type));
 }
 
-async function proxyAhLogin({ request, params, url, fetch }: Parameters<RequestHandler>[0]) {
+async function proxyAhLogin({ request, params, url }: Parameters<RequestHandler>[0]) {
     const target = new URL(`/${params.path ?? ""}`, "https://login.ah.nl");
     target.search = url.search;
 
@@ -24,7 +24,7 @@ async function proxyAhLogin({ request, params, url, fetch }: Parameters<RequestH
         if (!headers.has("referer")) headers.set("referer", `${LOGIN_ORIGIN}/login`);
     }
 
-    const response = await fetch(target, {
+    const response = await globalThis.fetch(target, {
         method,
         headers,
         body: method === "GET" || method === "HEAD" ? undefined : await request.arrayBuffer(),
