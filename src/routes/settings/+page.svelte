@@ -457,9 +457,10 @@
                 return;
             }
             ahStatus = data.settings || ahStatus;
-            ahMessage = themeStore.t("settings.ah.connectedAs", {
-                name: data.member?.firstName || data.member?.email || themeStore.t("common.unknown"),
-            });
+            const memberName = data.member?.firstName || data.member?.email;
+            ahMessage = memberName
+                ? themeStore.t("settings.ah.connectedAs", { name: memberName })
+                : themeStore.t("settings.ah.connected");
         } catch {
             ahMessage = themeStore.t("settings.ah.unavailable");
         } finally {
