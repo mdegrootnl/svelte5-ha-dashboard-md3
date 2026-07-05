@@ -95,6 +95,8 @@ describe("security headers", () => {
 
         expect(policy).toContain("script-src 'self' 'unsafe-inline' https://hcaptcha.com https://*.hcaptcha.com");
         expect(policy).toContain("connect-src 'self' https://*.ah.nl");
+        expect(policy).toContain("style-src 'self' 'unsafe-inline' https://*.ah.nl");
+        expect(policy).toContain("font-src 'self' data: https://*.ah.nl");
         expect(policy).toContain("https://*.hcaptcha.com");
         expect(policy).toContain("frame-src https://hcaptcha.com https://*.hcaptcha.com");
         expect(policy).toContain("worker-src 'self' blob: https://hcaptcha.com https://*.hcaptcha.com");

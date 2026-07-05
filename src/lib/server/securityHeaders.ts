@@ -74,8 +74,8 @@ export function buildAhAuthProxyContentSecurityPolicy() {
     return [
         "default-src 'self'",
         "script-src 'self' 'unsafe-inline' https://hcaptcha.com https://*.hcaptcha.com",
-        "style-src 'self' 'unsafe-inline' https://hcaptcha.com https://*.hcaptcha.com",
-        "font-src 'self' data: https://*.hcaptcha.com",
+        "style-src 'self' 'unsafe-inline' https://*.ah.nl https://hcaptcha.com https://*.hcaptcha.com",
+        "font-src 'self' data: https://*.ah.nl https://*.hcaptcha.com",
         "connect-src 'self' https://*.ah.nl https://*.ah.be https://*.gall.nl https://*.etos.nl https://hcaptcha.com https://*.hcaptcha.com",
         "img-src 'self' data: blob: https:",
         "frame-src https://hcaptcha.com https://*.hcaptcha.com",
