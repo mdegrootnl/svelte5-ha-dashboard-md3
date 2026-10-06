@@ -13,7 +13,7 @@ interface AhTokenResponse {
     expires_in?: number;
 }
 
-interface AhProductResponse {
+export interface AhProductResponse {
     webshopId?: number;
     hqId?: number;
     title?: string;
@@ -21,12 +21,15 @@ interface AhProductResponse {
     salesUnitSize?: string;
     unitPriceDescription?: string;
     images?: Array<{ url?: string; width?: number; height?: number }>;
-    currentPrice?: number;
-    priceBeforeBonus?: number;
+    currentPrice?: number | null;
+    priceBeforeBonus?: number | null;
     isBonus?: boolean;
     bonusMechanism?: string;
     availableOnline?: boolean;
     isOrderable?: boolean;
+    orderAvailabilityStatus?: string;
+    minBestBeforeDays?: number | null;
+    propertyIcons?: string[];
 }
 
 interface AhSearchResponse {
@@ -386,7 +389,7 @@ export function mapAhMember(member: AhMemberGraphqlData["member"]): AhMember | n
     return mapped.id || mapped.email ? mapped : null;
 }
 
-export async function searchAhProducts(query: string, limit: number, fetch: typeof globalThis.fetch) {
+export async function searchAhProductsRaw(query: string, limit: number, fetch: typeof globalThis.fetch): Promise<AhProductResponse[]> {
     const trimmed = query.trim();
     if (!trimmed) return [];
     const cappedLimit = Math.min(Math.max(limit || 8, 1), 30);
@@ -423,7 +426,19 @@ export async function searchAhProducts(query: string, limit: number, fetch: type
             accessToken: anonymousAccessToken,
         });
     }
-    return (data.products ?? []).map(mapAhProduct).filter((product): product is AhProduct => Boolean(product));
+    return data.products ?? [];
+}
+
+export async function searchAhProducts(query: string, limit: number, fetch: typeof globalThis.fetch) {
+    return (await searchAhProductsRaw(query, limit, fetch)).map(mapAhProduct).filter((product): product is AhProduct => Boolean(product));
+}
+
+export interface AhProductDetailResponse {productId:number;productCard:AhProductResponse;tradeItem?:Record<string,unknown>;}
+export async function getAhProductRaw(id:number,fetch:typeof globalThis.fetch):Promise<AhProductDetailResponse>{
+    if(!Number.isSafeInteger(id)||id<=0)throw new AhApiError('Invalid product ID',400);
+    let accessToken:string;try{accessToken=await getAuthenticatedAhToken(fetch);}catch{accessToken=await getAnonymousAhToken(fetch);}
+    const path=`/mobile-services/product/detail/v4/fir/${id}`;
+    try{return await requestAh<AhProductDetailResponse>({path,fetch,accessToken});}catch(error){if(!(error instanceof AhApiError)||![401,403].includes(error.status))throw error;return requestAh<AhProductDetailResponse>({path,fetch,accessToken:await getAnonymousAhToken(fetch)});}
 }
 
 export function ahShoppingPayload(items: ShoppingExportItem[]) {
