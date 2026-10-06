@@ -27,6 +27,8 @@ vite.config.ts.timestamp-*
 # Local runtime data
 data/config.json
 data/ah-settings.json
+data/ah-owner.json
+data/boodschappenhulp-read-token
 data/ah-product-mappings.json
 data/ha-sessions.json
 data/image-provider-secrets.json
@@ -36,5 +38,6 @@ data/uploads/
 # Scratch/imported asset dumps
 .agent/
 .codex-logs/
+.artifacts/
 .vscode/
 temp_icons_fix/

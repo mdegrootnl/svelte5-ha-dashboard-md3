@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import { getResolvedDataDir } from "$lib/server/dataDir";
 import type { AhSettingsStatus } from "$lib/types/ah";
+import {ahOwner,readFromAhOwner} from './ahOwner';
 
 export interface RuntimeAhSettings {
     accessToken?: string;
@@ -43,6 +44,7 @@ function expiryFromSeconds(expiresIn: unknown) {
 
 export class AhSettingsService {
     static async loadRuntime(): Promise<RuntimeAhSettings> {
+        if(await ahOwner())return {};
         try {
             await ensureDir();
             const content = await fs.readFile(getConfigPath(), "utf-8");
@@ -60,7 +62,9 @@ export class AhSettingsService {
     }
 
     static async saveRuntime(partial: RuntimeAhSettings) {
+        if(await ahOwner())throw Error('AH-tokenbeheer is overgedragen aan Boodschappenhulp');
         saveLock = saveLock.catch(() => undefined).then(async () => {
+            if(await ahOwner())throw Error('AH-tokenbeheer is overgedragen aan Boodschappenhulp');
             await ensureDir();
             const current = await this.loadRuntime();
             const next: RuntimeAhSettings = { ...current };
@@ -122,6 +126,10 @@ export class AhSettingsService {
     }
 
     static async getStatus(): Promise<AhSettingsStatus> {
+        if(await ahOwner()){
+            try{const state=await readFromAhOwner({operation:'status'}) as {state:string;connected:boolean;expiresAt:string|null};return {configured:state.state!=='disconnected',authenticated:state.connected,needsReconnect:['uncertain','reconnect','disconnected'].includes(state.state),expiresAt:state.expiresAt??undefined};}
+            catch{return {configured:true,authenticated:false,needsReconnect:true};}
+        }
         const runtime = await this.loadRuntime();
         const configured = Boolean(runtime.accessToken || runtime.refreshToken);
         const expiresAtTime = runtime.expiresAt ? new Date(runtime.expiresAt).getTime() : 0;
