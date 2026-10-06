@@ -1011,6 +1011,13 @@
 </script>
 
 <PageShell title={themeStore.t("meals.title")} description={themeStore.t("meals.description")}>
+    <div class="px-4 pt-4">
+        <a href="https://boodschappen.degroot.ovh" target="_blank" rel="noopener noreferrer"
+            class="touch-target flex items-center justify-between gap-3 rounded-xl border border-m3-outline-variant bg-m3-surface-container p-4 text-m3-on-surface hover:bg-m3-surface-container-high">
+            <span><strong class="block text-m3-title-medium">Boodschappenhulp</strong><span class="text-m3-body-medium text-m3-on-surface-variant">Open jullie gezinsapp voor weekmenu, voorraad en boodschappen.</span></span>
+            <OpenInNew class="size-5 shrink-0" />
+        </a>
+    </div>
     {#if loading}
         <div class="flex h-full items-center justify-center p-8">
             <div class="flex items-center gap-3 text-m3-on-surface-variant">
