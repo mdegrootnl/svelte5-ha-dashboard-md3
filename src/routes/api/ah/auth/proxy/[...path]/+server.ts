@@ -1,5 +1,6 @@
 import type { RequestHandler } from "./$types";
 import { copyAhProxyResponseHeaders, rewriteAhLoginBody, rewriteAhRequestHeader } from "$lib/server/ahAuthProxy";
+import {ahOwner} from '$lib/server/ahOwner';
 
 const LOGIN_ORIGIN = "https://login.ah.nl";
 const TEXT_CONTENT_TYPES = ["text/html", "javascript", "json", "css"];
@@ -10,6 +11,7 @@ function shouldRewriteBody(response: Response) {
 }
 
 async function proxyAhLogin({ request, params, url }: Parameters<RequestHandler>[0]) {
+    if(await ahOwner())return new Response('AH koppelen via Boodschappenhulp',{status:409});
     const target = new URL(`/${params.path ?? ""}`, "https://login.ah.nl");
     target.search = url.search;
 

@@ -1,5 +1,6 @@
 import { AhSettingsService } from "$lib/server/ahSettings";
 import type { AhProduct, AhReceiptProductLine, AhReceiptSummary, ShoppingExportItem } from "$lib/types/ah";
+import {ahOwner,readFromAhOwner} from './ahOwner';
 
 const AH_BASE_URL = "https://api.ah.nl";
 const AH_CLIENT_ID = "appie";
@@ -207,6 +208,7 @@ export async function getAnonymousAhToken(fetch: typeof globalThis.fetch) {
 }
 
 export async function exchangeAhCode(code: string, fetch: typeof globalThis.fetch) {
+    if(await ahOwner())throw new AhApiError('AH koppelen via Boodschappenhulp',409);
     if (!code.trim()) throw new AhApiError("Albert Heijn login code is missing.", 400);
     const token = await requestAh<AhTokenResponse>({
         path: "/mobile-auth/v1/auth/token",
@@ -220,6 +222,7 @@ export async function exchangeAhCode(code: string, fetch: typeof globalThis.fetc
 }
 
 export async function refreshAhAccessToken(fetch: typeof globalThis.fetch) {
+    if(await ahOwner())throw new AhApiError('AH-tokenbeheer is overgedragen aan Boodschappenhulp',409);
     const runtime = await AhSettingsService.loadRuntime();
     if (!runtime.refreshToken) throw new AhApiError("Albert Heijn refresh token is missing.", 401);
     const token = await requestAh<AhTokenResponse>({
@@ -234,6 +237,7 @@ export async function refreshAhAccessToken(fetch: typeof globalThis.fetch) {
 }
 
 export async function getAuthenticatedAhToken(fetch: typeof globalThis.fetch) {
+    if(await ahOwner())throw new AhApiError('AH-accounttokens worden uitsluitend in Boodschappenhulp gebruikt',401);
     const runtime = await AhSettingsService.loadRuntime();
     if (runtime.accessToken && tokenIsFresh(runtime.expiresAt)) return runtime.accessToken;
     if (runtime.refreshToken) return refreshAhAccessToken(fetch);
@@ -251,6 +255,13 @@ async function requestAuthenticatedAh<T>({
     body?: unknown;
     fetch: typeof globalThis.fetch;
 }) {
+    if(await ahOwner()){
+        const request=body as {query?:string;variables?:Record<string,unknown>}|undefined;
+        if(path!=='/graphql'||method!=='POST')throw new AhApiError('AH-schrijfhandelingen alleen via het mandaat in Boodschappenhulp',403);
+        const operation=request?.query===AH_RECEIPTS_QUERY?'receipts':request?.query===AH_RECEIPT_DETAIL_QUERY?'receipt':request?.query===AH_MEMBER_QUERY?'member':null;
+        if(!operation)throw new AhApiError('Onbekende AH-leesoperatie',403);
+        try{return await readFromAhOwner({operation,...request?.variables},fetch) as T;}catch{throw new AhApiError('AH koppelen of verbinding controleren in Boodschappenhulp',503);}
+    }
     const accessToken = await getAuthenticatedAhToken(fetch);
     try {
         return await requestAh<T>({ path, method, body, fetch, accessToken });
@@ -297,6 +308,7 @@ export async function getAhReceipts(
     limit = 12,
     accessToken?: string,
 ): Promise<AhReceiptSummary[]> {
+    if(accessToken&&await ahOwner())throw new AhApiError('AH-accounttokens worden uitsluitend in Boodschappenhulp gebruikt',409);
     const cappedLimit = Math.min(Math.max(Math.round(limit) || 12, 1), 50);
     const request = {
         path: "/graphql",
