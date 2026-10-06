@@ -72,7 +72,7 @@ describe("/api/ah/shopping-list/export", () => {
                 expect.objectContaining({ normalizedKey: "uien", mode: "product", productId: 123 }),
                 expect.objectContaining({ normalizedKey: "zout naar smaak", mode: "freeText" }),
             ]),
-            fetchMock,
+            globalThis.fetch,
         );
         expect(saveFromExportItems).toHaveBeenCalledTimes(1);
         await expect(response.json()).resolves.toEqual({ success: true, count: 2 });

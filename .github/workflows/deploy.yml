@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
-  group: validate-dashboard-main
+  group: validate-dashboard-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -52,3 +54,17 @@ jobs:
 
       - name: Build
         run: npm run build
+      - name: Build controlled standalone image
+        run: |
+          IMAGE="dashboard:r01-${GITHUB_SHA}"
+          docker build --build-arg BUILD_VERSION="r01-${GITHUB_SHA}" -t "$IMAGE" .
+          mkdir release
+          docker save "$IMAGE" | gzip > release/image.tar.gz
+          printf '%s\n' "$IMAGE" > release/image.txt
+          cd release
+          sha256sum image.tar.gz > image.sha256
+      - uses: actions/upload-artifact@v6
+        with:
+          name: dashboard-deployment
+          path: release
+          retention-days: 14

@@ -37,7 +37,7 @@ describe("/api/ah/products/search", () => {
             fetch: fetchMock,
         } as any);
 
-        expect(searchAhProducts).toHaveBeenCalledWith("uien", 5, fetchMock);
+        expect(searchAhProducts).toHaveBeenCalledWith("uien", 5, globalThis.fetch);
         await expect(response.json()).resolves.toEqual({
             products: [{ id: 123, title: "AH Uien" }],
         });
